@@ -87,6 +87,21 @@ export class L1DataTransportService extends BaseService<L1DataTransportServiceOp
       registers: [this.state.metrics.registry],
     })
 
+    this.state.metrics = new Metrics({
+      labels: {
+        environment: this.options.nodeEnv,
+        network: this.options.ethNetworkName,
+        release: this.options.release,
+        service: this.name,
+      }
+    })
+
+    this.state.failureCounter = new this.state.metrics.client.Counter({
+      name: 'data_transport_layer_main_service_failures',
+      help: 'Counts the number of times that the main service fails',
+      registers: [this.state.metrics.registry],
+    })
+
     this.state.l1TransportServer = new L1TransportServer({
       ...this.options,
       metrics: this.state.metrics,

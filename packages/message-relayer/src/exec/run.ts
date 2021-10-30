@@ -88,8 +88,8 @@ const main = async () => {
   const STORE_DB_URL: string = config.str('store-db-url', env.STORE_DB_URL)
   const RELAY_NUMBER: number = config.uint('relay-number', parseInt(env.RELAY_NUMBER, 10) || 0)
 
-  const l2Provider = new providers.JsonRpcProvider(L2_NODE_WEB3_URL)
-  const l1Provider = new providers.JsonRpcProvider(L1_NODE_WEB3_URL)
+  const l2Provider = new providers.StaticJsonRpcProvider(L2_NODE_WEB3_URL)
+  const l1Provider = new providers.StaticJsonRpcProvider(L1_NODE_WEB3_URL)
 
   let wallet: Wallet
   if (L1_WALLET_KEY) {

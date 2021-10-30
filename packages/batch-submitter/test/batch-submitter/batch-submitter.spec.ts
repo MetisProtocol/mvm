@@ -8,9 +8,11 @@ import ganache from 'ganache-core'
 import sinon from 'sinon'
 import { Web3Provider } from '@ethersproject/providers'
 
-import scc from '@metis.io/contracts/artifacts/contracts/optimistic-ethereum/OVM/chain/OVM_StateCommitmentChain.sol/OVM_StateCommitmentChain.json'
+import scc from '@metis.io/contracts/artifacts/contracts/L1/rollup/StateCommitmentChain.sol/StateCommitmentChain.json'
 import { getContractInterface, predeploys } from '@eth-optimism/contracts'
 import { smockit, MockContract } from '@eth-optimism/smock'
+
+import { getContractFactory } from 'old-contracts'
 
 /* Internal Imports */
 import { MockchainProvider } from './mockchain-provider'
@@ -18,7 +20,6 @@ import {
   makeAddressManager,
   setProxyTarget,
   FORCE_INCLUSION_PERIOD_SECONDS,
-  getContractFactory,
 } from '../helpers'
 import {
   CanonicalTransactionChainContract,
@@ -96,10 +97,7 @@ describe('BatchSubmitter', () => {
       'OVM_Sequencer',
       await sequencer.getAddress()
     )
-    await AddressManager.setAddress(
-      'OVM_DecompressionPrecompileAddress',
-      predeploys.OVM_SequencerEntrypoint
-    )
+
 
     Mock__OVM_ExecutionManager = await smockit(
       await getContractFactory('OVM_ExecutionManager')
@@ -145,9 +143,15 @@ describe('BatchSubmitter', () => {
       'OVM_CanonicalTransactionChain'
     )
 
+    Factory__OVM_CanonicalTransactionChain =
+      Factory__OVM_CanonicalTransactionChain.connect(signer)
+
     Factory__OVM_StateCommitmentChain = await getContractFactory(
       'OVM_StateCommitmentChain'
     )
+
+    Factory__OVM_StateCommitmentChain =
+      Factory__OVM_StateCommitmentChain.connect(signer)
   })
 
   let OVM_CanonicalTransactionChain: CanonicalTransactionChainContract
@@ -159,6 +163,10 @@ describe('BatchSubmitter', () => {
         AddressManager.address,
         FORCE_INCLUSION_PERIOD_SECONDS
       )
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2c741af18943321173153180956f4bf84445a337
     await unwrapped_OVM_CanonicalTransactionChain.init()
 
     await AddressManager.setAddress(
@@ -166,9 +174,14 @@ describe('BatchSubmitter', () => {
       unwrapped_OVM_CanonicalTransactionChain.address
     )
 
+    await AddressManager.setAddress(
+      'CanonicalTransactionChain',
+      unwrapped_OVM_CanonicalTransactionChain.address
+    )
+
     OVM_CanonicalTransactionChain = new CanonicalTransactionChainContract(
       unwrapped_OVM_CanonicalTransactionChain.address,
-      getContractInterface('OVM_CanonicalTransactionChain'),
+      getContractInterface('CanonicalTransactionChain'),
       sequencer
     )
 
@@ -186,9 +199,14 @@ describe('BatchSubmitter', () => {
       unwrapped_OVM_StateCommitmentChain.address
     )
 
+    await AddressManager.setAddress(
+      'StateCommitmentChain',
+      unwrapped_OVM_StateCommitmentChain.address
+    )
+
     OVM_StateCommitmentChain = new Contract(
       unwrapped_OVM_StateCommitmentChain.address,
-      getContractInterface('OVM_StateCommitmentChain'),
+      getContractInterface('StateCommitmentChain'),
       sequencer
     )
 
@@ -228,8 +246,9 @@ describe('BatchSubmitter', () => {
       GAS_THRESHOLD_IN_GWEI,
       txBatchTxSubmitter,
       1,
+      false,
       new Logger({ name: TX_BATCH_SUBMITTER_LOG_TAG }),
-      testMetrics,
+      testMetrics
     )
   }
 

@@ -1,4 +1,3 @@
-import { expect } from 'chai'
 
 /* Imports: External */
 import {
@@ -84,7 +83,7 @@ export const getAddressManager = (provider: any) => {
 
 // Gets the bridge contract
 export const getL1Bridge = async (wallet: Wallet, AddressManager: Contract) => {
-  const l1BridgeInterface = getContractInterface('OVM_L1StandardBridge')
+  const l1BridgeInterface = getContractInterface('L1StandardBridge')
   const ProxyBridgeAddress = await AddressManager.getAddress(
     'Proxy__OVM_L1StandardBridge'
   )
@@ -96,23 +95,23 @@ export const getL1Bridge = async (wallet: Wallet, AddressManager: Contract) => {
     throw new Error('Proxy__OVM_L1StandardBridge not found')
   }
 
-  const OVM_L1StandardBridge = new Contract(
+  const L1StandardBridge = new Contract(
     ProxyBridgeAddress,
     l1BridgeInterface,
     wallet
   )
-  return OVM_L1StandardBridge
+  return L1StandardBridge
 }
 
 export const getL2Bridge = async (wallet: Wallet) => {
-  const L2BridgeInterface = getContractInterface('OVM_L2StandardBridge')
+  const L2BridgeInterface = getContractInterface('L2StandardBridge')
 
-  const OVM_L2StandardBridge = new Contract(
-    predeploys.OVM_L2StandardBridge,
+  const L2StandardBridge = new Contract(
+    predeploys.L2StandardBridge,
     L2BridgeInterface,
     wallet
   )
-  return OVM_L2StandardBridge
+  return L2StandardBridge
 }
 
 export const getOvmEth = (wallet: Wallet) => {
@@ -148,47 +147,12 @@ export const encodeSolidityRevertMessage = (_reason: string): string => {
 
 export const DEFAULT_TRANSACTION = {
   to: '0x' + '1234'.repeat(10),
-  gasLimit: 33600000000001,
+  gasLimit: 8_000_000,
   gasPrice: 0,
   data: '0x',
   value: 0,
 }
 
-interface percentDeviationRange {
-  upperPercentDeviation: number
-  lowerPercentDeviation?: number
-}
-
-export const expectApprox = (
-  actual: BigNumber | number,
-  target: BigNumber | number,
-  { upperPercentDeviation, lowerPercentDeviation = 100 }: percentDeviationRange
-) => {
-  actual = BigNumber.from(actual)
-  target = BigNumber.from(target)
-
-  const validDeviations =
-    upperPercentDeviation >= 0 &&
-    upperPercentDeviation <= 100 &&
-    lowerPercentDeviation >= 0 &&
-    lowerPercentDeviation <= 100
-  if (!validDeviations) {
-    throw new Error(
-      'Upper and lower deviation percentage arguments should be between 0 and 100'
-    )
-  }
-  const upper = target.mul(100 + upperPercentDeviation).div(100)
-  const lower = target.mul(100 - lowerPercentDeviation).div(100)
-
-  expect(
-    actual.lte(upper),
-    `Actual value is more than ${upperPercentDeviation}% greater than target`
-  ).to.be.true
-  expect(
-    actual.gte(lower),
-    `Actual value is more than ${lowerPercentDeviation}% less than target`
-  ).to.be.true
-}
 
 export const waitForL2Geth = async (
   provider: providers.JsonRpcProvider

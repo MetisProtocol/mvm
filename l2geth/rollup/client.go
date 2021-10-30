@@ -131,7 +131,6 @@ type RollupClient interface {
 	GetLatestTransactionBatchIndex() (*uint64, error)
 	GetTransactionBatch(uint64) (*Batch, []*types.Transaction, error)
 	SyncStatus(Backend) (*SyncStatus, error)
-	GetL1GasPrice() (*big.Int, error)
 }
 
 // Client is an HTTP based RollupClient
@@ -623,57 +622,4 @@ func parseTransactionBatchResponse(txBatch *TransactionBatchResponse, signer *ty
 		txs[i] = transaction
 	}
 	return batch, txs, nil
-}
-
-// GetL1GasPrice will return the current gas price on L1
-func (c *Client) GetL1GasPrice() (*big.Int, error) {
-	response, err := c.client.R().
-		SetResult(&L1GasPrice{}).
-		Get("/eth/gasprice")
-
-	if err != nil {
-		return nil, fmt.Errorf("Cannot fetch L1 gas price: %w", err)
-	}
-
-	gasPriceResp, ok := response.Result().(*L1GasPrice)
-	if !ok {
-		return nil, fmt.Errorf("Cannot parse L1 gas price response")
-	}
-
-	gasPrice, ok := new(big.Int).SetString(gasPriceResp.GasPrice, 10)
-	if !ok {
-		return nil, fmt.Errorf("Cannot parse response as big number")
-	}
-
-	price_str := "1"
-	price_resp, err := c.client.R().Get("http://tokenapi.metis.io/priceeth")
-	if err == nil && price_resp.StatusCode() == 200 {
-		price_str = price_resp.String()
-	} else {
-		return nil, fmt.Errorf("Cannot get ratio for metis io")
-	}
-
-	arr := strings.Split(price_str, ".")
-	pointCount := 0
-	if len(arr) == 2 {
-		pointCount = len([]rune(arr[1]))
-		price_str = arr[0] + arr[1]
-	}
-
-	price_eth, ok := new(big.Int).SetString(price_str, 10)
-	if !ok {
-		return nil, fmt.Errorf("Cannot get price eth format for metis io %s", price_str)
-	}
-
-	price_eth = new(big.Int).Mul(price_eth, gasPrice)
-	if pointCount > 0 {
-		pointCountStr := "1"
-		for i := 0; i < pointCount; i++ {
-			pointCountStr += "0"
-		}
-		bigPointCount, _ := new(big.Int).SetString(pointCountStr, 10)
-		price_eth = new(big.Int).Div(price_eth, bigPointCount)
-	}
-
-	return price_eth, nil
 }

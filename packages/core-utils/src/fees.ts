@@ -5,6 +5,7 @@
 import { BigNumber } from 'ethers'
 import { remove0x } from './common'
 
+<<<<<<< HEAD
 const feeScalar = 10_000_000
 const txDataZeroGas = 4
 const txDataNonZeroGasEIP2028 = 16
@@ -71,13 +72,53 @@ export const ceilmod = (a: BigNumber | number, b: BigNumber | number) => {
 }
 
 export const calculateL1GasLimit = (data: string | Buffer): BigNumber => {
-  const [zeroes, ones] = zeroesAndOnes(data)
-  const zeroesCost = zeroes * txDataZeroGas
-  const onesCost = ones * txDataNonZeroGasEIP2028
-  const gasLimit = zeroesCost + onesCost + overhead
-  return BigNumber.from(gasLimit)
+=======
+const txDataZeroGas = 4
+const txDataNonZeroGasEIP2028 = 16
+const big10 = BigNumber.from(10)
+
+export const scaleDecimals = (
+  value: number | BigNumber,
+  decimals: number | BigNumber
+): BigNumber => {
+  value = BigNumber.from(value)
+  decimals = BigNumber.from(decimals)
+  // 10**decimals
+  const divisor = big10.pow(decimals)
+  return value.div(divisor)
 }
 
+// data is the RLP encoded unsigned transaction
+export const calculateL1GasUsed = (
+  data: string | Buffer,
+  overhead: number | BigNumber
+): BigNumber => {
+>>>>>>> 2c741af18943321173153180956f4bf84445a337
+  const [zeroes, ones] = zeroesAndOnes(data)
+  const zeroesCost = zeroes * txDataZeroGas
+  // Add a buffer to account for the signature
+  const onesCost = (ones + 68) * txDataNonZeroGasEIP2028
+  return BigNumber.from(onesCost).add(zeroesCost).add(overhead)
+}
+
+export const calculateL1Fee = (
+  data: string | Buffer,
+  overhead: number | BigNumber,
+  l1GasPrice: number | BigNumber,
+  scalar: number | BigNumber,
+  decimals: number | BigNumber
+): BigNumber => {
+  const l1GasUsed = calculateL1GasUsed(data, overhead)
+  const l1Fee = l1GasUsed.mul(l1GasPrice)
+  const scaled = l1Fee.mul(scalar)
+  const result = scaleDecimals(scaled, decimals)
+  return result
+}
+
+<<<<<<< HEAD
+=======
+// Count the number of zero bytes and non zero bytes in a buffer
+>>>>>>> 2c741af18943321173153180956f4bf84445a337
 export const zeroesAndOnes = (data: Buffer | string): Array<number> => {
   if (typeof data === 'string') {
     data = Buffer.from(remove0x(data), 'hex')

@@ -24,7 +24,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.x'
+          node-version: '14.x'
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
@@ -42,6 +42,9 @@ jobs:
         # only install dependencies if there was a change in the deps
         # if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn install
+
+      - name: Check yarn.lock for changes
+        run: git diff --exit-code
 
       - name: Build
         run: yarn build
@@ -73,7 +76,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.x'
+          node-version: '14.x'
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
@@ -105,6 +108,31 @@ jobs:
           files: ./packages/contracts/coverage.json
           fail_ci_if_error: false
           verbose: true
+          flags: contracts
+      - uses: codecov/codecov-action@v1
+        with:
+          files: ./packages/core-utils/coverage.json
+          fail_ci_if_error: false
+          verbose: true
+          flags: core-utils
+      - uses: codecov/codecov-action@v1
+        with:
+          files: ./packages/batch-submitter/coverage.json
+          fail_ci_if_error: false
+          verbose: true
+          flags: batch-submitter
+      - uses: codecov/codecov-action@v1
+        with:
+          files: ./packages/data-transport-layer/coverage.json
+          fail_ci_if_error: false
+          verbose: true
+          flags: data-transport-layer
+      - uses: codecov/codecov-action@v1
+        with:
+          files: ./packages/message-relayer/coverage.json
+          fail_ci_if_error: false
+          verbose: true
+          flags: message-relayer
   lint:
     name: Linting
     runs-on: ubuntu-latest
@@ -133,5 +161,9 @@ jobs:
         # if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn install
 
-      - name: Lint
-        run: yarn lint:check
+      - name: Lint JS and TS
+        run: yarn lint:ts:check
+
+      - name: Lint Solidity
+        working-directory: ./packages/contracts
+        run: yarn lint:contracts:check

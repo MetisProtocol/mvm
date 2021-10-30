@@ -65,14 +65,14 @@ We need to retrieve the following information reliably:
 
 All relevant data can be retrieved by parsing data from the following functions:
 
-- `OVM_CanonicalTransactionChain.enqueue`
-- `OVM_CanonicalTransactionChain.appendQueueBatch`
-- `OVM_CanonicalTransactionChain.appendSequencerBatch`
-- `OVM_StateCommitmentChain.appendStateBatch`
+- `CanonicalTransactionChain.enqueue`
+- `CanonicalTransactionChain.appendQueueBatch`
+- `CanonicalTransactionChain.appendSequencerBatch`
+- `StateCommitmentChain.appendStateBatch`
 
 #### Enqueued Transactions
 
-Transactions are "enqueued" when users make calls to `OVM_CanonicalTransactionChain.enqueue`.
+Transactions are "enqueued" when users make calls to `CanonicalTransactionChain.enqueue`.
 Calls to this function can be detected by searching for [`TransactionEnqueued`](#transactionenqueued) events.
 All relevant transaction data can be pulled out of the event, here's a pseudocode function for doing so:
 
@@ -371,9 +371,10 @@ function parseSequencerBatchAppendedEvent(
 
 ```solidity
 enum QueueOrigin {
-    SEQUENCER_QUEUE,
-    L1TOL2_QUEUE
+  SEQUENCER_QUEUE,
+  L1TOL2_QUEUE
 }
+
 ```
 
 ### Structs
@@ -382,29 +383,31 @@ enum QueueOrigin {
 
 ```solidity
 struct Transaction {
-    QueueOrigin l1QueueOrigin;
-    uint256     timestamp;
-    uint256     blockNumber;
-    address     l1TxOrigin;
-    address     entrypoint;
-    uint256     gasLimit;
-    bytes       data;
+  QueueOrigin l1QueueOrigin;
+  uint256 timestamp;
+  uint256 blockNumber;
+  address l1TxOrigin;
+  address entrypoint;
+  uint256 gasLimit;
+  bytes data;
 }
+
 ```
 
 #### EnqueuedTransaction
 
 ```solidity
 struct EnqueuedTransaction {
-    QueueOrigin l1QueueOrigin;
-    uint256     timestamp;
-    uint256     blockNumber;
-    address     l1TxOrigin;
-    address     entrypoint;
-    uint256     gasLimit;
-    bytes       data;
-    uint256     queueIndex;
+  QueueOrigin l1QueueOrigin;
+  uint256 timestamp;
+  uint256 blockNumber;
+  address l1TxOrigin;
+  address entrypoint;
+  uint256 gasLimit;
+  bytes data;
+  uint256 queueIndex;
 }
+
 ```
 
 ### Events

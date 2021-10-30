@@ -19,7 +19,7 @@ const deployFn: DeployFunction = async (hre) => {
   console.log(MVM_AddressManager.address,Lib_AddressManager.address)
   await deployAndRegister({
     hre,
-    name: 'OVM_StateCommitmentChain',
+    name: 'StateCommitmentChain',
     args: [
       MVM_AddressManager.address,
       Lib_AddressManager.address,
@@ -29,7 +29,6 @@ const deployFn: DeployFunction = async (hre) => {
   })
 }
 
-deployFn.dependencies = ['Lib_AddressManager']
-deployFn.tags = ['OVM_StateCommitmentChain']
+deployFn.tags = ['StateCommitmentChain', 'upgrade']
 
 export default deployFn

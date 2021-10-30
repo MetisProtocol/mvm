@@ -28,6 +28,7 @@ import { L1DataTransportServiceOptions } from '../main/service'
 export interface L1TransportServerOptions
   extends L1DataTransportServiceOptions {
   db: LevelUp
+  metrics: Metrics
   dbs: TransportDBMapHolder
 }
 

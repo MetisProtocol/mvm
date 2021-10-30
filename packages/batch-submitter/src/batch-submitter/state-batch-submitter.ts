@@ -13,7 +13,7 @@ import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
 import { BlockRange, BatchSubmitter } from '.'
-import { TransactionSubmitter } from '../utils/'
+import { TransactionSubmitter } from '../utils'
 
 export class StateBatchSubmitter extends BatchSubmitter {
   // TODO: Change this so that we calculate start = scc.totalElements() and end = ctc.totalElements()!
@@ -156,6 +156,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     const proposer = parseInt(this.l2ChainId.toString())+"_MVM_Proposer"
     const batch = await this._generateStateCommitmentBatch(startBlock, endBlock)
     const calldata = this.chainContract.interface.encodeFunctionData(
+    //MVM-TODO:revist
       'appendStateBatchByChainId',
       [this.l2ChainId, batch, startBlock, proposer]
     )
@@ -174,6 +175,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
 
     // Generate the transaction we will repeatedly submit
     const nonce = await this.signer.getTransactionCount()
+    
     const tx = await this.chainContract.populateTransaction.appendStateBatchByChainId(
       this.l2ChainId,
       batch,

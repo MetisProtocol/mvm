@@ -102,7 +102,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     contracts: OptimismContracts
     l1RpcProvider: BaseProvider
     startingL1BlockNumber: number
-    l2ChainId: number
   } = {} as any
 
   protected async _init(): Promise<void> {
@@ -155,10 +154,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       this.options.addressManager
     )
 
-    this.state.l2ChainId = ethers.BigNumber.from(
-      await this.state.contracts.OVM_ExecutionManager.ovmCHAINID()
-    ).toNumber()
-
     const startingL1BlockNumber = await this.state.db.getStartingL1Block()
     if (startingL1BlockNumber) {
       this.state.startingL1BlockNumber = startingL1BlockNumber
@@ -177,7 +172,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // Store the total number of submitted transactions so the server can tell clients if we're
     // done syncing or not
     const totalElements =
-      await this.state.contracts.OVM_CanonicalTransactionChain.getTotalElements()
+      await this.state.contracts.CanonicalTransactionChain.getTotalElements()
     if (totalElements > 0) {
       await this.state.db.putHighestL2BlockNumber(totalElements - 1)
     }
@@ -214,7 +209,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         // using Promise.all if necessary, but I don't see a good reason to do so unless parsing is
         // really, really slow for all event types.
         await this._syncEvents(
-          'OVM_CanonicalTransactionChain',
+          'CanonicalTransactionChain',
           'TransactionEnqueued',
           highestSyncedL1Block,
           targetL1Block,
@@ -222,7 +217,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         )
 
         await this._syncEvents(
-          'OVM_CanonicalTransactionChain',
+          'CanonicalTransactionChain',
           'SequencerBatchAppended',
           highestSyncedL1Block,
           targetL1Block,
@@ -230,7 +225,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         )
 
         await this._syncEvents(
-          'OVM_StateCommitmentChain',
+          'StateCommitmentChain',
           'StateBatchAppended',
           highestSyncedL1Block,
           targetL1Block,

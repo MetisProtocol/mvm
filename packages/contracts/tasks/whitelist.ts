@@ -60,6 +60,7 @@ task('whitelist')
 
     const addr = await signer.getAddress()
     console.log(`Using signer: ${addr}`)
+<<<<<<< HEAD
     let owner = await deployerWhitelist.owner()
     console.log(`OVM_DeployerWhitelist owner: ${owner}`)
 
@@ -72,6 +73,14 @@ task('whitelist')
       const receipt = await response.wait()
       console.log(`Initialized whitelist: ${receipt.transactionHash}`)
       owner = await deployerWhitelist.owner()
+=======
+    const owner = await deployerWhitelist.owner()
+    if (owner === '0x0000000000000000000000000000000000000000') {
+      console.log(`Whitelist is disabled. Exiting early.`)
+      return
+    } else {
+      console.log(`OVM_DeployerWhitelist owner: ${owner}`)
+>>>>>>> 2c741af18943321173153180956f4bf84445a337
     }
 
     if (addr !== owner) {

@@ -13,6 +13,11 @@ on:
 jobs:
   integration:
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
     env:
         DOCKER_BUILDKIT: 1
         COMPOSE_DOCKER_CLI_BUILD: 1
@@ -32,78 +37,48 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+      - uses: actions/cache@v2
+        name: Set up layer cache
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-1-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-1-
+
+      - uses: docker/setup-buildx-action@master
+        name: Set up Docker Buildx
+        id: buildx
+        with:
+          version: latest
+          driver-opts: image=moby/buildkit:master,network=host
+
       - name: Build the services
-        working-directory: ./ops
-        run: ./scripts/build-ci.sh
+        run: ./ops/scripts/build-ci.sh
 
       - name: Bring the stack up
         working-directory: ./ops
-        run: docker-compose up -d
+        run: |
+          ./scripts/stats.sh &
+          docker-compose up -d
+
+      - name: Wait for the Sequencer node
+        working-directory: ./ops
+        run: ./scripts/wait-for-sequencer.sh
 
       - name: Run the integration tests
         working-directory: ./ops
         run: docker-compose run integration_tests
-
-      # Examples Tests
-      - name: Test & deploy hardhat-example on Ethereum (regression)
-        working-directory: ./examples/hardhat
-        run: |
-          yarn
-          yarn deploy
-          yarn test:integration
-
-      - name: Test & deploy hardhat-example on Optimistic Ethereum
-        working-directory: ./examples/hardhat
-        run: |
-          yarn deploy:ovm
-          yarn test:integration:ovm
-
-      - name: Test & deploy waffle-example on Ethereum (regression)
-        working-directory: ./examples/waffle
-        run: |
-          yarn
-          yarn compile
-          yarn test:integration
-
-      - name: Test & deploy waffle-example on Optimistic Ethereum
-        working-directory: ./examples/waffle
-        run: |
-          yarn compile:ovm
-          yarn test:integration:ovm
-
-      - name: Test & deploy truffle-example on Ethereum (regression)
-        working-directory: ./examples/truffle
-        run: |
-          yarn
-          yarn compile
-          yarn test:integration
-          yarn deploy
-
-      - name: Test & deploy truffle-example on Optimistic Ethereum
-        working-directory: ./examples/truffle
-        run: |
-          yarn compile:ovm
-          yarn test:integration:ovm
-          yarn deploy:ovm
-      
-      - name: Test l1-l2-deposit-withdrawal example on Optimistic Ethereum with cross-domain message passing
-        working-directory: ./examples/l1-l2-deposit-withdrawal
-        run: |
-          yarn
-          yarn compile
-          yarn compile:ovm
-          yarn test:integration:ovm
 
       - name: Collect docker logs on failure
         if: failure()
         uses: jwalton/gh-docker-logs@v1
         with:
           images: 'ethereumoptimism/builder,ethereumoptimism/hardhat,ethereumoptimism/deployer,ethereumoptimism/data-transport-layer,ethereumoptimism/l2geth,ethereumoptimism/message-relayer,ethereumoptimism/batch-submitter,ethereumoptimism/l2geth,ethereumoptimism/integration-tests'
-          dest: './logs'
+          dest: '/home/runner/logs'
 
       - name: Tar logs
         if: failure()
-        run: tar cvzf ./logs.tgz ./logs
+        run: tar cvzf ./logs.tgz ~/logs
 
       - name: Upload logs to GitHub
         if: failure()
@@ -111,3 +86,11 @@ jobs:
         with:
           name: logs.tgz
           path: ./logs.tgz
+
+      # Needed to address the following bugs:
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

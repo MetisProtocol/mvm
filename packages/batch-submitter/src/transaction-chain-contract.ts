@@ -10,6 +10,7 @@ import {
   //AppendSequencerBatchParams,
   BatchContext,
   encodeAppendSequencerBatch,
+  remove0x,
 } from '@eth-optimism/core-utils'
 
 interface AppendSequencerBatchParams {
@@ -39,6 +40,7 @@ export class CanonicalTransactionChainContract extends Contract {
         from: await this.signer.getAddress(),
         data,
       })
+
       return {
         nonce,
         to,

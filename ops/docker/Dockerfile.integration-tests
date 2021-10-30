@@ -1,4 +1,6 @@
-FROM ethereumoptimism/builder AS builder
+ARG LOCAL_REGISTRY=docker.io
+ARG BUILDER_TAG=latest
+FROM ${LOCAL_REGISTRY}/ethereumoptimism/builder:${BUILDER_TAG} AS builder
 
 FROM node:14-alpine
 
@@ -16,8 +18,6 @@ COPY --from=builder /optimism/packages/core-utils/dist ./packages/core-utils/dis
 COPY --from=builder /optimism/packages/message-relayer/package.json ./packages/message-relayer/package.json
 COPY --from=builder /optimism/packages/message-relayer/dist ./packages/message-relayer/dist
 
-COPY --from=builder /optimism/packages/hardhat-ovm/package.json ./packages/hardhat-ovm/package.json
-COPY --from=builder /optimism/packages/hardhat-ovm/dist ./packages/hardhat-ovm/dist
 
 COPY --from=builder /optimism/packages/contracts ./packages/contracts
 
