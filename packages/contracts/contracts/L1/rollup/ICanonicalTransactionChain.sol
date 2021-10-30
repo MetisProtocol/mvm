@@ -23,15 +23,14 @@ interface ICanonicalTransactionChain {
     event QueuePushed(
         address _sender,
         uint256 _chainId,
-        bytes32 _object,
-        bytes27 _globalMetadata
+        Lib_OVMCodec.QueueElement _object
     );
 
     event QueueSetted(
         address _sender,
         uint256 _chainId,
         uint256 _index,
-        bytes32 _object
+        Lib_OVMCodec.QueueElement _object
     );
 
     event QueueElementDeleted(
@@ -224,27 +223,6 @@ interface ICanonicalTransactionChain {
         // bytes[] _transactionDataFields
     )
         external;
-
-    /**
-     * Verifies whether a transaction is included in the chain.
-     * @param _transaction Transaction to verify.
-     * @param _txChainElement Transaction chain element corresponding to the transaction.
-     * @param _batchHeader Header of the batch the transaction was included in.
-     * @param _inclusionProof Inclusion proof for the provided transaction chain element.
-     * @return True if the transaction exists in the CTC, false if not.
-     */
-    function verifyTransaction(
-        Lib_OVMCodec.Transaction memory _transaction,
-        Lib_OVMCodec.TransactionChainElement memory _txChainElement,
-        Lib_OVMCodec.ChainBatchHeader memory _batchHeader,
-        Lib_OVMCodec.ChainInclusionProof memory _inclusionProof
-    )
-        external
-        view
-        returns (
-            bool
-        );
-        
         
     //added chain id function
     
@@ -378,36 +356,6 @@ interface ICanonicalTransactionChain {
         bytes memory _data
     )
         external;
-
-    /**
-     * Appends a given number of queued transactions as a single batch.
-     * @param _chainId identity for the l2 chain.
-     * @param _numQueuedTransactions Number of transactions to append.
-     */
-    function appendQueueBatchByChainId(
-        uint256 _chainId,
-        uint256 _numQueuedTransactions
-    )
-        external;
-
-    /**
-     * Allows the sequencer to append a batch of transactions.
-     * @dev This function uses a custom encoding scheme for efficiency reasons.
-     * .param _chainId identity for the l2 chain.
-     * .param _shouldStartAtElement Specific batch we expect to start appending to.
-     * .param _totalElementsToAppend Total number of batch elements we expect to append.
-     * .param _contexts Array of batch contexts.
-     * .param _transactionDataFields Array of raw transaction data.
-     */
-    function appendSequencerBatchesByChainId(
-        // uint256 _chainId,
-        // uint40 _shouldStartAtElement,
-        // uint24 _totalElementsToAppend,
-        // BatchContext[] _contexts,
-        // bytes[] _transactionDataFields
-        // all above is a array item content
-    )
-        external;
         
     /**
      * Allows the sequencer to append a batch of transactions.
@@ -426,81 +374,20 @@ interface ICanonicalTransactionChain {
         // bytes[] _transactionDataFields
     )
         external;
-
-    /**
-     * Verifies whether a transaction is included in the chain.
-     * @param _chainId identity for the l2 chain.
-     * @param _transaction Transaction to verify.
-     * @param _txChainElement Transaction chain element corresponding to the transaction.
-     * @param _batchHeader Header of the batch the transaction was included in.
-     * @param _inclusionProof Inclusion proof for the provided transaction chain element.
-     * @return True if the transaction exists in the CTC, false if not.
-     */
-    function verifyTransactionByChainId(
-        uint256 _chainId,
-        Lib_OVMCodec.Transaction memory _transaction,
-        Lib_OVMCodec.TransactionChainElement memory _txChainElement,
-        Lib_OVMCodec.ChainBatchHeader memory _batchHeader,
-        Lib_OVMCodec.ChainInclusionProof memory _inclusionProof
-    )
-        external
-        view
-        returns (
-            bool
-        );
     
-    //-----new for super manager update queue and batches
-    function setQueueGlobalMetadataByChainId(
-        uint256 _chainId,
-        bytes27 _globalMetadata
-    )
-        external;
-    
-    function getQueueGlobalMetadataByChainId(uint256 _chainId)
-        external
-        view
-        returns (
-            bytes27
-        );
-        
-    function lengthQueueByChainId(uint256 _chainId)
-        external
-        view
-        returns (
-            uint256
-        );
-        
     function pushQueueByChainId(
         uint256 _chainId,
-        bytes32 _object,
-        bytes27 _globalMetadata
+        Lib_OVMCodec.QueueElement calldata _object
     )
         external;
 
     function setQueueByChainId(
         uint256 _chainId,
         uint256 _index,
-        bytes32 _object
+        Lib_OVMCodec.QueueElement calldata _object
     )
         external;
 
-    function getQueueByChainId(
-        uint256 _chainId,
-        uint256 _index
-    )
-        external
-        view
-        returns (
-            bytes32
-        );
-        
-    function deleteQueueElementsAfterInclusiveByChainId(
-        uint256 _chainId,
-        uint256 _index,
-        bytes27 _globalMetadata
-    )
-        external;
-    
     function setBatchGlobalMetadataByChainId(
         uint256 _chainId,
         bytes27 _globalMetadata

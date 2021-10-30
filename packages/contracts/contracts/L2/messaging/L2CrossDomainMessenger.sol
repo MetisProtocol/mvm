@@ -95,7 +95,7 @@ contract L2CrossDomainMessenger is IL2CrossDomainMessenger {
         );
 
         // Emit an event before we bump the nonce or the nonce will be off by one.
-        emit SentMessage(_target, msg.sender, _message, messageNonce, _gasLimit);
+        emit SentMessage(_target, msg.sender, _message, messageNonce, _gasLimit, 1); //sending to l1 so chainid set to 1
         messageNonce += 1;
     }
 
@@ -156,4 +156,11 @@ contract L2CrossDomainMessenger is IL2CrossDomainMessenger {
 
         relayedMessages[relayId] = true;
     }
+    
+    function sendMessageViaChainId(
+        uint256 _chainId,
+        address _target,
+        bytes calldata _message,
+        uint32 _gasLimit
+    ) public payable {}
 }

@@ -1,30 +1,12 @@
-<<<<<<< HEAD
-import {
-  ethers,
-  ContractFactory,
-  Signer,
-  providers,
-  Contract,
-  constants,
-} from 'ethers'
-import { Interface } from 'ethers/lib/utils'
-
-export const getContractDefinition = (name: string, ovm?: boolean): any => {
-=======
 import { ethers } from 'ethers'
 
 export const getContractDefinition = (name: string): any => {
->>>>>>> 2c741af18943321173153180956f4bf84445a337
   // We import this using `require` because hardhat tries to build this file when compiling
   // the contracts, but we need the contracts to be compiled before the contract-artifacts.ts
   // file can be generated.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { getContractArtifact } = require('./contract-artifacts')
-<<<<<<< HEAD
-  const artifact = getContractArtifact(name, ovm)
-=======
   const artifact = getContractArtifact(name)
->>>>>>> 2c741af18943321173153180956f4bf84445a337
   if (artifact === undefined) {
     throw new Error(`Unable to find artifact for contract: ${name}`)
   }

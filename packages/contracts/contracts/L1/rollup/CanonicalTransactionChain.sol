@@ -313,7 +313,8 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
         emit SequencerBatchAppended(
             nextQueueIndex - numQueuedTransactions,
             numQueuedTransactions,
-            getTotalElements()
+            getTotalElements(),
+            DEFAULT_CHAINID
         );
 
         // Update the _nextQueueIndex storage variable.
@@ -452,6 +453,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
         });
 
         emit TransactionBatchAppended(
+            DEFAULT_CHAINID,
             header.batchIndex,
             header.batchRoot,
             header.batchSize,
@@ -681,7 +683,27 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
             block.timestamp
         );
     }
-    
+    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        while (_i != 0) {
+            k = k-1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
+    }
     /**
      * Allows the sequencer to append a batch of transactions.
      * @dev This function uses a custom encoding scheme for efficiency reasons.
@@ -690,30 +712,6 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
      * .param _contexts Array of batch contexts.
      * .param _transactionDataFields Array of raw transaction data.
      */
-
-     function makeChainSeq(uint256 i) internal returns (string memory c) {
-        if (i == 0) return "0";
-        uint j = i;
-        uint length;
-
-        while (j != 0){
-            length++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(length+14);
-        uint k = length - 1;
-        while (i != 0){
-            bstr[k--] = byte(uint8(48 + i % 10));
-            i /= 10;
-        }
-        string memory s="_MVM_Sequencer";
-        bytes memory _bb=bytes(s);
-        k = length;
-        for (i = 0; i < 14; i++)
-            bstr[k++] = _bb[i];
-        c = string(bstr);
-    }
-
     function appendSequencerBatchByChainId()
         override
         public
@@ -734,9 +732,8 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
             "Actual batch start index does not match expected start index."
         );
         
-        string memory ch = makeChainSeq(_chainId);
         require(
-            msg.sender == resolveFromMvm(ch),
+            msg.sender == resolveFromMvm(string(abi.encodePacked(uint2str(_chainId),"_MVM_Sequencer"))),
             "Function can only be called by the Sequencer for resolveFromMvm."
         );
 
@@ -760,7 +757,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
             "Not enough BatchContexts provided."
         );
         
-        / Cache the _nextQueueIndex storage variable to a temporary stack variable.
+        // Cache the _nextQueueIndex storage variable to a temporary stack variable.
         // This is safe as long as nothing reads or writes to the storage variable
         // until it is updated by the temp variable.
         uint40 nextQueueIndex = _nextQueueIndex[_chainId];
@@ -787,7 +784,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
         );
 
         // Generate the required metadata that we need to append this batch
-        uint40 numQueuedTransactions = totalElementsToAppend - d.numSequencerTransactions;
+        uint40 numQueuedTransactions = totalElementsToAppend - numSequencerTransactions;
         uint40 blockTimestamp;
         uint40 blockNumber;
         if (curContext.numSubsequentQueueTransactions == 0) {
@@ -914,7 +911,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
     /**
      * Encodes the batch context for the extra data.
      * @param _totalElements Total number of elements submitted.
-     * @param _nextQueueIndex Index of the next queue element.
+     * @param _nextQueueIdx Index of the next queue element.
      * @param _timestamp Timestamp for the last batch.
      * @param _blockNumber Block number of the last batch.
      * @return Encoded batch context.
@@ -922,7 +919,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
     function _makeBatchExtraDataByChainId(
         uint256 _chainId,
         uint40 _totalElements,
-        uint40 _nextQueueIndex,
+        uint40 _nextQueueIdx,
         uint40 _timestamp,
         uint40 _blockNumber
     )
@@ -935,7 +932,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
         bytes27 extraData;
         assembly {
             extraData := _totalElements
-            extraData := or(extraData, shl(40, _nextQueueIndex))
+            extraData := or(extraData, shl(40, _nextQueueIdx))
             extraData := or(extraData, shl(80, _timestamp))
             extraData := or(extraData, shl(120, _blockNumber))
             extraData := shl(40, extraData)
@@ -1004,7 +1001,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
 
     function pushQueueByChainId(
         uint256 _chainId,
-        bytes32 _object
+        Lib_OVMCodec.QueueElement calldata _object
     )
         override
         public
@@ -1017,7 +1014,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
     function setQueueByChainId(
         uint256 _chainId,
         uint256 _index,
-        bytes32 _object
+        Lib_OVMCodec.QueueElement calldata _object
     )
         override
         public

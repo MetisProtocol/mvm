@@ -128,19 +128,6 @@ interface IStateCommitmentChain {
         returns (
             uint256 _lastSequencerTimestamp
         );
-
-    /**
-     * Appends a batch of state roots to the chain.
-     * @param _chainId identity for the l2 chain.
-     * @param _batch Batch of state roots.
-     * @param _shouldStartAtElement Index of the element at which this batch should start.
-     */
-    function appendStateBatchesByChainId(
-        uint256[] memory _chainId,
-        bytes32[][] calldata _batch,
-        uint256[] memory _shouldStartAtElement
-    )
-        external;
         
     /**
      * Appends a batch of state roots to the chain.

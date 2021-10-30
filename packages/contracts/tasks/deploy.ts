@@ -4,19 +4,9 @@ import { task } from 'hardhat/config'
 import * as types from 'hardhat/internal/core/params/argumentTypes'
 
 const DEFAULT_L1_BLOCK_TIME_SECONDS = 15
-<<<<<<< HEAD
-const DEFAULT_CTC_FORCE_INCLUSION_PERIOD_SECONDS = 60 * 60 * 24 * 30 // 30 days
-const DEFAULT_CTC_MAX_TRANSACTION_GAS_LIMIT = 11_000_000
-const DEFAULT_EM_MIN_TRANSACTION_GAS_LIMIT = 50_000
-const DEFAULT_EM_MAX_TRANSACTION_GAS_LIMIT = 11_000_000
-const DEFAULT_EM_MAX_GAS_PER_QUEUE_PER_EPOCH = 250_000_000
-const DEFAULT_EM_SECONDS_PER_EPOCH = 0
-const DEFAULT_EM_OVM_CHAIN_ID = 420
-=======
 const DEFAULT_CTC_MAX_TRANSACTION_GAS_LIMIT = 11_000_000
 const DEFAULT_CTC_L2_GAS_DISCOUNT_DIVISOR = 32
 const DEFAULT_CTC_ENQUEUE_GAS_COST = 60_000
->>>>>>> 2c741af18943321173153180956f4bf84445a337
 const DEFAULT_SCC_FRAUD_PROOF_WINDOW = 60 * 60 * 24 * 7 // 7 days
 const DEFAULT_SCC_SEQUENCER_PUBLISH_WINDOW = 60 * 30 // 30 minutes
 const DEFAULT_DEPLOY_CONFIRMATIONS = 12
@@ -76,8 +66,6 @@ task('deploy')
     undefined,
     types.string
   )
-<<<<<<< HEAD
-=======
   .addOptionalParam(
     'numDeployConfirmations',
     'Number of confirmations to wait for each transaction in the deployment. More is safer.',
@@ -90,7 +78,6 @@ task('deploy')
     undefined,
     types.string
   )
->>>>>>> 2c741af18943321173153180956f4bf84445a337
   .setAction(async (args, hre: any, runSuper) => {
     // Necessary because hardhat doesn't let us attach non-optional parameters to existing tasks.
     const validateAddressArg = (argName: string) => {

@@ -13,6 +13,7 @@ import { Lib_PredeployAddresses } from "../../libraries/constants/Lib_PredeployA
 
 /* Contract Imports */
 import { IL2StandardERC20 } from "../../standards/IL2StandardERC20.sol";
+import { OVM_GasPriceOracle } from "../predeploys/OVM_GasPriceOracle.sol";
 
 /**
  * @title L2StandardBridge
@@ -64,7 +65,7 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
         uint256 _amount,
         uint32 _l1Gas,
         bytes calldata _data
-    ) external virtual {
+    ) external payable virtual {
         _initiateWithdrawal(_l2Token, msg.sender, msg.sender, _amount, _l1Gas, _data);
     }
 
@@ -77,7 +78,7 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
         uint256 _amount,
         uint32 _l1Gas,
         bytes calldata _data
-    ) external virtual {
+    ) external payable virtual {
         _initiateWithdrawal(_l2Token, msg.sender, _to, _amount, _l1Gas, _data);
     }
 
@@ -101,7 +102,7 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
         uint32 _l1Gas,
         bytes calldata _data
     ) internal {
-        uint256 minL1Gas = MVM_GasOracle(Lib_PredeployAddresses.MVM_GAS_ORACLE).minL1GasLimit();
+        uint256 minL1Gas = OVM_GasPriceOracle(Lib_PredeployAddresses.OVM_GASPRICE_ORACLE).minErc20BridgeCost();
         
         require (msg.value >= minL1Gas, 
                  string(abi.encodePacked("insufficient withdrawal fee supplied. need at least ", uint2str(minL1Gas))));
@@ -125,7 +126,7 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
                     );
         } else if (_l2Token == Lib_PredeployAddresses.MVM_COINBASE) {
             message = abi.encodeWithSelector(
-                        IL1StandardBridge.finalizeMetisWithdrawalByChainId.selector,
+                        IL1ERC20Bridge.finalizeMetisWithdrawalByChainId.selector,
                         getChainID(),
                         _from,
                         _to,
@@ -134,7 +135,7 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
                     );
         } else {
             message = abi.encodeWithSelector(
-                        IL1StandardBridge.finalizeERC20WithdrawalByChainId.selector,
+                        IL1ERC20Bridge.finalizeERC20WithdrawalByChainId.selector,
                         getChainID(),
                         l1Token,
                         _l2Token,
@@ -215,23 +216,26 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
     }
     
     function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
-         if (_i == 0) {
-             return "0";
-         }
-         uint j = _i;
-         uint len;
-         while (j != 0) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
             len++;
             j /= 10;
-         }
-         bytes memory bstr = new bytes(len);
-         uint k = len - 1;
-         while (_i != 0) {
-            bstr[k--] = byte(uint8(48 + _i % 10));
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        while (_i != 0) {
+            k = k-1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
             _i /= 10;
-         }
-         return string(bstr);
-   }
+        }
+        return string(bstr);
+    }
     
     
 }

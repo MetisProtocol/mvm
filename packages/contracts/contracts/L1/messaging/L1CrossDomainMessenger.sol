@@ -15,6 +15,7 @@ import { Lib_CrossDomainUtils } from "../../libraries/bridge/Lib_CrossDomainUtil
 import { IL1CrossDomainMessenger } from "./IL1CrossDomainMessenger.sol";
 import { ICanonicalTransactionChain } from "../rollup/ICanonicalTransactionChain.sol";
 import { IStateCommitmentChain } from "../rollup/IStateCommitmentChain.sol";
+import { iMVM_DiscountOracle } from "../../MVM/MVM_DiscountOracle.sol";
 
 /* External Imports */
 import {
@@ -185,15 +186,7 @@ contract L1CrossDomainMessenger is
         address ovmCanonicalTransactionChain = resolve("OVM_CanonicalTransactionChain");
         
         // Use the CTC queue length as nonce
-        uint40 nonce = iOVM_CanonicalTransactionChain(ovmCanonicalTransactionChain).getQueueLengthByChainId(_chainId);
-
-        bytes memory xDomainCalldata = Lib_CrossDomainUtils.encodeXDomainCalldataViaChainId(
-            _chainId,
-            _target,
-            msg.sender,
-            _message,
-            nonce
-        );
+        uint40 nonce = ICanonicalTransactionChain(ovmCanonicalTransactionChain).getQueueLengthByChainId(_chainId);
 
         bytes memory xDomainCalldataRaw = Lib_CrossDomainUtils.encodeXDomainCalldata(
             _target,
@@ -202,7 +195,6 @@ contract L1CrossDomainMessenger is
             nonce
         );
         
-        address l2CrossDomainMessenger = resolve("OVM_L2CrossDomainMessenger");
         _sendXDomainMessageViaChainId(
             _chainId,
             ovmCanonicalTransactionChain,
@@ -223,15 +215,51 @@ contract L1CrossDomainMessenger is
         uint256 _messageNonce,
         L2MessageInclusionProof memory _proof
     ) public nonReentrant whenNotPaused {
+        relayMessageViaChainId(DEFAULT_CHAINID, _target, _sender,
+                               _message, _messageNonce, _proof);
+    }
+
+    /**
+     * Replays a cross domain message to the target messenger.
+     * @inheritdoc IL1CrossDomainMessenger
+     */
+    function replayMessage(
+        address _target,
+        address _sender,
+        bytes memory _message,
+        uint256 _queueIndex,
+        uint32 _oldGasLimit,
+        uint32 _newGasLimit
+    ) public payable{
+        replayMessageViaChainId(DEFAULT_CHAINID, _target, _sender, _message,
+                                _queueIndex, _oldGasLimit, _newGasLimit);
+    }
+    
+    function relayMessageViaChainId(
+        uint256 _chainId,
+        address _target,
+        address _sender,
+        bytes memory _message,
+        uint256 _messageNonce,
+        L2MessageInclusionProof memory _proof
+    )
+        override
+        public
+        nonReentrant
+        whenNotPaused
+    {
         bytes memory xDomainCalldata = Lib_CrossDomainUtils.encodeXDomainCalldata(
             _target,
             _sender,
             _message,
             _messageNonce
         );
-
         require(
-            _verifyXDomainMessage(xDomainCalldata, _proof) == true,
+            _verifyXDomainMessageByChainId(
+                _chainId,
+                xDomainCalldata,
+                _proof
+            ) == true,
             "Provided message could not be verified."
         );
 
@@ -248,7 +276,7 @@ contract L1CrossDomainMessenger is
         );
 
         require(
-            _target != resolve("CanonicalTransactionChain"),
+            _target != resolve("OVM_CanonicalTransactionChain"),
             "Cannot send L2->L1 messages to L1 system contracts."
         );
 
@@ -267,59 +295,18 @@ contract L1CrossDomainMessenger is
 
         // Store an identifier that can be used to prove that the given message was relayed by some
         // user. Gives us an easy way to pay relayers for their work.
-        bytes32 relayId = keccak256(abi.encodePacked(xDomainCalldata, msg.sender, block.number));
-        relayedMessages[relayId] = true;
-    }
-
-    /**
-     * Replays a cross domain message to the target messenger.
-     * @inheritdoc IL1CrossDomainMessenger
-     */
-    function replayMessage(
-        address _target,
-        address _sender,
-        bytes memory _message,
-        uint256 _queueIndex,
-        uint32 _oldGasLimit,
-        uint32 _newGasLimit
-    ) public payable{
-        // Verify that the message is in the queue:
-        address canonicalTransactionChain = resolve("CanonicalTransactionChain");
-        Lib_OVMCodec.QueueElement memory element = ICanonicalTransactionChain(
-            canonicalTransactionChain
-        ).getQueueElement(_queueIndex);
-
-        // Compute the calldata that was originally used to send the message.
-        bytes memory xDomainCalldata = Lib_CrossDomainUtils.encodeXDomainCalldata(
-            _target,
-            _sender,
-            _message,
-            _queueIndex
-        );
-
-        // Compute the transactionHash
-        bytes32 transactionHash = keccak256(
-            abi.encode(
-                AddressAliasHelper.applyL1ToL2Alias(address(this)),
-                Lib_PredeployAddresses.L2_CROSS_DOMAIN_MESSENGER,
-                _oldGasLimit,
-                xDomainCalldata
+        bytes32 relayId = keccak256(
+            abi.encodePacked(
+                xDomainCalldata,
+                msg.sender,
+                block.number
             )
         );
-
-        // Now check that the provided message data matches the one in the queue element.
-        require(
-            transactionHash == element.transactionHash,
-            "Provided message has not been enqueued."
-        );
-
-        // Send the same message but with the new gas limit.
-        _sendXDomainMessage(canonicalTransactionChain, xDomainCalldata, _newGasLimit);
+        relayedMessages[relayId] = true;
     }
-    
     /**
      * Replays a cross domain message to the target messenger.
-     * @inheritdoc iOVM_L1CrossDomainMessenger
+     * 
      */
     function replayMessageViaChainId(
         uint256 _chainId,
@@ -339,6 +326,14 @@ contract L1CrossDomainMessenger is
         address canonicalTransactionChain = resolve("CanonicalTransactionChain");
         Lib_OVMCodec.QueueElement memory element =
             ICanonicalTransactionChain(canonicalTransactionChain).getQueueElementByChainId(_chainId, _queueIndex);
+        
+        //Compute the calldata that was originally used to send the message.
+        bytes memory xDomainCalldata = Lib_CrossDomainUtils.encodeXDomainCalldata(
+            _target,
+            _sender,
+            _message,
+            _queueIndex
+        );
 
         // Compute the transactionHash
         bytes32 transactionHash = keccak256(
@@ -355,18 +350,12 @@ contract L1CrossDomainMessenger is
             "Provided message has not been enqueued."
         );
 
-        bytes memory xDomainCalldataRaw = Lib_CrossDomainUtils.encodeXDomainCalldata(
-            _target,
-            _sender,
-            _message,
-            _queueIndex
-        );
 
         _sendXDomainMessageViaChainId(
             _chainId,
             canonicalTransactionChain,
-            xDomainCalldataRaw,
-            _gasLimit
+            xDomainCalldata,
+            _newGasLimit
         );
     }
 
@@ -419,7 +408,7 @@ contract L1CrossDomainMessenger is
     function _verifyStorageProof(
         bytes memory _xDomainCalldata,
         L2MessageInclusionProof memory _proof
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         bytes32 storageKey = keccak256(
             abi.encodePacked(
                 keccak256(
@@ -601,31 +590,9 @@ contract L1CrossDomainMessenger is
     {
         ICanonicalTransactionChain(_canonicalTransactionChain).enqueueByChainId(
             _chainId,
+            Lib_PredeployAddresses.L2_CROSS_DOMAIN_MESSENGER,
             _gasLimit,
             _message
         );
-    }
-    
-    function makeChainSeq(uint256 i) pure internal returns (string memory c) {
-        if (i == 0) return "0";
-        uint j = i;
-        uint length;
-
-        while (j != 0){
-            length++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(length+14);
-        uint k = length - 1;
-        while (i != 0){
-            bstr[k--] = byte(uint8(48 + i % 10));
-            i /= 10;
-        }
-        string memory s="_MVM_Sequencer";
-        bytes memory _bb=bytes(s);
-        k = length;
-        for (i = 0; i < 14; i++)
-            bstr[k++] = _bb[i];
-        c = string(bstr);
     }
 }

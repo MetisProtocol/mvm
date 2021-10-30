@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >0.5.0 <0.8.0;
+pragma solidity ^0.8.9;
 
 /* Library Imports */
 import { MVM_AddressManager } from "./MVM_AddressManager.sol";

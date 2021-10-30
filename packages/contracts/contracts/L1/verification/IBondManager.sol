@@ -10,4 +10,9 @@ interface IBondManager {
      ********************/
 
     function isCollateralized(address _who) external view returns (bool);
+    function isCollateralizedByChainId(
+        uint256 _chainId,
+        address _who,
+        address _prop
+    ) external view returns (bool);
 }

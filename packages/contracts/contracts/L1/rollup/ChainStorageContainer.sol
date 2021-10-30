@@ -78,6 +78,18 @@ contract ChainStorageContainer is IChainStorageContainer, Lib_AddressResolver {
         return setGlobalMetadataByChainId(DEFAULT_CHAINID,_globalMetadata);
     }
     
+    function setByChainId(
+        uint256 _chainId,
+        uint256 _index,
+        bytes32 _object
+    )
+        override
+        public
+        onlyOwner
+    {
+        buffers[_chainId].set(_index, _object);
+    }
+    
     /**
      * @inheritdoc IChainStorageContainer
      */

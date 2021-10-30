@@ -12,6 +12,8 @@ import { CrossDomainEnabled } from "../../libraries/bridge/CrossDomainEnabled.so
 import { Lib_PredeployAddresses } from "../../libraries/constants/Lib_PredeployAddresses.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { iMVM_DiscountOracle } from "../../MVM/iMVM_DiscountOracle.sol";
+import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
 
 /**
  * @title L1StandardBridge
@@ -29,9 +31,14 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
      ********************************/
 
     address public l2TokenBridge;
+    address public metis;
+    address public addressmgr;
 
-    // Maps L1 token to L2 token to balance of the L1 token deposited
-    mapping(address => mapping(address => uint256)) public deposits;
+    // Maps L1 token to chainid to L2 token to balance of the L1 token deposited
+    mapping(address => mapping (uint256 => mapping (address => uint256))) public deposits;
+
+    
+    uint256 constant public DEFAULT_CHAINID = 1088;
 
     /***************
      * Constructor *
@@ -48,10 +55,19 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
      * @param _l1messenger L1 Messenger address being used for cross-chain communications.
      * @param _l2TokenBridge L2 standard bridge address.
      */
-    function initialize(address _l1messenger, address _l2TokenBridge) public {
+    function initialize(
+        address _l1messenger,
+        address _l2TokenBridge,
+        address _metis,
+        address _addressmgr
+    )
+        public
+    {
         require(messenger == address(0), "Contract has already been initialized.");
         messenger = _l1messenger;
         l2TokenBridge = _l2TokenBridge;
+        metis = _metis;
+        addressmgr = _addressmgr;
     }
 
     /**************
@@ -68,20 +84,36 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
     }
 
     /**
-     * @dev This function can be called with no data
-     * to deposit an amount of ETH to the caller's balance on L2.
-     * Since the receive function doesn't take data, a conservative
-     * default amount is forwarded to L2.
+     * @dev do not accept no data call
      */
-    receive() external payable onlyEOA {
-        _initiateETHDeposit(msg.sender, msg.sender, 200_000, bytes(""));
-    }
+    //receive() external payable onlyEOA {
+    //    _initiateETHDeposit(msg.sender, msg.sender, 200_000, bytes(""));
+    //}
 
     /**
      * @inheritdoc IL1StandardBridge
      */
     function depositETH(uint32 _l2Gas, bytes calldata _data) external payable onlyEOA {
         _initiateETHDeposit(msg.sender, msg.sender, _l2Gas, _data);
+    }
+    
+    function depositETHByChainId(
+        uint256 _chainId,
+        uint32 _l2Gas,
+        bytes calldata _data
+    )
+        external
+        override
+        payable
+        onlyEOA()
+    {
+        _initiateETHDepositByChainId(
+            _chainId,
+            msg.sender,
+            msg.sender,
+            _l2Gas,
+            _data
+        );
     }
 
     /**
@@ -93,6 +125,25 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         bytes calldata _data
     ) external payable {
         _initiateETHDeposit(msg.sender, _to, _l2Gas, _data);
+    }
+    
+    function depositETHToByChainId(
+        uint256 _chainId,
+        address _to,
+        uint32 _l2Gas,
+        bytes calldata _data
+    )
+        external
+        override
+        payable
+    {
+        _initiateETHDepositByChainId(
+            _chainId,
+            msg.sender,
+            _to,
+            _l2Gas,
+            _data
+        );
     }
 
     /**
@@ -111,21 +162,49 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         uint32 _l2Gas,
         bytes memory _data
     ) internal {
+        _initiateETHDepositByChainId(DEFAULT_CHAINID, _from, _to, _l2Gas, _data);
+    }
+    
+    function _initiateETHDepositByChainId(
+        uint256 _chainId,
+        address _from,
+        address _to,
+        uint32 _l2Gas,
+        bytes memory _data
+    )
+        internal
+    {
+    
+        iMVM_DiscountOracle oracle = iMVM_DiscountOracle(Lib_AddressManager(addressmgr).getAddress('MVM_DiscountOracle'));
+        uint32 mingas = uint32(oracle.getMinL2Gas());
+        if (_l2Gas < mingas) {
+            _l2Gas = mingas;
+        }
+        uint256 fee = _l2Gas / oracle.getDiscount();
+        
+        require(fee <= msg.value, string(abi.encodePacked("insufficient fee supplied. send at least ", uint2str(fee))));
         // Construct calldata for finalizeDeposit call
-        bytes memory message = abi.encodeWithSelector(
-            IL2ERC20Bridge.finalizeDeposit.selector,
-            address(0),
-            Lib_PredeployAddresses.OVM_ETH,
-            _from,
-            _to,
-            msg.value,
-            _data
+        bytes memory message =
+            abi.encodeWithSelector(
+                IL2ERC20Bridge.finalizeDeposit.selector,
+                address(0),
+                Lib_PredeployAddresses.OVM_ETH,
+                _from,
+                _to,
+                msg.value - fee,
+                _data
+            );
+        
+        // Send calldata into L2
+        sendCrossDomainMessageViaChainId(
+            _chainId,
+            l2TokenBridge,
+            _l2Gas,
+            message,
+            fee  // only send the supplied fees over (obviously)
         );
 
-        // Send calldata into L2
-        sendCrossDomainMessage(l2TokenBridge, _l2Gas, message);
-
-        emit ETHDepositInitiated(_from, _to, msg.value, _data);
+        emit ETHDepositInitiated(_from, _to, msg.value, _data, _chainId);
     }
 
     /**
@@ -138,7 +217,7 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         uint32 _l2Gas,
         bytes calldata _data
     ) external virtual onlyEOA {
-        _initiateERC20Deposit(_l1Token, _l2Token, msg.sender, msg.sender, _amount, _l2Gas, _data);
+        _initiateERC20DepositByChainId(DEFAULT_CHAINID, _l1Token, _l2Token, msg.sender, msg.sender, _amount, _l2Gas, _data);
     }
 
     /**
@@ -152,7 +231,40 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         uint32 _l2Gas,
         bytes calldata _data
     ) external virtual {
-        _initiateERC20Deposit(_l1Token, _l2Token, msg.sender, _to, _amount, _l2Gas, _data);
+        _initiateERC20DepositByChainId(DEFAULT_CHAINID, _l1Token, _l2Token, msg.sender, _to, _amount, _l2Gas, _data);
+    }
+    function depositERC20ByChainId(
+        uint256 _chainid,
+        address _l1Token,
+        address _l2Token,
+        uint256 _amount,
+        uint32 _l2Gas,
+        bytes calldata _data
+    )
+        external
+        override
+        virtual
+        payable
+        onlyEOA()
+    {
+        _initiateERC20DepositByChainId(_chainid, _l1Token, _l2Token, msg.sender, msg.sender, _amount, _l2Gas, _data);
+    }
+    
+    function depositERC20ToByChainId(
+        uint256 _chainid,
+        address _l1Token,
+        address _l2Token,
+        address _to,
+        uint256 _amount,
+        uint32 _l2Gas,
+        bytes calldata _data
+    )
+        external
+        override
+        payable
+        virtual
+    {
+        _initiateERC20DepositByChainId(_chainid, _l1Token, _l2Token, msg.sender, _to, _amount, _l2Gas, _data);
     }
 
     /**
@@ -178,28 +290,83 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         uint32 _l2Gas,
         bytes calldata _data
     ) internal {
+        _initiateERC20DepositByChainId(DEFAULT_CHAINID, _l1Token, _l2Token, _from, _to, _amount, _l2Gas, _data);
+    }
+    
+    function _initiateERC20DepositByChainId(
+        uint256 _chainId,
+        address _l1Token,
+        address _l2Token,
+        address _from,
+        address _to,
+        uint256 _amount,
+        uint32 _l2Gas,
+        bytes calldata _data
+    )
+        internal
+    {
+        iMVM_DiscountOracle oracle = iMVM_DiscountOracle(Lib_AddressManager(addressmgr).getAddress('MVM_DiscountOracle'));
+        
+        // stack too deep. so no more local variables
+        if (_l2Gas < uint32(oracle.getMinL2Gas())) {
+            _l2Gas = uint32(oracle.getMinL2Gas());
+        }
+        
+        require(_l2Gas / oracle.getDiscount() <= msg.value, 
+                string(abi.encodePacked("insufficient fee supplied. send at least ", uint2str(_l2Gas / oracle.getDiscount()))));
+        
         // When a deposit is initiated on L1, the L1 Bridge transfers the funds to itself for future
         // withdrawals. safeTransferFrom also checks if the contract has code, so this will fail if
         // _from is an EOA or address(0).
-        IERC20(_l1Token).safeTransferFrom(_from, address(this), _amount);
-
-        // Construct calldata for _l2Token.finalizeDeposit(_to, _amount)
-        bytes memory message = abi.encodeWithSelector(
-            IL2ERC20Bridge.finalizeDeposit.selector,
-            _l1Token,
-            _l2Token,
+        IERC20(_l1Token).safeTransferFrom(
             _from,
-            _to,
-            _amount,
-            _data
+            address(this),
+            _amount
         );
+        
+        bytes memory message;
+        if (_l1Token == metis) {
+            // Construct calldata for finalizeDeposit call
+          _l2Token = Lib_PredeployAddresses.MVM_COINBASE;
+          message =
+            abi.encodeWithSelector(
+                IL2ERC20Bridge.finalizeDeposit.selector,
+                address(0),
+                Lib_PredeployAddresses.MVM_COINBASE,
+                _from,
+                _to,
+                _amount,
+                _data
+            );
+            
+        } else {
+          // Construct calldata for finalizeDeposit call
+          message =
+            abi.encodeWithSelector(
+                IL2ERC20Bridge.finalizeDeposit.selector,
+                _l1Token,
+                _l2Token,
+                _from,
+                _to,
+                _amount,
+                _data
+            );
+        }
 
         // Send calldata into L2
-        sendCrossDomainMessage(l2TokenBridge, _l2Gas, message);
+        sendCrossDomainMessageViaChainId(
+            _chainId,
+            l2TokenBridge,
+            _l2Gas,
+            message,
+            msg.value  //send all values as fees to cover l2 tx cost
+        );
+        
+        deposits[_l1Token][_chainId][_l2Token] = deposits[_l1Token][_chainId][_l2Token] + (_amount);
 
-        deposits[_l1Token][_l2Token] = deposits[_l1Token][_l2Token] + _amount;
-
+        emit ERC20ChainID(_chainId);
         emit ERC20DepositInitiated(_l1Token, _l2Token, _from, _to, _amount, _data);
+        
     }
 
     /*************************
@@ -218,7 +385,38 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         (bool success, ) = _to.call{ value: _amount }(new bytes(0));
         require(success, "TransferHelper::safeTransferETH: ETH transfer failed");
 
-        emit ETHWithdrawalFinalized(_from, _to, _amount, _data);
+        emit ETHWithdrawalFinalized(_from, _to, _amount, _data, DEFAULT_CHAINID);
+    }
+    
+    function finalizeETHWithdrawalByChainId(
+        uint256 _chainid,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        override
+        onlyFromCrossDomainAccount(l2TokenBridge)
+    {
+        (bool success, ) = _to.call{value: _amount}(new bytes(0));
+        require(success, "TransferHelper::safeTransferETH: ETH transfer failed");
+
+        emit ETHWithdrawalFinalized(_from, _to, _amount, _data, _chainid);
+    }
+    
+    function finalizeMetisWithdrawalByChainId(
+        uint256 _chainid,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        override
+        onlyFromCrossDomainAccount(l2TokenBridge)
+    {
+        _finalizeERC20WithdrawalByChainId(_chainid, metis, Lib_PredeployAddresses.MVM_COINBASE, _from, _to, _amount, _data);
     }
 
     /**
@@ -232,12 +430,44 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         uint256 _amount,
         bytes calldata _data
     ) external onlyFromCrossDomainAccount(l2TokenBridge) {
-        deposits[_l1Token][_l2Token] = deposits[_l1Token][_l2Token] - _amount;
+        _finalizeERC20WithdrawalByChainId(DEFAULT_CHAINID, _l1Token, _l2Token, _from, _to, _amount, _data);
+    }
+    
+    function finalizeERC20WithdrawalByChainId(
+        uint256 _chainid,
+        address _l1Token,
+        address _l2Token,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        override
+        onlyFromCrossDomainAccount(l2TokenBridge)
+    {
+        _finalizeERC20WithdrawalByChainId(_chainid, _l1Token, _l2Token, _from, _to, _amount, _data);
+    }
+    
+    function _finalizeERC20WithdrawalByChainId(
+        uint256 _chainid,
+        address _l1Token,
+        address _l2Token,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        internal
+    {
+        deposits[_l1Token][_chainid][_l2Token] = deposits[_l1Token][_chainid][_l2Token] - _amount;
 
         // When a withdrawal is finalized on L1, the L1 Bridge transfers the funds to the withdrawer
         IERC20(_l1Token).safeTransfer(_to, _amount);
 
+        emit ERC20ChainID(_chainid);
         emit ERC20WithdrawalFinalized(_l1Token, _l2Token, _from, _to, _amount, _data);
+        
     }
 
     /*****************************
@@ -251,4 +481,26 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
      * old contract
      */
     function donateETH() external payable {}
+    
+    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        while (_i != 0) {
+            k = k-1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
+    }
 }

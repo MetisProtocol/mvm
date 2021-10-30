@@ -30,6 +30,9 @@ contract OVM_GasPriceOracle is Ownable {
     uint256 public scalar;
     // Number of decimals of the scalar
     uint256 public decimals;
+    
+    // minimum gas to bridge the asset back to l1
+    uint256 public minErc20BridgeCost;
 
     /***************
      * Constructor *
@@ -51,6 +54,7 @@ contract OVM_GasPriceOracle is Ownable {
     event OverheadUpdated(uint256);
     event ScalarUpdated(uint256);
     event DecimalsUpdated(uint256);
+    event MinErc20BridgeCostUpdated(uint256);
 
     /********************
      * Public Functions *
@@ -63,6 +67,15 @@ contract OVM_GasPriceOracle is Ownable {
     function setGasPrice(uint256 _gasPrice) public onlyOwner {
         gasPrice = _gasPrice;
         emit GasPriceUpdated(_gasPrice);
+    }
+    
+    /**
+     * Allows the owner to modify the l1 bridge price.
+     * @param _minCost New l2 gas price.
+     */
+    function setMinErc20BridgeCost(uint256 _minCost) public onlyOwner {
+        minErc20BridgeCost = _minCost;
+        emit MinErc20BridgeCostUpdated(_minCost);
     }
 
     /**

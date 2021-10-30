@@ -71,72 +71,36 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
      * @inheritdoc IStateCommitmentChain
      */
     function getTotalElements() public view returns (uint256 _totalElements) {
-        (uint40 totalElements, ) = _getBatchExtraData();
-        return uint256(totalElements);
+        return getTotalElementsByChainId(DEFAULT_CHAINID);
     }
 
     /**
      * @inheritdoc IStateCommitmentChain
      */
     function getTotalBatches() public view returns (uint256 _totalBatches) {
-        return batches().length();
+        return getTotalBatchesByChainId(DEFAULT_CHAINID);
     }
 
     /**
      * @inheritdoc IStateCommitmentChain
      */
     function getLastSequencerTimestamp() public view returns (uint256 _lastSequencerTimestamp) {
-        (, uint40 lastSequencerTimestamp) = _getBatchExtraData();
-        return uint256(lastSequencerTimestamp);
+        return getLastSequencerTimestampByChainId(DEFAULT_CHAINID);
     }
 
     /**
      * @inheritdoc IStateCommitmentChain
      */
     function appendStateBatch(bytes32[] memory _batch, uint256 _shouldStartAtElement) public {
-        // Fail fast in to make sure our batch roots aren't accidentally made fraudulent by the
-        // publication of batches by some other user.
-        require(
-            _shouldStartAtElement == getTotalElements(),
-            "Actual batch start index does not match expected start index."
-        );
-
-        // Proposers must have previously staked at the BondManager
-        require(
-            IBondManager(resolve("BondManager")).isCollateralized(msg.sender),
-            "Proposer does not have enough collateral posted"
-        );
-
-        require(_batch.length > 0, "Cannot submit an empty state batch.");
-
-        require(
-            getTotalElements() + _batch.length <=
-                ICanonicalTransactionChain(resolve("CanonicalTransactionChain")).getTotalElements(),
-            "Number of state roots cannot exceed the number of canonical transactions."
-        );
-
-        // Pass the block's timestamp and the publisher of the data
-        // to be used in the fraud proofs
-        _appendBatch(_batch, abi.encode(block.timestamp, msg.sender));
+        require (1==0, "don't use");
+        //appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, "1088_MVM_Proposer");
     }
-
+    
     /**
      * @inheritdoc IStateCommitmentChain
      */
     function deleteStateBatch(Lib_OVMCodec.ChainBatchHeader memory _batchHeader) public {
-        require(
-            msg.sender == resolve("OVM_FraudVerifier"),
-            "State batches can only be deleted by the OVM_FraudVerifier."
-        );
-
-        require(_isValidBatchHeader(_batchHeader), "Invalid batch header.");
-
-        require(
-            insideFraudProofWindow(_batchHeader),
-            "State batches can only be deleted within the fraud proof window."
-        );
-
-        _deleteBatch(_batchHeader);
+        deleteStateBatchByChainId(DEFAULT_CHAINID, _batchHeader);
     }
 
     /**
@@ -147,20 +111,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         Lib_OVMCodec.ChainBatchHeader memory _batchHeader,
         Lib_OVMCodec.ChainInclusionProof memory _proof
     ) public view returns (bool) {
-        require(_isValidBatchHeader(_batchHeader), "Invalid batch header.");
-
-        require(
-            Lib_MerkleTree.verify(
-                _batchHeader.batchRoot,
-                _element,
-                _proof.index,
-                _proof.siblings,
-                _batchHeader.batchSize
-            ),
-            "Invalid inclusion proof."
-        );
-
-        return true;
+        return verifyStateCommitmentByChainId(DEFAULT_CHAINID, _element, _batchHeader, _proof);
     }
 
     /**
@@ -230,91 +181,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
     }
 
     /**
-     * Appends a batch to the chain.
-     * @param _batch Elements within the batch.
-     * @param _extraData Any extra data to append to the batch.
-     */
-    function _appendBatch(bytes32[] memory _batch, bytes memory _extraData) internal {
-        address sequencer = resolve("OVM_Proposer");
-        (uint40 totalElements, uint40 lastSequencerTimestamp) = _getBatchExtraData();
-
-        if (msg.sender == sequencer) {
-            lastSequencerTimestamp = uint40(block.timestamp);
-        } else {
-            // We keep track of the last batch submitted by the sequencer so there's a window in
-            // which only the sequencer can publish state roots. A window like this just reduces
-            // the chance of "system breaking" state roots being published while we're still in
-            // testing mode. This window should be removed or significantly reduced in the future.
-            require(
-                lastSequencerTimestamp + SEQUENCER_PUBLISH_WINDOW < block.timestamp,
-                "Cannot publish state roots within the sequencer publication window."
-            );
-        }
-
-        // For efficiency reasons getMerkleRoot modifies the `_batch` argument in place
-        // while calculating the root hash therefore any arguments passed to it must not
-        // be used again afterwards
-        Lib_OVMCodec.ChainBatchHeader memory batchHeader = Lib_OVMCodec.ChainBatchHeader({
-            batchIndex: getTotalBatches(),
-            batchRoot: Lib_MerkleTree.getMerkleRoot(_batch),
-            batchSize: _batch.length,
-            prevTotalElements: totalElements,
-            extraData: _extraData
-        });
-
-        emit StateBatchAppended(
-            DEFAULT_CHAINID,
-            batchHeader.batchIndex,
-            batchHeader.batchRoot,
-            batchHeader.batchSize,
-            batchHeader.prevTotalElements,
-            batchHeader.extraData
-        );
-
-        batches().push(
-            Lib_OVMCodec.hashBatchHeader(batchHeader),
-            _makeBatchExtraData(
-                uint40(batchHeader.prevTotalElements + batchHeader.batchSize),
-                lastSequencerTimestamp
-            )
-        );
-    }
-
-    /**
-     * Removes a batch and all subsequent batches from the chain.
-     * @param _batchHeader Header of the batch to remove.
-     */
-    function _deleteBatch(Lib_OVMCodec.ChainBatchHeader memory _batchHeader) internal {
-        require(_batchHeader.batchIndex < batches().length(), "Invalid batch index.");
-
-        require(_isValidBatchHeader(_batchHeader), "Invalid batch header.");
-
-        batches().deleteElementsAfterInclusive(
-            _batchHeader.batchIndex,
-            _makeBatchExtraData(uint40(_batchHeader.prevTotalElements), 0)
-        );
-
-        emit StateBatchDeleted(
-            DEFAULT_CHAINID,
-            _batchHeader.batchIndex,
-            _batchHeader.batchRoot
-        );
-    }
-
-    /**
-     * Checks that a batch header matches the stored hash for the given index.
-     * @param _batchHeader Batch header to validate.
-     * @return Whether or not the header matches the stored one.
-     */
-    function _isValidBatchHeader(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)
-        internal
-        view
-        returns (bool)
-    {
-        return Lib_OVMCodec.hashBatchHeader(_batchHeader) == batches().get(_batchHeader.batchIndex);
-    }
-    /**
-     * @inheritdoc iOVM_StateCommitmentChain
+     * @inheritdoc IStateCommitmentChain
      */
     function getTotalElementsByChainId(
         uint256 _chainId
@@ -331,7 +198,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
     }
 
     /**
-     * @inheritdoc iOVM_StateCommitmentChain
+     * @inheritdoc IStateCommitmentChain
      */
     function getTotalBatchesByChainId(
         uint256 _chainId
@@ -347,7 +214,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
     }
 
     /**
-     * @inheritdoc iOVM_StateCommitmentChain
+     * @inheritdoc IStateCommitmentChain
      */
     function getLastSequencerTimestampByChainId(
         uint256 _chainId
@@ -364,53 +231,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
     }
     
     /**
-     * @inheritdoc iOVM_StateCommitmentChain
-     */
-    function appendStateBatchesByChainId(
-        uint256[] memory _chainIds,
-        bytes32[][] calldata _batchs,
-        uint256[] memory _shouldStartAtElements
-    )
-        override
-        public
-    {
-        
-        for (uint i = 0; i < _chainIds.length; i++) {
-            // Only need check once
-            // Proposers must have previously staked at the BondManager
-            require(
-                iOVM_BondManager(resolve("OVM_BondManager")).isCollateralizedByChainId(_chainIds[i],msg.sender,msg.sender),
-                "Proposer does not have enough collateral posted"
-            );
-            // Fail fast in to make sure our batch roots aren't accidentally made fraudulent by the
-            // publication of batches by some other user.
-            require(
-                _shouldStartAtElements[i] == getTotalElementsByChainId(_chainIds[i]),
-                "Actual batch start index does not match expected start index."
-            );
-    
-            require(
-                _batchs[i].length > 0,
-                "Cannot submit an empty state batch."
-            );
-    
-            require(
-                getTotalElementsByChainId(_chainIds[i]) + _batchs[i].length <= iOVM_CanonicalTransactionChain(resolve("OVM_CanonicalTransactionChain")).getTotalElementsByChainId(_chainIds[i]),
-                "Number of state roots cannot exceed the number of canonical transactions."
-            );
-    
-            // Pass the block's timestamp and the publisher of the data
-            // to be used in the fraud proofs
-            _appendBatchByChainId(
-                _chainIds[i],
-                _batchs[i],
-                abi.encode(block.timestamp, msg.sender)
-            );
-        }
-    }
-    
-    /**
-     * @inheritdoc iOVM_StateCommitmentChain
+     * @inheritdoc IStateCommitmentChain
      */
     function appendStateBatchByChainId(
         uint256 _chainId,
@@ -427,10 +248,12 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
             _shouldStartAtElement == getTotalElementsByChainId(_chainId),
             "Actual batch start index does not match expected start index."
         );
+        
+        address proposerAddr = resolveFromMvm(proposer);
 
         // Proposers must have previously staked at the BondManager
         require(
-            iOVM_BondManager(resolve("OVM_BondManager")).isCollateralizedByChainId(_chainId,msg.sender,resolveFromMvm(proposer)),
+            IBondManager(resolve("OVM_BondManager")).isCollateralizedByChainId(_chainId,msg.sender,proposerAddr),
             "Proposer does not have enough collateral posted"
         );
 
@@ -440,7 +263,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         );
 
         require(
-            getTotalElementsByChainId(_chainId) + _batch.length <= iOVM_CanonicalTransactionChain(resolve("OVM_CanonicalTransactionChain")).getTotalElementsByChainId(_chainId),
+            getTotalElementsByChainId(_chainId) + _batch.length <= ICanonicalTransactionChain(resolve("OVM_CanonicalTransactionChain")).getTotalElementsByChainId(_chainId),
             "Number of state roots cannot exceed the number of canonical transactions."
         );
 
@@ -449,12 +272,13 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         _appendBatchByChainId(
             _chainId,
             _batch,
-            abi.encode(block.timestamp, msg.sender)
+            abi.encode(block.timestamp, msg.sender),
+            proposerAddr
         );
     }
 
     /**
-     * @inheritdoc iOVM_StateCommitmentChain
+     * @inheritdoc IStateCommitmentChain
      */
     function deleteStateBatchByChainId(
         uint256 _chainId,
@@ -464,7 +288,8 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         public
     {
         require(
-            msg.sender == resolve("OVM_FraudVerifier"),
+            msg.sender == resolveFromMvm(
+              string(abi.encodePacked(uint2str(_chainId),"_MVM_FraudVerifier"))),
             "State batches can only be deleted by the OVM_FraudVerifier."
         );
 
@@ -482,7 +307,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
     }
 
     /**
-     * @inheritdoc iOVM_StateCommitmentChain
+     * @inheritdoc IStateCommitmentChain
      */
     function verifyStateCommitmentByChainId(
         uint256 _chainId,
@@ -517,7 +342,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
     }
 
     /**
-     * @inheritdoc iOVM_StateCommitmentChain
+     * @inheritdoc IStateCommitmentChain
      */
     function insideFraudProofWindowByChainId(
         uint256 _chainId,
@@ -539,8 +364,9 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
             timestamp != 0,
             "Batch header timestamp cannot be zero"
         );
-        return SafeMath.add(timestamp, FRAUD_PROOF_WINDOW) > block.timestamp;
+        return timestamp + FRAUD_PROOF_WINDOW > block.timestamp;
     }
+    
 
     /**********************
      * Internal Functions *
@@ -612,14 +438,14 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
     function _appendBatchByChainId(
         uint256 _chainId,
         bytes32[] memory _batch,
-        bytes memory _extraData
+        bytes memory _extraData,
+        address proposer
     )
         internal
     {
-        address sequencer = resolve("OVM_Proposer");
         (uint40 totalElements, uint40 lastSequencerTimestamp) = _getBatchExtraDataByChainId(_chainId);
 
-        if (msg.sender == sequencer) {
+        if (msg.sender == proposer) {
             lastSequencerTimestamp = uint40(block.timestamp);
         } else {
             // We keep track of the last batch submitted by the sequencer so there's a window in
@@ -716,5 +542,27 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         )
     {
         return Lib_OVMCodec.hashBatchHeader(_batchHeader) == batches().getByChainId(_chainId,_batchHeader.batchIndex);
+    }
+    
+    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        while (_i != 0) {
+            k = k-1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
     }
 }

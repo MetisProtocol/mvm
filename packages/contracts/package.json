@@ -1,6 +1,6 @@
 {
-  "name": "@eth-optimism/contracts",
-  "version": "0.4.13",
+  "name": "@metis.io/contracts",
+  "version": "1.2.1",
   "main": "dist/index",
   "files": [
     "dist/**/*.js",
@@ -15,7 +15,7 @@
     "standards"
   ],
   "types": "dist/index",
-  "author": "Optimism PBC",
+  "author": "Optimism PBC and Metis.io",
   "license": "MIT",
   "scripts": {
     "build": "yarn build:contracts && yarn autogen:artifacts && yarn build:typescript",
@@ -46,7 +46,7 @@
     "pre-commit": "lint-staged"
   },
   "dependencies": {
-    "@eth-optimism/core-utils": "^0.6.0",
+    "@eth-optimism/core-utils": "^0.6.1",
     "@ethersproject/abstract-provider": "^5.4.1",
     "@ethersproject/abstract-signer": "^5.4.1",
     "@ethersproject/contracts": "^5.4.1",
@@ -80,7 +80,6 @@
     "eslint-plugin-import": "^2.23.4",
     "eslint-plugin-jsdoc": "^35.1.2",
     "eslint-plugin-prefer-arrow": "^1.2.3",
-
     "eslint-plugin-react": "^7.24.0",
     "eslint-plugin-unicorn": "^32.0.1",
     "ethereum-waffle": "^3.3.0",

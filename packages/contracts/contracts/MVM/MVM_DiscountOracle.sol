@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >0.5.0 <0.8.0;
+pragma solidity ^0.8.9;
 /* Contract Imports */
 /* External Imports */
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -97,7 +97,7 @@ contract MVM_DiscountOracle is Ownable, iMVM_DiscountOracle, MVM_AddressResolver
     function processL2SeqGas(address sender, uint256 _chainId) 
     public payable override {
         require(isXDomainSenderAllowed(sender), "sender is not whitelisted");
-        string memory ch = makeChainSeq(_chainId);
+        string memory ch = string(abi.encodePacked(uint2str(_chainId),"_MVM_Sequencer"));
         
         address sequencer = resolveFromMvm(ch);
         require (sequencer != address(0), string(abi.encodePacked("sequencer address not available: ", ch)));
@@ -109,46 +109,26 @@ contract MVM_DiscountOracle is Ownable, iMVM_DiscountOracle, MVM_AddressResolver
     function isTrustedRelayer(uint256 chainid, address sender) view public override returns(bool) {
         return (sender == resolveFromMvm(string(abi.encodePacked(uint2str(chainid), "_MVM_RELAYER"))));
     }
-    
-    function makeChainSeq(uint256 i) internal returns (string memory c) {
-        if (i == 0) return "0";
-        uint j = i;
-        uint length;
 
-        while (j != 0){
-            length++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(length+14);
-        uint k = length - 1;
-        while (i != 0){
-            bstr[k--] = byte(uint8(48 + i % 10));
-            i /= 10;
-        }
-        string memory s="_MVM_Sequencer";
-        bytes memory _bb=bytes(s);
-        k = length;
-        for (i = 0; i < 14; i++)
-            bstr[k++] = _bb[i];
-        c = string(bstr);
-    }
-    
     function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
-         if (_i == 0) {
-             return "0";
-         }
-         uint j = _i;
-         uint len;
-         while (j != 0) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
             len++;
             j /= 10;
-         }
-         bytes memory bstr = new bytes(len);
-         uint k = len - 1;
-         while (_i != 0) {
-            bstr[k--] = byte(uint8(48 + _i % 10));
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        while (_i != 0) {
+            k = k-1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
             _i /= 10;
-         }
-         return string(bstr);
-   }
+        }
+        return string(bstr);
+    }
 }

@@ -88,29 +88,12 @@ export const registerAddress = async ({
     return
   }
   console.log(`Registering address for ${name} to ${address}...`)
-<<<<<<< HEAD
-  const tx = await Lib_AddressManager.setAddress(name, address)
-  await tx.wait()
-
-  const remoteAddress = await Lib_AddressManager.getAddress(name)
-  console.log(`Registered address for ${remoteAddress} to ${address}...${remoteAddress !== address}`)
-  if (remoteAddress !== address) {
-    throw new Error(
-      `\n**FATAL ERROR. THIS SHOULD NEVER HAPPEN. CHECK YOUR DEPLOYMENT.**:\n` +
-        `Call to Lib_AddressManager.setAddress(${name}) was unsuccessful.\n` +
-        `Attempted to set address to: ${address}\n` +
-        `Actual address was set to: ${remoteAddress}\n` +
-        `This could indicate a compromised deployment.`
-    )
-  }
-=======
   await Lib_AddressManager.setAddress(name, address)
 
   console.log(`Waiting for registration to reflect on-chain...`)
   await waitUntilTrue(async () => {
     return hexStringEquals(await Lib_AddressManager.getAddress(name), address)
   })
->>>>>>> 2c741af18943321173153180956f4bf84445a337
 
   console.log(`✓ Registered address for ${name}`)
 }

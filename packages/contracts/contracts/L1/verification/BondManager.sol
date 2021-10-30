@@ -30,4 +30,14 @@ contract BondManager is IBondManager, Lib_AddressResolver {
         // Only authenticate sequencer to submit state root batches.
         return _who == resolve("OVM_Proposer");
     }
+    
+    function isCollateralizedByChainId(
+        uint256 _chainId,
+        address _who,
+        address _prop
+    ) override public view returns (bool) {
+        require(_who==_prop,"sender must the proposer!");
+        return true;
+        //return bonds[_who].state == State.COLLATERALIZED;
+    }
 }

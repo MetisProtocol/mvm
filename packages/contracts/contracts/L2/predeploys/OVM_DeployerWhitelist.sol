@@ -16,6 +16,7 @@ contract OVM_DeployerWhitelist {
     event OwnerChanged(address oldOwner, address newOwner);
     event WhitelistStatusChanged(address deployer, bool whitelisted);
     event WhitelistDisabled(address oldOwner);
+    mapping (address => bool) public xDomainWL;
 
     /**********************
      * Contract Constants *
@@ -24,6 +25,8 @@ contract OVM_DeployerWhitelist {
     // WARNING: When owner is set to address(0), the whitelist is disabled.
     address public owner;
     mapping(address => bool) public whitelist;
+    bool public allowArbitraryDeployment;
+    bool public allowAllXDomainSenders;
 
     /**********************
      * Function Modifiers *
@@ -48,7 +51,20 @@ contract OVM_DeployerWhitelist {
      */
     function setWhitelistedDeployer(address _deployer, bool _isWhitelisted) external onlyOwner {
         whitelist[_deployer] = _isWhitelisted;
+        allowArbitraryDeployment = false;
         emit WhitelistStatusChanged(_deployer, _isWhitelisted);
+    }
+    
+    function setWhitelistedXDomainSender(
+        address _sender,
+        bool _isWhitelisted
+    )
+        external
+        onlyOwner
+    {
+        xDomainWL[_sender] = _isWhitelisted;
+        allowAllXDomainSenders = false;
+        emit WhitelistStatusChanged(_sender, _isWhitelisted);
     }
 
     /**
@@ -56,14 +72,6 @@ contract OVM_DeployerWhitelist {
      * @param _owner Address of the new owner.
      */
     function setOwner(address _owner) public onlyOwner {
-        // Prevent users from setting the whitelist owner to address(0) except via
-        // enableArbitraryContractDeployment. If you want to burn the whitelist owner, send it to
-        // any other address that doesn't have a corresponding knowable private key.
-        require(
-            _owner != address(0),
-            "OVM_DeployerWhitelist: can only be disabled via enableArbitraryContractDeployment"
-        );
-
         emit OwnerChanged(owner, _owner);
         owner = _owner;
     }
@@ -73,7 +81,15 @@ contract OVM_DeployerWhitelist {
      */
     function enableArbitraryContractDeployment() external onlyOwner {
         emit WhitelistDisabled(owner);
-        owner = address(0);
+        allowArbitraryDeployment = true;
+    }
+    
+    function enableAllXDomainSenders()
+        external
+        onlyOwner
+    {
+        emit WhitelistDisabled(owner);
+        allowAllXDomainSenders = true;
     }
 
     /**
@@ -82,6 +98,22 @@ contract OVM_DeployerWhitelist {
      * @return _allowed Whether or not the address can deploy contracts.
      */
     function isDeployerAllowed(address _deployer) external view returns (bool) {
-        return (owner == address(0) || whitelist[_deployer]);
+        return (owner == address(0) || allowArbitraryDeployment || whitelist[_deployer]);
+    }
+    
+    function isXDomainSenderAllowed(
+        address _sender
+    )
+        external
+        view
+        returns (
+            bool
+        )
+    {
+        return (
+            owner == address(0)
+            || allowAllXDomainSenders == true
+            || xDomainWL[_sender]
+        );
     }
 }
