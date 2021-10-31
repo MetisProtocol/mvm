@@ -14,13 +14,10 @@ const config: HardhatUserConfig = {
     },
     'optimism-live': {
       url: process.env.L2_URL || 'http://localhost:8545',
-      ovm: true,
       timeout: 150000,
     },
   },
-  mocha: {
-    timeout: 500000,
-  },
+  
   mocha: {
     timeout: 75_000,
   },
