@@ -33,10 +33,7 @@ curl \
     --retry $RETRIES \
     --retry-delay 1 \
     $CMD
-    
-# initialize the geth node with the genesis file
-echo "Initializing Geth node"
-geth --verbosity="$VERBOSITY" "$@" init genesis.json
+
 
 # import the key that will be used to locally sign blocks
 # this key does not have to be kept secret in order to be secure
@@ -45,6 +42,10 @@ echo "Importing private key"
 echo $BLOCK_SIGNER_KEY > key.prv
 echo "pwd" > password
 geth account import --password ./password ./key.prv
+    
+# initialize the geth node with the genesis file
+echo "Initializing Geth node"
+geth --verbosity="$VERBOSITY" "$@" init genesis.json
 
 #exec geth --verbosity="$VERBOSITY" "$@"
 nohup geth --verbosity="$VERBOSITY" \
