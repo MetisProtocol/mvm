@@ -253,7 +253,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
 
         // Proposers must have previously staked at the BondManager
         require(
-            IBondManager(resolve("OVM_BondManager")).isCollateralizedByChainId(_chainId,msg.sender,proposerAddr),
+            IBondManager(resolve("BondManager")).isCollateralizedByChainId(_chainId,msg.sender,proposerAddr),
             "Proposer does not have enough collateral posted"
         );
 
@@ -263,7 +263,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         );
 
         require(
-            getTotalElementsByChainId(_chainId) + _batch.length <= ICanonicalTransactionChain(resolve("OVM_CanonicalTransactionChain")).getTotalElementsByChainId(_chainId),
+            getTotalElementsByChainId(_chainId) + _batch.length <= ICanonicalTransactionChain(resolve("CanonicalTransactionChain")).getTotalElementsByChainId(_chainId),
             "Number of state roots cannot exceed the number of canonical transactions."
         );
 

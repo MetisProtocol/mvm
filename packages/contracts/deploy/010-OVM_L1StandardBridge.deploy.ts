@@ -111,7 +111,10 @@ const deployFn: DeployFunction = async (hre) => {
       predeploys.L2StandardBridge
     )
   })
-  
+
+  console.log(
+    `Setting metis address to ${(hre as any).deployConfig.mvmMetisAddress}...`
+  )
   // Set Slot 2 to the Metis Token Address
   await proxy.setStorage(
     hre.ethers.utils.hexZeroPad('0x02', 32),
@@ -126,7 +129,7 @@ const deployFn: DeployFunction = async (hre) => {
     )
   })
   
-  
+  console.log(`Setting addressmgr address to ${Lib_AddressManager.address}...`)
   // Set Slot 3 to the Address Manager Address
   await proxy.setStorage(
     hre.ethers.utils.hexZeroPad('0x03', 32),

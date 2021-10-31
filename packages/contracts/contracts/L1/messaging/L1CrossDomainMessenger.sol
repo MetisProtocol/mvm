@@ -183,7 +183,7 @@ contract L1CrossDomainMessenger is
         // this function will check against the whitelist and take the fee
         oracle.processL2SeqGas{value:msg.value}(msg.sender, _chainId);
         
-        address ovmCanonicalTransactionChain = resolve("OVM_CanonicalTransactionChain");
+        address ovmCanonicalTransactionChain = resolve("CanonicalTransactionChain");
         
         // Use the CTC queue length as nonce
         uint40 nonce = ICanonicalTransactionChain(ovmCanonicalTransactionChain).getQueueLengthByChainId(_chainId);
@@ -276,7 +276,7 @@ contract L1CrossDomainMessenger is
         );
 
         require(
-            _target != resolve("OVM_CanonicalTransactionChain"),
+            _target != resolve("CanonicalTransactionChain"),
             "Cannot send L2->L1 messages to L1 system contracts."
         );
 
