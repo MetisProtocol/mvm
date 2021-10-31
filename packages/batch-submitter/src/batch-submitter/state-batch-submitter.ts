@@ -94,10 +94,10 @@ export class StateBatchSubmitter extends BatchSubmitter {
     }
 
     this.chainContract = (
-      await getContractFactory('OVM_StateCommitmentChain', this.signer)
+      await getContractFactory('StateCommitmentChain', this.signer)
     ).attach(sccAddress)
     this.ctcContract = (
-      await getContractFactory('OVM_CanonicalTransactionChain', this.signer)
+      await getContractFactory('CanonicalTransactionChain', this.signer)
     ).attach(ctcAddress)
 
     this.logger.info('Connected Optimism contracts', {
@@ -156,7 +156,6 @@ export class StateBatchSubmitter extends BatchSubmitter {
     const proposer = parseInt(this.l2ChainId.toString())+"_MVM_Proposer"
     const batch = await this._generateStateCommitmentBatch(startBlock, endBlock)
     const calldata = this.chainContract.interface.encodeFunctionData(
-    //MVM-TODO:revist
       'appendStateBatchByChainId',
       [this.l2ChainId, batch, startBlock, proposer]
     )

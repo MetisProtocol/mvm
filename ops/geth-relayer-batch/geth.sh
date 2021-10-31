@@ -15,7 +15,6 @@ curl \
     --show-error \
     --silent \
     --retry-connrefused \
-    --retry-all-errors \
     --retry $RETRIES \
     --retry-delay 5 \
     $ROLLUP_STATE_DUMP_PATH \
@@ -34,6 +33,10 @@ curl \
     --retry $RETRIES \
     --retry-delay 1 \
     $CMD
+    
+# initialize the geth node with the genesis file
+echo "Initializing Geth node"
+geth --verbosity="$VERBOSITY" "$@" init genesis.json
 
 # import the key that will be used to locally sign blocks
 # this key does not have to be kept secret in order to be secure
