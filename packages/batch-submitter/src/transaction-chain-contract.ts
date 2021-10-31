@@ -1,11 +1,10 @@
 /* External Imports */
-import { Contract, ethers } from 'ethers'
+import { Contract, ethers, BigNumber } from 'ethers'
 import {
   TransactionResponse,
   TransactionRequest,
 } from '@ethersproject/abstract-provider'
 import { keccak256 } from 'ethers/lib/utils'
-import { remove0x, encodeHex } from './utils'
 import {
   //AppendSequencerBatchParams,
   BatchContext,
@@ -76,7 +75,8 @@ const appendSequencerBatch = async (
     ...options,
   })
 }
-
+const encodeHex = (val: any, len: number) =>
+  remove0x(BigNumber.from(val).toHexString()).padStart(len, '0')
 const getEncodedCalldata = (batch: AppendSequencerBatchParams): string => {
   const methodId = APPEND_SEQUENCER_BATCH_METHOD_ID
   const calldata = encodeAppendSequencerBatch(batch)
