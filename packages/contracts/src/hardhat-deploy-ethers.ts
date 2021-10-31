@@ -3,7 +3,7 @@ import { Contract, ethers } from 'ethers'
 import { Provider } from '@ethersproject/abstract-provider'
 import { Signer } from '@ethersproject/abstract-signer'
 import { sleep } from '@eth-optimism/core-utils'
-const hexStringEquals = (stringA: string, stringB: string): boolean => {
+export const hexStringEquals = (stringA: string, stringB: string): boolean => {
   if (!ethers.utils.isHexString(stringA)) {
     throw new Error(`input is not a hex string: ${stringA}`)
   }

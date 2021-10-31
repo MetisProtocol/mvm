@@ -1,7 +1,7 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import { ethers } from 'ethers'
-import { hexStringEquals } from '@eth-optimism/core-utils'
+import { hexStringEquals } from '../src/hardhat-deploy-ethers'
 
 /* Imports: Internal */
 import { predeploys } from '../src/predeploys'
@@ -111,6 +111,36 @@ const deployFn: DeployFunction = async (hre) => {
       predeploys.L2StandardBridge
     )
   })
+  
+  // Set Slot 2 to the Metis Token Address
+  await proxy.setStorage(
+    hre.ethers.utils.hexZeroPad('0x02', 32),
+    hre.ethers.utils.hexZeroPad((hre as any).deployConfig.mvmMetisAddress, 32)
+  )
+  
+  console.log(`Confirming that metis address was correctly set...`)
+  await waitUntilTrue(async () => {
+    return hexStringEquals(
+      await contract.metis(),
+      (hre as any).deployConfig.mvmMetisAddress
+    )
+  })
+  
+  
+  // Set Slot 3 to the Address Manager Address
+  await proxy.setStorage(
+    hre.ethers.utils.hexZeroPad('0x03', 32),
+    hre.ethers.utils.hexZeroPad(Lib_AddressManager.address, 32)
+  )
+  
+  console.log(`Confirming that addressmgr address was correctly set...`)
+  await waitUntilTrue(async () => {
+    return hexStringEquals(
+      await contract.addressmgr(),
+      Lib_AddressManager.address
+    )
+  })
+
 
   // Finally we transfer ownership of the proxy to the ovmAddressManagerOwner address.
   const owner = (hre as any).deployConfig.ovmAddressManagerOwner
