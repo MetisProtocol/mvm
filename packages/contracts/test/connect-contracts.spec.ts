@@ -6,23 +6,14 @@ import {
 } from '../dist/connect-contracts'
 import { expect } from './setup'
 
-<<<<<<< HEAD
-describe('connectL1Contracts', () => {
-=======
 // Skipping these tests as the FE work that relies on this logic was never finished.
 // Dedicated issue created in https://linear.app/optimism/issue/ENG-1451/decide-what-to-do-with-the-connectl1contracts-tests
 describe.skip('connectL1Contracts', () => {
->>>>>>> 2c741af18943321173153180956f4bf84445a337
   let user: Signer
   const l1ContractNames = [
     'addressManager',
     'canonicalTransactionChain',
-<<<<<<< HEAD
-    'executionManager',
-    'fraudVerifier',
-    'multiMessageRelayer',
-=======
->>>>>>> 2c741af18943321173153180956f4bf84445a337
+
     'stateCommitmentChain',
     'xDomainMessengerProxy',
     'bondManager',
@@ -34,13 +25,7 @@ describe.skip('connectL1Contracts', () => {
     'messagePasser',
     'messageSender',
     'deployerWhiteList',
-<<<<<<< HEAD
-    'ecdsaContractAccount',
-    'sequencerEntrypoint',
-    'erc1820Registry',
-    'addressManager',
-=======
->>>>>>> 2c741af18943321173153180956f4bf84445a337
+
   ]
 
   before(async () => {

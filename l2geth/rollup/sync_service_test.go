@@ -810,11 +810,7 @@ func TestBadFeeThresholds(t *testing.T) {
 	}
 }
 
-<<<<<<< HEAD
-func newTestSyncServiceDeps(isVerifier bool) (Config, *core.TxPool, *core.BlockChain, ethdb.Database, error) {
-=======
 func newTestSyncServiceDeps(isVerifier bool, alloc *common.Address) (Config, *core.TxPool, *core.BlockChain, ethdb.Database, error) {
->>>>>>> 2c741af18943321173153180956f4bf84445a337
 	chainCfg := params.AllEthashProtocolChanges
 	chainID := big.NewInt(420)
 	chainCfg.ChainID = chainID

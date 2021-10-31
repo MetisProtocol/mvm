@@ -163,10 +163,7 @@ describe('BatchSubmitter', () => {
         AddressManager.address,
         FORCE_INCLUSION_PERIOD_SECONDS
       )
-<<<<<<< HEAD
-=======
 
->>>>>>> 2c741af18943321173153180956f4bf84445a337
     await unwrapped_OVM_CanonicalTransactionChain.init()
 
     await AddressManager.setAddress(
