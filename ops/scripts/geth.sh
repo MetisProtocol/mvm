@@ -12,7 +12,6 @@ curl \
     --show-error \
     --silent \
     --retry-connrefused \
-    --retry-all-errors \
     --retry $RETRIES \
     --retry-delay 5 \
     $ROLLUP_STATE_DUMP_PATH \

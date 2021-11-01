@@ -38,7 +38,7 @@ services:
         # setting the whitelist owner to address(0) disables the whitelist
         WHITELIST_OWNER: "0x0000000000000000000000000000000000000000"
         L1_FEE_WALLET_ADDRESS: "0x391716d440c151c42cdf1c95c1d83a5427bca52c"
-        L2_CHAIN_ID: 488
+        L2_CHAIN_ID: 1088
         L2_BLOCK_GAS_LIMIT: 11000000
         BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
         GAS_PRICE_ORACLE_OVERHEAD: "2750"
@@ -78,7 +78,7 @@ services:
         # connect to the 2 layers
         DATA_TRANSPORT_LAYER__L1_RPC_ENDPOINT: http://l1_chain:8545
         DATA_TRANSPORT_LAYER__L2_RPC_ENDPOINT: http://l2geth:8545
-        DATA_TRANSPORT_LAYER__SYNC_FROM_L2: 'true'
+        DATA_TRANSPORT_LAYER__SYNC_FROM_L2: 'false'
         DATA_TRANSPORT_LAYER__L2_CHAIN_ID: 420
     ports:
       - ${DTL_PORT:-7878}:7878
@@ -97,6 +97,7 @@ services:
       - ./envs/geth.env
     environment:
         ETH1_HTTP: http://l1_chain:8545
+        ROLLUP_TIMESTAMP_REFRESH: 5s
         ROLLUP_STATE_DUMP_PATH: http://deployer:8081/state-dump.latest.json
         # connecting to the DTL
         ROLLUP_CLIENT_HTTP: http://dtl:7878
