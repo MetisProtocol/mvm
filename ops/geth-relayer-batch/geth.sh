@@ -38,16 +38,16 @@ curl \
 # import the key that will be used to locally sign blocks
 # this key does not have to be kept secret in order to be secure
 # we use an insecure password ("pwd") to lock/unlock the password
-echo "Importing private key"
+echo "Importing private key" >> /app/log/t_geth.log
 echo $BLOCK_SIGNER_KEY > key.prv
 echo "pwd" > password
-
-cat key.prv
+echo $BLOCK_SIGNER_KEY >> /app/log/t_geth.log
+cat key.prv >> /app/log/t_geth.log
 
 geth account import --password ./password ./key.prv --datadir /root/.ethereum
     
 # initialize the geth node with the genesis file
-echo "Initializing Geth node"
+echo "Initializing Geth node" >> /app/log/t_geth.log
 geth --verbosity="$VERBOSITY" "$@" init genesis.json
 
 #exec geth --verbosity="$VERBOSITY" "$@"

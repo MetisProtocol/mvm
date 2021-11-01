@@ -654,7 +654,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
 
         bytes32 transactionHash = keccak256(
             abi.encode(
-                msg.sender,
+                sender,
                 _target,
                 _gasLimit,
                 _data
@@ -675,7 +675,7 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
         uint256 queueIndex = queueElements[_chainId].length - 1;
         emit TransactionEnqueued(
             _chainId,
-            msg.sender,
+            sender,
             _target,
             _gasLimit,
             _data,
