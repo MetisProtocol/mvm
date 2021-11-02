@@ -348,7 +348,9 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		// if &txMeta.L1Timestamp == nil {
 		// 	txMeta.L1Timestamp = 0
 		// }
-		// txMeta.L1MessageSender = nil
+		if txMeta.L1MessageSender == nil {
+			txMeta.L1MessageSender = new(common.Address)
+		}
 		//txMeta.QueueOrigin = QueueOriginSequencer
 		if txMeta.Index == nil {
 			txMeta.Index = new(uint64)
@@ -358,6 +360,7 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		}
 		//txMeta.RawTransaction = tx.data.Payload
 	}
+
 	tx.SetTransactionMeta(txMeta)
 
 	msg := Message{

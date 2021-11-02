@@ -280,10 +280,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 }
 
 func (st *StateTransition) refundGas() {
-	// Do not refund any gas when running the OVM
-	if vm.UsingOVM {
-		return
-	}
+
 	// Apply refund counter, capped to half of the used gas.
 	refund := st.gasUsed() / 2
 	if refund > st.state.GetRefund() {
