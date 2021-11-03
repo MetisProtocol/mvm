@@ -21,7 +21,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
-	"os"
+	// "os"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -323,42 +323,14 @@ func (tx *Transaction) Size() common.StorageSize {
 func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 	// TOOD 20210724
 	txMeta := tx.GetMeta()
-	if tx.data.V.Cmp(big.NewInt(0)) == 0 {
-		// L1 message
-		if txMeta.L1BlockNumber == nil {
-			txMeta.L1BlockNumber = big.NewInt(0)
-		}
-		txMeta.QueueOrigin = QueueOriginL1ToL2
-		// txMeta.L1Timestamp = 0
-		if txMeta.L1MessageSender == nil {
-			txMeta.L1MessageSender = new(common.Address)
-			*(txMeta.L1MessageSender) = common.HexToAddress(os.Getenv("ETH1_L1_CROSS_DOMAIN_MESSENGER_ADDRESS"))
-		}
-		if txMeta.Index == nil {
-			txMeta.Index = new(uint64)
-		}
-		if txMeta.QueueIndex == nil {
-			txMeta.QueueIndex = new(uint64)
-		}
-		txMeta.RawTransaction = tx.data.Payload
-	} else {
-		if txMeta.L1BlockNumber == nil {
-			txMeta.L1BlockNumber = big.NewInt(0)
-		}
-		// if &txMeta.L1Timestamp == nil {
-		// 	txMeta.L1Timestamp = 0
-		// }
-		if txMeta.L1MessageSender == nil {
-			txMeta.L1MessageSender = new(common.Address)
-		}
-		//txMeta.QueueOrigin = QueueOriginSequencer
-		if txMeta.Index == nil {
-			txMeta.Index = new(uint64)
-		}
-		if txMeta.QueueIndex == nil {
-			txMeta.QueueIndex = new(uint64)
-		}
-		//txMeta.RawTransaction = tx.data.Payload
+	if txMeta.L1MessageSender == nil {
+		txMeta.L1MessageSender = new(common.Address)
+	}
+	if txMeta.Index == nil {
+		txMeta.Index = new(uint64)
+	}
+	if txMeta.QueueIndex == nil {
+		txMeta.QueueIndex = new(uint64)
 	}
 
 	tx.SetTransactionMeta(txMeta)
