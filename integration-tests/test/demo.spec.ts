@@ -36,7 +36,8 @@ export const getEnvironment = async (): Promise<{
 
 
 const PROXY_SEQUENCER_ENTRYPOINT_ADDRESS = '0x4200000000000000000000000000000000000004'
-const MVM_Coinbase_Address = '0x4200000000000000000000000000000000000006'
+const MVM_Coinbase_Address = '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000'
+const OVM_ETH_Address = '0x420000000000000000000000000000000000000A'
 const TAX_ADDRESS = '0x1234123412341234123412341234123412341234'
 
 const NON_NULL_BYTES32 =
@@ -61,6 +62,7 @@ describe('Fee Payment Integration Tests', async () => {
   dotenv.config({ path: envPath })
 
   let OVM_L1ETHGateway: Contract
+  let OVM_ETH: Contract
   let MVM_Coinbase: Contract
   let MVM_CoinbasePeer: Contract
   let OVM_L2CrossDomainMessenger: Contract
@@ -75,7 +77,7 @@ describe('Fee Payment Integration Tests', async () => {
       const l1UserBalance = await l1Wallet.getBalance()
       const l2UserBalance = await MVM_Coinbase.balanceOf(l2Wallet.address)
       const sequencerBalance = await MVM_Coinbase.balanceOf(PROXY_SEQUENCER_ENTRYPOINT_ADDRESS)
-      const l1GatewayBalance = await MVM_Coinbase.balanceOf(predeploys.OVM_SequencerEntrypoint)
+      const l1GatewayBalance = await MVM_Coinbase.balanceOf(predeploys.OVM_SequencerFeeVault)
       return {
         l1UserBalance,
         l2UserBalance,
@@ -96,11 +98,16 @@ describe('Fee Payment Integration Tests', async () => {
     const addressManagerAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
     const addressManagerInterface = getContractInterface('Lib_AddressManager')
     AddressManager = new Contract(addressManagerAddress, addressManagerInterface, l1Provider)
-    const mvmAddressManagerAddress = "0x0165878A594ca255338adfa4d48449f69242Eb8F"
+    const mvmAddressManagerAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
     const mvmAddressManagerInterface = getContractInterface('MVM_AddressManager')
     const MvmAddressManager = new Contract(mvmAddressManagerAddress, mvmAddressManagerInterface, l1Provider)
     
     
+    OVM_ETH = new Contract(
+      OVM_ETH_Address,
+      getContractInterface('OVM_ETH'),
+      l2Wallet
+    )
     MVM_Coinbase = new Contract(
       MVM_Coinbase_Address,
       getContractInterface('MVM_Coinbase'),
@@ -118,7 +125,7 @@ describe('Fee Payment Integration Tests', async () => {
       await MvmAddressManager.getAddress('429_MVM_Sequencer'),
       await AddressManager.getAddress('Proxy__OVM_L1StandardBridge'),
       await AddressManager.getAddress('OVM_L2BatchMessageRelayer'))
-    const l1StandardBridgeInterface = getContractInterface('iOVM_L1StandardBridge')
+    const l1StandardBridgeInterface = getContractInterface('IL1StandardBridge')
 
     OVM_L1ETHGateway = new Contract(
       await AddressManager.getAddress('Proxy__OVM_L1StandardBridge'),
@@ -126,8 +133,8 @@ describe('Fee Payment Integration Tests', async () => {
       l1Wallet
     )
     OVM_L2CrossDomainMessenger = new Contract(
-      predeploys.OVM_L2CrossDomainMessenger,
-      getContractInterface('OVM_L2CrossDomainMessenger'),
+      predeploys.L2StandardBridge,
+      getContractInterface('L2StandardBridge'),
       l2Wallet
     )
     
@@ -147,8 +154,12 @@ describe('Fee Payment Integration Tests', async () => {
     // console.log(postBalances.l1UserBalance + "," + postBalances.l2UserBalance + "," + postBalances.l1GatewayBalance + "," + postBalances.sequencerBalance)
   })
 
-
-  it.skip('Paying a nonzero but acceptable gasPrice fee', async () => {
+  it('abi',async()=>{
+    for(var n in MVM_Coinbase.functions){
+      console.log(n,utils.hexDataSlice(utils.keccak256(utils.toUtf8Bytes(n)),0,4))
+    }
+  })
+  it('deposit', async () => {
     // const preBalances = await getBalances()
 
     // const gasPrice = BigNumber.from(15000000)
@@ -167,18 +178,17 @@ describe('Fee Payment Integration Tests', async () => {
     // const postBalances = await getBalances()
     // console.log("l1 wallet balance:" + postBalances.l1UserBalance + ",l2 wallet balance" + postBalances.l2UserBalance + ",l1gateway balance" + postBalances.l1GatewayBalance + ",seq balance" + postBalances.sequencerBalance)
     const tx2 = await OVM_L1ETHGateway.depositETHByChainId(
-      429, 
+      1088, 
       FINALIZATION_GAS,
-      NON_NULL_BYTES32,
+      '0xFFFF',
       {
-      value: depositAmount,
-      gasLimit: 1000000,
-      gasPrice: 10500
-    })
+      value: depositAmount
+      }
+    )
     const res = await tx2.wait()
-    console.log("test")
+    //console.log("test",res)
     const taxBalance = await MVM_Coinbase.balanceOf(l2Wallet.address)
-    const taxBalancePeer = await MVM_CoinbasePeer.balanceOf(l2PeerWallet.address)
+    const taxBalancePeer = await OVM_ETH.balanceOf(l2PeerWallet.address)
     
     console.log("test")
     console.log("tax balance:"+taxBalance+","+taxBalancePeer)
@@ -209,8 +219,14 @@ describe('Fee Payment Integration Tests', async () => {
     //     )
     // ).to.be.true
   })
-  it('withdraw for relay', async () => {
-    await MVM_Coinbase.withdraw(100, { gasPrice: 0,gasLimit:1000000 })
+  it.skip('withdraw', async () => {
+    await OVM_L2CrossDomainMessenger.withdraw(
+      predeploys.MVM_Coinbase,
+      100, 
+      0,
+      '0xFFFF',
+      { gasPrice: 0,gasLimit:1000000 }
+    )
     const taxBalance = await MVM_Coinbase.balanceOf(l2Wallet.address)
     const taxBalancePeer = await MVM_CoinbasePeer.balanceOf(l2PeerWallet.address)
     
