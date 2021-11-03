@@ -11,7 +11,7 @@ import { Lib_PredeployAddresses } from "../../libraries/constants/Lib_PredeployA
 import { IL2CrossDomainMessenger } from "./IL2CrossDomainMessenger.sol";
 import { iOVM_L2ToL1MessagePasser } from "../predeploys/iOVM_L2ToL1MessagePasser.sol";
 import { OVM_DeployerWhitelist } from "../predeploys/OVM_DeployerWhitelist.sol";
-import { MVM_Coinbase } from "../../MVM/MVM_Coinbase.sol";
+
 /**
  * @title L2CrossDomainMessenger
  * @dev The L2 Cross Domain Messenger contract sends messages from L2 to L1, and is the entry point
@@ -84,10 +84,7 @@ contract L2CrossDomainMessenger is IL2CrossDomainMessenger {
 
         sentMessages[keccak256(xDomainCalldata)] = true;
 
-        //Lib_PredeployAddresses.SEQUENCER_FEE_WALLET.transfer(msg.value);
-        MVM_Coinbase(Lib_PredeployAddresses.MVM_COINBASE).transfer(
-                     Lib_PredeployAddresses.SEQUENCER_FEE_WALLET,
-                     msg.value);
+        Lib_PredeployAddresses.SEQUENCER_FEE_WALLET.transfer(msg.value);
         
         // Actually send the message.
         iOVM_L2ToL1MessagePasser(Lib_PredeployAddresses.L2_TO_L1_MESSAGE_PASSER).passMessageToL1(

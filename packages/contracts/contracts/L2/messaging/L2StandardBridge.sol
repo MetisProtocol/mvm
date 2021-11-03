@@ -68,6 +68,15 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
     ) external payable virtual {
         _initiateWithdrawal(_l2Token, msg.sender, msg.sender, _amount, _l1Gas, _data);
     }
+    
+    function withdrawMetis(
+        address _l2Token,
+        uint256 _amount,
+        uint32 _l1Gas,
+        bytes calldata _data
+    ) external payable virtual {
+        _initiateWithdrawal(Lib_PredeployAddresses.MVM_COINBASE, msg.sender, msg.sender, _amount, _l1Gas, _data);
+    }
 
     /**
      * @inheritdoc IL2ERC20Bridge
@@ -80,6 +89,15 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
         bytes calldata _data
     ) external payable virtual {
         _initiateWithdrawal(_l2Token, msg.sender, _to, _amount, _l1Gas, _data);
+    }
+    
+    function withdrawMetisTo(
+        address _to,
+        uint256 _amount,
+        uint32 _l1Gas,
+        bytes calldata _data
+    ) external payable virtual {
+        _initiateWithdrawal(Lib_PredeployAddresses.MVM_COINBASE, msg.sender, _to, _amount, _l1Gas, _data);
     }
 
     /**
