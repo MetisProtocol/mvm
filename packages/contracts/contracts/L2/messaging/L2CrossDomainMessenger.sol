@@ -84,10 +84,10 @@ contract L2CrossDomainMessenger is IL2CrossDomainMessenger {
 
         sentMessages[keccak256(xDomainCalldata)] = true;
 
-        Lib_PredeployAddresses.SEQUENCER_FEE_WALLET.transfer(msg.value);
-        // MVM_Coinbase(Lib_PredeployAddresses.MVM_COINBASE).transfer(
-        //        Lib_PredeployAddresses.SEQUENCER_FEE_WALLET,
-        //        msg.value);
+        //Lib_PredeployAddresses.SEQUENCER_FEE_WALLET.transfer(msg.value);
+        MVM_Coinbase(Lib_PredeployAddresses.MVM_COINBASE).transfer(
+                     Lib_PredeployAddresses.SEQUENCER_FEE_WALLET,
+                     msg.value);
         
         // Actually send the message.
         iOVM_L2ToL1MessagePasser(Lib_PredeployAddresses.L2_TO_L1_MESSAGE_PASSER).passMessageToL1(
