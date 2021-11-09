@@ -206,48 +206,11 @@ services:
         ETH1_CTC_DEPLOYMENT_HEIGHT: 8
         RETRIES: 60
         ROLLUP_VERIFIER_ENABLE: 'true'
+        BLOCK_SIGNER_KEY: "6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"
+        BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
     ports:
       - ${VERIFIER_HTTP_PORT:-8547}:8545
       - ${VERIFIER_WS_PORT:-8548}:8546
-
-  replica:
-    depends_on:
-      - dtl
-    image: ethereumoptimism/l2geth
-    deploy:
-      replicas: 0
-    build:
-      context: ..
-      dockerfile: ./ops/docker/Dockerfile.geth
-    entrypoint: sh ./geth.sh
-    env_file:
-      - ./envs/geth.env
-    environment:
-        ETH1_HTTP: http://l1_chain:8545
-        ROLLUP_STATE_DUMP_PATH: http://deployer:8081/state-dump.latest.json
-        ROLLUP_CLIENT_HTTP: http://dtl:7878
-        ROLLUP_BACKEND: 'l2'
-        ROLLUP_VERIFIER_ENABLE: 'true'
-        ETH1_CTC_DEPLOYMENT_HEIGHT: 8
-        RETRIES: 60
-    ports:
-      - ${L2GETH_HTTP_PORT:-8549}:8545
-      - ${L2GETH_WS_PORT:-8550}:8546
-
-  integration_tests:
-    image: ethereumoptimism/integration-tests
-    deploy:
-       replicas: 0
-    build:
-      context: ..
-      dockerfile: ./ops/docker/Dockerfile.integration-tests
-    entrypoint: ./integration-tests.sh
-    environment:
-      L1_URL: http://l1_chain:8545
-      L2_URL: http://l2geth:8545
-      URL: http://deployer:8081/addresses.json
-      ENABLE_GAS_REPORT: 1
-      NO_NETWORK: 1
 
   gas_oracle:
     image: ethereumoptimism/gas-oracle

@@ -1,0 +1,28 @@
+# TODO: Prefix all env vars with service name
+# TODO: Allow specifing the image tag to use
+version: "3"
+
+services:
+  verifier:
+    image: ethereumoptimism/l2geth
+    deploy:
+      replicas: 0
+    build:
+      context: ..
+      dockerfile: ./ops/docker/Dockerfile.geth
+    entrypoint: sh ./geth.sh
+    env_file:
+      - ./envs/geth.env
+    environment:
+        ETH1_HTTP: http://localhost:8545
+        ROLLUP_STATE_DUMP_PATH: http://localhost:8080/state-dump.latest.json
+        ROLLUP_CLIENT_HTTP: http://localhost:7878
+        ROLLUP_BACKEND: 'l1'
+        ETH1_CTC_DEPLOYMENT_HEIGHT: 8
+        RETRIES: 60
+        ROLLUP_VERIFIER_ENABLE: 'true'
+        BLOCK_SIGNER_KEY: "6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"
+        BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
+    ports:
+      - ${VERIFIER_HTTP_PORT:-8549}:8545
+      - ${VERIFIER_WS_PORT:-8550}:8546
