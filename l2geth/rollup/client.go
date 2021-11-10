@@ -130,6 +130,7 @@ type RollupClient interface {
 	GetLatestTransactionBatchIndex() (*uint64, error)
 	GetTransactionBatch(uint64) (*Batch, []*types.Transaction, error)
 	SyncStatus(Backend) (*SyncStatus, error)
+	GetStateRoot(index uint64) (common.Hash, error)
 }
 
 // Client is an HTTP based RollupClient
@@ -151,6 +152,20 @@ type TransactionResponse struct {
 type TransactionBatchResponse struct {
 	Batch        *Batch         `json:"batch"`
 	Transactions []*transaction `json:"transactions"`
+}
+
+type stateRoot struct {
+	Index      uint64      `json:"index"`
+	BatchIndex uint64      `json:"batchIndex"`
+	Value      common.Hash `json:"value"`
+	Confirmed  bool        `json:"confirmed"`
+}
+
+// StateRootResponse represents the response from the remote server
+// when querying stateRoot
+type StateRootResponse struct {
+	Batch     *Batch     `json:"batch"`
+	StateRoot *stateRoot `json:"stateRoot"`
 }
 
 // NewClient create a new Client given a remote HTTP url and a chain id
@@ -621,4 +636,28 @@ func parseTransactionBatchResponse(txBatch *TransactionBatchResponse, signer *ty
 		txs[i] = transaction
 	}
 	return batch, txs, nil
+}
+
+// GetStateRoot will return the stateroot by batch index
+func (c *Client) GetStateRoot(index uint64) (common.Hash, error) {
+	str := strconv.FormatUint(index, 10)
+	response, err := c.client.R().
+		SetResult(&StateRootResponse{}).
+		SetPathParams(map[string]string{
+			"index":   str,
+			"chainId": c.chainID,
+		}).
+		Get("/stateroot/index/{index}/{chainId}")
+
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("Cannot get stateroot %d: %w", index, err)
+	}
+	stateRootResp, ok := response.Result().(*StateRootResponse)
+	if !ok {
+		return common.Hash{}, fmt.Errorf("Cannot parse stateroot response")
+	}
+	if stateRootResp.StateRoot == nil {
+		return common.Hash{}, nil
+	}
+	return stateRootResp.StateRoot.Value, nil
 }

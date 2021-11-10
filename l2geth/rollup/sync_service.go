@@ -1081,10 +1081,42 @@ func (s *SyncService) syncTransactionBatchRange(start, end uint64) error {
 			if err := s.applyBatchedTransaction(tx); err != nil {
 				return fmt.Errorf("cannot apply batched transaction: %w", err)
 			}
+			// verifier stateroot
+			if err := s.verifyStateRoot(tx); err != nil {
+				return err
+			}
 		}
 		s.SetLatestBatchIndex(&i)
 	}
 	return nil
+}
+
+func (s *SyncService) verifyStateRoot(tx *types.Transaction) error {
+	localStateRoot := s.bc.CurrentBlock().Root()
+	// log.Debug("Test: local stateroot", "stateroot", localStateRoot)
+
+	emptyHash := common.Hash{}
+	// retry 10 hours
+	for i := 0; i < 36000; i++ {
+		// log.Debug("Test: Fetching stateroot", "i", i, "index", *(tx.GetMeta().Index))
+		stateRootHash, err := s.client.GetStateRoot(*(tx.GetMeta().Index))
+		// log.Debug("Test: Fetched stateroot", "i", i, "index", *(tx.GetMeta().Index), "hash", stateRootHash)
+		if err != nil {
+			return fmt.Errorf("Fetch stateroot failed: %w", err)
+		}
+		if stateRootHash == emptyHash {
+			log.Info("Fetch stateroot nil, retry in 1000ms", "i", i, "index", *(tx.GetMeta().Index))
+			// delay 1000ms
+			time.Sleep(time.Duration(1000) * time.Millisecond)
+			continue
+		}
+		if stateRootHash != localStateRoot {
+			return fmt.Errorf("The remote stateroot is not equal to the local: remote %w, local %w", stateRootHash, localStateRoot)
+		}
+		log.Debug("Verified tx with stateroot ok", "i", i, "index", *(tx.GetMeta().Index))
+		return nil
+	}
+	return fmt.Errorf("Fetch stateroot failed: index %w", *(tx.GetMeta().Index))
 }
 
 // syncQueue will sync from the local tip to the known tip of the remote
