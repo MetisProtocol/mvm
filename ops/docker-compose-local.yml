@@ -190,8 +190,8 @@ services:
       - deployer
       - dtl
     image: ethereumoptimism/l2geth
-    deploy:
-      replicas: 0
+    # deploy:
+    #   replicas: 0
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.geth
@@ -214,8 +214,8 @@ services:
 
   gas_oracle:
     image: ethereumoptimism/gas-oracle
-    deploy:
-       replicas: 0
+    # deploy:
+    #    replicas: 0
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.gas-oracle

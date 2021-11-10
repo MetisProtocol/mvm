@@ -221,11 +221,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       try {
         const json = await handler(req, res)
         const elapsed = Date.now() - start
-        this.logger.info('Served HTTP Request', {
-          method: req.method,
-          url: req.url,
-          elapsed,
-        })
+        // this.logger.info('Served HTTP Request', {
+        //   method: req.method,
+        //   url: req.url,
+        //   elapsed,
+        // })
         this.logger.debug('Response body', {
           method: req.method,
           url: req.url,
@@ -266,7 +266,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       async (req): Promise<SyncingResponse> => {
       	const chainId=BigNumber.from(req.params.chainId).toNumber()
         const db=await this._getDb(chainId)
-	
+
         const backend = req.query.backend || this.options.defaultBackend
 
         let currentL2Block
@@ -454,7 +454,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       async (req): Promise<TransactionResponse> => {
         const chainId=BigNumber.from(req.params.chainId).toNumber()
         const db=await this._getDb(chainId)
-	
+
         const backend = req.query.backend || this.options.defaultBackend
         let transaction = null
 
@@ -493,7 +493,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       async (req): Promise<TransactionResponse> => {
       	const chainId=BigNumber.from(req.params.chainId).toNumber()
         const db=await this._getDb(chainId)
-	
+
         const backend = req.query.backend || this.options.defaultBackend
         let transaction = null
 
@@ -594,7 +594,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       async (req): Promise<StateRootResponse> => {
         const chainId=BigNumber.from(req.params.chainId).toNumber()
         const db=await this._getDb(chainId)
-	
+
         const backend = req.query.backend || this.options.defaultBackend
         let stateRoot = null
 
@@ -633,7 +633,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       async (req): Promise<StateRootResponse> => {
         const chainId=BigNumber.from(req.params.chainId).toNumber()
         const db=await this._getDb(chainId)
-	
+
         const backend = req.query.backend || this.options.defaultBackend
         let stateRoot = null
 

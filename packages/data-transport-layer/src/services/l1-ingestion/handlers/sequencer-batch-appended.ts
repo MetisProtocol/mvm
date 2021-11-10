@@ -1,5 +1,6 @@
 /* Imports: External */
 import { BigNumber, ethers, constants } from 'ethers'
+import { Logger } from '@eth-optimism/common-ts'
 import { getContractFactory } from '@metis.io/contracts'
 import {
   fromHexString,
@@ -84,18 +85,19 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     // It's easier to deal with this data if it's a Buffer.
     const calldata = fromHexString(extraData.l1TransactionData)
 
-    if (calldata.length < 12) {
+    // chainid + 32, so not [12, 15]
+    if (calldata.length < 44) {
       throw new Error(
         `Block ${extraData.blockNumber} transaction data is invalid for decoding: ${extraData.l1TransactionData} , ` +
-          `converted buffer length is < 12.`
+          `converted buffer length is < 44.`
       )
     }
-    const numContexts = BigNumber.from(calldata.slice(12, 15)).toNumber()
+    const numContexts = BigNumber.from(calldata.slice(44, 47)).toNumber()
     let transactionIndex = 0
     let enqueuedCount = 0
-    let nextTxPointer = 15 + 16 * numContexts
+    let nextTxPointer = 47 + 16 * numContexts
     for (let i = 0; i < numContexts; i++) {
-      const contextPointer = 15 + 16 * i
+      const contextPointer = 47 + 16 * i
       const context = parseSequencerBatchContext(calldata, contextPointer)
 
       for (let j = 0; j < context.numSequencedTransactions; j++) {
