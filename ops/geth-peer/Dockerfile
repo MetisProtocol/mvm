@@ -12,6 +12,8 @@ WORKDIR /efs
 RUN git clone https://github.com/aws/efs-utils
 
 WORKDIR /efs/efs-utils
+RUN mv ./src/mount_efs/__init__.py ./src/mount_efs/__init__.py.bak
+COPY settings/__init__.py ./src/mount_efs/__init__.py
 RUN ./build-deb.sh
 RUN apt-get -y install ./build/amazon-efs-utils*deb
 

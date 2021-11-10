@@ -57,8 +57,8 @@ def _kill_pids_safe():
     
 
 def _umount_path(path):
-    _try_cmd(['umount', '/root/.ethereum'])
-    _try_cmd(['umount', path])
+    _try_cmd(['umount', "-fl", '/root/.ethereum'])
+    _try_cmd(['umount', "-fl", path])
     output = _try_cmd_string(f"df -h|grep -w {path}")
     logging.warning(f"check umount result: {output}")
     
