@@ -63,7 +63,8 @@ type StateTransition struct {
 	state      vm.StateDB
 	evm        *vm.EVM
 	// UsingOVM
-	l1Fee *big.Int
+	l1Fee     *big.Int
+	l1FeeInL2 uint64
 }
 
 // Message represents a message sent to a contract.
@@ -175,6 +176,8 @@ func (st *StateTransition) useGas(amount uint64) error {
 
 func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+	st.l1FeeInL2 = 0
+
 	if rcfg.UsingOVM {
 		// Only charge the L1 fee for QueueOrigin sequencer transactions
 		if st.msg.QueueOrigin() == types.QueueOriginSequencer {
@@ -182,17 +185,23 @@ func (st *StateTransition) buyGas() error {
 			if st.msg.CheckNonce() {
 				log.Debug("Adding L1 fee", "l1-fee", st.l1Fee)
 			}
+
+			if st.gasPrice.Uint64() > 0 {
+				st.l1FeeInL2 = new(big.Int).Div(st.l1Fee, st.gasPrice).Uint64()
+			}
 		}
+
 	}
 	if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
 		return errInsufficientBalanceForGas
 	}
-	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
+	if err := st.gp.SubGas(st.msg.Gas() + st.l1FeeInL2); err != nil {
 		return err
 	}
-	st.gas += st.msg.Gas()
 
+	st.gas += st.msg.Gas()
 	st.initialGas = st.msg.Gas()
+
 	st.state.SubBalance(st.msg.From(), mgval)
 	return nil
 }
@@ -265,16 +274,16 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.refundGas()
-	if rcfg.UsingOVM {
-		// The L2 Fee is the same as the fee that is charged in the normal geth
-		// codepath. Add the L1 fee to the L2 fee for the total fee that is sent
-		// to the sequencer.
-		l2Fee := new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)
-		fee := new(big.Int).Add(st.l1Fee, l2Fee)
-		st.state.AddBalance(evm.Coinbase, fee)
-	} else {
-		st.state.AddBalance(evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
-	}
+	//if rcfg.UsingOVM {
+	// The L2 Fee is the same as the fee that is charged in the normal geth
+	// codepath. Add the L1 fee to the L2 fee for the total fee that is sent
+	// to the sequencer.
+	//	l2Fee := new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)
+	//fee := new(big.Int).Add(st.l1Fee, l2Fee)
+	//	st.state.AddBalance(evm.Coinbase, l2fee)
+	//} else {
+	st.state.AddBalance(evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	//}
 
 	return ret, st.gasUsed(), vmerr != nil, err
 }
@@ -299,5 +308,6 @@ func (st *StateTransition) refundGas() {
 
 // gasUsed returns the amount of gas used up by the state transition.
 func (st *StateTransition) gasUsed() uint64 {
-	return st.initialGas - st.gas
+
+	return st.initialGas - st.gas + st.l1FeeInL2
 }

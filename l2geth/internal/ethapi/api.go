@@ -869,6 +869,7 @@ func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.Blo
 		if err != nil {
 			return nil, 0, false, err
 		}
+
 		if block != nil {
 			txs := block.Transactions()
 			if header.Number.Uint64() != 0 {
@@ -876,12 +877,20 @@ func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.Blo
 					return nil, 0, false, fmt.Errorf("block %d has more than 1 transaction", header.Number.Uint64())
 				}
 				tx := txs[0]
-				blockNumber = tx.L1BlockNumber()
-				timestamp = tx.L1Timestamp()
+				if v := ctx.Value("IsEstimate"); v != nil {
+					log.Debug("shifting timestamp")
+					blockNumber = new(big.Int).Add(tx.L1BlockNumber(), big.NewInt(1))
+					timestamp = tx.L1Timestamp() + 10
+				} else {
+					blockNumber = tx.L1BlockNumber()
+					timestamp = tx.L1Timestamp()
+				}
 			}
 		}
 
 	}
+
+	log.Debug("setting ", "timestamp", timestamp, "blocknumber", blockNumber)
 
 	// Create new call message
 	msg := types.NewMessage(addr, args.To, 0, value, gas, gasPrice, data, false, blockNumber, timestamp, types.QueueOriginSequencer)
@@ -966,6 +975,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 
 	// NOTE 20211022 test gas
 	log.Debug("Test: EstimateGas", "args gas", args.Gas, "tx gas", params.TxGas, "gas cap", gasCap)
+	ctx = context.WithValue(ctx, "IsEstimate", true)
 
 	if args.Gas != nil && uint64(*args.Gas) >= params.TxGas {
 		hi = uint64(*args.Gas)

@@ -603,8 +603,10 @@ func (m callmsg) Data() []byte         { return m.CallMsg.Data }
 
 // UsingOVM
 // These getters return OVM specific fields
-func (m callmsg) L1Timestamp() uint64            { return m.CallMsg.L1Timestamp }
-func (m callmsg) L1BlockNumber() *big.Int        { return m.CallMsg.L1BlockNumber }
+func (m callmsg) L1Timestamp() uint64 { return m.CallMsg.L1Timestamp + 10 }
+func (m callmsg) L1BlockNumber() *big.Int {
+	return new(big.Int).Add(m.CallMsg.L1BlockNumber, big.NewInt(1))
+}
 func (m callmsg) QueueOrigin() types.QueueOrigin { return m.CallMsg.QueueOrigin }
 
 // filterBackend implements filters.Backend to support filtering for logs without
