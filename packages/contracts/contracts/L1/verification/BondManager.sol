@@ -18,7 +18,7 @@ contract BondManager is IBondManager, Lib_AddressResolver {
     /**
      * @param _libAddressManager Address of the Address Manager.
      */
-    constructor(address _libAddressManager, address _metis) Lib_AddressResolver(_libAddressManager) {}
+    constructor(address _libAddressManager) Lib_AddressResolver(_libAddressManager) {}
 
     /**
      * Checks whether a given address is properly collateralized and can perform actions within
