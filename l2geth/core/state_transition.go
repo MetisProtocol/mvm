@@ -126,23 +126,32 @@ func IntrinsicGas(data []byte, contractCreation, isHomestead bool, isEIP2028 boo
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
 	l1Fee := new(big.Int)
+	var l1FeeInL2 uint64
+	l1FeeInL2 = 0
 	if rcfg.UsingOVM {
-		if msg.GasPrice().Cmp(common.Big0) != 0 {
+		if msg.QueueOrigin() == types.QueueOriginSequencer {
 			// Compute the L1 fee before the state transition
 			// so it only has to be read from state one time.
 			l1Fee, _ = fees.CalculateL1MsgFee(msg, evm.StateDB, nil)
+			if msg.GasPrice().Cmp(common.Big0) != 0 {
+				l1FeeInL2 = new(big.Int).Div(l1Fee, msg.GasPrice()).Uint64()
+			} else {
+				l1FeeInL2 = new(big.Int).Div(l1Fee, evm.StateDB.GetState(rcfg.L2GasPriceOracleAddress, rcfg.L2GasPriceSlot).Big()).Uint64()
+			}
+			log.Debug("adding L1FeeInL2", "fee", l1FeeInL2)
 		}
 	}
 
 	return &StateTransition{
-		gp:       gp,
-		evm:      evm,
-		msg:      msg,
-		gasPrice: msg.GasPrice(),
-		value:    msg.Value(),
-		data:     msg.Data(),
-		state:    evm.StateDB,
-		l1Fee:    l1Fee,
+		gp:        gp,
+		evm:       evm,
+		msg:       msg,
+		gasPrice:  msg.GasPrice(),
+		value:     msg.Value(),
+		data:      msg.Data(),
+		state:     evm.StateDB,
+		l1Fee:     l1Fee,
+		l1FeeInL2: l1FeeInL2,
 	}
 }
 
@@ -175,27 +184,14 @@ func (st *StateTransition) useGas(amount uint64) error {
 }
 
 func (st *StateTransition) buyGas() error {
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	st.l1FeeInL2 = 0
+	totalGas := st.msg.Gas() + st.l1FeeInL2
 
-	if rcfg.UsingOVM {
-		// Only charge the L1 fee for QueueOrigin sequencer transactions
-		if st.msg.QueueOrigin() == types.QueueOriginSequencer {
-			mgval = mgval.Add(mgval, st.l1Fee)
-			if st.msg.CheckNonce() {
-				log.Debug("Adding L1 fee", "l1-fee", st.l1Fee)
-			}
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(totalGas), st.gasPrice)
 
-			if st.gasPrice.Uint64() > 0 {
-				st.l1FeeInL2 = new(big.Int).Div(st.l1Fee, st.gasPrice).Uint64()
-			}
-		}
-
-	}
 	if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
 		return errInsufficientBalanceForGas
 	}
-	if err := st.gp.SubGas(st.msg.Gas() + st.l1FeeInL2); err != nil {
+	if err := st.gp.SubGas(totalGas); err != nil {
 		return err
 	}
 
@@ -273,6 +269,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return nil, 0, false, vmerr
 		}
 	}
+	if err = st.useGas(st.l1FeeInL2); err != nil {
+		return nil, 0, false, err
+	}
 	st.refundGas()
 	//if rcfg.UsingOVM {
 	// The L2 Fee is the same as the fee that is charged in the normal geth
@@ -284,7 +283,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//} else {
 	st.state.AddBalance(evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 	//}
-
+	log.Debug("gas used", "gas", st.gasUsed())
 	return ret, st.gasUsed(), vmerr != nil, err
 }
 
@@ -309,5 +308,5 @@ func (st *StateTransition) refundGas() {
 // gasUsed returns the amount of gas used up by the state transition.
 func (st *StateTransition) gasUsed() uint64 {
 
-	return st.initialGas - st.gas + st.l1FeeInL2
+	return st.initialGas - st.gas
 }

@@ -7,25 +7,27 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { iMVM_DiscountOracle } from "./iMVM_DiscountOracle.sol";
 import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
 contract MVM_Verifier is Ownable, Lib_AddressResolver{
-    event NewChallenge(uint256 cIndex, uint256 chainID, uint256 index, uint256 timestamp)
+    event NewChallenge(uint256 cIndex, uint256 chainID, uint256 index, uint256 timestamp);
     // Current l2 gas price
     struct Challenge {
-       address challenger,
-       uint256 chainID,
-       uint256 index,
-       uint256 timestamp,
-       uint256 numQualifiedVerifiers,
-       uint256 numVerify1,
-       uint256 numVerify2
+       address challenger;
+       uint256 chainID;
+       uint256 index;
+       uint256 timestamp;
+       uint256 numQualifiedVerifiers;
+       uint256 numVerify1;
+       uint256 numVerify2;
     }
     
     mapping (address => uint256) public verifier_stakes;
     mapping (uint256 => mapping (address=>bytes)) private challenge_keys;
-    mapping (uint256 => mapping (address=>bytes32)) private challenge_key_hashes;
-    mapping (uint256 => mapping (address=>bytes32)) private challenge_hashes;
+    mapping (uint256 => mapping (address=>bytes)) private challenge_key_hashes;
+    mapping (uint256 => mapping (address=>bytes)) private challenge_hashes;
+    mapping (uint256 => mapping (address => bool)) public consensus;
+    mapping (uint256 => mapping (address => bool)) public penalties;
     mapping (uint256 => address[]) private challenge_verifiers;
     
-    address[] public verifiers
+    address[] public verifiers;
     Challenge[] public challenges;
     
     uint public verifyWindow = 3600 * 24; // 24 hours of window to complete the first verify phase
@@ -56,22 +58,25 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
     }
     
     // helper fucntion to decrypt the data
-    function decrypt(bytes calldata data, bytes calldata key) pure internal returns (bytes) {
-      bytes32 memory decryptedData = data;
+    function decrypt(bytes memory data, bytes memory key) pure internal returns (bytes memory) {
+      bytes memory decryptedData = data;
       uint j = 0;
       
-      for (uint i = 0; i < decryptedData.length; i++, j++) {
+      for (uint i = 0; i < decryptedData.length; i++) {
           if (j == key.length) {
              j = 0;
-          } 
-          decryptedData[i] = decryptByte(decryptedData[i], key[j]);
+          }
+          
+          decryptedData[i] = decryptByte(decryptedData[i], uint8(key[j]));
+          
+          j++;
       }
 
       return decryptedData;
     }
 
-    function decryptByte(bytes1 b, int k) pure internal returns (bytes1) {
-      uint16 temp16 = uint16(b);
+    function decryptByte(bytes1 b, uint8 k) pure internal returns (bytes1) {
+      uint16 temp16 = uint16(uint8(b));
       if (temp16 > k) {
          temp16 -= k;
       } else {
@@ -82,35 +87,36 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
     }
     
     //helper fucntion to encrypt data
-    function encrypt(bytes calldata data, bytes calldata key) pure public returns (bytes) {
+    function encrypt(bytes calldata data, bytes calldata key) pure public returns (bytes memory) {
       bytes memory encryptedData = data;
       uint j = 0;
       
-      for (uint i = 0; i < encryptedData.length; i++, j++) {
+      for (uint i = 0; i < encryptedData.length; i++) {
           if (j == key.length) {
              j = 0;
           } 
-          encryptedData[i] = encryptByte(encryptedData[i], key[j]);
+          encryptedData[i] = encryptByte(encryptedData[i], uint8(key[j]));
+          j++;
       }
 
       return encryptedData;
     }
 
-    function encryptByte(byte b, int k) pure internal returns (byte4) {
-      uint16 temp16 = uint16(b);
+    function encryptByte(bytes1 b, uint8 k) pure internal returns (bytes1) {
+      uint16 temp16 = uint16(uint8(b));
       temp16 += k;
       
       if (temp16 > 255) {
          temp16 -= 256;
       } 
-      return byte1(uint8(temp16));
+      return bytes1(uint8(temp16));
     }
     
     // add stake as a verifier
     function verifierStake(uint256 stake) public {
        require(allowWithdraw, "stake is currently prohibited"); //ongoing challenge
        require(stake > 0, "zero stake not allowed");
-       require(IERC20(metis).transferFrom(msg.sender, stake), "transfer metis failed");
+       require(IERC20(metis).transferFrom(msg.sender, address(this), stake), "transfer metis failed");
        uint256 previousBalance = verifier_stakes[msg.sender];
        if (previousBalance == 0) {
           verifier_stakes[msg.sender] = stake;
@@ -132,7 +138,7 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
     //
     // @dev why do we ask for key and keyhash? because we want verifiers compute the state instead
     // of just copying from other verifiers.
-    function challenge(uint256 chainID, uint256 index, bytes32 calldata hash, bytes32 calldata keyhash) public {
+    function challenge(uint256 chainID, uint256 index, bytes calldata hash, bytes calldata keyhash) public {
        require(verifier_stakes[msg.sender] > minStake, "insufficient stake");
        
        Challenge memory c;
@@ -148,7 +154,7 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
        // house keeping
        challenge_hashes[cIndex][msg.sender] = hash;
        challenge_key_hashes[cIndex][msg.sender] = keyhash;
-       challenge[cIndex].numVerify1++;
+       challenges[cIndex].numVerify1++;
        
        // prevent stake changes
        allowWithdraw = false;
@@ -161,58 +167,61 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
     // @param cIndex index of the challenge
     // @param hash encrypted hash of the correct state (for the index referred in the challenge)
     // @param keyhash hash of the decryption key
-    function verify1(uint256 cIndex, bytes32 hash, bytes32 keyhash) public {
+    function verify1(uint256 cIndex, bytes calldata hash, bytes calldata keyhash) public {
        require(verifier_stakes[msg.sender] > minStake, "insufficient stake");
-       require(challenge_hashes[cIndex][msg.sender] == [], "verify1 already completed for the sender");
+       require(challenge_hashes[cIndex][msg.sender].length == 0, "verify1 already completed for the sender");
        challenge_hashes[cIndex][msg.sender] = hash;
        challenge_key_hashes[cIndex][msg.sender] = keyhash;
-       challenge[cIndex].numVerify1++;
+       challenges[cIndex].numVerify1++;
     }
     
     // phase 2 of the verify, provide the actual key to decrypt the hash
     // @param cIndex index of the challenge
     // @param key the decryption key
-    function verify2(uint256 cIndex, bytes key) public {
+    function verify2(uint256 cIndex, bytes calldata key) public {
        require(verifier_stakes[msg.sender] > minStake, "insufficient stake");
-       require(challenge[cIndex].numVerify1 == verifiers.length 
-               || block.timestamp - challenge[cIndex].timestamp > verifyWindow, "phase 2 not ready");
-       require(challenge_hashes[cIndex][msg.sender] != [], "you didn't participate in phase 1");   
-       if (challenge_keys[cIndex][msg.sender] != []) {
+       require(challenges[cIndex].numVerify1 == verifiers.length 
+               || block.timestamp - challenges[cIndex].timestamp > verifyWindow, "phase 2 not ready");
+       require(challenge_hashes[cIndex][msg.sender].length > 0, "you didn't participate in phase 1");   
+       if (challenge_keys[cIndex][msg.sender].length > 0) {
           finalize(cIndex);
           return;
        }
        
        //verify whether the key matches the keyhash initially provided.
-       require(sha256(key) == challenge_key_hashes[cIndex][msg.sender], "key and keyhash don't match");
+       require(sha256(key) == bytes32(challenge_key_hashes[cIndex][msg.sender]), "key and keyhash don't match");
        
        challenge_keys[cIndex][msg.sender] = key;
        challenge_hashes[cIndex][msg.sender] = decrypt(challenge_hashes[cIndex][msg.sender], key);
-       challenge[cIndex].numVerify2++;
+       challenges[cIndex].numVerify2++;
        finalize(cIndex);
     }
     
     function finalize(uint256 cIndex) internal {
-        if (challenge[cIndex].numVerify2 != challenges.length 
+        if (challenges[cIndex].numVerify2 != challenges.length 
            && block.timestamp - challenges[cIndex].timestamp < verifyWindow) {
            // not ready to finalize. do nothing
            return;
         }
        
-        bytes32 memory storedHash; // temporary
-        bytes32 memory proposedHash = challenge_hashes[cIndex][challenges[cIndex].challenger];
-        mapping (address => bool) consensus;
-        mapping (address => bool) penalties;
+        bytes32 storedHash; // temporary
+        bytes32 proposedHash = bytes32(challenge_hashes[cIndex][challenges[cIndex].challenger]);
+        
         uint numAgrees = 0;
         
         for (uint256 i = 0; i < verifiers.length; i++) {
-            if (challenge_hashes[cIndex][verifiers[i]] == proposedHash) {
+            if (bytes32(challenge_hashes[cIndex][verifiers[i]]) == proposedHash) {
                 numAgrees++;
-                consensus[verifiers[i]] = true;
+                consensus[cIndex][verifiers[i]] = true;
             }
         }
        
         if (proposedHash != storedHash) {
-           if (numAgrees < numQualifiedVerifiers
+           if (numAgrees < numQualifiedVerifiers) {
+               // no consensus, challenge failed
+           } else {
+               // delete the batch root and slash the sequencer
+           }
         } else {
            //fail right away but penzalize the challenger only
         }
@@ -232,21 +241,21 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
        uint256 amount = rewards[msg.sender];
        rewards[msg.sender] = 0;
 
-       require(IERC20(metis).transfer(msg.sender, amount, "token transfer failed"));
+       require(IERC20(metis).transfer(msg.sender, amount), "token transfer failed");
     }
 
     function withdraw(uint256 amount) public {
        require(allowWithdraw, "withdraw is currently prohibited"); //ongoing challenge
        
        uint256 balance = verifier_stakes[msg.sender];
-       require(balance >= amount, "insufficient stake to withdraw
+       require(balance >= amount, "insufficient stake to withdraw");
        
        if (balance - amount < minStake && balance >= minStake) {
           numQualifiedVerifiers--;
        }
        verifier_stakes[msg.sender] -= amount;
        
-       require(IERC20(metis).transfer(msg.sender, amount, "token transfer failed"));
+       require(IERC20(metis).transfer(msg.sender, amount), "token transfer failed");
        
     }
     

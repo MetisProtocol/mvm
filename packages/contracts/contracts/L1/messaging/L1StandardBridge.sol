@@ -312,8 +312,8 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
             _l2Gas = uint32(oracle.getMinL2Gas());
         }
         
-        require(_l2Gas / oracle.getDiscount() <= msg.value, 
-                string(abi.encodePacked("insufficient fee supplied. send at least ", uint2str(_l2Gas / oracle.getDiscount()))));
+        require(_l2Gas * oracle.getDiscount() <= msg.value, 
+                string(abi.encodePacked("insufficient fee supplied. send at least ", uint2str(_l2Gas * oracle.getDiscount()))));
         
         // When a deposit is initiated on L1, the L1 Bridge transfers the funds to itself for future
         // withdrawals. safeTransferFrom also checks if the contract has code, so this will fail if

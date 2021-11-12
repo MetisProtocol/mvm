@@ -18,7 +18,7 @@ contract BondManager is IBondManager, Lib_AddressResolver {
     /**
      * @param _libAddressManager Address of the Address Manager.
      */
-    constructor(address _libAddressManager) Lib_AddressResolver(_libAddressManager) {}
+    constructor(address _libAddressManager, address _metis) Lib_AddressResolver(_libAddressManager) {}
 
     /**
      * Checks whether a given address is properly collateralized and can perform actions within
@@ -39,5 +39,12 @@ contract BondManager is IBondManager, Lib_AddressResolver {
         require(_who==_prop,"sender must the proposer!");
         return true;
         //return bonds[_who].state == State.COLLATERALIZED;
+    }
+    
+    function registerSequencerByChainId(
+        uint256 _chainId,
+        address _sequencer,
+        address _proposer
+    ) public {
     }
 }

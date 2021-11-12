@@ -1045,6 +1045,8 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 			return 0, fmt.Errorf("gas required exceeds allowance (%d)", cap)
 		}
 	}
+
+	log.Debug("gas estimate", "gas", hi)
 	return hexutil.Uint64(hi), nil
 }
 
