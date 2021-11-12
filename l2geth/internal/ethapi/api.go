@@ -878,7 +878,6 @@ func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.Blo
 				}
 				tx := txs[0]
 				if v := ctx.Value("IsEstimate"); v != nil {
-					log.Debug("shifting timestamp")
 					blockNumber = new(big.Int).Add(tx.L1BlockNumber(), big.NewInt(1))
 					timestamp = tx.L1Timestamp() + 10
 				} else {
@@ -889,8 +888,6 @@ func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.Blo
 		}
 
 	}
-
-	log.Debug("setting ", "timestamp", timestamp, "blocknumber", blockNumber)
 
 	// Create new call message
 	msg := types.NewMessage(addr, args.To, 0, value, gas, gasPrice, data, false, blockNumber, timestamp, types.QueueOriginSequencer)

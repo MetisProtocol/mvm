@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rollup/rcfg"
 )
@@ -130,14 +131,47 @@ func CalculateL1MsgFee(msg Message, state StateDB, gpo *common.Address) (*big.In
 	}
 
 	l1GasPrice, overhead, scalar := readGPOStorageSlots(*gpo, state)
+	log.Debug("states", "l1GasPrice", l1GasPrice, "overhead", overhead, "scalar", scalar)
 	l1Fee := CalculateL1Fee(raw, overhead, l1GasPrice, scalar)
 	return l1Fee, nil
+}
+
+// CalculateL1MsgFee computes the L1 portion of the fee given
+// a Message and a StateDB
+func CalculateL1MsgFeeInL2(msg Message, state StateDB, gpo *common.Address) (uint64, error) {
+	tx := asTransaction(msg)
+	raw, err := rlpEncode(tx)
+	var l1FeeInL2 uint64
+
+	if err != nil {
+		log.Debug("error when encoding", "err", err)
+		return 0, err
+	}
+
+	if gpo == nil {
+		gpo = &rcfg.L2GasPriceOracleAddress
+	}
+
+	l1GasPrice, overhead, scalar := readGPOStorageSlots(*gpo, state)
+	log.Debug("states", "l1GasPrice", l1GasPrice, "overhead", overhead, "scalar", scalar)
+	l1Fee := CalculateL1Fee(raw, overhead, l1GasPrice, scalar)
+
+	if msg.GasPrice().Cmp(common.Big0) != 0 {
+		l1FeeInL2 = new(big.Int).Div(l1Fee, msg.GasPrice()).Uint64()
+	} else {
+		// add the missing gas when estimateGas. the missing l1gas is to cover gaslimit and gasprice values
+		l1FeeInL2 = new(big.Int).Div(new(big.Int).Add(l1Fee, mulByFloat(new(big.Int).Mul(EstimateGasOverhead(), l1GasPrice), scalar)),
+			state.GetState(rcfg.L2GasPriceOracleAddress, rcfg.L2GasPriceSlot).Big()).Uint64()
+	}
+
+	return l1FeeInL2, nil
 }
 
 // CalculateL1Fee computes the L1 fee
 func CalculateL1Fee(data []byte, overhead, l1GasPrice *big.Int, scalar *big.Float) *big.Int {
 	l1GasUsed := CalculateL1GasUsed(data, overhead)
 	l1Fee := new(big.Int).Mul(l1GasUsed, l1GasPrice)
+	log.Debug("CalculateL1Fee", "l1GasUsed", l1GasUsed, "l1Fee", l1Fee)
 	return mulByFloat(l1Fee, scalar)
 }
 
@@ -150,7 +184,16 @@ func CalculateL1GasUsed(data []byte, overhead *big.Int) *big.Int {
 	zeroesGas := zeroes * params.TxDataZeroGas
 	onesGas := (ones + 68) * params.TxDataNonZeroGasEIP2028
 	l1Gas := new(big.Int).SetUint64(zeroesGas + onesGas)
+	log.Debug("CalculateL1GasUsed", "zeroes", zeroes, "ones", ones)
 	return new(big.Int).Add(l1Gas, overhead)
+}
+
+// count int the missing l1cost when estimateGas becaues limit and gas price variance
+// added extra buffer to smooth out l1 price variance
+func EstimateGasOverhead() *big.Int {
+	zeroesGas := 3 * params.TxDataZeroGas
+	onesGas := 4 * params.TxDataNonZeroGasEIP2028
+	return new(big.Int).SetUint64(zeroesGas + onesGas)
 }
 
 // DeriveL1GasInfo reads L1 gas related information to be included
