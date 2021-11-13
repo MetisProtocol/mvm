@@ -189,12 +189,13 @@ func (st *StateTransition) buyGas() error {
 
 	st.gas += st.msg.Gas()
 	st.initialGas = st.msg.Gas()
-
+	log.Debug("buygas", "gas", st.gas, "initialGas", st.initialGas)
 	st.state.SubBalance(st.msg.From(), mgval)
 	return nil
 }
 
 func (st *StateTransition) preCheck() error {
+	log.Debug("preCheck", "checknonce", st.msg.CheckNonce(), "gas", st.msg.Gas())
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
 		nonce := st.state.GetNonce(st.msg.From())
@@ -236,6 +237,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		return nil, 0, false, err
 	}
 
+	// brought in from upstream. Check clause 6
+	if msg.CheckNonce() && msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
+		log.Debug("Insufficient balance for transfer", "from", msg.From(), "value", msg.Value())
+		return nil, 0, false, vm.ErrInsufficientBalance
+	}
+
 	var (
 		evm = st.evm
 		// vm errors do not effect consensus and are therefore
@@ -243,29 +250,36 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		// error.
 		vmerr error
 	)
-
-	if contractCreation {
-		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
-	} else {
-		// Increment the nonce for the next transaction
-		st.state.SetNonce(msg.From(), st.state.GetNonce(msg.From())+1)
-		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
-	}
-
-	if vmerr != nil {
-		log.Debug("VM returned with error", "err", vmerr, "ret", hexutil.Encode(ret))
-		// The only possible consensus-error would be if there wasn't
-		// sufficient balance to make the transfer happen. The first
-		// balance transfer may never fail.
-		if vmerr == vm.ErrInsufficientBalance {
-			return nil, 0, false, vmerr
-		}
-	}
-
-	// take the l1fee from the gas pool. it is important to show user the actual cost when estimate
+	// take the l1fee from the gas pool first. it is important to show user the actual cost when estimate
+	// it is also important to take it out before the vm call so that the state wont be changed
 	vmerr = st.useGas(st.l1FeeInL2)
 	if vmerr != nil {
-		log.Debug("run out of gas when taking l1fee", "err", vmerr, "gasleft", st.gas)
+		// Increment the nonce for the next transaction
+		st.state.SetNonce(msg.From(), st.state.GetNonce(msg.From())+1)
+		log.Debug("run out of gas when taking l1fee", "err", vmerr, "gasleft", st.gas, "sender", msg.From())
+	} else if msg.Value().Sign() > 0 && !msg.CheckNonce() && msg.From() == (common.Address{}) {
+		vmerr = st.useGas(params.Sha256PerWordGas) // this is the gas we skipped
+		// no need to advance nonce here because checknonce is false
+		log.Debug("zero address with value called. skipping vm execution")
+	} else {
+		log.Debug("getting in vm", "gas", st.gas, "value", st.value, "sender", msg.From(), "gasprice", st.gasPrice)
+		if contractCreation {
+			ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
+		} else {
+			// Increment the nonce for the next transaction
+			st.state.SetNonce(msg.From(), st.state.GetNonce(msg.From())+1)
+			ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		}
+
+		if vmerr != nil {
+			log.Debug("VM returned with error", "err", vmerr, "ret", hexutil.Encode(ret))
+			// The only possible consensus-error would be if there wasn't
+			// sufficient balance to make the transfer happen. The first
+			// balance transfer may never fail.
+			if vmerr == vm.ErrInsufficientBalance {
+				return nil, 0, false, vmerr
+			}
+		}
 	}
 
 	st.refundGas()

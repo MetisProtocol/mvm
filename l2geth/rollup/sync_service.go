@@ -857,29 +857,16 @@ func (s *SyncService) applyBatchedTransaction(tx *types.Transaction) error {
 
 // verifyFee will verify that a valid fee is being paid.
 func (s *SyncService) verifyFee(tx *types.Transaction) error {
-	fee, err := fees.CalculateTotalFee(tx, s.RollupGpo)
-	if err != nil {
-		return fmt.Errorf("invalid transaction: %w", err)
-	}
 
-	// Prevent transactions without enough balance from
-	// being accepted by the chain but allow through 0
-	// gas price transactions
-	cost := tx.Value()
-	if tx.GasPrice().Cmp(common.Big0) != 0 {
-		cost = cost.Add(cost, fee)
-	}
-	state, err := s.bc.State()
-	if err != nil {
-		return err
-	}
 	from, err := types.Sender(s.signer, tx)
 	if err != nil {
 		return fmt.Errorf("invalid transaction: %w", core.ErrInvalidSender)
 	}
-	if state.GetBalance(from).Cmp(cost) < 0 {
-		return fmt.Errorf("invalid transaction: %w", core.ErrInsufficientFunds)
-	}
+
+	//MVM: l1 cost is now part of the gaslimit
+	//if state.GetBalance(from).Cmp(cost) < 0 {
+	//	return fmt.Errorf("invalid transaction: %w", core.ErrInsufficientFunds)
+	//}
 
 	if tx.GasPrice().Cmp(common.Big0) == 0 {
 		// Allow 0 gas price transactions only if it is the owner of the gas

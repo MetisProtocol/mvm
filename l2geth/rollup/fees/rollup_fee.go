@@ -131,7 +131,6 @@ func CalculateL1MsgFee(msg Message, state StateDB, gpo *common.Address) (*big.In
 	}
 
 	l1GasPrice, overhead, scalar := readGPOStorageSlots(*gpo, state)
-	log.Debug("states", "l1GasPrice", l1GasPrice, "overhead", overhead, "scalar", scalar)
 	l1Fee := CalculateL1Fee(raw, overhead, l1GasPrice, scalar)
 	return l1Fee, nil
 }
@@ -153,7 +152,6 @@ func CalculateL1MsgFeeInL2(msg Message, state StateDB, gpo *common.Address) (uin
 	}
 
 	l1GasPrice, overhead, scalar := readGPOStorageSlots(*gpo, state)
-	log.Debug("states", "l1GasPrice", l1GasPrice, "overhead", overhead, "scalar", scalar)
 	l1Fee := CalculateL1Fee(raw, overhead, l1GasPrice, scalar)
 
 	if msg.GasPrice().Cmp(common.Big0) != 0 {
@@ -171,7 +169,6 @@ func CalculateL1MsgFeeInL2(msg Message, state StateDB, gpo *common.Address) (uin
 func CalculateL1Fee(data []byte, overhead, l1GasPrice *big.Int, scalar *big.Float) *big.Int {
 	l1GasUsed := CalculateL1GasUsed(data, overhead)
 	l1Fee := new(big.Int).Mul(l1GasUsed, l1GasPrice)
-	log.Debug("CalculateL1Fee", "l1GasUsed", l1GasUsed, "l1Fee", l1Fee)
 	return mulByFloat(l1Fee, scalar)
 }
 
@@ -184,7 +181,6 @@ func CalculateL1GasUsed(data []byte, overhead *big.Int) *big.Int {
 	zeroesGas := zeroes * params.TxDataZeroGas
 	onesGas := (ones + 68) * params.TxDataNonZeroGasEIP2028
 	l1Gas := new(big.Int).SetUint64(zeroesGas + onesGas)
-	log.Debug("CalculateL1GasUsed", "zeroes", zeroes, "ones", ones)
 	return new(big.Int).Add(l1Gas, overhead)
 }
 

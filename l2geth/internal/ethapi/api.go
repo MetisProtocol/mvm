@@ -991,36 +991,34 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 	}
 	cap = hi
 
-	// Set sender address or use a default if none specified
-	if args.From == nil {
-		if wallets := b.AccountManager().Wallets(); len(wallets) > 0 {
-			if accounts := wallets[0].Accounts(); len(accounts) > 0 {
-				args.From = &accounts[0].Address
-			}
-		}
-	}
 	// Use zero-address if none other is available
 	if args.From == nil {
 		args.From = &common.Address{}
 	}
 	// Create a helper to check if a gas allowance results in an executable transaction
-	executable := func(gas uint64) (bool, []byte) {
+	executable := func(gas uint64) (bool, []byte, error) {
 		args.Gas = (*hexutil.Uint64)(&gas)
 
 		res, _, failed, err := DoCall(ctx, b, args, blockNrOrHash, nil, vm.Config{}, 0, gasCap)
 		if err != nil || failed {
-			return false, res
+			if err == vm.ErrOutOfGas {
+				return false, res, nil
+			}
+			return false, res, err
 		}
-		return true, res
+		return true, res, err
 	}
 	// ti := 0
 	// Execute the binary search and hone in on an executable gas limit
 	for lo+1 < hi {
 		mid := (hi + lo) / 2
-		ok, _ := executable(mid)
-		// ti++
-		// log.Debug("Test: executable", "times", ti, "lo", lo, "hi", hi, "mid", mid, "ok", ok)
-
+		ok, _, err := executable(mid)
+		// If the error is not nil(consensus error), it means the provided message
+		// call or transaction will never be accepted no matter how much gas it is
+		// assigned. Return the error directly, don't struggle any more.
+		if err != nil {
+			return 0, err
+		}
 		if !ok {
 			lo = mid
 		} else {
@@ -1029,7 +1027,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 	}
 	// Reject the transaction as invalid if it still fails at the highest allowance
 	if hi == cap {
-		ok, res := executable(hi)
+		ok, res, _ := executable(hi)
 		if !ok {
 			if len(res) >= 4 && bytes.Equal(res[:4], abi.RevertSelector) {
 				reason, errUnpack := abi.UnpackRevert(res)
