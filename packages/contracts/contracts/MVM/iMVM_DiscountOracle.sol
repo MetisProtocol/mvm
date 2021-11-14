@@ -11,8 +11,6 @@ interface iMVM_DiscountOracle{
         uint256 _minL2Gas
     ) external;
     
-    function transferSetter(address newsetter) external;
-    
     function setWhitelistedXDomainSender(
         address _sender,
         bool _isWhitelisted
@@ -29,5 +27,4 @@ interface iMVM_DiscountOracle{
     function getMinL2Gas() view external returns(uint256);
     function getDiscount() view external returns(uint256);
     function processL2SeqGas(address sender, uint256 _chainId) external payable;
-    function isTrustedRelayer(uint256 chainid, address sender) view external returns(bool);
 }

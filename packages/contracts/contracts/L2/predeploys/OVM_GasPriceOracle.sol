@@ -2,7 +2,9 @@
 pragma solidity ^0.8.9;
 
 /* External Imports */
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
+import { iOVM_SequencerFeeVault } from "./iOVM_SequencerFeeVault.sol";
+import { Lib_PredeployAddresses } from "../../libraries/constants/Lib_PredeployAddresses.sol";
 
 /**
  * @title OVM_GasPriceOracle
@@ -15,11 +17,11 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  * constructor doesn't run in practice as the L2 state generation script uses
  * the deployed bytecode instead of running the initcode.
  */
-contract OVM_GasPriceOracle is Ownable {
+contract OVM_GasPriceOracle {
     /*************
      * Variables *
      *************/
-
+    address owner;
     // Current L2 gas price
     uint256 public gasPrice;
     // Current L1 base fee
@@ -33,6 +35,26 @@ contract OVM_GasPriceOracle is Ownable {
     
     // minimum gas to bridge the asset back to l1
     uint256 public minErc20BridgeCost;
+    
+    
+    /**********************
+     * Function Modifiers *
+     **********************/
+
+    /**
+     * Blocks functions to anyone except the contract owner.
+     */
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Function can only be called by the owner of this contract.");
+        _;
+    }
+    
+    modifier onlyManager() {
+        require(msg.sender == iOVM_SequencerFeeVault(Lib_PredeployAddresses.SEQUENCER_FEE_WALLET).getL2Manager(),
+                "Function can only be called by the l2manager.");
+        _;
+    }
+    
 
     /***************
      * Constructor *
@@ -41,8 +63,8 @@ contract OVM_GasPriceOracle is Ownable {
     /**
      * @param _owner Address that will initially own this contract.
      */
-    constructor(address _owner) Ownable() {
-        transferOwnership(_owner);
+    constructor(address _owner) {
+        owner = _owner;
     }
 
     /**********
@@ -55,11 +77,20 @@ contract OVM_GasPriceOracle is Ownable {
     event ScalarUpdated(uint256);
     event DecimalsUpdated(uint256);
     event MinErc20BridgeCostUpdated(uint256);
+    event OwnerChanged(address oldOwner, address newOwner);
 
     /********************
      * Public Functions *
      ********************/
-
+    /**
+     * Updates the owner of this contract.
+     * @param _owner Address of the new owner.
+     */
+    function setOwner(address _owner) public onlyManager {
+        emit OwnerChanged(owner, _owner);
+        owner = _owner;
+    }
+    
     /**
      * Allows the owner to modify the l2 gas price.
      * @param _gasPrice New l2 gas price.

@@ -15,7 +15,7 @@ import { Lib_CrossDomainUtils } from "../../libraries/bridge/Lib_CrossDomainUtil
 import { IL1CrossDomainMessenger } from "./IL1CrossDomainMessenger.sol";
 import { ICanonicalTransactionChain } from "../rollup/ICanonicalTransactionChain.sol";
 import { IStateCommitmentChain } from "../rollup/IStateCommitmentChain.sol";
-import { iMVM_DiscountOracle } from "../../MVM/MVM_DiscountOracle.sol";
+import { iMVM_DiscountOracle } from "../../MVM/iMVM_DiscountOracle.sol";
 
 /* External Imports */
 import {
@@ -532,12 +532,6 @@ contract L1CrossDomainMessenger is
             bool
         )
     {
-        iMVM_DiscountOracle oracle = iMVM_DiscountOracle(resolve('MVM_DiscountOracle'));
-        
-        if (oracle.isTrustedRelayer(_chainId, msg.sender)) {
-            return true;
-        }
-        
         bytes32 storageKey = keccak256(
             abi.encodePacked(
                 keccak256(
@@ -560,7 +554,7 @@ contract L1CrossDomainMessenger is
             exists == true,
             "Message passing predeploy has not been initialized or invalid proof provided."
         );
-
+        
         Lib_OVMCodec.EVMAccount memory account = Lib_OVMCodec.decodeEVMAccount(
             encodedMessagePassingAccount
         );

@@ -30,6 +30,12 @@ const deployFn: DeployFunction = async (hre) => {
     name: 'OVM_Proposer',
     address: (hre as any).deployConfig.ovmProposerAddress,
   })
+  
+  await registerAddress({
+    hre,
+    name: 'METIS_MANAGER',
+    address: (hre as any).deployConfig.ovmAddressManagerOwner,
+  })
 }
 
 deployFn.tags = ['set-addresses', 'upgrade']

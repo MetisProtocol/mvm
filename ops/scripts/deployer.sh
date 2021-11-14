@@ -34,6 +34,11 @@ if [ $L1_CROSS_DOMAIN_MESSENGER_ADDRESS == null ]; then
     envSet L1_CROSS_DOMAIN_MESSENGER_ADDRESS L1CrossDomainMessenger
 fi
 
+envSet L1_METIS_MANAGER_ADDRESS Proxy__MVM_ChainManager
+if [ $L1_METIS_MANAGER_ADDRESS == null ]; then
+    envSet L1_METIS_MANAGER_ADDRESS MVM_ChainManager
+fi
+
 # build the dump file
 yarn run build:dump
 

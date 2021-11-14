@@ -84,7 +84,8 @@ contract L2CrossDomainMessenger is IL2CrossDomainMessenger {
 
         sentMessages[keccak256(xDomainCalldata)] = true;
 
-        Lib_PredeployAddresses.SEQUENCER_FEE_WALLET.transfer(msg.value);
+        (bool sent, ) = Lib_PredeployAddresses.SEQUENCER_FEE_WALLET.call{value: msg.value}("");
+        require(sent, "Failed to send bridge fee");
         
         // Actually send the message.
         iOVM_L2ToL1MessagePasser(Lib_PredeployAddresses.L2_TO_L1_MESSAGE_PASSER).passMessageToL1(

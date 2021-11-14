@@ -65,6 +65,9 @@ import { makeL2GenesisFile } from '../src/make-genesis'
   const l1CrossDomainMessengerAddress = env.L1_CROSS_DOMAIN_MESSENGER_ADDRESS
   
   const l1MetisAddress = env.METIS_ADDRESS
+  
+  const l1MetisManagerAddress = env.L1_METIS_MANAGER_ADDRESS
+  
 
   ensure(whitelistOwner, 'WHITELIST_OWNER')
   ensure(gasPriceOracleOwner, 'GAS_PRICE_ORACLE_OWNER')
@@ -75,6 +78,7 @@ import { makeL2GenesisFile } from '../src/make-genesis'
   ensure(l1FeeWalletAddress, 'L1_FEE_WALLET_ADDRESS')
   ensure(l1CrossDomainMessengerAddress, 'L1_CROSS_DOMAIN_MESSENGER_ADDRESS')
   ensure(l1MetisAddress, 'METIS_ADDRESS')
+  ensure(l1MetisManagerAddress, 'L1_METIS_MANAGER_ADDRESS')
 
   // Basic warning so users know that the whitelist will be disabled if the owner is the zero address.
   if (env.WHITELIST_OWNER === '0x' + '00'.repeat(20)) {
@@ -97,7 +101,8 @@ import { makeL2GenesisFile } from '../src/make-genesis'
     l1StandardBridgeAddress,
     l1FeeWalletAddress,
     l1CrossDomainMessengerAddress,
-    l1MetisAddress
+    l1MetisAddress,
+    l1MetisManagerAddress
   })
 
   fs.writeFileSync(outfile, JSON.stringify(genesis, null, 4))

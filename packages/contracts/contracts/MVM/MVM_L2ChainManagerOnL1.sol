@@ -3,8 +3,12 @@ pragma solidity ^0.8.9;
 pragma experimental ABIEncoderV2;
 
 /* Library Imports */
-import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
-
+import { CrossDomainEnabled } from "../libraries/bridge/CrossDomainEnabled.sol";
+import { Lib_PredeployAddresses } from "../libraries/constants/Lib_PredeployAddresses.sol";
+import { Lib_AddressManager } from "../libraries/resolver/Lib_AddressManager.sol";
+import { iOVM_SequencerFeeVault } from "../L2/predeploys/iOVM_SequencerFeeVault.sol";
+import { iMVM_L2ChainManagerOnL1 } from "./iMVM_L2ChainManagerOnL1.sol";
+import { iMVM_DiscountOracle } from "./iMVM_DiscountOracle.sol";
 /* Interface Imports */
 
 /* External Imports */
@@ -17,59 +21,38 @@ import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.s
  * Compiler used: solc
  * Runtime target: EVM
  */
-contract MVM_L2ChainManagerOnL1 is Lib_AddressResolver {
-
+contract MVM_L2ChainManagerOnL1 is iMVM_L2ChainManagerOnL1, CrossDomainEnabled {
+ 
     /*************
      * Constants *
      *************/
-    string constant public CONFIG_OWNER_KEY = "owner";
+    string constant public CONFIG_OWNER_KEY = "METIS_MANAGER";
     
-
     /*************
      * Variables *
      *************/
-    struct L2Config {  
-        address owner;
-        mapping(string=>bytes) data;
-    }
-  
-  
-    string internal owner;
-    uint256 internal l2ChainIdBase;
-    mapping (uint256 => L2Config) internal l2Configs;
-    mapping (address => uint256) public l2chainIds;
-    uint256 internal totalL2Config;
-
+    address public addressmgr;
+    // chainid => sequencer
+    mapping (uint256 => address) squencers;
+    
+    // chainid => configs (unused for now);
+    mapping (uint256 => bytes) configs;
+    
     /***************
      * Constructor *
      ***************/
+    // This contract lives behind a proxy, so the constructor parameters will go unused.
+    constructor() CrossDomainEnabled(address(0)) {}
 
-    /**
-     * @param _libAddressManager Address of the Address Manager.
-     */
-    constructor(
-        address _libAddressManager,
-        string memory _owner
-    )
-        public
-        Lib_AddressResolver(_libAddressManager)
-    {
-        owner = _owner;
-        l2ChainIdBase = 500;
-        totalL2Config = 0;
-        /*default two l2 chain for testing*/
-        _applyL2ChainId(420);
-        _applyL2ChainId(421);
-    }
     
     /**********************
      * Function Modifiers *
      **********************/
 
-    modifier onlyOwner() {
+    modifier onlyManager() {
         require(
-            msg.sender == resolve(owner),
-            "MVM_L2ChainManagerOnL1: Function can only be called by the owner."
+            msg.sender == Lib_AddressManager(addressmgr).getAddress(CONFIG_OWNER_KEY),
+            "MVM_L2ChainManagerOnL1: Function can only be called by the METIS_MANAGER."
         );
         _;
     }
@@ -77,118 +60,48 @@ contract MVM_L2ChainManagerOnL1 is Lib_AddressResolver {
     /********************
      * Public Functions *
      ********************/
-    /**
-     * 
-     */
-    function applyL2ChainId()
-        public
-        returns (
-            uint256 _chainId
-        )
-    {
-        uint256 chainId=l2ChainIdBase++;
-        return _applyL2ChainId(chainId);
-    }
-    
-    /**
-     * 
-     */
-    function _applyL2ChainId(uint256 chainId)
-        internal
-        returns (
-            uint256 _chainId
-        )
-    {
-        require(
-            l2Configs[chainId].owner==address(0),
-            "The l2Configs must be null."
-        );
-        l2Configs[chainId].owner=msg.sender;
-        l2chainIds[msg.sender]=chainId;
-        totalL2Config++;
-        return chainId;
-    }
-    
-
-    /**
-     * 
-     */
-    function getTotalL2Chains()
-        public
-        view
-        returns (
-            uint256 _totalChains
-        )
-    {
-        return totalL2Config;
-    }
-
-
-     /**
-     * Inserts an Config value into the state.
-     * @param _chainId Address of the Config to insert.
-     * @param _key Key to insert for the given address.
-     * @param _value Value to insert for the given key.
-     */
-    function putL2Config(
-        uint256 _chainId,
-        string memory _key,
-        bytes memory _value
-    )
-        public
-    {
-        require(
-            l2Configs[_chainId].owner!=address(0),
-            "The l2Configs can not be null."
-        );
-        if(_chainId>=500){
-            require(
-                l2Configs[_chainId].owner==msg.sender,
-                "The updater must be the owner of the config."
+    function switchSequencer(uint256 _chainId, address wallet, address manager) public onlyManager payable {
+            
+        bytes memory message =
+            abi.encodeWithSelector(
+                iOVM_SequencerFeeVault.finalizeChainSwitch.selector,
+                wallet,
+                manager
             );
-        }
-        l2Configs[_chainId].data[_key] = _value;
-    }
+        iMVM_DiscountOracle oracle = 
+            iMVM_DiscountOracle(Lib_AddressManager(addressmgr).getAddress('MVM_DiscountOracle'));
+            
+        // Send calldata into L2
+        sendCrossDomainMessageViaChainId(
+            _chainId,
+            Lib_PredeployAddresses.SEQUENCER_FEE_WALLET,
+            uint32(oracle.getMinL2Gas()),
+            message,
+            msg.value
+        );
 
-    
-    /**
-     * Retrieves an Config from the state.
-     * @param _chainId Address of the Config to retrieve.
-     * @param _key Key of the Config value to retrieve.
-     * @return _value Value for the given address and key.
-     */
-    function getL2ConfigByKey(
-            uint256 _chainId,
-            string memory _key)
-        public
-        view
-        returns (
-            bytes memory _value
-        )
-    {
-        require(
-            l2Configs[_chainId].owner!=address(0),
-            "The l2Configs must be not null."
-        );
-        return l2Configs[_chainId].data[_key];
+        emit SwitchSeq(_chainId, wallet, manager);
     }
     
-    /**
-     * Retrieves an Config from the state.
-     * @param _chainId Address of the Config to retrieve.
-     * @return _value Value for the given address and key.
-     */
-    function getL2ConfigOwner(uint256 _chainId)
-        public
-        view
-        returns (
-            address _value
-        )
-    {
-        require(
-            l2Configs[_chainId].owner!=address(0),
-            "The l2Configs must be not null."
+    function pushConfig(uint256 _chainId, bytes calldata _configs) public payable {
+        bytes memory message =
+            abi.encodeWithSelector(
+                iOVM_SequencerFeeVault.finalizeChainConfig.selector,
+                _configs
+            );
+            
+        iMVM_DiscountOracle oracle = 
+            iMVM_DiscountOracle(Lib_AddressManager(addressmgr).getAddress('MVM_DiscountOracle'));
+            
+        // Send calldata into L2
+        sendCrossDomainMessageViaChainId(
+            _chainId,
+            Lib_PredeployAddresses.SEQUENCER_FEE_WALLET,
+            uint32(oracle.getMinL2Gas()),
+            message,
+            msg.value
         );
-        return l2Configs[_chainId].owner;
+        
+        emit PushConfig(_chainId, _configs);
     }
 }

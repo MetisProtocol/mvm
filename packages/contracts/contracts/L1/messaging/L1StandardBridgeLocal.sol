@@ -23,7 +23,7 @@ import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.
  *
  * Runtime target: EVM
  */
-contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
+contract L1StandardBridgeLocal is IL1StandardBridge, CrossDomainEnabled {
     using SafeERC20 for IERC20;
 
     /********************************
@@ -180,7 +180,7 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
         if (_l2Gas < mingas) {
             _l2Gas = mingas;
         }
-        uint256 fee = _l2Gas * oracle.getDiscount();
+        uint256 fee = _l2Gas / oracle.getDiscount();
         
         require(fee <= msg.value, string(abi.encodePacked("insufficient fee supplied. send at least ", uint2str(fee))));
         // Construct calldata for finalizeDeposit call
@@ -188,7 +188,7 @@ contract L1StandardBridge is IL1StandardBridge, CrossDomainEnabled {
             abi.encodeWithSelector(
                 IL2ERC20Bridge.finalizeDeposit.selector,
                 address(0),
-                Lib_PredeployAddresses.OVM_ETH,
+                Lib_PredeployAddresses.MVM_COINBASE,  //MVM: only for local dev environment for easier funding
                 _from,
                 _to,
                 msg.value - fee,

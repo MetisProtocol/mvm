@@ -41,6 +41,8 @@ export interface RollupDeployConfig {
   l1CrossDomainMessengerAddress: string
   // l1 metis contract address
   l1MetisAddress: string
+  // l1 metis manager address
+  l1MetisManagerAddress: string
 }
 
 /**
@@ -64,7 +66,7 @@ export const makeL2GenesisFile = async (
       owner: cfg.whitelistOwner,
     },
     OVM_GasPriceOracle: {
-      _owner: cfg.gasPriceOracleOwner,
+      owner: cfg.gasPriceOracleOwner,
       gasPrice: cfg.gasPriceOracleGasPrice,
       l1BaseFee: cfg.gasPriceOracleL1BaseFee,
       overhead: cfg.gasPriceOracleOverhead,
@@ -77,6 +79,9 @@ export const makeL2GenesisFile = async (
     },
     OVM_SequencerFeeVault: {
       l1FeeWallet: cfg.l1FeeWalletAddress,
+      l1Manager: cfg.l1MetisAddress,
+      l2Manager: cfg.l1FeeWalletAddress,
+      messenger: predeploys.L2CrossDomainMessenger,
     },
     OVM_ETH: {
       l2Bridge: predeploys.L2StandardBridge,
@@ -98,6 +103,8 @@ export const makeL2GenesisFile = async (
       // Set the messageNonce to a high value to avoid overwriting old sent messages.
       messageNonce: 100000,
     },
+    MVM_ChainConfig: {
+    }
     
   }
 

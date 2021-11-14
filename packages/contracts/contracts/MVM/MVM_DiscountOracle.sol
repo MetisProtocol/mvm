@@ -2,26 +2,44 @@
 pragma solidity ^0.8.9;
 /* Contract Imports */
 /* External Imports */
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
 import { iMVM_DiscountOracle } from "./iMVM_DiscountOracle.sol";
+import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
 import { MVM_AddressResolver } from "../libraries/resolver/MVM_AddressResolver.sol";
-contract MVM_DiscountOracle is Ownable, iMVM_DiscountOracle, MVM_AddressResolver{
+contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver, MVM_AddressResolver{
     // Current l2 gas price
     uint256 public discount;
     uint256 public minL2Gas;
     mapping (address => bool) public xDomainWL;
     bool allowAllXDomainSenders;
+    string constant public CONFIG_OWNER_KEY = "METIS_MANAGER";
+    
+    /**********************
+     * Function Modifiers *
+     **********************/
+
+    modifier onlyManager() {
+        require(
+            msg.sender == resolve(CONFIG_OWNER_KEY),
+            "MVM_DiscountOracle: Function can only be called by the METIS_MANAGER."
+        );
+        _;
+    }
+    
+    
     constructor(
+      address _addressManager,
       address _mvmAddressManager,
       uint256 _initialDiscount
     )
-      Ownable() 
+      Lib_AddressResolver(_addressManager)
       MVM_AddressResolver(_mvmAddressManager)
     {
       setDiscount(_initialDiscount);
-      setMinL2Gas(1_000_000);
+      setMinL2Gas(100_000);
       allowAllXDomainSenders = false;
     }
+    
     
     function getMinL2Gas() view public override returns (uint256){
       return minL2Gas;
@@ -31,14 +49,12 @@ contract MVM_DiscountOracle is Ownable, iMVM_DiscountOracle, MVM_AddressResolver
       return discount;
     }
     
-    
-
     function setDiscount(
         uint256 _discount
     )
         public
         override
-        onlyOwner
+        onlyManager
     {
         discount = _discount;
     }
@@ -48,13 +64,9 @@ contract MVM_DiscountOracle is Ownable, iMVM_DiscountOracle, MVM_AddressResolver
     )
         public
         override
-        onlyOwner
+        onlyManager
     {
         minL2Gas = _minL2Gas;
-    }
-
-    function transferSetter(address newsetter) public override onlyOwner{
-       transferOwnership(newsetter);
     }
     
     function setWhitelistedXDomainSender(
@@ -63,7 +75,7 @@ contract MVM_DiscountOracle is Ownable, iMVM_DiscountOracle, MVM_AddressResolver
     )
         external
         override
-        onlyOwner
+        onlyManager
     {
         xDomainWL[_sender] = _isWhitelisted;
     }
@@ -89,7 +101,7 @@ contract MVM_DiscountOracle is Ownable, iMVM_DiscountOracle, MVM_AddressResolver
     )
         public
         override
-        onlyOwner
+        onlyManager
     {
         allowAllXDomainSenders = _allowAllXDomainSenders;
     }
@@ -103,12 +115,10 @@ contract MVM_DiscountOracle is Ownable, iMVM_DiscountOracle, MVM_AddressResolver
         require (sequencer != address(0), string(abi.encodePacked("sequencer address not available: ", ch)));
         
         //take the fee
-        (payable(sequencer)).transfer(msg.value);
+        (bool sent, ) = sequencer.call{value: msg.value}("");
+        require(sent, "Failed to send Ether");
     }
     
-    function isTrustedRelayer(uint256 chainid, address sender) view public override returns(bool) {
-        return (sender == resolveFromMvm(string(abi.encodePacked(uint2str(chainid), "_MVM_RELAYER"))));
-    }
 
     function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
         if (_i == 0) {

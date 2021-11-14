@@ -3,6 +3,7 @@ pragma solidity >0.5.0 <0.9.0;
 
 /* Library Imports */
 import { Lib_OVMCodec } from "../../libraries/codec/Lib_OVMCodec.sol";
+import { IChainStorageContainer } from "./IChainStorageContainer.sol";
 
 /**
  * @title IStateCommitmentChain
@@ -31,7 +32,9 @@ interface IStateCommitmentChain {
     /********************
      * Public Functions *
      ********************/
-
+    
+    function batches() external view returns (IChainStorageContainer);
+    
     /**
      * Retrieves the total number of elements submitted.
      * @return _totalElements Total submitted elements.

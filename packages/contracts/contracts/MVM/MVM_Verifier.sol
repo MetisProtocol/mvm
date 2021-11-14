@@ -6,13 +6,17 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { iMVM_DiscountOracle } from "./iMVM_DiscountOracle.sol";
 import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
+import { Lib_OVMCodec } from "../libraries/codec/Lib_OVMCodec.sol";
+import { IStateCommitmentChain } from "../L1/rollup/IStateCommitmentChain.sol";
+
 contract MVM_Verifier is Ownable, Lib_AddressResolver{
-    event NewChallenge(uint256 cIndex, uint256 chainID, uint256 index, uint256 timestamp);
+    event NewChallenge(uint256 cIndex, uint256 chainID, Lib_OVMCodec.ChainBatchHeader header, uint256 timestamp);
     // Current l2 gas price
     struct Challenge {
        address challenger;
        uint256 chainID;
        uint256 index;
+       Lib_OVMCodec.ChainBatchHeader header;
        uint256 timestamp;
        uint256 numQualifiedVerifiers;
        uint256 numVerify1;
@@ -132,27 +136,26 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
     
     // start a new challenge
     // @param chainID chainid
-    // @param index index batch index
-    // @param hash  encrypted hash of the correct state
+    // @param header chainbatch header
+    // @param proposedHash encrypted hash of the correct state
     // @param keyhash hash of the decryption key
     //
     // @dev why do we ask for key and keyhash? because we want verifiers compute the state instead
     // of just copying from other verifiers.
-    function challenge(uint256 chainID, uint256 index, bytes calldata hash, bytes calldata keyhash) public {
+    function newChallenge(uint256 chainID, Lib_OVMCodec.ChainBatchHeader calldata header, bytes calldata proposedHash, bytes calldata keyhash) public {
        require(verifier_stakes[msg.sender] > minStake, "insufficient stake");
        
        Challenge memory c;
        c.chainID = chainID;
        c.challenger = msg.sender; 
-       c.index = index;
        c.timestamp = block.timestamp;
-       
+       c.header = header;
        
        challenges.push(c);
        uint cIndex = challenges.length;
        
        // house keeping
-       challenge_hashes[cIndex][msg.sender] = hash;
+       challenge_hashes[cIndex][msg.sender] = proposedHash;
        challenge_key_hashes[cIndex][msg.sender] = keyhash;
        challenges[cIndex].numVerify1++;
        
@@ -160,7 +163,7 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
        allowWithdraw = false;
        activeChallenges++;
        
-       emit NewChallenge(cIndex, chainID, index, block.timestamp);
+       emit NewChallenge(cIndex, chainID, header, block.timestamp);
     }
 
     // phase 1 of the verify, provide an encrypted hash and the hash of the decryption key
@@ -179,33 +182,39 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
     // @param cIndex index of the challenge
     // @param key the decryption key
     function verify2(uint256 cIndex, bytes calldata key) public {
-       require(verifier_stakes[msg.sender] > minStake, "insufficient stake");
-       require(challenges[cIndex].numVerify1 == verifiers.length 
+        require(verifier_stakes[msg.sender] > minStake, "insufficient stake");
+        require(challenges[cIndex].numVerify1 == verifiers.length 
                || block.timestamp - challenges[cIndex].timestamp > verifyWindow, "phase 2 not ready");
-       require(challenge_hashes[cIndex][msg.sender].length > 0, "you didn't participate in phase 1");   
-       if (challenge_keys[cIndex][msg.sender].length > 0) {
-          finalize(cIndex);
-          return;
-       }
+        require(challenge_hashes[cIndex][msg.sender].length > 0, "you didn't participate in phase 1");   
+        if (challenge_keys[cIndex][msg.sender].length > 0) {
+            finalize(cIndex);
+            return;
+        }
        
-       //verify whether the key matches the keyhash initially provided.
-       require(sha256(key) == bytes32(challenge_key_hashes[cIndex][msg.sender]), "key and keyhash don't match");
+        //verify whether the key matches the keyhash initially provided.
+        require(sha256(key) == bytes32(challenge_key_hashes[cIndex][msg.sender]), "key and keyhash don't match");
        
-       challenge_keys[cIndex][msg.sender] = key;
-       challenge_hashes[cIndex][msg.sender] = decrypt(challenge_hashes[cIndex][msg.sender], key);
-       challenges[cIndex].numVerify2++;
-       finalize(cIndex);
+        if (msg.sender == challenges[cIndex].challenger) {
+            //decode the root in the header too
+            challenges[cIndex].header.batchRoot = bytes32(decrypt(abi.encodePacked(challenges[cIndex].header.batchRoot), key));
+        }
+        challenge_keys[cIndex][msg.sender] = key;
+        challenge_hashes[cIndex][msg.sender] = decrypt(challenge_hashes[cIndex][msg.sender], key);
+        challenges[cIndex].numVerify2++;
+        finalize(cIndex);
     }
     
     function finalize(uint256 cIndex) internal {
-        if (challenges[cIndex].numVerify2 != challenges.length 
-           && block.timestamp - challenges[cIndex].timestamp < verifyWindow) {
+    
+        Challenge memory challenge = challenges[cIndex];
+        
+        if (challenge.numVerify2 != challenges.length 
+           && block.timestamp - challenge.timestamp < verifyWindow) {
            // not ready to finalize. do nothing
            return;
         }
-       
-        bytes32 storedHash; // temporary
-        bytes32 proposedHash = bytes32(challenge_hashes[cIndex][challenges[cIndex].challenger]);
+        IStateCommitmentChain stateChain = IStateCommitmentChain(resolve("StateCommitmentChain"));
+        bytes32 proposedHash = bytes32(challenge_hashes[cIndex][challenge.challenger]);
         
         uint numAgrees = 0;
         
@@ -215,12 +224,18 @@ contract MVM_Verifier is Ownable, Lib_AddressResolver{
                 consensus[cIndex][verifiers[i]] = true;
             }
         }
-       
-        if (proposedHash != storedHash) {
+        
+        if (Lib_OVMCodec.hashBatchHeader(challenge.header) != 
+                stateChain.batches().getByChainId(challenge.chainID, challenge.header.batchIndex)) {
+           // challenger provided an invalid header, losing all stakes
+        }
+            
+        if (proposedHash != challenge.header.batchRoot) {
            if (numAgrees < numQualifiedVerifiers) {
                // no consensus, challenge failed
            } else {
                // delete the batch root and slash the sequencer
+               stateChain.deleteStateBatchByChainId(challenge.chainID, challenge.header);
            }
         } else {
            //fail right away but penzalize the challenger only

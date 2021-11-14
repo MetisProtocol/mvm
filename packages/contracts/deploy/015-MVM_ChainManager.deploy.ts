@@ -27,26 +27,21 @@ const deployFn: DeployFunction = async (hre) => {
   )
   
   const { chainId } = await hre.ethers.provider.getNetwork()
-  var bridge;
-  if (chainId === defaultHardhatNetworkParams.chainId) {
-    bridge = 'L1StandardBridgeLocal'
-  } else
-  {
-    bridge = 'L1StandardBridge'
-  }
-    const L1StandardBridge = await getDeployedContract(
+  
+  
+  const L1StandardBridge = await getDeployedContract(
       hre,
-      'Proxy__OVM_L1StandardBridge',
+      'Proxy__MVM_ChainManager',
       {
-        iface: bridge,
+        iface: 'MVM_L2ChainManagerOnL1',
       }
-    )
+  )
   // Set up a reference to the proxy as if it were the L1StandardBridge contract.
   const contract = await getDeployedContract(
     hre,
-    'Proxy__OVM_L1StandardBridge',
+    'Proxy__MVM_ChainManager',
     {
-      iface: bridge,
+      iface: 'MVM_L2ChainManagerOnL1',
       signerOrProvider: deployer,
     }
   )
@@ -67,20 +62,20 @@ const deployFn: DeployFunction = async (hre) => {
 
   // First we need to set the correct implementation code. We'll set the code and then check
   // that the code was indeed correctly set.
-  const bridgeArtifact = getContractDefinition(bridge)
-  const bridgeCode = bridgeArtifact.deployedBytecode
+  const managerArtifact = getContractDefinition('MVM_L2ChainManagerOnL1')
+  const managerCode = managerArtifact.deployedBytecode
 
-  console.log(`Setting bridge code...`)
-  await proxy.setCode(bridgeCode)
+  console.log(`Setting chain manager code...`)
+  await proxy.setCode(managerCode)
 
-  console.log(`Confirming that bridge code is correct...`)
+  console.log(`Confirming that manager code is correct...`)
   await waitUntilTrue(async () => {
     const implementation = await proxy.callStatic.getImplementation()
     return (
       !hexStringEquals(implementation, ethers.constants.AddressZero) &&
       hexStringEquals(
         await contract.provider.getCode(implementation),
-        bridgeCode
+        managerCode
       )
     )
   })
@@ -115,42 +110,10 @@ const deployFn: DeployFunction = async (hre) => {
     )
   })
 
-  // Now we set the bridge address in the same manner as the messenger address.
-  console.log(`Setting l2 bridge address to ${predeploys.L2StandardBridge}...`)
-  await proxy.setStorage(
-    ethers.utils.hexZeroPad('0x01', 32),
-    ethers.utils.hexZeroPad(predeploys.L2StandardBridge, 32)
-  )
-
-  console.log(`Confirming that l2 bridge address was correctly set...`)
-  await waitUntilTrue(async () => {
-    return hexStringEquals(
-      await contract.l2TokenBridge(),
-      predeploys.L2StandardBridge
-    )
-  })
-
-  console.log(
-    `Setting metis address to ${(hre as any).deployConfig.mvmMetisAddress}...`
-  )
-  // Set Slot 2 to the Metis Token Address
-  await proxy.setStorage(
-    hre.ethers.utils.hexZeroPad('0x02', 32),
-    hre.ethers.utils.hexZeroPad((hre as any).deployConfig.mvmMetisAddress, 32)
-  )
-  
-  console.log(`Confirming that metis address was correctly set...`)
-  await waitUntilTrue(async () => {
-    return hexStringEquals(
-      await contract.metis(),
-      (hre as any).deployConfig.mvmMetisAddress
-    )
-  })
-  
   console.log(`Setting addressmgr address to ${Lib_AddressManager.address}...`)
-  // Set Slot 3 to the Address Manager Address
+  // Set Slot 1 to the Address Manager Address
   await proxy.setStorage(
-    hre.ethers.utils.hexZeroPad('0x03', 32),
+    hre.ethers.utils.hexZeroPad('0x01', 32),
     hre.ethers.utils.hexZeroPad(Lib_AddressManager.address, 32)
   )
   
@@ -161,8 +124,7 @@ const deployFn: DeployFunction = async (hre) => {
       Lib_AddressManager.address
     )
   })
-
-
+  
   // Finally we transfer ownership of the proxy to the ovmAddressManagerOwner address.
   const owner = (hre as any).deployConfig.ovmAddressManagerOwner
   console.log(`Setting owner address to ${owner}...`)
@@ -182,12 +144,12 @@ const deployFn: DeployFunction = async (hre) => {
   console.log(`Deploying a copy of the bridge for Etherscan verification...`)
   await deployAndRegister({
     hre,
-    name: 'L1StandardBridge_for_verification_only',
-    contract: bridge,
+    name: 'MVM_L2ChainManagerOnL1_for_verification_only',
+    contract: 'MVM_L2ChainManagerOnL1',
     args: [],
   })
 }
 
-deployFn.tags = ['L1StandardBridge', 'upgrade']
+deployFn.tags = ['MVM_ChainManager', 'upgrade']
 
 export default deployFn

@@ -54,6 +54,11 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         FRAUD_PROOF_WINDOW = _fraudProofWindow;
         SEQUENCER_PUBLISH_WINDOW = _sequencerPublishWindow;
     }
+    
+    function setFraudProofWindow (uint256 window) public {
+        require (msg.sender == resolve("METIS_MANAGER"), "now allowed");
+        FRAUD_PROOF_WINDOW = window;
+    }
 
     /********************
      * Public Functions *
@@ -290,7 +295,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         require(
             msg.sender == resolveFromMvm(
               string(abi.encodePacked(uint2str(_chainId),"_MVM_FraudVerifier"))),
-            "State batches can only be deleted by the OVM_FraudVerifier."
+            "State batches can only be deleted by the MVM_FraudVerifier."
         );
 
         require(

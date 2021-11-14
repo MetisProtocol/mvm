@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import { iOVM_SequencerFeeVault } from "./iOVM_SequencerFeeVault.sol";
+import { Lib_PredeployAddresses } from "../../libraries/constants/Lib_PredeployAddresses.sol";
+
 /**
  * @title OVM_DeployerWhitelist
  * @dev The Deployer Whitelist is a temporary predeploy used to provide additional safety during the
@@ -37,6 +40,12 @@ contract OVM_DeployerWhitelist {
      */
     modifier onlyOwner() {
         require(msg.sender == owner, "Function can only be called by the owner of this contract.");
+        _;
+    }
+    
+    modifier onlyManager() {
+        require(msg.sender == iOVM_SequencerFeeVault(Lib_PredeployAddresses.SEQUENCER_FEE_WALLET).getL2Manager(),
+                "Function can only be called by the l2manager.");
         _;
     }
 

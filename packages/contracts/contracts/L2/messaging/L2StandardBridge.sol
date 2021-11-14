@@ -70,7 +70,6 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
     }
     
     function withdrawMetis(
-        address _l2Token,
         uint256 _amount,
         uint32 _l1Gas,
         bytes calldata _data
