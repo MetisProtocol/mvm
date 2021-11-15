@@ -78,6 +78,24 @@ task('deploy')
     undefined,
     types.string
   )
+  .addOptionalParam(
+    'mvmMetisAddress',
+    'Metis Token contract address on Layer 1',
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    'mvmMetisManager',
+    'Metis manager contract address on Layer 1',
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    'l2chainid',
+    'chainid of the default l2 chain',
+    undefined,
+    types.int
+  )
   .setAction(async (args, hre: any, runSuper) => {
     // Necessary because hardhat doesn't let us attach non-optional parameters to existing tasks.
     const validateAddressArg = (argName: string) => {
@@ -96,6 +114,8 @@ task('deploy')
     validateAddressArg('ovmSequencerAddress')
     validateAddressArg('ovmProposerAddress')
     validateAddressArg('ovmAddressManagerOwner')
+    validateAddressArg('mvmMetisAddress')
+    validateAddressArg('mvmMetisManager')
 
     hre.deployConfig = args
     return runSuper(args)

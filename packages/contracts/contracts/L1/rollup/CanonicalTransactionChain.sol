@@ -5,7 +5,6 @@ pragma solidity ^0.8.9;
 import { AddressAliasHelper } from "../../standards/AddressAliasHelper.sol";
 import { Lib_OVMCodec } from "../../libraries/codec/Lib_OVMCodec.sol";
 import { Lib_AddressResolver } from "../../libraries/resolver/Lib_AddressResolver.sol";
-import { MVM_AddressResolver } from "../../libraries/resolver/MVM_AddressResolver.sol";
 
 /* Interface Imports */
 import { ICanonicalTransactionChain } from "./ICanonicalTransactionChain.sol";
@@ -21,7 +20,7 @@ import { IChainStorageContainer } from "./IChainStorageContainer.sol";
  *
  * Runtime target: EVM
  */
-contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressResolver, MVM_AddressResolver {
+contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressResolver {
     /*************
      * Constants *
      *************/
@@ -66,13 +65,12 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
      ***************/
 
     constructor(
-        address _mvmAddressManager,
         address _libAddressManager,
         uint256 _maxTransactionGasLimit,
         uint256 _l2GasDiscountDivisor,
         uint256 _enqueueGasCost
     ) Lib_AddressResolver(_libAddressManager)
-      MVM_AddressResolver(_mvmAddressManager) {
+    {
         maxTransactionGasLimit = _maxTransactionGasLimit;
         l2GasDiscountDivisor = _l2GasDiscountDivisor;
         enqueueGasCost = _enqueueGasCost;
@@ -733,8 +731,8 @@ contract CanonicalTransactionChain is ICanonicalTransactionChain, Lib_AddressRes
         );
         
         require(
-            msg.sender == resolveFromMvm(string(abi.encodePacked(uint2str(_chainId),"_MVM_Sequencer"))),
-            "Function can only be called by the Sequencer for resolveFromMvm."
+            msg.sender == resolve(string(abi.encodePacked(uint2str(_chainId),"_MVM_Sequencer"))),
+            "Function can only be called by the Sequencer."
         );
 
         require(

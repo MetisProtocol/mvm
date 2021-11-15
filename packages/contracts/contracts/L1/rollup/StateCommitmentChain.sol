@@ -4,7 +4,6 @@ pragma solidity ^0.8.9;
 /* Library Imports */
 import { Lib_OVMCodec } from "../../libraries/codec/Lib_OVMCodec.sol";
 import { Lib_AddressResolver } from "../../libraries/resolver/Lib_AddressResolver.sol";
-import { MVM_AddressResolver } from "../../libraries/resolver/MVM_AddressResolver.sol";
 import { Lib_MerkleTree } from "../../libraries/utils/Lib_MerkleTree.sol";
 
 /* Interface Imports */
@@ -22,7 +21,7 @@ import { IChainStorageContainer } from "./IChainStorageContainer.sol";
  *
  * Runtime target: EVM
  */
-contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM_AddressResolver {
+contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
 
     /*************
      * Constants *
@@ -43,12 +42,10 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
      * @param _libAddressManager Address of the Address Manager.
      */
     constructor(
-        address _mvmAddressManager,
         address _libAddressManager,
         uint256 _fraudProofWindow,
         uint256 _sequencerPublishWindow
     )
-        MVM_AddressResolver(_mvmAddressManager)
         Lib_AddressResolver(_libAddressManager)
     {
         FRAUD_PROOF_WINDOW = _fraudProofWindow;
@@ -254,7 +251,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
             "Actual batch start index does not match expected start index."
         );
         
-        address proposerAddr = resolveFromMvm(proposer);
+        address proposerAddr = resolve(proposer);
 
         // Proposers must have previously staked at the BondManager
         require(
@@ -293,7 +290,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver, MVM
         public
     {
         require(
-            msg.sender == resolveFromMvm(
+            msg.sender == resolve(
               string(abi.encodePacked(uint2str(_chainId),"_MVM_FraudVerifier"))),
             "State batches can only be deleted by the MVM_FraudVerifier."
         );

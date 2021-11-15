@@ -16,7 +16,7 @@ import { iMVM_DiscountOracle } from "../../MVM/iMVM_DiscountOracle.sol";
 import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
 
 /**
- * @title L1StandardBridge
+ * @title L1StandardBridgeLocal
  * @dev The L1 ETH and ERC20 Bridge is a contract which stores deposited L1 funds and standard
  * tokens that are in use on L2. It synchronizes a corresponding L2 Bridge, informing it of deposits
  * and listening to it for newly finalized withdrawals.
@@ -86,9 +86,9 @@ contract L1StandardBridgeLocal is IL1StandardBridge, CrossDomainEnabled {
     /**
      * @dev do not accept no data call
      */
-    //receive() external payable onlyEOA {
-    //    _initiateETHDeposit(msg.sender, msg.sender, 200_000, bytes(""));
-    //}
+    receive() external payable onlyEOA {
+        require(false, "do not send eth directly");
+    }
 
     /**
      * @inheritdoc IL1StandardBridge

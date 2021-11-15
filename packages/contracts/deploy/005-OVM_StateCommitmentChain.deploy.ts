@@ -12,16 +12,11 @@ const deployFn: DeployFunction = async (hre) => {
     hre,
     'Lib_AddressManager'
   )
-  const MVM_AddressManager = await getDeployedContract(
-    hre,
-    'MVM_AddressManager'
-  )
-  console.log(MVM_AddressManager.address,Lib_AddressManager.address)
+
   await deployAndRegister({
     hre,
     name: 'StateCommitmentChain',
     args: [
-      MVM_AddressManager.address,
       Lib_AddressManager.address,
       (hre as any).deployConfig.sccFraudProofWindow,
       (hre as any).deployConfig.sccSequencerPublishWindow,

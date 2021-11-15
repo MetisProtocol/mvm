@@ -5,8 +5,8 @@ pragma solidity ^0.8.9;
 
 import { iMVM_DiscountOracle } from "./iMVM_DiscountOracle.sol";
 import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
-import { MVM_AddressResolver } from "../libraries/resolver/MVM_AddressResolver.sol";
-contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver, MVM_AddressResolver{
+
+contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver{
     // Current l2 gas price
     uint256 public discount;
     uint256 public minL2Gas;
@@ -29,11 +29,9 @@ contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver, MVM_Add
     
     constructor(
       address _addressManager,
-      address _mvmAddressManager,
       uint256 _initialDiscount
     )
       Lib_AddressResolver(_addressManager)
-      MVM_AddressResolver(_mvmAddressManager)
     {
       setDiscount(_initialDiscount);
       setMinL2Gas(100_000);
@@ -111,7 +109,7 @@ contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver, MVM_Add
         require(isXDomainSenderAllowed(sender), "sender is not whitelisted");
         string memory ch = string(abi.encodePacked(uint2str(_chainId),"_MVM_Sequencer"));
         
-        address sequencer = resolveFromMvm(ch);
+        address sequencer = resolve(ch);
         require (sequencer != address(0), string(abi.encodePacked("sequencer address not available: ", ch)));
         
         //take the fee

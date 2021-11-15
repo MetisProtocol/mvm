@@ -12,16 +12,10 @@ const deployFn: DeployFunction = async (hre) => {
     hre,
     'Lib_AddressManager'
   )
-  const MVM_AddressManager = await getDeployedContract(
-    hre,
-    'MVM_AddressManager'
-  )
-  console.log(MVM_AddressManager.address,Lib_AddressManager.address)
   await deployAndRegister({
     hre,
     name: 'CanonicalTransactionChain',
     args: [
-      MVM_AddressManager.address,
       Lib_AddressManager.address,
       (hre as any).deployConfig.ctcMaxTransactionGasLimit,
       (hre as any).deployConfig.ctcL2GasDiscountDivisor,

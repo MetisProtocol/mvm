@@ -37,26 +37,16 @@ const config: HardhatUserConfig = {
       saveDeployments: false,
       tags: ['local'],
     },
-    optimism: {
-      url: 'http://127.0.0.1:8545',
+    andromeda: {
+      url: 'http://andromeda.metis.io/?owner=1088',
       saveDeployments: false,
     },
-    'optimism-kovan': {
-      chainId: 69,
-      url: 'https://kovan.optimism.io',
+    stardust: {
+      chainId: 588,
+      url: 'https://stardust.metis.io/?owner=588',
       accounts: [privateKey],
 
-    },
-    'optimism-mainnet': {
-      chainId: 10,
-      url: 'https://mainnet.optimism.io',
-      accounts: [privateKey],
-    },
-    'mainnet-trial': {
-      chainId: 42069,
-      url: 'http://127.0.0.1:8545',
-      accounts: [privateKey],
-    },
+    }
   },
   mocha: {
     timeout: 50000,

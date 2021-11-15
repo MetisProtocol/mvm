@@ -79,7 +79,7 @@ export const makeL2GenesisFile = async (
     },
     OVM_SequencerFeeVault: {
       l1FeeWallet: cfg.l1FeeWalletAddress,
-      l1Manager: cfg.l1MetisAddress,
+      l1Manager: cfg.l1MetisManagerAddress,
       l2Manager: cfg.l1FeeWalletAddress,
       messenger: predeploys.L2CrossDomainMessenger,
     },

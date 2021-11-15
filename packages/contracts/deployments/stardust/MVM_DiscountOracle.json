@@ -1,0 +1,351 @@
+{
+  "address": "0xa9BdA5A0881e59587B119685027a601Cae1Cc83d",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_addressManager",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_initialDiscount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "CONFIG_OWNER_KEY",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "discount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getDiscount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getMinL2Gas",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sender",
+          "type": "address"
+        }
+      ],
+      "name": "isXDomainSenderAllowed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "libAddressManager",
+      "outputs": [
+        {
+          "internalType": "contract Lib_AddressManager",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "minL2Gas",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "processL2SeqGas",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_name",
+          "type": "string"
+        }
+      ],
+      "name": "resolve",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "_allowAllXDomainSenders",
+          "type": "bool"
+        }
+      ],
+      "name": "setAllowAllXDomainSenders",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_discount",
+          "type": "uint256"
+        }
+      ],
+      "name": "setDiscount",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_minL2Gas",
+          "type": "uint256"
+        }
+      ],
+      "name": "setMinL2Gas",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sender",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "_isWhitelisted",
+          "type": "bool"
+        }
+      ],
+      "name": "setWhitelistedXDomainSender",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "xDomainWL",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x0fc09a3738ada2d32cd42fa4471b3d0f4e442171e770800cc99b0c13b7e7f7e1",
+  "receipt": {
+    "to": null,
+    "from": "0x67bE001A254B81Dc44EaB9F5a7C66889a5c009AE",
+    "contractAddress": "0xa9BdA5A0881e59587B119685027a601Cae1Cc83d",
+    "transactionIndex": 16,
+    "gasUsed": "1079065",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x29ba8b1758ff59e81f54ddded69bb609a4009b43f1c9ae02f6203efd88572da4",
+    "transactionHash": "0x0fc09a3738ada2d32cd42fa4471b3d0f4e442171e770800cc99b0c13b7e7f7e1",
+    "logs": [],
+    "blockNumber": 9643619,
+    "cumulativeGasUsed": "2642003",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x3870c347e84dE40F8bD8b5FB8CbCC423Ed38CE12",
+    "1000000000"
+  ],
+  "solcInputHash": "a45fd09b0c3f6ec19daab95bc864a518",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.9+commit.e5eed63a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addressManager\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_initialDiscount\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"CONFIG_OWNER_KEY\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"discount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getDiscount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getMinL2Gas\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"}],\"name\":\"isXDomainSenderAllowed\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"libAddressManager\",\"outputs\":[{\"internalType\":\"contract Lib_AddressManager\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minL2Gas\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"}],\"name\":\"processL2SeqGas\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_name\",\"type\":\"string\"}],\"name\":\"resolve\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_allowAllXDomainSenders\",\"type\":\"bool\"}],\"name\":\"setAllowAllXDomainSenders\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_discount\",\"type\":\"uint256\"}],\"name\":\"setDiscount\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_minL2Gas\",\"type\":\"uint256\"}],\"name\":\"setMinL2Gas\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"_isWhitelisted\",\"type\":\"bool\"}],\"name\":\"setWhitelistedXDomainSender\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"xDomainWL\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"resolve(string)\":{\"params\":{\"_name\":\"Name to resolve an address for.\"},\"returns\":{\"_0\":\"Address associated with the given name.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"resolve(string)\":{\"notice\":\"Resolves the address associated with a given name.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/MVM/MVM_DiscountOracle.sol\":\"MVM_DiscountOracle\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":10000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    constructor() {\\n        _setOwner(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions anymore. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby removing any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _setOwner(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _setOwner(newOwner);\\n    }\\n\\n    function _setOwner(address newOwner) private {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0x6bb804a310218875e89d12c053e94a13a4607cdf7cc2052f3e52bd32a0dc50a1\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0x90565a39ae45c80f0468dc96c7b20d0afc3055f344c8203a0c9258239f350b9f\",\"license\":\"MIT\"},\"contracts/MVM/MVM_DiscountOracle.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n/* Contract Imports */\\n/* External Imports */\\n\\nimport { iMVM_DiscountOracle } from \\\"./iMVM_DiscountOracle.sol\\\";\\nimport { Lib_AddressResolver } from \\\"../libraries/resolver/Lib_AddressResolver.sol\\\";\\n\\ncontract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver{\\n    // Current l2 gas price\\n    uint256 public discount;\\n    uint256 public minL2Gas;\\n    mapping (address => bool) public xDomainWL;\\n    bool allowAllXDomainSenders;\\n    string constant public CONFIG_OWNER_KEY = \\\"METIS_MANAGER\\\";\\n    \\n    /**********************\\n     * Function Modifiers *\\n     **********************/\\n\\n    modifier onlyManager() {\\n        require(\\n            msg.sender == resolve(CONFIG_OWNER_KEY),\\n            \\\"MVM_DiscountOracle: Function can only be called by the METIS_MANAGER.\\\"\\n        );\\n        _;\\n    }\\n    \\n    \\n    constructor(\\n      address _addressManager,\\n      uint256 _initialDiscount\\n    )\\n      Lib_AddressResolver(_addressManager)\\n    {\\n      setDiscount(_initialDiscount);\\n      setMinL2Gas(100_000);\\n      allowAllXDomainSenders = false;\\n    }\\n    \\n    \\n    function getMinL2Gas() view public override returns (uint256){\\n      return minL2Gas;\\n    }\\n    \\n    function getDiscount() view public override returns (uint256){\\n      return discount;\\n    }\\n    \\n    function setDiscount(\\n        uint256 _discount\\n    )\\n        public\\n        override\\n        onlyManager\\n    {\\n        discount = _discount;\\n    }\\n    \\n    function setMinL2Gas(\\n        uint256 _minL2Gas\\n    )\\n        public\\n        override\\n        onlyManager\\n    {\\n        minL2Gas = _minL2Gas;\\n    }\\n    \\n    function setWhitelistedXDomainSender(\\n        address _sender,\\n        bool _isWhitelisted\\n    )\\n        external\\n        override\\n        onlyManager\\n    {\\n        xDomainWL[_sender] = _isWhitelisted;\\n    }\\n    \\n    function isXDomainSenderAllowed(\\n        address _sender\\n    )\\n        view\\n        override\\n        public\\n        returns (\\n            bool\\n        )\\n    {\\n        return (\\n            allowAllXDomainSenders == true\\n            || xDomainWL[_sender]\\n        );\\n    }\\n    \\n    function setAllowAllXDomainSenders(\\n        bool _allowAllXDomainSenders\\n    )\\n        public\\n        override\\n        onlyManager\\n    {\\n        allowAllXDomainSenders = _allowAllXDomainSenders;\\n    }\\n    \\n    function processL2SeqGas(address sender, uint256 _chainId) \\n    public payable override {\\n        require(isXDomainSenderAllowed(sender), \\\"sender is not whitelisted\\\");\\n        string memory ch = string(abi.encodePacked(uint2str(_chainId),\\\"_MVM_Sequencer\\\"));\\n        \\n        address sequencer = resolve(ch);\\n        require (sequencer != address(0), string(abi.encodePacked(\\\"sequencer address not available: \\\", ch)));\\n        \\n        //take the fee\\n        (bool sent, ) = sequencer.call{value: msg.value}(\\\"\\\");\\n        require(sent, \\\"Failed to send Ether\\\");\\n    }\\n    \\n\\n    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {\\n        if (_i == 0) {\\n            return \\\"0\\\";\\n        }\\n        uint j = _i;\\n        uint len;\\n        while (j != 0) {\\n            len++;\\n            j /= 10;\\n        }\\n        bytes memory bstr = new bytes(len);\\n        uint k = len;\\n        while (_i != 0) {\\n            k = k-1;\\n            uint8 temp = (48 + uint8(_i - _i / 10 * 10));\\n            bytes1 b1 = bytes1(temp);\\n            bstr[k] = b1;\\n            _i /= 10;\\n        }\\n        return string(bstr);\\n    }\\n}\\n\",\"keccak256\":\"0x14b725cb9e83470e26f3062912abf38d0ca8b7d6741a7f6b96a076e7f94f1c32\",\"license\":\"MIT\"},\"contracts/MVM/iMVM_DiscountOracle.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\ninterface iMVM_DiscountOracle{\\n\\n    function setDiscount(\\n        uint256 _discount\\n    ) external;\\n    \\n    function setMinL2Gas(\\n        uint256 _minL2Gas\\n    ) external;\\n    \\n    function setWhitelistedXDomainSender(\\n        address _sender,\\n        bool _isWhitelisted\\n    ) external;\\n    \\n    function isXDomainSenderAllowed(\\n        address _sender\\n    ) view external returns(bool);\\n    \\n    function setAllowAllXDomainSenders(\\n        bool _allowAllXDomainSenders\\n    ) external;\\n    \\n    function getMinL2Gas() view external returns(uint256);\\n    function getDiscount() view external returns(uint256);\\n    function processL2SeqGas(address sender, uint256 _chainId) external payable;\\n}\\n\",\"keccak256\":\"0xa668af0f127c69cc2964dcc5a35e96f4ab1f7716e2b0396db682ac9a361e093c\",\"license\":\"MIT\"},\"contracts/libraries/resolver/Lib_AddressManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/* External Imports */\\nimport { Ownable } from \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\n\\n/**\\n * @title Lib_AddressManager\\n */\\ncontract Lib_AddressManager is Ownable {\\n    /**********\\n     * Events *\\n     **********/\\n\\n    event AddressSet(string indexed _name, address _newAddress, address _oldAddress);\\n\\n    /*************\\n     * Variables *\\n     *************/\\n\\n    mapping(bytes32 => address) private addresses;\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    /**\\n     * Changes the address associated with a particular name.\\n     * @param _name String name to associate an address with.\\n     * @param _address Address to associate with the name.\\n     */\\n    function setAddress(string memory _name, address _address) external onlyOwner {\\n        bytes32 nameHash = _getNameHash(_name);\\n        address oldAddress = addresses[nameHash];\\n        addresses[nameHash] = _address;\\n\\n        emit AddressSet(_name, _address, oldAddress);\\n    }\\n\\n    /**\\n     * Retrieves the address associated with a given name.\\n     * @param _name Name to retrieve an address for.\\n     * @return Address associated with the given name.\\n     */\\n    function getAddress(string memory _name) external view returns (address) {\\n        return addresses[_getNameHash(_name)];\\n    }\\n\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Computes the hash of a name.\\n     * @param _name Name to compute a hash for.\\n     * @return Hash of the given name.\\n     */\\n    function _getNameHash(string memory _name) internal pure returns (bytes32) {\\n        return keccak256(abi.encodePacked(_name));\\n    }\\n}\\n\",\"keccak256\":\"0xcde9b29429d512c549f7c1b8a033f161fa71c18cda08b241748663854196ae14\",\"license\":\"MIT\"},\"contracts/libraries/resolver/Lib_AddressResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/* Library Imports */\\nimport { Lib_AddressManager } from \\\"./Lib_AddressManager.sol\\\";\\n\\n/**\\n * @title Lib_AddressResolver\\n */\\nabstract contract Lib_AddressResolver {\\n    /*************\\n     * Variables *\\n     *************/\\n\\n    Lib_AddressManager public libAddressManager;\\n\\n    /***************\\n     * Constructor *\\n     ***************/\\n\\n    /**\\n     * @param _libAddressManager Address of the Lib_AddressManager.\\n     */\\n    constructor(address _libAddressManager) {\\n        libAddressManager = Lib_AddressManager(_libAddressManager);\\n    }\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    /**\\n     * Resolves the address associated with a given name.\\n     * @param _name Name to resolve an address for.\\n     * @return Address associated with the given name.\\n     */\\n    function resolve(string memory _name) public view returns (address) {\\n        return libAddressManager.getAddress(_name);\\n    }\\n}\\n\",\"keccak256\":\"0x515c4db671a28e2fe180201f6d11c0208c05f582ca3489fb6b8e81c27659bc62\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60806040523480156200001157600080fd5b506040516200147d3803806200147d833981016040819052620000349162000278565b600080546001600160a01b0319166001600160a01b0384161790556200005a816200007a565b62000068620186a062000126565b50506004805460ff1916905562000324565b60408051808201909152600d81526c26a2aa24a9afa6a0a720a3a2a960991b6020820152620000a990620001ce565b6001600160a01b0316336001600160a01b031614620001215760405162461bcd60e51b815260206004820152604560248201526000805160206200143d83398151915260448201526000805160206200145d83398151915260648201526420a3a2a91760d91b608482015260a4015b60405180910390fd5b600155565b60408051808201909152600d81526c26a2aa24a9afa6a0a720a3a2a960991b60208201526200015590620001ce565b6001600160a01b0316336001600160a01b031614620001c95760405162461bcd60e51b815260206004820152604560248201526000805160206200143d83398151915260448201526000805160206200145d83398151915260648201526420a3a2a91760d91b608482015260a40162000118565b600255565b6000805460405163bf40fac160e01b81526001600160a01b039091169063bf40fac19062000201908590600401620002a7565b60206040518083038186803b1580156200021a57600080fd5b505afa1580156200022f573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190620002559190620002ff565b92915050565b80516001600160a01b03811681146200027357600080fd5b919050565b600080604083850312156200028c57600080fd5b62000297836200025b565b9150602083015190509250929050565b600060208083528351808285015260005b81811015620002d657858101830151858201604001528201620002b8565b81811115620002e9576000604083870101525b50601f01601f1916929092016040019392505050565b6000602082840312156200031257600080fd5b6200031d826200025b565b9392505050565b61110980620003346000396000f3fe6080604052600436106100dd5760003560e01c8063d137874b1161007f578063e426541d11610059578063e426541d14610272578063e4af27be146102a2578063e7f1c10f146102b8578063f61caee3146102e857600080fd5b8063d137874b1461021d578063d417f18c14610232578063dabd27191461025257600080fd5b8063669fdeb5116100bb578063669fdeb51461017b5780636b6f4a9d146101d15780639955a4b3146101f5578063bf53926e1461020857600080fd5b8063299ca478146100e25780633eac510e14610139578063461a44781461015b575b600080fd5b3480156100ee57600080fd5b5060005461010f9073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b34801561014557600080fd5b50610159610154366004610c62565b610308565b005b34801561016757600080fd5b5061010f610176366004610cb3565b61045c565b34801561018757600080fd5b506101c46040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525081565b6040516101309190610db2565b3480156101dd57600080fd5b506101e760015481565b604051908152602001610130565b610159610203366004610e28565b610509565b34801561021457600080fd5b506002546101e7565b34801561022957600080fd5b506001546101e7565b34801561023e57600080fd5b5061015961024d366004610e54565b6106f6565b34801561025e57600080fd5b5061015961026d366004610e89565b61086a565b34801561027e57600080fd5b5061029261028d366004610ea2565b61098d565b6040519015158152602001610130565b3480156102ae57600080fd5b506101e760025481565b3480156102c457600080fd5b506102926102d3366004610ea2565b60036020526000908152604090205460ff1681565b3480156102f457600080fd5b50610159610303366004610e89565b6109cd565b6103466040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525061045c565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161461042b576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604560248201527f4d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e60448201527f206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e60648201527f414745522e000000000000000000000000000000000000000000000000000000608482015260a4015b60405180910390fd5b600480547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0016911515919091179055565b600080546040517fbf40fac100000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff9091169063bf40fac1906104b3908590600401610db2565b60206040518083038186803b1580156104cb57600080fd5b505afa1580156104df573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105039190610ebf565b92915050565b6105128261098d565b610578576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601960248201527f73656e646572206973206e6f742077686974656c6973746564000000000000006044820152606401610422565b600061058382610af0565b6040516020016105939190610edc565b604051602081830303815290604052905060006105af8261045c565b60405190915073ffffffffffffffffffffffffffffffffffffffff82161515906105dd908490602001610f1d565b60405160208183030381529060405290610624576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016104229190610db2565b5060008173ffffffffffffffffffffffffffffffffffffffff163460405160006040518083038185875af1925050503d806000811461067f576040519150601f19603f3d011682016040523d82523d6000602084013e610684565b606091505b50509050806106ef576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601460248201527f4661696c656420746f2073656e642045746865720000000000000000000000006044820152606401610422565b5050505050565b6107346040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525061045c565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610814576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604560248201527f4d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e60448201527f206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e60648201527f414745522e000000000000000000000000000000000000000000000000000000608482015260a401610422565b73ffffffffffffffffffffffffffffffffffffffff91909116600090815260036020526040902080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0016911515919091179055565b6108a86040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525061045c565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610988576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604560248201527f4d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e60448201527f206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e60648201527f414745522e000000000000000000000000000000000000000000000000000000608482015260a401610422565b600155565b60045460009060ff1615156001148061050357505073ffffffffffffffffffffffffffffffffffffffff1660009081526003602052604090205460ff1690565b610a0b6040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525061045c565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610aeb576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604560248201527f4d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e60448201527f206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e60648201527f414745522e000000000000000000000000000000000000000000000000000000608482015260a401610422565b600255565b606081610b3057505060408051808201909152600181527f3000000000000000000000000000000000000000000000000000000000000000602082015290565b8160005b8115610b5a5780610b4481610fb7565b9150610b539050600a83610ff0565b9150610b34565b60008167ffffffffffffffff811115610b7557610b75610c84565b6040519080825280601f01601f191660200182016040528015610b9f576020820181803683370190505b509050815b8515610c4457610bb560018261102b565b90506000610bc4600a88610ff0565b610bcf90600a611042565b610bd9908861102b565b610be490603061107f565b905060008160f81b905080848481518110610c0157610c016110a4565b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a905350610c3b600a89610ff0565b97505050610ba4565b50949350505050565b80358015158114610c5d57600080fd5b919050565b600060208284031215610c7457600080fd5b610c7d82610c4d565b9392505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b600060208284031215610cc557600080fd5b813567ffffffffffffffff80821115610cdd57600080fd5b818401915084601f830112610cf157600080fd5b813581811115610d0357610d03610c84565b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0908116603f01168101908382118183101715610d4957610d49610c84565b81604052828152876020848701011115610d6257600080fd5b826020860160208301376000928101602001929092525095945050505050565b60005b83811015610d9d578181015183820152602001610d85565b83811115610dac576000848401525b50505050565b6020815260008251806020840152610dd1816040850160208701610d82565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169190910160400192915050565b73ffffffffffffffffffffffffffffffffffffffff81168114610e2557600080fd5b50565b60008060408385031215610e3b57600080fd5b8235610e4681610e03565b946020939093013593505050565b60008060408385031215610e6757600080fd5b8235610e7281610e03565b9150610e8060208401610c4d565b90509250929050565b600060208284031215610e9b57600080fd5b5035919050565b600060208284031215610eb457600080fd5b8135610c7d81610e03565b600060208284031215610ed157600080fd5b8151610c7d81610e03565b60008251610eee818460208701610d82565b7f5f4d564d5f53657175656e636572000000000000000000000000000000000000920191825250600e01919050565b7f73657175656e6365722061646472657373206e6f7420617661696c61626c653a81527f2000000000000000000000000000000000000000000000000000000000000000602082015260008251610f7b816021850160208701610d82565b9190910160210192915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff821415610fe957610fe9610f88565b5060010190565b600082611026577f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b500490565b60008282101561103d5761103d610f88565b500390565b6000817fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff048311821515161561107a5761107a610f88565b500290565b600060ff821660ff84168060ff0382111561109c5761109c610f88565b019392505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fdfea26469706673582212209ba94894f8c4d8c37b69b44e23eb520c4c4088f3a9399dca75a978cb60e0da8864736f6c634300080900334d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e",
+  "deployedBytecode": "0x6080604052600436106100dd5760003560e01c8063d137874b1161007f578063e426541d11610059578063e426541d14610272578063e4af27be146102a2578063e7f1c10f146102b8578063f61caee3146102e857600080fd5b8063d137874b1461021d578063d417f18c14610232578063dabd27191461025257600080fd5b8063669fdeb5116100bb578063669fdeb51461017b5780636b6f4a9d146101d15780639955a4b3146101f5578063bf53926e1461020857600080fd5b8063299ca478146100e25780633eac510e14610139578063461a44781461015b575b600080fd5b3480156100ee57600080fd5b5060005461010f9073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b34801561014557600080fd5b50610159610154366004610c62565b610308565b005b34801561016757600080fd5b5061010f610176366004610cb3565b61045c565b34801561018757600080fd5b506101c46040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525081565b6040516101309190610db2565b3480156101dd57600080fd5b506101e760015481565b604051908152602001610130565b610159610203366004610e28565b610509565b34801561021457600080fd5b506002546101e7565b34801561022957600080fd5b506001546101e7565b34801561023e57600080fd5b5061015961024d366004610e54565b6106f6565b34801561025e57600080fd5b5061015961026d366004610e89565b61086a565b34801561027e57600080fd5b5061029261028d366004610ea2565b61098d565b6040519015158152602001610130565b3480156102ae57600080fd5b506101e760025481565b3480156102c457600080fd5b506102926102d3366004610ea2565b60036020526000908152604090205460ff1681565b3480156102f457600080fd5b50610159610303366004610e89565b6109cd565b6103466040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525061045c565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161461042b576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604560248201527f4d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e60448201527f206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e60648201527f414745522e000000000000000000000000000000000000000000000000000000608482015260a4015b60405180910390fd5b600480547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0016911515919091179055565b600080546040517fbf40fac100000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff9091169063bf40fac1906104b3908590600401610db2565b60206040518083038186803b1580156104cb57600080fd5b505afa1580156104df573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105039190610ebf565b92915050565b6105128261098d565b610578576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601960248201527f73656e646572206973206e6f742077686974656c6973746564000000000000006044820152606401610422565b600061058382610af0565b6040516020016105939190610edc565b604051602081830303815290604052905060006105af8261045c565b60405190915073ffffffffffffffffffffffffffffffffffffffff82161515906105dd908490602001610f1d565b60405160208183030381529060405290610624576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016104229190610db2565b5060008173ffffffffffffffffffffffffffffffffffffffff163460405160006040518083038185875af1925050503d806000811461067f576040519150601f19603f3d011682016040523d82523d6000602084013e610684565b606091505b50509050806106ef576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601460248201527f4661696c656420746f2073656e642045746865720000000000000000000000006044820152606401610422565b5050505050565b6107346040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525061045c565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610814576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604560248201527f4d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e60448201527f206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e60648201527f414745522e000000000000000000000000000000000000000000000000000000608482015260a401610422565b73ffffffffffffffffffffffffffffffffffffffff91909116600090815260036020526040902080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0016911515919091179055565b6108a86040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525061045c565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610988576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604560248201527f4d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e60448201527f206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e60648201527f414745522e000000000000000000000000000000000000000000000000000000608482015260a401610422565b600155565b60045460009060ff1615156001148061050357505073ffffffffffffffffffffffffffffffffffffffff1660009081526003602052604090205460ff1690565b610a0b6040518060400160405280600d81526020017f4d455449535f4d414e414745520000000000000000000000000000000000000081525061045c565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610aeb576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604560248201527f4d564d5f446973636f756e744f7261636c653a2046756e6374696f6e2063616e60448201527f206f6e6c792062652063616c6c656420627920746865204d455449535f4d414e60648201527f414745522e000000000000000000000000000000000000000000000000000000608482015260a401610422565b600255565b606081610b3057505060408051808201909152600181527f3000000000000000000000000000000000000000000000000000000000000000602082015290565b8160005b8115610b5a5780610b4481610fb7565b9150610b539050600a83610ff0565b9150610b34565b60008167ffffffffffffffff811115610b7557610b75610c84565b6040519080825280601f01601f191660200182016040528015610b9f576020820181803683370190505b509050815b8515610c4457610bb560018261102b565b90506000610bc4600a88610ff0565b610bcf90600a611042565b610bd9908861102b565b610be490603061107f565b905060008160f81b905080848481518110610c0157610c016110a4565b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a905350610c3b600a89610ff0565b97505050610ba4565b50949350505050565b80358015158114610c5d57600080fd5b919050565b600060208284031215610c7457600080fd5b610c7d82610c4d565b9392505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b600060208284031215610cc557600080fd5b813567ffffffffffffffff80821115610cdd57600080fd5b818401915084601f830112610cf157600080fd5b813581811115610d0357610d03610c84565b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0908116603f01168101908382118183101715610d4957610d49610c84565b81604052828152876020848701011115610d6257600080fd5b826020860160208301376000928101602001929092525095945050505050565b60005b83811015610d9d578181015183820152602001610d85565b83811115610dac576000848401525b50505050565b6020815260008251806020840152610dd1816040850160208701610d82565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169190910160400192915050565b73ffffffffffffffffffffffffffffffffffffffff81168114610e2557600080fd5b50565b60008060408385031215610e3b57600080fd5b8235610e4681610e03565b946020939093013593505050565b60008060408385031215610e6757600080fd5b8235610e7281610e03565b9150610e8060208401610c4d565b90509250929050565b600060208284031215610e9b57600080fd5b5035919050565b600060208284031215610eb457600080fd5b8135610c7d81610e03565b600060208284031215610ed157600080fd5b8151610c7d81610e03565b60008251610eee818460208701610d82565b7f5f4d564d5f53657175656e636572000000000000000000000000000000000000920191825250600e01919050565b7f73657175656e6365722061646472657373206e6f7420617661696c61626c653a81527f2000000000000000000000000000000000000000000000000000000000000000602082015260008251610f7b816021850160208701610d82565b9190910160210192915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff821415610fe957610fe9610f88565b5060010190565b600082611026577f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b500490565b60008282101561103d5761103d610f88565b500390565b6000817fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff048311821515161561107a5761107a610f88565b500290565b600060ff821660ff84168060ff0382111561109c5761109c610f88565b019392505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fdfea26469706673582212209ba94894f8c4d8c37b69b44e23eb520c4c4088f3a9399dca75a978cb60e0da8864736f6c63430008090033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "resolve(string)": {
+        "params": {
+          "_name": "Name to resolve an address for."
+        },
+        "returns": {
+          "_0": "Address associated with the given name."
+        }
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "resolve(string)": {
+        "notice": "Resolves the address associated with a given name."
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 13209,
+        "contract": "contracts/MVM/MVM_DiscountOracle.sol:MVM_DiscountOracle",
+        "label": "libAddressManager",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_contract(Lib_AddressManager)13201"
+      },
+      {
+        "astId": 10826,
+        "contract": "contracts/MVM/MVM_DiscountOracle.sol:MVM_DiscountOracle",
+        "label": "discount",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 10828,
+        "contract": "contracts/MVM/MVM_DiscountOracle.sol:MVM_DiscountOracle",
+        "label": "minL2Gas",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 10832,
+        "contract": "contracts/MVM/MVM_DiscountOracle.sol:MVM_DiscountOracle",
+        "label": "xDomainWL",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 10834,
+        "contract": "contracts/MVM/MVM_DiscountOracle.sol:MVM_DiscountOracle",
+        "label": "allowAllXDomainSenders",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_bool"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_contract(Lib_AddressManager)13201": {
+        "encoding": "inplace",
+        "label": "contract Lib_AddressManager",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}
