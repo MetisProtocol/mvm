@@ -133,7 +133,7 @@ contract MVM_Verifier is Lib_AddressResolver{
     function newChallenge(uint256 chainID, Lib_OVMCodec.ChainBatchHeader calldata header, bytes calldata proposedHash, bytes calldata keyhash) 
        public onlyWhitelisted onlyStaked {
        
-       uint tempIndex = chain_under_challenge[chainID];
+       uint tempIndex = chain_under_challenge[chainID] - 1;
        require(tempIndex == 0 || block.timestamp - challenges[tempIndex].timestamp > verifyWindow * 2, "there is an ongoing challenge");
        if (tempIndex != 0) {
           finalize(tempIndex);
@@ -160,7 +160,7 @@ contract MVM_Verifier is Lib_AddressResolver{
        // this will prevent stake change
        activeChallenges++;
        
-       chain_under_challenge[chainID] = cIndex;
+       chain_under_challenge[chainID] = cIndex + 1;
        emit NewChallenge(cIndex, chainID, header, block.timestamp);
     }
 
@@ -315,6 +315,7 @@ contract MVM_Verifier is Lib_AddressResolver{
         
         challenge.done = true;
         activeChallenges--;
+        chain_under_challenge[challenge.chainID] = 0;
     }
     
     function depositSeqStake() public onlyManager {
