@@ -3,10 +3,32 @@
 version: "3"
 
 services:
+  dtl:
+    image: ethereumoptimism/data-transport-layer
+    build:
+      context: ..
+      dockerfile: ./ops/docker/Dockerfile.data-transport-layer
+    # override with the dtl script and the env vars required for it
+    entrypoint: ./dtl.sh
+    env_file:
+      -  ./envs/dtl.env
+    # set the rest of the env vars for the network whcih do not
+    # depend on the docker-compose setup
+    environment:
+        # used for setting the address manager address
+        URL: https://metis-us-east-2-prod-json.s3.us-east-2.amazonaws.com/addresses.json
+        # connect to the 2 layers
+        DATA_TRANSPORT_LAYER__L1_RPC_ENDPOINT: https://rinkeby.infura.io/v3/YOUR_RINKEBY_TOKEN # replace YOUR_RINKEBY_TOKEN to your rinkeby token
+        DATA_TRANSPORT_LAYER__L2_RPC_ENDPOINT: https://stardust.metis.io/?owner=588
+        DATA_TRANSPORT_LAYER__SYNC_FROM_L2: 'false'
+        DATA_TRANSPORT_LAYER__L2_CHAIN_ID: 588
+    ports:
+      - ${DTL_PORT:-7878}:7878
+
   verifier:
     image: ethereumoptimism/l2geth
-    deploy:
-      replicas: 0
+    # deploy:
+    #   replicas: 0
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.geth
@@ -14,10 +36,12 @@ services:
     env_file:
       - ./envs/geth.env
     environment:
-        ETH1_HTTP: http://localhost:8545
-        ROLLUP_STATE_DUMP_PATH: http://localhost:8080/state-dump.latest.json
-        ROLLUP_CLIENT_HTTP: http://localhost:7878
+        ETH1_HTTP: https://rinkeby.infura.io/v3/YOUR_RINKEBY_TOKEN # replace YOUR_RINKEBY_TOKEN to your rinkeby token
+        ROLLUP_STATE_DUMP_PATH: https://metis-us-east-2-prod-json.s3.us-east-2.amazonaws.com/state-dump.latest.json
+        ROLLUP_CLIENT_HTTP: http://dtl:7878
         ROLLUP_BACKEND: 'l1'
+        CHAIN_ID: 588
+        NETWORK_ID: 588
         ETH1_CTC_DEPLOYMENT_HEIGHT: 8
         RETRIES: 60
         ROLLUP_VERIFIER_ENABLE: 'true'
