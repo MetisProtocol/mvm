@@ -34,7 +34,7 @@ contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver{
       Lib_AddressResolver(_addressManager)
     {
       setDiscount(_initialDiscount);
-      setMinL2Gas(100_000);
+      setMinL2Gas(400_000);
       allowAllXDomainSenders = false;
     }
     

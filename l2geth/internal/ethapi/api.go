@@ -1001,7 +1001,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 
 		res, _, failed, err := DoCall(ctx, b, args, blockNrOrHash, nil, vm.Config{}, 0, gasCap)
 		if err != nil || failed {
-			if err == vm.ErrOutOfGas {
+			if err == vm.ErrOutOfGas { //special case: increase gas
 				return false, res, nil
 			}
 			return false, res, err

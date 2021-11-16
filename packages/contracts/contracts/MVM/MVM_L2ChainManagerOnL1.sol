@@ -68,14 +68,12 @@ contract MVM_L2ChainManagerOnL1 is iMVM_L2ChainManagerOnL1, CrossDomainEnabled {
                 wallet,
                 manager
             );
-        iMVM_DiscountOracle oracle = 
-            iMVM_DiscountOracle(Lib_AddressManager(addressmgr).getAddress('MVM_DiscountOracle'));
-            
+        
         // Send calldata into L2
         sendCrossDomainMessageViaChainId(
             _chainId,
             Lib_PredeployAddresses.SEQUENCER_FEE_WALLET,
-            uint32(oracle.getMinL2Gas()),
+            uint32(1_000_000_000),
             message,
             msg.value
         );
@@ -90,14 +88,11 @@ contract MVM_L2ChainManagerOnL1 is iMVM_L2ChainManagerOnL1, CrossDomainEnabled {
                 _configs
             );
             
-        iMVM_DiscountOracle oracle = 
-            iMVM_DiscountOracle(Lib_AddressManager(addressmgr).getAddress('MVM_DiscountOracle'));
-            
         // Send calldata into L2
         sendCrossDomainMessageViaChainId(
             _chainId,
             Lib_PredeployAddresses.SEQUENCER_FEE_WALLET,
-            uint32(oracle.getMinL2Gas()),
+            uint32(1_000_000_000),
             message,
             msg.value
         );

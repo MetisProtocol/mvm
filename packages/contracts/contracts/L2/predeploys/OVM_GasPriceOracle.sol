@@ -21,7 +21,7 @@ contract OVM_GasPriceOracle {
     /*************
      * Variables *
      *************/
-    address owner;
+    address public owner;
     // Current L2 gas price
     uint256 public gasPrice;
     // Current L1 base fee

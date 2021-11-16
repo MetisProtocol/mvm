@@ -43,6 +43,8 @@ export interface RollupDeployConfig {
   l1MetisAddress: string
   // l1 metis manager address
   l1MetisManagerAddress: string
+  
+  gasPriceOracleMinErc20BridgeCost: number
 }
 
 /**
@@ -72,6 +74,7 @@ export const makeL2GenesisFile = async (
       overhead: cfg.gasPriceOracleOverhead,
       scalar: cfg.gasPriceOracleScalar,
       decimals: cfg.gasPriceOracleDecimals,
+      minErc20BridgeCost: cfg.gasPriceOracleMinErc20BridgeCost,
     },
     L2StandardBridge: {
       l1TokenBridge: cfg.l1StandardBridgeAddress,

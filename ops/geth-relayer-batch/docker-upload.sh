@@ -12,7 +12,6 @@ then
     stack=$2
 fi
 
-account="950087689901"
 if [ -n "$3" ]
 then
     account=$3

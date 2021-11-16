@@ -35,10 +35,20 @@ const deployFn: DeployFunction = async (hre) => {
     'Proxy__OVM_L1StandardBridge'
   )
   
+  const chainmgr = await getDeployedContract(
+      hre,
+      'Proxy__MVM_ChainManager'
+  )
+  
   await MVM_DiscountOracle.setWhitelistedXDomainSender(l1bridge.address, true);
   const accessStored =
     await MVM_DiscountOracle.callStatic.isXDomainSenderAllowed(l1bridge.address);
   console.log('l1bridge.address access:', accessStored)
+  
+  await MVM_DiscountOracle.setWhitelistedXDomainSender(chainmgr.address, true);
+  const accessStored2 =
+    await MVM_DiscountOracle.callStatic.isXDomainSenderAllowed(chainmgr.address);
+  console.log('chainmgr.address access:', accessStored2)
 }
 
 deployFn.dependencies = ['Lib_AddressManager']

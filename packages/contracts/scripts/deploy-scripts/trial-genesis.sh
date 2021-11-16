@@ -1,6 +1,7 @@
 #!/bin/bash
 
-URL=https://metis-us-east-2-prod-json.s3.us-east-2.amazonaws.com/addresses.json
+URL="https://metis-us-east-2-dev-json.s3.us-east-2.amazonaws.com/addresses.json"
+RETRIES=2
 ADDRESSES=$(curl --fail --show-error --silent --retry-connrefused --retry $RETRIES --retry-delay 5 $URL)
    
 function envSet() {
@@ -10,19 +11,10 @@ function envSet() {
 
 # set the address to the proxy gateway if possible
 envSet L1_STANDARD_BRIDGE_ADDRESS Proxy__OVM_L1StandardBridge
-if [ $L1_STANDARD_BRIDGE_ADDRESS == null ]; then
-    envSet L1_STANDARD_BRIDGE_ADDRESS L1StandardBridge
-fi
 
 envSet L1_CROSS_DOMAIN_MESSENGER_ADDRESS Proxy__OVM_L1CrossDomainMessenger
-if [ $L1_CROSS_DOMAIN_MESSENGER_ADDRESS == null ]; then
-    envSet L1_CROSS_DOMAIN_MESSENGER_ADDRESS L1CrossDomainMessenger
-fi
 
 envSet L1_METIS_MANAGER_ADDRESS Proxy__MVM_ChainManager
-if [ $L1_METIS_MANAGER_ADDRESS == null ]; then
-    envSet L1_METIS_MANAGER_ADDRESS MVM_ChainManager
-fi
 
 export L2_BLOCK_GAS_LIMIT=1100000000
 export L2_CHAIN_ID=666
@@ -31,10 +23,12 @@ export L1_FEE_WALLET_ADDRESS=0x67bE001A254B81Dc44EaB9F5a7C66889a5c009AE
 export WHITELIST_OWNER=0x67bE001A254B81Dc44EaB9F5a7C66889a5c009AE
 export GAS_PRICE_ORACLE_OWNER=0x67bE001A254B81Dc44EaB9F5a7C66889a5c009AE
 export GAS_PRICE_ORACLE_OVERHEAD=2750
-export GAS_PRICE_ORACLE_SCALAR=1500000
-export GAS_PRICE_ORACLE_L1_BASE_FEE=1200000000
-export GAS_PRICE_ORACLE_GAS_PRICE=60000000
+export GAS_PRICE_ORACLE_SCALAR=55000000
+export GAS_PRICE_ORACLE_L1_BASE_FEE=150000000000
+export GAS_PRICE_ORACLE_GAS_PRICE=60000000000
 export GAS_PRICE_ORACLE_DECIMALS=6
+export METIS_ADDRESS=0xe552Fb52a4F19e44ef5A967632DBc320B0820639
+export MIN_L1_ERC20_BRIDGE_COST=400000000000000000
 
 yarn build:dump
 

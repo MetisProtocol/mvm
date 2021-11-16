@@ -286,15 +286,18 @@ contract MVM_Verifier is Lib_AddressResolver{
                     // this header needs to be within the window
                     stateChain.deleteStateBatchByChainId(challenge.chainID, challenge.header);
                
-                    reward += 200 ether;
+                    // temporary for the p1 of the decentralization roadmap
+                    if (seqStaked) {
+                        reward += 200 ether;
                
-                    for (uint i = 0; i < numDisagrees; i++) {
-                        consensus_strikes[disagrees[i]] += 2;
-                        if (consensus_strikes[disagrees[i]] > FAIL_THRESHOLD) {
-                            reward += penalize(disagrees[i]);
+                        for (uint i = 0; i < numDisagrees; i++) {
+                            consensus_strikes[disagrees[i]] += 2;
+                            if (consensus_strikes[disagrees[i]] > FAIL_THRESHOLD) {
+                                reward += penalize(disagrees[i]);
+                            }
                         }
+                        distributeReward(reward, agrees, agrees.length);
                     }
-                    distributeReward(reward, agrees, agrees.length);
                     emit Finalize(cIndex, msg.sender, SETTLEMENT.AGREE);
                 } else {
                     //not in the window anymore. let it pass... no penalty

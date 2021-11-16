@@ -13,7 +13,8 @@ if [[ -z "$CONTRACTS_RPC_URL" ]]; then
   exit 1
 fi
 
-CONTRACTS_TARGET_NETWORK=andromeda \
+export CONTRACTS_TARGET_NETWORK=andromeda 
+
 npx hardhat deploy \
   --ctc-max-transaction-gas-limit 1100000000 \
   --ctc-enqueue-gas-cost 60000 \
@@ -26,8 +27,8 @@ npx hardhat deploy \
   --scc-sequencer-publish-window 12592000 \
   --network andromeda \
   --num-deploy-confirmations 12 \
-  --metis-address 0x9E32b13ce7f2E80A01932B42553652E053D6ed8e \
-  --metis-manager 0xDD6FFC7D9a4Fb420b637747edc6456340d12d377 \
+  --mvm-metis-address 0x9E32b13ce7f2E80A01932B42553652E053D6ed8e \
+  --mvm-metis-manager 0x48fE1f85ff8Ad9D088863A42Af54d06a1328cF21
   --l2chain 1088 
   
 yarn autogen:markdown

@@ -29,7 +29,7 @@ const deployFn: DeployFunction = async (hre) => {
   const { chainId } = await hre.ethers.provider.getNetwork()
   
   
-  const L1StandardBridge = await getDeployedContract(
+  const chainmanager = await getDeployedContract(
       hre,
       'Proxy__MVM_ChainManager',
       {
