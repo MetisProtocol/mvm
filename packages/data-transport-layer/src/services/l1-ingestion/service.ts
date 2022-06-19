@@ -428,7 +428,13 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             chainId,
             parsedEvent,
           })
-          await handlers.storeEvent(parsedEvent, db)
+          try {
+            await handlers.storeEvent(parsedEvent, db)
+          } catch (error) {
+            this.logger.info('Error:', {
+              error,
+            })
+          }
         }
 
         const tock = Date.now()
