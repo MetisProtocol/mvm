@@ -25,3 +25,4 @@ packages/data-transport-layer/db
 
 .env
 *.log
+packages/contracts/deployments/
