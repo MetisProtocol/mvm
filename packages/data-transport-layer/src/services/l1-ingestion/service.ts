@@ -7,7 +7,11 @@ import { constants } from 'ethers'
 import { Gauge, Counter } from 'prom-client'
 
 /* Imports: Internal */
-import { TransportDB, TransportDBMapHolder, TransportDBMap} from '../../db/transport-db'
+import {
+  TransportDB,
+  TransportDBMapHolder,
+  TransportDBMap,
+} from '../../db/transport-db'
 import {
   OptimismContracts,
   sleep,
@@ -353,7 +357,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         this.state.contracts.Lib_AddressManager.filters.AddressSet(
           contractName
         ),
-        toL1Block,
+        fromL1Block,
         toL1Block
       )
 
@@ -413,11 +417,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             extraData,
             this.options.l2ChainId
           )
-	  // filter chainId
-          var chainId = event.args._chainId.toNumber()
-          var db=this.state.db
-          if(chainId&&chainId!=0){
-             db = await this.options.dbs.getTransportDbByChainId(chainId)
+          // filter chainId
+          const chainId = event.args._chainId.toNumber()
+          let db = this.state.db
+          if (chainId && chainId != 0) {
+            db = await this.options.dbs.getTransportDbByChainId(chainId)
           }
 
           this.logger.info('Storing Event:', {
@@ -451,7 +455,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   ): Promise<string> {
     const events = await this.state.contracts.Lib_AddressManager.queryFilter(
       this.state.contracts.Lib_AddressManager.filters.AddressSet(contractName),
-      this.state.startingL1BlockNumber,
+      blockNumber,
       blockNumber
     )
 
@@ -466,7 +470,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   private async _findStartingL1BlockNumber(): Promise<number> {
     const currentL1Block = await this.state.l1RpcProvider.getBlockNumber()
 
-    const filter = this.state.contracts.Lib_AddressManager.filters.OwnershipTransferred()
+    const filter =
+      this.state.contracts.Lib_AddressManager.filters.OwnershipTransferred()
 
     for (let i = 0; i < currentL1Block; i += 2000) {
       const start = i
