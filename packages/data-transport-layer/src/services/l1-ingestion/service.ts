@@ -453,18 +453,25 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     contractName: string,
     blockNumber: number
   ): Promise<string> {
-    const events = await this.state.contracts.Lib_AddressManager.queryFilter(
-      this.state.contracts.Lib_AddressManager.filters.AddressSet(contractName),
-      blockNumber,
-      blockNumber
-    )
-
-    if (events.length > 0) {
-      return events[events.length - 1].args._newAddress
-    } else {
-      // Address wasn't set before this.
-      return constants.AddressZero
+    let addr = constants.AddressZero
+    for (
+      let index = this.state.startingL1BlockNumber;
+      index < blockNumber;
+      index += this.options.logsPerPollingInterval
+    ) {
+      const events = await this.state.contracts.Lib_AddressManager.queryFilter(
+        this.state.contracts.Lib_AddressManager.filters.AddressSet(
+          contractName
+        ),
+        index,
+        index + this.options.logsPerPollingInterval
+      )
+      if (events.length > 0) {
+        addr = events[events.length - 1].args._newAddress
+      }
     }
+
+    return addr
   }
 
   private async _findStartingL1BlockNumber(): Promise<number> {
