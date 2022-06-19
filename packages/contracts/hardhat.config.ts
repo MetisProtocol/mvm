@@ -50,7 +50,12 @@ const config: HardhatUserConfig = {
       chainId: 666,
       url: 'https://dev.metis.io/?owner=666',
       accounts: [privateKey],
-    }
+    },
+    ropsten: {
+      chainId: 3,
+      url: process.env.CONTRACTS_RPC_URL,
+      accounts: [privateKey],
+    },
   },
   mocha: {
     timeout: 50000,
@@ -71,7 +76,6 @@ const config: HardhatUserConfig = {
       },
     ],
     settings: {
-
       metadata: {
         bytecodeHash: 'none',
       },

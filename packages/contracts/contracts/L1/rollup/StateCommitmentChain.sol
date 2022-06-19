@@ -29,8 +29,8 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
 
     uint256 public FRAUD_PROOF_WINDOW;
     uint256 public SEQUENCER_PUBLISH_WINDOW;
-    
-    
+
+
     uint256 public DEFAULT_CHAINID = 1088;
 
 
@@ -51,9 +51,9 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
         FRAUD_PROOF_WINDOW = _fraudProofWindow;
         SEQUENCER_PUBLISH_WINDOW = _sequencerPublishWindow;
     }
-    
+
     function setFraudProofWindow (uint256 window) public {
-        require (msg.sender == resolve("METIS_MANAGER"), "now allowed");
+        require (msg.sender == resolve("GCD_MANAGER"), "now allowed");
         FRAUD_PROOF_WINDOW = window;
     }
 
@@ -97,7 +97,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
         require (1==0, "don't use");
         //appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, "1088_MVM_Proposer");
     }
-    
+
     /**
      * @inheritdoc IStateCommitmentChain
      */
@@ -231,7 +231,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
         (, uint40 lastSequencerTimestamp) = _getBatchExtraDataByChainId(_chainId);
         return uint256(lastSequencerTimestamp);
     }
-    
+
     /**
      * @inheritdoc IStateCommitmentChain
      */
@@ -250,7 +250,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
             _shouldStartAtElement == getTotalElementsByChainId(_chainId),
             "Actual batch start index does not match expected start index."
         );
-        
+
         address proposerAddr = resolve(proposer);
 
         // Proposers must have previously staked at the BondManager
@@ -368,7 +368,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
         );
         return timestamp + FRAUD_PROOF_WINDOW > block.timestamp;
     }
-    
+
 
     /**********************
      * Internal Functions *
@@ -545,7 +545,7 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
     {
         return Lib_OVMCodec.hashBatchHeader(_batchHeader) == batches().getByChainId(_chainId,_batchHeader.batchIndex);
     }
-    
+
     function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
         if (_i == 0) {
             return "0";

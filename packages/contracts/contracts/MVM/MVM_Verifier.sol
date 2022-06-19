@@ -12,7 +12,7 @@ import { IStateCommitmentChain } from "../L1/rollup/IStateCommitmentChain.sol";
 
 contract MVM_Verifier is Lib_AddressResolver{
     // second slot
-    address public metis;
+    address public gcd;
 
     enum SETTLEMENT {NOT_ENOUGH_VERIFIER, SAME_ROOT, AGREE, DISAGREE, PASS}
 
@@ -30,7 +30,7 @@ contract MVM_Verifier is Lib_AddressResolver{
     /*************
      * Constants *
      *************/
-    string constant public CONFIG_OWNER_KEY = "METIS_MANAGER";
+    string constant public CONFIG_OWNER_KEY = "GCD_MANAGER";
 
     //challenge info
     struct Challenge {
@@ -78,7 +78,7 @@ contract MVM_Verifier is Lib_AddressResolver{
     modifier onlyManager {
         require(
             msg.sender == resolve(CONFIG_OWNER_KEY),
-            "MVM_Verifier: Function can only be called by the METIS_MANAGER."
+            "MVM_Verifier: Function can only be called by the GCD_MANAGER."
         );
         _;
     }
@@ -95,12 +95,12 @@ contract MVM_Verifier is Lib_AddressResolver{
 
     constructor(
       address _addressManager,
-      address _metis
+      address _gcd
     )
       Lib_AddressResolver(_addressManager)
     {
-       minStake = 200 ether;  // 200 metis
-       metis = _metis;
+       minStake = 200 ether;  // 200 gcd
+       gcd = _gcd;
        useWhiteList = true;
     }
 
@@ -108,7 +108,7 @@ contract MVM_Verifier is Lib_AddressResolver{
     function verifierStake(uint256 stake) public onlyWhitelisted{
        require(activeChallenges == 0, "stake is currently prohibited"); //ongoing challenge
        require(stake > 0, "zero stake not allowed");
-       require(IERC20(metis).transferFrom(msg.sender, address(this), stake), "transfer metis failed");
+       require(IERC20(gcd).transferFrom(msg.sender, address(this), stake), "transfer gcd failed");
 
        uint256 previousBalance = verifier_stakes[msg.sender];
        verifier_stakes[msg.sender] += stake;
@@ -321,7 +321,7 @@ contract MVM_Verifier is Lib_AddressResolver{
     }
 
     function depositSeqStake(uint256 amount) public onlyManager {
-        require(IERC20(metis).transferFrom(msg.sender, address(this), amount), "transfer metis failed");
+        require(IERC20(gcd).transferFrom(msg.sender, address(this), amount), "transfer gcd failed");
         seqStake += amount;
         emit Stake(msg.sender, amount);
     }
@@ -332,7 +332,7 @@ contract MVM_Verifier is Lib_AddressResolver{
         uint256 amount = seqStake;
         seqStake = 0;
 
-        require(IERC20(metis).transfer(to, amount), "transfer metis failed");
+        require(IERC20(gcd).transfer(to, amount), "transfer gcd failed");
     }
 
     function claim() public {
@@ -340,7 +340,7 @@ contract MVM_Verifier is Lib_AddressResolver{
        uint256 amount = rewards[msg.sender];
        rewards[msg.sender] = 0;
 
-       require(IERC20(metis).transfer(msg.sender, amount), "token transfer failed");
+       require(IERC20(gcd).transfer(msg.sender, amount), "token transfer failed");
 
        emit Claim(msg.sender, amount);
     }
@@ -356,7 +356,7 @@ contract MVM_Verifier is Lib_AddressResolver{
        }
        verifier_stakes[msg.sender] -= amount;
 
-       require(IERC20(metis).transfer(msg.sender, amount), "token transfer failed");
+       require(IERC20(gcd).transfer(msg.sender, amount), "token transfer failed");
     }
 
     function setMinStake(

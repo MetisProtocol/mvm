@@ -353,7 +353,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         this.state.contracts.Lib_AddressManager.filters.AddressSet(
           contractName
         ),
-        fromL1Block,
+        toL1Block,
         toL1Block
       )
 

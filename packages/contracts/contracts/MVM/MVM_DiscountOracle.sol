@@ -12,7 +12,7 @@ contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver{
     uint256 public minL2Gas;
     mapping (address => bool) public xDomainWL;
     bool allowAllXDomainSenders;
-    string constant public CONFIG_OWNER_KEY = "METIS_MANAGER";
+    string constant public CONFIG_OWNER_KEY = "GCD_MANAGER";
 
     /**********************
      * Function Modifiers *
@@ -21,7 +21,7 @@ contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver{
     modifier onlyManager() {
         require(
             msg.sender == resolve(CONFIG_OWNER_KEY),
-            "MVM_DiscountOracle: Function can only be called by the METIS_MANAGER."
+            "MVM_DiscountOracle: Function can only be called by the GCD_MANAGER."
         );
         _;
     }

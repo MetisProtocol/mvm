@@ -25,7 +25,7 @@ const deployFn: DeployFunction = async (hre) => {
     hre,
     'Lib_AddressManager'
   )
-  
+
   const { chainId } = await hre.ethers.provider.getNetwork()
   var bridge;
   if (chainId === defaultHardhatNetworkParams.chainId) {
@@ -138,22 +138,22 @@ const deployFn: DeployFunction = async (hre) => {
     hre.ethers.utils.hexZeroPad('0x02', 32),
     hre.ethers.utils.hexZeroPad((hre as any).deployConfig.mvmMetisAddress, 32)
   )
-  
+
   console.log(`Confirming that metis address was correctly set...`)
   await waitUntilTrue(async () => {
     return hexStringEquals(
-      await contract.metis(),
+      await contract.gcd(),
       (hre as any).deployConfig.mvmMetisAddress
     )
   })
-  
+
   //console.log(`Setting addressmgr address to ${Lib_AddressManager.address}...`)
   // Set Slot 3 to the Address Manager Address
   await proxy.setStorage(
     hre.ethers.utils.hexZeroPad('0x03', 32),
     hre.ethers.utils.hexZeroPad(Lib_AddressManager.address, 32)
   )
-  
+
   console.log(`Confirming that addressmgr address was correctly set...`)
   await waitUntilTrue(async () => {
     return hexStringEquals(

@@ -17,12 +17,12 @@ import {
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
-  
+
   const Lib_AddressManager = await getDeployedContract(
     hre,
     'Lib_AddressManager'
   )
-  
+
 // Set up a reference to the proxy as if it were the L1StandardBridge contract.
   const contract = await getDeployedContract(
     hre,
@@ -73,7 +73,7 @@ const deployFn: DeployFunction = async (hre) => {
     hre.ethers.utils.hexZeroPad('0x00', 32),
     hre.ethers.utils.hexZeroPad(Lib_AddressManager.address, 32)
   )
-  
+
   console.log(`Confirming that addressmgr address was correctly set...`)
   console.log(await contract.libAddressManager())
   await waitUntilTrue(async () => {
@@ -82,7 +82,7 @@ const deployFn: DeployFunction = async (hre) => {
       Lib_AddressManager.address
     )
   })
-  
+
   console.log(
     `Setting metis address to ${(hre as any).deployConfig.mvmMetisAddress}...`
   )
@@ -91,11 +91,11 @@ const deployFn: DeployFunction = async (hre) => {
     hre.ethers.utils.hexZeroPad('0x01', 32),
     hre.ethers.utils.hexZeroPad((hre as any).deployConfig.mvmMetisAddress, 32)
   )
-  
+
   console.log(`Confirming that metis address was correctly set...`)
   await waitUntilTrue(async () => {
     return hexStringEquals(
-      await contract.metis(),
+      await contract.gcd(),
       (hre as any).deployConfig.mvmMetisAddress
     )
   })
@@ -114,7 +114,7 @@ const deployFn: DeployFunction = async (hre) => {
       owner
     )
   })
-  
+
   await registerAddress({
     hre,
     name: (hre as any).deployConfig.l2chainid + '_MVM_FraudVerifier',

@@ -44,7 +44,7 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
     {
         l1TokenBridge = _l1TokenBridge;
     }
-    
+
     function getChainID() internal view returns (uint256) {
         uint256 id;
         assembly {
@@ -68,8 +68,8 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
     ) external payable virtual {
         _initiateWithdrawal(_l2Token, msg.sender, msg.sender, _amount, _l1Gas, _data);
     }
-    
-    function withdrawMetis(
+
+    function withdrawGCD(
         uint256 _amount,
         uint32 _l1Gas,
         bytes calldata _data
@@ -89,8 +89,8 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
     ) external payable virtual {
         _initiateWithdrawal(_l2Token, msg.sender, _to, _amount, _l1Gas, _data);
     }
-    
-    function withdrawMetisTo(
+
+    function withdrawGCDTo(
         address _to,
         uint256 _amount,
         uint32 _l1Gas,
@@ -120,12 +120,12 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
         bytes calldata _data
     ) internal {
         uint256 minL1Gas = OVM_GasPriceOracle(Lib_PredeployAddresses.OVM_GASPRICE_ORACLE).minErc20BridgeCost();
-        
-        // require minimum gas unless, the metis manager is the sender
+
+        // require minimum gas unless, the gcd manager is the sender
         require (msg.value >= minL1Gas ||
-                    _from == Lib_PredeployAddresses.SEQUENCER_FEE_WALLET, 
+                    _from == Lib_PredeployAddresses.SEQUENCER_FEE_WALLET,
                  string(abi.encodePacked("insufficient withdrawal fee supplied. need at least ", uint2str(minL1Gas))));
-        
+
         // When a withdrawal is initiated, we burn the withdrawer's funds to prevent subsequent L2
         // usage
         IL2StandardERC20(_l2Token).burn(msg.sender, _amount);
@@ -145,7 +145,7 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
                     );
         } else if (_l2Token == Lib_PredeployAddresses.MVM_COINBASE) {
             message = abi.encodeWithSelector(
-                        IL1ERC20Bridge.finalizeMetisWithdrawalByChainId.selector,
+                        IL1ERC20Bridge.finalizeGCDWithdrawalByChainId.selector,
                         getChainID(),
                         _from,
                         _to,
@@ -203,7 +203,7 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
             emit DepositFinalized(_l1Token, _l2Token, _from, _to, _amount, _data);
         } else {
             // disable because the mechanism is incompatible with the new xdomain fee structure.
-            
+
             // Either the L2 token which is being deposited-into disagrees about the correct address
             // of its L1 token, or does not support the correct interface.
             // This should only happen if there is a  malicious L2 token, or if a user somehow
@@ -227,13 +227,13 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
             //    l1TokenBridge,
             //    0,
             //    message,
-            //    0 
+            //    0
             //);
             emit DepositFailed(_l1Token, _l2Token, _from, _to, _amount, _data);
 
         }
     }
-    
+
     function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
         if (_i == 0) {
             return "0";
@@ -255,6 +255,6 @@ contract L2StandardBridge is IL2ERC20Bridge, CrossDomainEnabled {
         }
         return string(bstr);
     }
-    
-    
+
+
 }

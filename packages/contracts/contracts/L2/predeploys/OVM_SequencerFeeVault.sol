@@ -16,7 +16,7 @@ import { iMVM_ChainConfig } from "../../MVM/iMVM_ChainConfig.sol";
  * but "good enough for now".
  */
 contract OVM_SequencerFeeVault is iOVM_SequencerFeeVault, CrossDomainEnabled{
-    
+
     /*************
      * Variables *
      *************/
@@ -35,13 +35,13 @@ contract OVM_SequencerFeeVault is iOVM_SequencerFeeVault, CrossDomainEnabled{
      * Currently HAS NO EFFECT in production because l2geth will mutate this storage slot during
      * the genesis block. This is ONLY for testing purposes.
      */
-    constructor(address _l2CrossDomainMessenger, 
+    constructor(address _l2CrossDomainMessenger,
                 address _l1FeeWallet,
                 address _l1Manager) CrossDomainEnabled(_l2CrossDomainMessenger){
         l1FeeWallet = _l1FeeWallet;
         l1Manager = _l1Manager;
     }
-    
+
     modifier onlyManager {
         require(msg.sender == l2Manager, "not allowed");
         _;
@@ -64,7 +64,7 @@ contract OVM_SequencerFeeVault is iOVM_SequencerFeeVault, CrossDomainEnabled{
             address(this).balance >= amount,
             "not enough balance to withraw"
         );
-        
+
         if (amount == 0) {
             amount = address(this).balance;
         }
@@ -77,34 +77,34 @@ contract OVM_SequencerFeeVault is iOVM_SequencerFeeVault, CrossDomainEnabled{
             bytes("")
         );
     }
-    
+
     function finalizeChainSwitch(
         address _FeeWallet,
         address _L2Manager
     ) external virtual onlyFromCrossDomainAccount(l1Manager) {
-    
+
         l1FeeWallet = _FeeWallet;
         l2Manager = _L2Manager;
         emit ChainSwitch(l1FeeWallet, l2Manager);
     }
-    
+
     function finalizeChainConfig(bytes calldata values) external virtual onlyFromCrossDomainAccount(l1Manager) {
         iMVM_ChainConfig(Lib_PredeployAddresses.MVM_CHAIN_CONFIG).setConfig(values);
         emit ConfigChange(values);
     }
-    
+
     function send(address payable to, uint256 amount) public onlyManager{
         (bool sent, ) = to.call{value: amount}("");
-        require(sent, "Failed to send metis");
+        require(sent, "Failed to send gcd");
     }
-    
+
     function sendBatch(address payable[] calldata tos, uint256[] calldata amounts) public onlyManager {
         require(tos.length == amounts.length, "lengths of the parameters do not match");
         for (uint i = 0; i < tos.length; i++) {
             send(tos[i], amounts[i]);
         }
     }
-    
+
     function getL2Manager() view public returns(address) {
         return l2Manager;
     }
