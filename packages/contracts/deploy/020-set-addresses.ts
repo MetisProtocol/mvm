@@ -5,9 +5,7 @@ import { DeployFunction } from 'hardhat-deploy/dist/types'
 import { registerAddress } from '../src/hardhat-deploy-ethers'
 import { predeploys } from '../src/predeploys'
 
-
 const deployFn: DeployFunction = async (hre) => {
-  
   // L2CrossDomainMessenger is the address of the predeploy on L2. We can refactor off-chain
   // services such that we can remove the need to set this address, but for now it's easier
   // to simply keep setting the address.
@@ -32,19 +30,19 @@ const deployFn: DeployFunction = async (hre) => {
   //  name: 'OVM_Proposer',
   //  address: (hre as any).deployConfig.ovmProposerAddress,
   //})
-  
+
   await registerAddress({
     hre,
-    name: 'METIS_MANAGER',
+    name: 'GCD_MANAGER',
     address: (hre as any).deployConfig.mvmMetisManager,
   })
-  
+
   await registerAddress({
     hre,
     name: (hre as any).deployConfig.l2chainid + '_MVM_Sequencer',
     address: (hre as any).deployConfig.ovmSequencerAddress,
   })
-  
+
   await registerAddress({
     hre,
     name: (hre as any).deployConfig.l2chainid + '_MVM_Proposer',

@@ -2,7 +2,7 @@
 
 URL=https://metis-us-east-2-prod-json.s3.us-east-2.amazonaws.com/addresses.json
 ADDRESSES=$(curl --fail --show-error --silent --retry-connrefused --retry $RETRIES --retry-delay 5 $URL)
-   
+
 function envSet() {
     VAR=$1
     export $VAR=$(echo $ADDRESSES | jq -r ".$2")
@@ -19,9 +19,9 @@ if [ $L1_CROSS_DOMAIN_MESSENGER_ADDRESS == null ]; then
     envSet L1_CROSS_DOMAIN_MESSENGER_ADDRESS L1CrossDomainMessenger
 fi
 
-envSet L1_METIS_MANAGER_ADDRESS Proxy__MVM_ChainManager
-if [ $L1_METIS_MANAGER_ADDRESS == null ]; then
-    envSet L1_METIS_MANAGER_ADDRESS MVM_ChainManager
+envSet L1_GCD_MANAGER_ADDRESS Proxy__MVM_ChainManager
+if [ $L1_GCD_MANAGER_ADDRESS == null ]; then
+    envSet L1_GCD_MANAGER_ADDRESS MVM_ChainManager
 fi
 
 export L2_BLOCK_GAS_LIMIT=1100000000

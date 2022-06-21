@@ -5,8 +5,8 @@ import fs from 'fs'
 
 import hre from 'hardhat'
 
-const network = process.env.CONTRACTS_TARGET_NETWORK
-
+//const network = process.env.CONTRACTS_TARGET_NETWORK
+const network = 'ropsten'
 
 const main = async () => {
 
@@ -19,7 +19,7 @@ const main = async () => {
   }
 
   const contracts: any = dirtree(
-    path.resolve(__dirname, `../deployments/` + network)
+    path.resolve(__dirname, `../deployments/`+network)
   )
     .children.filter((child) => {
       return child.extension === '.json'

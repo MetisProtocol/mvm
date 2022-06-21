@@ -43,7 +43,7 @@ export interface RollupDeployConfig {
   l1MetisAddress: string
   // l1 metis manager address
   l1MetisManagerAddress: string
-  
+
   gasPriceOracleMinErc20BridgeCost: number
 }
 
@@ -95,8 +95,8 @@ export const makeL2GenesisFile = async (
     MVM_Coinbase: {
       l2Bridge: predeploys.L2StandardBridge,
       l1Token: ethers.constants.AddressZero,
-      _name: 'Metis Token',
-      _symbol: 'Metis',
+      _name: 'GCD Token',
+      _symbol: 'GCD',
     },
     L2CrossDomainMessenger: {
       // We default the xDomainMsgSender to this value to save gas.
@@ -106,9 +106,7 @@ export const makeL2GenesisFile = async (
       // Set the messageNonce to a high value to avoid overwriting old sent messages.
       messageNonce: 100000,
     },
-    MVM_ChainConfig: {
-    }
-    
+    MVM_ChainConfig: {},
   }
 
   const dump = {}

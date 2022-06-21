@@ -63,11 +63,14 @@ import { makeL2GenesisFile } from '../src/make-genesis'
   const l1FeeWalletAddress = env.L1_FEE_WALLET_ADDRESS
   // The L1 cross domain messenger address, used for cross domain messaging
   const l1CrossDomainMessengerAddress = env.L1_CROSS_DOMAIN_MESSENGER_ADDRESS
-  
-  const l1MetisAddress = env.METIS_ADDRESS
-  
-  const l1MetisManagerAddress = env.L1_METIS_MANAGER_ADDRESS
-  const gasPriceOracleMinErc20BridgeCost = parseInt(env.MIN_L1_ERC20_BRIDGE_COST, 10)
+
+  const l1MetisAddress = env.GCD_ADDRESS
+
+  const l1MetisManagerAddress = env.L1_GCD_MANAGER_ADDRESS
+  const gasPriceOracleMinErc20BridgeCost = parseInt(
+    env.MIN_L1_ERC20_BRIDGE_COST,
+    10
+  )
 
   ensure(whitelistOwner, 'WHITELIST_OWNER')
   ensure(gasPriceOracleOwner, 'GAS_PRICE_ORACLE_OWNER')
@@ -77,8 +80,8 @@ import { makeL2GenesisFile } from '../src/make-genesis'
   ensure(l1StandardBridgeAddress, 'L1_STANDARD_BRIDGE_ADDRESS')
   ensure(l1FeeWalletAddress, 'L1_FEE_WALLET_ADDRESS')
   ensure(l1CrossDomainMessengerAddress, 'L1_CROSS_DOMAIN_MESSENGER_ADDRESS')
-  ensure(l1MetisAddress, 'METIS_ADDRESS')
-  ensure(l1MetisManagerAddress, 'L1_METIS_MANAGER_ADDRESS')
+  ensure(l1MetisAddress, 'GCD_ADDRESS')
+  ensure(l1MetisManagerAddress, 'L1_GCD_MANAGER_ADDRESS')
   ensure(gasPriceOracleMinErc20BridgeCost, 'MIN_L1_ERC20_BRIDGE_COST')
 
   // Basic warning so users know that the whitelist will be disabled if the owner is the zero address.

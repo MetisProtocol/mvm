@@ -52,6 +52,7 @@ const config: HardhatUserConfig = {
       accounts: [privateKey],
     },
     ropsten: {
+      gas: 5000000,
       chainId: 3,
       url: process.env.CONTRACTS_RPC_URL,
       accounts: [privateKey],

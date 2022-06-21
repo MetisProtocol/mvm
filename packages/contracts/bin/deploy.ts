@@ -47,8 +47,8 @@ const parseEnv = () => {
     ovmSequencerAddress: ensure('SEQENCER_ADDRESS', 'xx'),
     ovmProposerAddress: ensure('PROPOSER_ADDRESS', 'xx'),
     ovmRelayerAddress: ensure('RELAYER_ADDRESS', 'xx'),
-    mvmMetisAddress: ensure('METIS_ADDRESS', 'xx'),
-    l2chainid: ensure('L2_CHAIN_ID', 'number')
+    mvmMetisAddress: ensure('GCD_ADDRESS', 'xx'),
+    l2chainid: ensure('L2_CHAIN_ID', 'number'),
   }
 }
 
@@ -78,7 +78,6 @@ const main = async () => {
   // get the hardhat-deploy stuff merged. Woot.
   const nicknames = {
     Lib_AddressManager: 'AddressManager',
-
   }
 
   const contracts: any = dirtree(
