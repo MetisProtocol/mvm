@@ -157,7 +157,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       this.state.l1RpcProvider,
       this.options.addressManager
     )
-
+    console.log('Contracts loaded', this.state.contracts)
     // Look up in the database for an indexed starting L1 block
     let startingL1BlockNumber = await this.state.db.getStartingL1Block()
     // If there isn't an indexed starting L1 block, that means we should pull it
@@ -186,7 +186,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     this.state.startingL1BlockNumber = startingL1BlockNumber
     await this.state.db.setStartingL1Block(this.state.startingL1BlockNumber)
-
     // Store the total number of submitted transactions so the server can tell clients if we're
     // done syncing or not
     const totalElements =
@@ -194,6 +193,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     if (totalElements > 0) {
       await this.state.db.putHighestL2BlockNumber(totalElements - 1)
     }
+    this.logger.info('Get total elements', {
+      totalElements,
+    })
   }
 
   protected async _start(): Promise<void> {
@@ -428,13 +430,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             chainId,
             parsedEvent,
           })
-          try {
-            await handlers.storeEvent(parsedEvent, db)
-          } catch (error) {
-            this.logger.info('Error:', {
-              error,
-            })
-          }
+          await handlers.storeEvent(parsedEvent, db)
         }
 
         const tock = Date.now()

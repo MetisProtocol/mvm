@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
       accounts: DEFAULT_ACCOUNTS_HARDHAT,
       blockGasLimit: RUN_OVM_TEST_GAS * 2,
       live: false,
-      saveDeployments: false,
+      saveDeployments: true,
       tags: ['local'],
     },
     andromeda: {
@@ -52,10 +52,21 @@ const config: HardhatUserConfig = {
       accounts: [privateKey],
     },
     ropsten: {
-      gas: 5000000,
       chainId: 3,
-      url: process.env.CONTRACTS_RPC_URL,
+      url: 'https://rpc.ankr.com/eth_ropsten/ffb62d22bbfad6e1802cbb22ef9996380814a7a771bfc8cebc407f61a6df0162',
       accounts: [privateKey],
+    },
+    goerli: {
+      chainId: 5,
+      url: 'https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+      accounts: [privateKey],
+      saveDeployments: true,
+    },
+    ethereum: {
+      chainId: 1,
+      url: 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+      accounts: [privateKey],
+      saveDeployments: true,
     },
   },
   mocha: {
