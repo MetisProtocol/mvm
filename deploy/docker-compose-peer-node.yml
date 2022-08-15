@@ -1,0 +1,82 @@
+version: "3"
+
+services:
+  l2geth:
+    image: ethereumoptimism/l2geth
+    build:
+      context: ..
+      dockerfile: ./ops/docker/Dockerfile.geth
+    # override with the geth script and the env vars required for it
+    entrypoint: sh ./geth.sh
+    env_file:
+      - ../ops/envs/geth-peer.env
+    environment:
+        ETH1_HTTP: ${ETH1_HTTP}
+        ROLLUP_STATE_DUMP_PATH: https://gton.network/genesis.json
+        # used for getting the addresses
+        URL: https://gton.network/addresses.json
+        # connecting to the DTL
+        ROLLUP_CLIENT_HTTP: http://dtl:7878
+
+        ETH1_CTC_DEPLOYMENT_HEIGHT: 15175690
+        ETH1_L1_CROSS_DOMAIN_MESSENGER_ADDRESS: '0xE6A420603aAc2A83Ed3Cc1FD38e3EDf1e164Dea8'
+        ETH1_L1_STANDARD_BRIDGE_ADDRESS: '0x0C358FC408830793B70fD2fE1e5C1259e11DEAe2'
+        RETRIES: 60
+        ROLLUP_POLL_INTERVAL_FLAG: 30000ms
+        MVM_GAS_ORACLE_PRICE: 1000
+        MVM_GAS_ORACLE_ADDRESS: "0x420000000000000000000000000000000000000F"
+        BLOCK_SIGNER_ADDRESS: ${BLOCK_SIGNER_ADDRESS}
+        BLOCK_SIGNER_KEY: ${BLOCK_SIGNER_KEY}
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "1g"
+            max-file: "3"
+    volumes:
+      - "./data/geth:/root/.ethereum"
+
+    ports:
+      - ${L2GETH_HTTP_PORT:-8545}:8545
+      - ${L2GETH_WS_PORT:-8546}:8546
+      - ${L2GETH_NODE_PORT:-30303}:30303
+
+  l2geth-peer:
+    depends_on:
+      - l2geth
+    image: ethereumoptimism/l2geth-peer
+    build:
+      context: ..
+      dockerfile: ./ops/docker/Dockerfile.geth.peer
+    # override with the geth script and the env vars required for it
+    entrypoint: sh ./geth-peer.sh
+    env_file:
+      - ../ops/envs/geth-peer.env
+    environment:
+        CHAIN_ID: 1000
+        NETWORK_ID: 1000
+        ETH1_HTTP: ${ETH1_HTTP}
+        ROLLUP_STATE_DUMP_PATH: https://gton.network/genesis.json
+        # used for getting the addresses
+        URL: https://gton.network/addresses.json
+        # connecting to the DTL
+        ROLLUP_CLIENT_HTTP: http://dtl:7878
+        L2_URL: http://l2geth:8545
+        ETH1_CTC_DEPLOYMENT_HEIGHT: 15175690
+        RETRIES: 60
+        ROLLUP_POLL_INTERVAL_FLAG: 30000ms
+        MVM_GAS_ORACLE_PRICE: 1000
+        MVM_GAS_ORACLE_ADDRESS: "0x420000000000000000000000000000000000000F"
+        BLOCK_SIGNER_ADDRESS: ${BLOCK_SIGNER_ADDRESS}
+        ETH1_L1_CROSS_DOMAIN_MESSENGER_ADDRESS: '0xE6A420603aAc2A83Ed3Cc1FD38e3EDf1e164Dea8'
+        ETH1_L1_STANDARD_BRIDGE_ADDRESS: '0x0C358FC408830793B70fD2fE1e5C1259e11DEAe2'
+        BLOCK_SIGNER_KEY: ${BLOCK_SIGNER_KEY}
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "1g"
+            max-file: "3"
+
+    ports:
+      - ${L2GETH_HTTP_PORT:-10545}:8545
+      - ${L2GETH_WS_PORT:-10546}:8546
+      - ${L2GETH_NODE_PORT:-30304}:30303
