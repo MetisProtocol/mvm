@@ -12,4 +12,4 @@ if [[ ! -z "$URL" ]]; then
 fi
 
 # go
-exec node dist/src/services/run.js
+exec node --trace-warnings dist/src/services/run.js
