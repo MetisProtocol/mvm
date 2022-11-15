@@ -189,27 +189,34 @@
 	// result is invoked when all the opcodes have been iterated over and returns
 	// the final result of the tracing.
 	result: function(ctx, db) {
+		var value = ctx.value;
+		if (value === undefined) {
+				value = '0x0';
+		} else {
+				value = '0x' + value.toString(16);
+		}
+		value = ctx.value
 		var result = {
-			type:    ctx.type,
-			from:    toHex(ctx.from),
-			to:      toHex(ctx.to),
-			value:   ctx.value ? '0x' + ctx.value.toString(16) : '0x0',
-			gas:     '0x' + bigInt(ctx.gas).toString(16),
-			gasUsed: '0x' + bigInt(ctx.gasUsed).toString(16),
-			input:   toHex(ctx.input),
-			output:  toHex(ctx.output),
-			time:    ctx.time,
+				type:    ctx.type,
+				from:    toHex(ctx.from),
+				to:      toHex(ctx.to),
+				value:   value,
+				gas:     '0x' + bigInt(ctx.gas).toString(16),
+				gasUsed: '0x' + bigInt(ctx.gasUsed).toString(16),
+				input:   toHex(ctx.input),
+				output:  toHex(ctx.output),
+				time:    ctx.time,
 		};
 		if (this.callstack[0].calls !== undefined) {
-			result.calls = this.callstack[0].calls;
+				result.calls = this.callstack[0].calls;
 		}
 		if (this.callstack[0].error !== undefined) {
-			result.error = this.callstack[0].error;
+				result.error = this.callstack[0].error;
 		} else if (ctx.error !== undefined) {
-			result.error = ctx.error;
+				result.error = ctx.error;
 		}
 		if (result.error !== undefined) {
-			delete result.output;
+				delete result.output;
 		}
 		return this.finalize(result);
 	},
