@@ -195,7 +195,6 @@
 			} else {
 					value = '0x' + value.toString(16);
 			}
-			value = ctx.value
 			var result = {
 					type:    ctx.type,
 					from:    toHex(ctx.from),
