@@ -86,7 +86,7 @@ func newTester() *downloadTester {
 	tester.stateDb = rawdb.NewMemoryDatabase()
 	tester.stateDb.Put(testGenesis.Root().Bytes(), []byte{0x00})
 
-	tester.downloader = New(0, tester.stateDb, trie.NewSyncBloom(1, tester.stateDb), new(event.TypeMux), tester, nil, tester.dropPeer)
+	tester.downloader = New(0, tester.stateDb, trie.NewSyncBloom(1, tester.stateDb), new(event.TypeMux), tester, nil, tester.dropPeer, nil)
 	return tester
 }
 
@@ -1473,6 +1473,7 @@ func TestDeliverHeadersHang(t *testing.T) {
 		{64, LightSync},
 	}
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(fmt.Sprintf("protocol %d mode %v", tc.protocol, tc.syncMode), func(t *testing.T) {
 			t.Parallel()
 			testDeliverHeadersHang(t, tc.protocol, tc.syncMode)

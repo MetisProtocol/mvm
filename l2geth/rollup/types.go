@@ -39,7 +39,7 @@ func NewBackend(typ string) (Backend, error) {
 	case "l2":
 		return BackendL2, nil
 	default:
-		return 0, fmt.Errorf("Unknown Backend: %s", typ)
+		return 0, fmt.Errorf("unknown Backend: %s", typ)
 	}
 }
 

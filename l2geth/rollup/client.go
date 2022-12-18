@@ -209,10 +209,10 @@ func (c *Client) GetEnqueue(index uint64) (*types.Transaction, error) {
 	}
 	enqueue, ok := response.Result().(*Enqueue)
 	if !ok {
-		return nil, fmt.Errorf("Cannot fetch enqueue %d", index)
+		return nil, fmt.Errorf("cannot fetch enqueue %d", index)
 	}
 	if enqueue == nil {
-		return nil, fmt.Errorf("Cannot deserialize enqueue %d", index)
+		return nil, fmt.Errorf("cannot deserialize enqueue %d", index)
 	}
 	tx, err := enqueueToTransaction(enqueue)
 	if err != nil {
@@ -236,29 +236,29 @@ func enqueueToTransaction(enqueue *Enqueue) (*types.Transaction, error) {
 	nonce := *enqueue.QueueIndex
 
 	if enqueue.Target == nil {
-		return nil, errors.New("Target not found for enqueue tx")
+		return nil, errors.New("target not found for enqueue tx")
 	}
 	target := *enqueue.Target
 
 	if enqueue.GasLimit == nil {
-		return nil, errors.New("Gas limit not found for enqueue tx")
+		return nil, errors.New("gas limit not found for enqueue tx")
 	}
 	gasLimit := *enqueue.GasLimit
 	if enqueue.Origin == nil {
-		return nil, errors.New("Origin not found for enqueue tx")
+		return nil, errors.New("origin not found for enqueue tx")
 	}
 	origin := *enqueue.Origin
 	if enqueue.BlockNumber == nil {
-		return nil, errors.New("Blocknumber not found for enqueue tx")
+		return nil, errors.New("blocknumber not found for enqueue tx")
 	}
 	blockNumber := new(big.Int).SetUint64(*enqueue.BlockNumber)
 	if enqueue.Timestamp == nil {
-		return nil, errors.New("Timestamp not found for enqueue tx")
+		return nil, errors.New("timestamp not found for enqueue tx")
 	}
 	timestamp := *enqueue.Timestamp
 
 	if enqueue.Data == nil {
-		return nil, errors.New("Data not found for enqueue tx")
+		return nil, errors.New("data not found for enqueue tx")
 	}
 	data := *enqueue.Data
 
@@ -297,11 +297,11 @@ func (c *Client) GetLatestEnqueue() (*types.Transaction, error) {
 	}
 	enqueue, ok := response.Result().(*Enqueue)
 	if !ok {
-		return nil, errors.New("Cannot fetch latest enqueue")
+		return nil, errors.New("cannot fetch latest enqueue")
 	}
 	tx, err := enqueueToTransaction(enqueue)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot parse enqueue tx: %w", err)
+		return nil, fmt.Errorf("cannot parse enqueue tx: %w", err)
 	}
 	return tx, nil
 }
@@ -314,7 +314,7 @@ func (c *Client) GetLatestEnqueueIndex() (*uint64, error) {
 	}
 	index := tx.GetMeta().QueueIndex
 	if index == nil {
-		return nil, errors.New("Latest queue index is nil")
+		return nil, errors.New("latest queue index is nil")
 	}
 	return index, nil
 }
@@ -328,7 +328,7 @@ func (c *Client) GetLatestTransactionIndex(backend Backend) (*uint64, error) {
 	}
 	index := tx.GetMeta().Index
 	if index == nil {
-		return nil, errors.New("Latest index is nil")
+		return nil, errors.New("latest index is nil")
 	}
 	return index, nil
 }
@@ -359,7 +359,7 @@ func batchedTransactionToTransaction(res *transaction, signerChain *types.EIP155
 	case l1:
 		queueOrigin = types.QueueOriginL1ToL2
 	default:
-		return nil, fmt.Errorf("Unknown queue origin: %s", res.QueueOrigin)
+		return nil, fmt.Errorf("unknown queue origin: %s", res.QueueOrigin)
 	}
 	// Transactions that have been decoded are
 	// Queue Origin Sequencer transactions
@@ -408,7 +408,7 @@ func batchedTransactionToTransaction(res *transaction, signerChain *types.EIP155
 
 		tx, err := tx.WithSignature(signer, sig[:])
 		if err != nil {
-			return nil, fmt.Errorf("Cannot add signature to transaction: %w", err)
+			return nil, fmt.Errorf("cannot add signature to transaction: %w", err)
 		}
 
 		return tx, nil
@@ -419,7 +419,7 @@ func batchedTransactionToTransaction(res *transaction, signerChain *types.EIP155
 	nonce := uint64(0)
 	if res.QueueOrigin == l1 {
 		if res.QueueIndex == nil {
-			return nil, errors.New("Queue origin L1 to L2 without a queue index")
+			return nil, errors.New("queue origin L1 to L2 without a queue index")
 		}
 		nonce = *res.QueueIndex
 	}
@@ -493,7 +493,7 @@ func (c *Client) GetLatestTransaction(backend Backend) (*types.Transaction, erro
 	}
 	res, ok := response.Result().(*TransactionResponse)
 	if !ok {
-		return nil, errors.New("Cannot get latest transaction")
+		return nil, errors.New("cannot get latest transaction")
 	}
 
 	return batchedTransactionToTransaction(res.Transaction, c.signer)
@@ -516,7 +516,7 @@ func (c *Client) GetEthContext(blockNumber uint64) (*EthContext, error) {
 
 	context, ok := response.Result().(*EthContext)
 	if !ok {
-		return nil, errors.New("Cannot parse EthContext")
+		return nil, errors.New("cannot parse EthContext")
 	}
 	return context, nil
 }
@@ -528,12 +528,12 @@ func (c *Client) GetLatestEthContext() (*EthContext, error) {
 		Get("/eth/context/latest")
 
 	if err != nil {
-		return nil, fmt.Errorf("Cannot fetch eth context: %w", err)
+		return nil, fmt.Errorf("cannot fetch eth context: %w", err)
 	}
 
 	context, ok := response.Result().(*EthContext)
 	if !ok {
-		return nil, errors.New("Cannot parse EthContext")
+		return nil, errors.New("cannot parse EthContext")
 	}
 
 	return context, nil
@@ -544,7 +544,7 @@ func (c *Client) GetLatestEthContext() (*EthContext, error) {
 func (c *Client) GetLastConfirmedEnqueue() (*types.Transaction, error) {
 	enqueue, err := c.GetLatestEnqueue()
 	if err != nil {
-		return nil, fmt.Errorf("Cannot get latest enqueue: %w", err)
+		return nil, fmt.Errorf("cannot get latest enqueue: %w", err)
 	}
 	// This should only happen if there are no L1 to L2 transactions yet
 	if enqueue == nil {
@@ -588,12 +588,12 @@ func (c *Client) SyncStatus(backend Backend) (*SyncStatus, error) {
 		Get("/eth/syncing/{chainId}")
 
 	if err != nil {
-		return nil, fmt.Errorf("Cannot fetch sync status: %w", err)
+		return nil, fmt.Errorf("cannot fetch sync status: %w", err)
 	}
 
 	status, ok := response.Result().(*SyncStatus)
 	if !ok {
-		return nil, fmt.Errorf("Cannot parse sync status")
+		return nil, fmt.Errorf("cannot parse sync status")
 	}
 
 	return status, nil
@@ -609,11 +609,11 @@ func (c *Client) GetLatestTransactionBatch() (*Batch, []*types.Transaction, erro
 		Get("/batch/transaction/latest/{chainId}")
 
 	if err != nil {
-		return nil, nil, errors.New("Cannot get latest transaction batch")
+		return nil, nil, errors.New("cannot get latest transaction batch")
 	}
 	txBatch, ok := response.Result().(*TransactionBatchResponse)
 	if !ok {
-		return nil, nil, fmt.Errorf("Cannot parse transaction batch response")
+		return nil, nil, fmt.Errorf("cannot parse transaction batch response")
 	}
 	return parseTransactionBatchResponse(txBatch, c.signer)
 }
@@ -630,11 +630,11 @@ func (c *Client) GetTransactionBatch(index uint64) (*Batch, []*types.Transaction
 		Get("/batch/transaction/index/{index}/{chainId}")
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("Cannot get transaction batch %d: %w", index, err)
+		return nil, nil, fmt.Errorf("cannot get transaction batch %d: %w", index, err)
 	}
 	txBatch, ok := response.Result().(*TransactionBatchResponse)
 	if !ok {
-		return nil, nil, fmt.Errorf("Cannot parse transaction batch response")
+		return nil, nil, fmt.Errorf("cannot parse transaction batch response")
 	}
 	return parseTransactionBatchResponse(txBatch, c.signer)
 }
@@ -650,7 +650,7 @@ func parseTransactionBatchResponse(txBatch *TransactionBatchResponse, signer *ty
 	for i, tx := range txBatch.Transactions {
 		transaction, err := batchedTransactionToTransaction(tx, signer)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Cannot parse transaction batch: %w", err)
+			return nil, nil, fmt.Errorf("cannot parse transaction batch: %w", err)
 		}
 		txs[i] = transaction
 	}
@@ -669,11 +669,11 @@ func (c *Client) GetStateRoot(index uint64) (common.Hash, error) {
 		Get("/stateroot/index/{index}/{chainId}")
 
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("Cannot get stateroot %d: %w", index, err)
+		return common.Hash{}, fmt.Errorf("cannot get stateroot %d: %w", index, err)
 	}
 	stateRootResp, ok := response.Result().(*StateRootResponse)
 	if !ok {
-		return common.Hash{}, fmt.Errorf("Cannot parse stateroot response")
+		return common.Hash{}, fmt.Errorf("cannot parse stateroot response")
 	}
 	if stateRootResp.StateRoot == nil {
 		return common.Hash{}, nil
@@ -696,7 +696,7 @@ func (c *Client) SetLastVerifier(index uint64, stateRoot string, verifierRoot st
 		Get("/verifier/set/{success}/{chainId}/{index}/{stateRoot}/{verifierRoot}")
 
 	if err != nil {
-		return fmt.Errorf("Cannot set last verifier %d: %w", index, err)
+		return fmt.Errorf("cannot set last verifier %d: %w", index, err)
 	}
 	return nil
 }

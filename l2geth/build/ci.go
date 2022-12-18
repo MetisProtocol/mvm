@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+//go:build none
 // +build none
 
 /*
@@ -23,20 +24,19 @@ Usage: go run build/ci.go <command> <command flags/arguments>
 
 Available commands are:
 
-   install    [ -arch architecture ] [ -cc compiler ] [ packages... ]                          -- builds packages and executables
-   test       [ -coverage ] [ packages... ]                                                    -- runs the tests
-   lint                                                                                        -- runs certain pre-selected linters
-   archive    [ -arch architecture ] [ -type zip|tar ] [ -signer key-envvar ] [ -upload dest ] -- archives build artifacts
-   importkeys                                                                                  -- imports signing keys from env
-   debsrc     [ -signer key-id ] [ -upload dest ]                                              -- creates a debian source package
-   nsis                                                                                        -- creates a Windows NSIS installer
-   aar        [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an Android archive
-   xcode      [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an iOS XCode framework
-   xgo        [ -alltools ] [ options ]                                                        -- cross builds according to options
-   purge      [ -store blobstore ] [ -days threshold ]                                         -- purges old archives from the blobstore
+	install    [ -arch architecture ] [ -cc compiler ] [ packages... ]                          -- builds packages and executables
+	test       [ -coverage ] [ packages... ]                                                    -- runs the tests
+	lint                                                                                        -- runs certain pre-selected linters
+	archive    [ -arch architecture ] [ -type zip|tar ] [ -signer key-envvar ] [ -upload dest ] -- archives build artifacts
+	importkeys                                                                                  -- imports signing keys from env
+	debsrc     [ -signer key-id ] [ -upload dest ]                                              -- creates a debian source package
+	nsis                                                                                        -- creates a Windows NSIS installer
+	aar        [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an Android archive
+	xcode      [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an iOS XCode framework
+	xgo        [ -alltools ] [ options ]                                                        -- cross builds according to options
+	purge      [ -store blobstore ] [ -days threshold ]                                         -- purges old archives from the blobstore
 
 For all commands, -n prevents execution of external programs (dry run mode).
-
 */
 package main
 
@@ -600,10 +600,7 @@ func makeWorkdir(wdflag string) string {
 }
 
 func isUnstableBuild(env build.Environment) bool {
-	if env.Tag != "" {
-		return false
-	}
-	return true
+	return env.Tag == ""
 }
 
 type debPackage struct {
@@ -788,10 +785,10 @@ func doWindowsInstaller(cmdline []string) {
 	build.Render("build/nsis.pathupdate.nsh", filepath.Join(*workdir, "PathUpdate.nsh"), 0644, nil)
 	build.Render("build/nsis.envvarupdate.nsh", filepath.Join(*workdir, "EnvVarUpdate.nsh"), 0644, nil)
 	if err := cp.CopyFile(filepath.Join(*workdir, "SimpleFC.dll"), "build/nsis.simplefc.dll"); err != nil {
-		log.Fatal("Failed to copy SimpleFC.dll: %v", err)
+		log.Fatalf("Failed to copy SimpleFC.dll: %v", err)
 	}
 	if err := cp.CopyFile(filepath.Join(*workdir, "COPYING"), "COPYING"); err != nil {
-		log.Fatal("Failed to copy copyright note: %v", err)
+		log.Fatalf("Failed to copy copyright note: %v", err)
 	}
 	// Build the installer. This assumes that all the needed files have been previously
 	// built (don't mix building and packaging to keep cross compilation complexity to a

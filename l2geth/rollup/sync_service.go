@@ -88,7 +88,7 @@ type SyncService struct {
 // NewSyncService returns an initialized sync service
 func NewSyncService(ctx context.Context, cfg Config, txpool *core.TxPool, bc *core.BlockChain, db ethdb.Database) (*SyncService, error) {
 	if bc == nil {
-		return nil, errors.New("Must pass BlockChain to SyncService")
+		return nil, errors.New("must pass BlockChain to SyncService")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -116,7 +116,7 @@ func NewSyncService(ctx context.Context, cfg Config, txpool *core.TxPool, bc *co
 	// Layer 2 chainid
 	chainID := bc.Config().ChainID
 	if chainID == nil {
-		return nil, errors.New("Must configure with chain id")
+		return nil, errors.New("must configure with chain id")
 	}
 	// Initialize the rollup client
 	client := NewClient(cfg.RollupClientHttp, chainID)
@@ -211,7 +211,7 @@ func NewSyncService(ctx context.Context, cfg Config, txpool *core.TxPool, bc *co
 		// can be ran without needing to have a configured RollupClient.
 		err := service.initializeLatestL1(cfg.CanonicalTransactionChainDeployHeight)
 		if err != nil {
-			return nil, fmt.Errorf("Cannot initialize latest L1 data: %w", err)
+			return nil, fmt.Errorf("cannot initialize latest L1 data: %w", err)
 		}
 
 		// Log the OVMContext information on startup
@@ -244,7 +244,7 @@ func NewSyncService(ctx context.Context, cfg Config, txpool *core.TxPool, bc *co
 func (s *SyncService) ensureClient() error {
 	_, err := s.client.GetLatestEthContext()
 	if err != nil {
-		return fmt.Errorf("Cannot connect to data service: %w", err)
+		return fmt.Errorf("cannot connect to data service: %w", err)
 	}
 	return nil
 }
@@ -286,12 +286,12 @@ func (s *SyncService) initializeLatestL1(ctcDeployHeight *big.Int) error {
 	index := s.GetLatestIndex()
 	if index == nil {
 		if ctcDeployHeight == nil {
-			return errors.New("Must configure with canonical transaction chain deploy height")
+			return errors.New("must configure with canonical transaction chain deploy height")
 		}
 		log.Info("Initializing initial OVM Context", "ctc-deploy-height", ctcDeployHeight.Uint64())
 		context, err := s.client.GetEthContext(ctcDeployHeight.Uint64())
 		if err != nil {
-			return fmt.Errorf("Cannot fetch ctc deploy block at height %d: %w", ctcDeployHeight.Uint64(), err)
+			return fmt.Errorf("cannot fetch ctc deploy block at height %d: %w", ctcDeployHeight.Uint64(), err)
 		}
 		s.SetLatestL1Timestamp(context.Timestamp)
 		s.SetLatestL1BlockNumber(context.BlockNumber)
@@ -300,7 +300,7 @@ func (s *SyncService) initializeLatestL1(ctcDeployHeight *big.Int) error {
 		if s.verifier && s.backend == BackendL1 {
 			tx, err := s.client.GetRawTransaction(*index, s.backend)
 			if err != nil {
-				return fmt.Errorf("Cannot fetch transaction from dtl at index %d: %w", *index, err)
+				return fmt.Errorf("cannot fetch transaction from dtl at index %d: %w", *index, err)
 			}
 
 			oldbatchIndex := s.GetLatestBatchIndex()
@@ -319,7 +319,7 @@ func (s *SyncService) initializeLatestL1(ctcDeployHeight *big.Int) error {
 			blockNum := block.Number().Uint64()
 			if blockNum > *index {
 				// This is recoverable with a reorg but should never happen
-				return fmt.Errorf("Current block height greater than index")
+				return fmt.Errorf("current block height greater than index")
 			}
 			var idx *uint64
 			if blockNum > 0 {
@@ -347,7 +347,7 @@ func (s *SyncService) initializeLatestL1(ctcDeployHeight *big.Int) error {
 		}
 		// Other unexpected error
 		if err != nil {
-			return fmt.Errorf("Cannot fetch last confirmed queue tx: %w", err)
+			return fmt.Errorf("cannot fetch last confirmed queue tx: %w", err)
 		}
 		// No error, the queue element was found
 		queueIndex = enqueue.GetMeta().QueueIndex
@@ -447,11 +447,11 @@ func (s *SyncService) verify() error {
 	switch s.backend {
 	case BackendL1:
 		if err := s.syncBatchesToTip(); err != nil {
-			return fmt.Errorf("Verifier cannot sync transaction batches to tip: %w", err)
+			return fmt.Errorf("verifier cannot sync transaction batches to tip: %w", err)
 		}
 	case BackendL2:
 		if err := s.syncTransactionsToTip(); err != nil {
-			return fmt.Errorf("Verifier cannot sync transactions with BackendL2: %w", err)
+			return fmt.Errorf("verifier cannot sync transactions with BackendL2: %w", err)
 		}
 	}
 	return nil
@@ -485,21 +485,21 @@ func (s *SyncService) SequencerLoop() {
 // also call `syncBatchesToTip`
 func (s *SyncService) sequence() error {
 	if err := s.syncQueueToTip(); err != nil {
-		return fmt.Errorf("Sequencer cannot sequence queue: %w", err)
+		return fmt.Errorf("sequencer cannot sequence queue: %w", err)
 	}
 	return nil
 }
 
 func (s *SyncService) syncQueueToTip() error {
 	if err := s.syncToTip(s.syncQueue, s.client.GetLatestEnqueueIndex); err != nil {
-		return fmt.Errorf("Cannot sync queue to tip: %w", err)
+		return fmt.Errorf("cannot sync queue to tip: %w", err)
 	}
 	return nil
 }
 
 func (s *SyncService) syncBatchesToTip() error {
 	if err := s.syncToTip(s.syncBatches, s.client.GetLatestTransactionBatchIndex); err != nil {
-		return fmt.Errorf("Cannot sync transaction batches to tip: %w", err)
+		return fmt.Errorf("cannot sync transaction batches to tip: %w", err)
 	}
 	return nil
 }
@@ -512,7 +512,7 @@ func (s *SyncService) syncTransactionsToTip() error {
 		return s.client.GetLatestTransactionIndex(s.backend)
 	}
 	if err := s.syncToTip(sync, check); err != nil {
-		return fmt.Errorf("Verifier cannot sync transactions with backend %s: %w", s.backend.String(), err)
+		return fmt.Errorf("verifier cannot sync transactions with backend %s: %w", s.backend.String(), err)
 	}
 	return nil
 }
@@ -631,13 +631,13 @@ func (s *SyncService) GasPriceOracleOwnerAddress() *common.Address {
 	return &s.gasPriceOracleOwnerAddress
 }
 
-/// Update the execution context's timestamp and blocknumber
-/// over time. This is only necessary for the sequencer.
+// / Update the execution context's timestamp and blocknumber
+// / over time. This is only necessary for the sequencer.
 func (s *SyncService) updateL1BlockNumber() error {
 
 	context, err := s.client.GetLatestEthContext()
 	if err != nil {
-		return fmt.Errorf("Cannot get eth context: %w", err)
+		return fmt.Errorf("cannot get eth context: %w", err)
 	}
 	current := time.Unix(int64(s.GetLatestL1Timestamp()), 0)
 	next := time.Unix(int64(context.Timestamp), 0)
@@ -771,11 +771,11 @@ func (s *SyncService) applyTransaction(tx *types.Transaction) error {
 // sequencer.
 func (s *SyncService) applyIndexedTransaction(tx *types.Transaction) error {
 	if tx == nil {
-		return errors.New("Transaction is nil in applyIndexedTransaction")
+		return errors.New("transaction is nil in applyIndexedTransaction")
 	}
 	index := tx.GetMeta().Index
 	if index == nil {
-		return errors.New("No index found in applyIndexedTransaction")
+		return errors.New("no index found in applyIndexedTransaction")
 	}
 	log.Trace("Applying indexed transaction", "index", *index)
 	next := s.GetNextIndex()
@@ -788,27 +788,27 @@ func (s *SyncService) applyIndexedTransaction(tx *types.Transaction) error {
 	// batchIndex := *s.GetLatestBatchIndex() - 30
 	// s.SetLatestBatchIndex(&batchIndex)
 	// log.Info("Reset latest batch index to smaller next", "index", batchIndex)
-	return fmt.Errorf("Received tx at index %d when looking for %d", *index, next)
+	return fmt.Errorf("received tx at index %d when looking for %d", *index, next)
 }
 
 // applyHistoricalTransaction will compare a historical transaction against what
 // is locally indexed. This will trigger a reorg in the future
 func (s *SyncService) applyHistoricalTransaction(tx *types.Transaction) error {
 	if tx == nil {
-		return errors.New("Transaction is nil in applyHistoricalTransaction")
+		return errors.New("transaction is nil in applyHistoricalTransaction")
 	}
 	index := tx.GetMeta().Index
 	if index == nil {
-		return errors.New("No index is found in applyHistoricalTransaction")
+		return errors.New("no index is found in applyHistoricalTransaction")
 	}
 	// Handle the off by one
 	block := s.bc.GetBlockByNumber(*index + 1)
 	if block == nil {
-		return fmt.Errorf("Block %d is not found", *index+1)
+		return fmt.Errorf("block %d is not found", *index+1)
 	}
 	txs := block.Transactions()
 	if len(txs) != 1 {
-		return fmt.Errorf("More than one transaction found in block %d", *index+1)
+		return fmt.Errorf("more than one transaction found in block %d", *index+1)
 	}
 	if !isCtcTxEqual(tx, txs[0]) {
 		log.Error("Mismatched transaction", "index", *index)
@@ -833,7 +833,7 @@ func (s *SyncService) applyTransactionToTip(tx *types.Transaction) error {
 	// sequencer transaction.
 	if tx.QueueOrigin() == types.QueueOriginL1ToL2 {
 		if tx.L1Timestamp() == 0 {
-			return fmt.Errorf("Queue origin L1 to L2 transaction without a timestamp: %s", tx.Hash().Hex())
+			return fmt.Errorf("queue origin L1 to L2 transaction without a timestamp: %s", tx.Hash().Hex())
 		}
 	}
 	// If there is no L1 timestamp assigned to the transaction, then assign a
@@ -968,12 +968,12 @@ func (s *SyncService) applyBatchedTransaction(tx *types.Transaction) error {
 	}
 	index := tx.GetMeta().Index
 	if index == nil {
-		return errors.New("No index found on transaction")
+		return errors.New("no index found on transaction")
 	}
 	log.Trace("Applying batched transaction", "index", *index)
 	err := s.applyIndexedTransaction(tx)
 	if err != nil {
-		return fmt.Errorf("Cannot apply batched transaction: %w", err)
+		return fmt.Errorf("cannot apply batched transaction: %w", err)
 	}
 	// s.SetLatestVerifiedIndex(index)
 	return nil
@@ -1061,7 +1061,7 @@ func (s *SyncService) verifyFee(tx *types.Transaction) error {
 // validity checks that are done here.
 func (s *SyncService) ValidateAndApplySequencerTransaction(tx *types.Transaction) error {
 	if s.verifier {
-		return errors.New("Verifier does not accept transactions out of band")
+		return errors.New("verifier does not accept transactions out of band")
 	}
 	if tx == nil {
 		return errors.New("nil transaction passed to ValidateAndApplySequencerTransaction")
@@ -1168,10 +1168,10 @@ func (s *SyncService) syncToTip(sync syncer, getTip indexGetter) error {
 func (s *SyncService) sync(getLatest indexGetter, getNext nextGetter, syncer rangeSyncer) (*uint64, error) {
 	latestIndex, err := getLatest()
 	if err != nil {
-		return nil, fmt.Errorf("Cannot sync: %w", err)
+		return nil, fmt.Errorf("cannot sync: %w", err)
 	}
 	if latestIndex == nil {
-		return nil, errors.New("Latest index is not defined")
+		return nil, errors.New("latest index is not defined")
 	}
 
 	nextIndex := getNext()
@@ -1189,7 +1189,7 @@ func (s *SyncService) sync(getLatest indexGetter, getNext nextGetter, syncer ran
 func (s *SyncService) syncBatches() (*uint64, error) {
 	index, err := s.sync(s.client.GetLatestTransactionBatchIndex, s.GetNextBatchIndex, s.syncTransactionBatchRange)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot sync batches: %w", err)
+		return nil, fmt.Errorf("cannot sync batches: %w", err)
 	}
 	return index, nil
 }
@@ -1202,7 +1202,7 @@ func (s *SyncService) syncTransactionBatchRange(start, end uint64) error {
 		log.Debug("Fetching transaction batch", "index", i)
 		batch, txs, err := s.client.GetTransactionBatch(i)
 		if err != nil {
-			return fmt.Errorf("Cannot get transaction batch: %w", err)
+			return fmt.Errorf("cannot get transaction batch: %w", err)
 		}
 		next := s.GetNextIndex()
 		for _, tx := range txs {
@@ -1241,7 +1241,7 @@ func (s *SyncService) verifyStateRoot(tx *types.Transaction, batchRoot common.Ha
 		stateRootHash, err := s.client.GetStateRoot(txIndex)
 		// log.Debug("Test: Fetched stateroot", "i", i, "index", *(tx.GetMeta().Index), "hash", stateRootHash)
 		if err != nil {
-			return txIndex, "", localStateRoot.Hex(), fmt.Errorf("Fetch stateroot failed: %w", err)
+			return txIndex, "", localStateRoot.Hex(), fmt.Errorf("fetch stateroot failed: %w", err)
 		}
 		if stateRootHash == emptyHash {
 			log.Info("Fetch stateroot nil, retry in 1000ms", "i", i, "index", txIndex)
@@ -1250,12 +1250,12 @@ func (s *SyncService) verifyStateRoot(tx *types.Transaction, batchRoot common.Ha
 			continue
 		}
 		if stateRootHash != localStateRoot {
-			return txIndex, stateRootHash.Hex(), localStateRoot.Hex(), fmt.Errorf("The remote stateroot is not equal to the local: tx index %d, remote %w, local %w, batch-root %w", txIndex, stateRootHash.Hex(), localStateRoot.Hex(), batchRoot.Hex())
+			return txIndex, stateRootHash.Hex(), localStateRoot.Hex(), fmt.Errorf("the remote stateroot is not equal to the local: tx index %d, remote %s, local %s, batch-root %s", txIndex, stateRootHash.Hex(), localStateRoot.Hex(), batchRoot.Hex())
 		}
 		log.Info("Verified tx with stateroot ok", "i", i, "index", txIndex, "batch-root", batchRoot.Hex())
 		return txIndex, stateRootHash.Hex(), localStateRoot.Hex(), nil
 	}
-	return txIndex, "", "", fmt.Errorf("Fetch stateroot failed: index %w", txIndex)
+	return txIndex, "", "", fmt.Errorf("fetch stateroot failed: index %d", txIndex)
 }
 
 // syncQueue will sync from the local tip to the known tip of the remote
@@ -1263,7 +1263,7 @@ func (s *SyncService) verifyStateRoot(tx *types.Transaction, batchRoot common.Ha
 func (s *SyncService) syncQueue() (*uint64, error) {
 	index, err := s.sync(s.client.GetLatestEnqueueIndex, s.GetNextEnqueueIndex, s.syncQueueTransactionRange)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot sync queue: %w", err)
+		return nil, fmt.Errorf("cannot sync queue: %w", err)
 	}
 	return index, nil
 }
@@ -1279,7 +1279,7 @@ func (s *SyncService) syncQueueTransactionRange(start, end uint64) error {
 		}
 		tx, err := s.client.GetEnqueue(i)
 		if err != nil {
-			return fmt.Errorf("Canot get enqueue transaction; %w", err)
+			return fmt.Errorf("canot get enqueue transaction; %w", err)
 		}
 		if err := s.applyTransaction(tx); err != nil {
 			// retry when enqueue error
@@ -1287,7 +1287,7 @@ func (s *SyncService) syncQueueTransactionRange(start, end uint64) error {
 				restoreIndex := *queueIndex - 1
 				s.SetLatestEnqueueIndex(&restoreIndex)
 			}
-			return fmt.Errorf("Cannot apply transaction: %w", err)
+			return fmt.Errorf("cannot apply transaction: %w", err)
 		}
 	}
 	return nil
@@ -1304,7 +1304,7 @@ func (s *SyncService) syncTransactions(backend Backend) (*uint64, error) {
 	}
 	index, err := s.sync(getLatest, s.GetNextIndex, sync)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot sync transactions with backend %s: %w", backend.String(), err)
+		return nil, fmt.Errorf("cannot sync transactions with backend %s: %w", backend.String(), err)
 	}
 	return index, nil
 }
@@ -1319,7 +1319,7 @@ func (s *SyncService) syncTransactionRange(start, end uint64, backend Backend) e
 			return fmt.Errorf("cannot fetch transaction %d: %w", i, err)
 		}
 		if err := s.applyTransaction(tx); err != nil {
-			return fmt.Errorf("Cannot apply transaction: %w", err)
+			return fmt.Errorf("cannot apply transaction: %w", err)
 		}
 	}
 	return nil
