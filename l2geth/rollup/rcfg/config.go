@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
+
 	"github.com/ethereum-optimism/optimism/l2geth/common"
 )
 

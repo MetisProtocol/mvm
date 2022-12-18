@@ -323,7 +323,7 @@ func (tx *Transaction) Size() common.StorageSize {
 //
 // XXX Rename message to something less arbitrary?
 func (tx *Transaction) AsMessage(s Signer) (Message, error) {
-	// TOOD 20210724
+	// TODO 20210724
 	txMeta := tx.GetMeta()
 	if txMeta.L1MessageSender == nil {
 		txMeta.L1MessageSender = new(common.Address)

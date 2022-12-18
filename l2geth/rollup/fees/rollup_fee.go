@@ -155,7 +155,7 @@ func CalculateL1MsgFeeInL2(msg Message, state StateDB, gpo *common.Address, isEs
 	l1Fee := CalculateL1Fee(raw, overhead, l1GasPrice, scalar)
 
 	extra := new(big.Int)
-	if isEstimate == true {
+	if isEstimate {
 		// add the missing gas when estimateGas. the missing l1gas is to cover gaslimit and gasprice values
 		extra = mulByFloat(new(big.Int).Mul(EstimateGasOverhead(), l1GasPrice), scalar)
 	}
@@ -165,7 +165,7 @@ func CalculateL1MsgFeeInL2(msg Message, state StateDB, gpo *common.Address, isEs
 		l1FeeInL2 = new(big.Int).Div(new(big.Int).Add(l1Fee, extra),
 			state.GetState(rcfg.L2GasPriceOracleAddress, rcfg.L2GasPriceSlot).Big()).Uint64()
 	}
-	if isEstimate == true {
+	if isEstimate {
 		// adding extra buffer to accomondate a race condition when a l1price hike got just inbetween estimate and tx
 		// 5% buffer because only 10% increase allowed at a time
 		l1FeeInL2 = mulByFloat(new(big.Int).SetUint64(l1FeeInL2), new(big.Float).SetFloat64(1.05)).Uint64()

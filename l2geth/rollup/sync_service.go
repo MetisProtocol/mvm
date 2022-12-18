@@ -38,18 +38,6 @@ var (
 	float1            = big.NewFloat(1)
 )
 
-var (
-	// l2GasPriceSlot refers to the storage slot that the L2 gas price is stored
-	// in in the OVM_GasPriceOracle predeploy
-	l2GasPriceSlot = common.BigToHash(big.NewInt(1))
-	// l2GasPriceOracleOwnerSlot refers to the storage slot that the owner of
-	// the OVM_GasPriceOracle is stored in
-	l2GasPriceOracleOwnerSlot = common.BigToHash(big.NewInt(0))
-	// l2GasPriceOracleAddress is the address of the OVM_GasPriceOracle
-	// predeploy
-	l2GasPriceOracleAddress = common.HexToAddress("0x420000000000000000000000000000000000000F")
-)
-
 // SyncService implements the main functionality around pulling in transactions
 // and executing them. It can be configured to run in both sequencer mode and in
 // verifier mode.

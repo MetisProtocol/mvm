@@ -272,26 +272,23 @@ func (pm *ProtocolManager) removePeer(id string) {
 func (pm *ProtocolManager) startFetcherTicker() {
 	// NOTE 20210724
 	pm.tickerFetcherSync = time.NewTicker(5 * time.Second)
-	for {
-		select {
-		case <-pm.tickerFetcherSync.C:
-			if pm.fetcher != nil {
-				pm.fetcher.EnsureQueueInsert()
-			}
+	for range pm.tickerFetcherSync.C {
+		if pm.fetcher != nil {
+			pm.fetcher.EnsureQueueInsert()
+		}
 
-			ts := time.Now().Unix()
-			if rcfg.PeerHealthCheckSeconds > 0 && pm.peerSyncTime > 0 && ts-pm.peerSyncTime > rcfg.PeerHealthCheckSeconds {
-				// restart peer connection
-				log.Info("Need reconnect peers", "seconds", ts-pm.peerSyncTime, "peers len", pm.peers.Len())
+		ts := time.Now().Unix()
+		if rcfg.PeerHealthCheckSeconds > 0 && pm.peerSyncTime > 0 && ts-pm.peerSyncTime > rcfg.PeerHealthCheckSeconds {
+			// restart peer connection
+			log.Info("Need reconnect peers", "seconds", ts-pm.peerSyncTime, "peers len", pm.peers.Len())
 
-				peerList := pm.peers.PeersWithoutTx(common.Hash{})
-				for _, p := range peerList {
-					pm.removePeer(p.id)
-					pm.handle(p)
-				}
-				pm.peerSyncTime = 0
-				log.Info("All peers reconnecting", "peers len", pm.peers.Len())
+			peerList := pm.peers.PeersWithoutTx(common.Hash{})
+			for _, p := range peerList {
+				pm.removePeer(p.id)
+				pm.handle(p)
 			}
+			pm.peerSyncTime = 0
+			log.Info("All peers reconnecting", "peers len", pm.peers.Len())
 		}
 	}
 }

@@ -1755,7 +1755,7 @@ func (bc *BlockChain) insertChainWithFunc(chain types.Blocks, verifySeals bool, 
 		}
 		// Process block using the parent state as reference point
 		substart := time.Now()
-		receipts, logs, usedGas, err := bc.processor.Process(block, statedb, bc.vmConfig)
+		receipts, logs, _, err := bc.processor.Process(block, statedb, bc.vmConfig)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			atomic.StoreUint32(&followupInterrupt, 1)
@@ -1777,7 +1777,7 @@ func (bc *BlockChain) insertChainWithFunc(chain types.Blocks, verifySeals bool, 
 		substart = time.Now()
 
 		// NOTE 20210724
-		usedGas = block.GasUsed()
+		usedGas := block.GasUsed()
 
 		if err := bc.validator.ValidateState(block, statedb, receipts, usedGas); err != nil {
 			bc.reportBlock(block, receipts, err)
@@ -2079,7 +2079,7 @@ func (bc *BlockChain) insertChainWithFuncAndCh(chain types.Blocks, verifySeals b
 		}
 		// Process block using the parent state as reference point
 		substart := time.Now()
-		receipts, logs, usedGas, err := bc.processor.Process(block, statedb, bc.vmConfig)
+		receipts, logs, _, err := bc.processor.Process(block, statedb, bc.vmConfig)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			atomic.StoreUint32(&followupInterrupt, 1)
@@ -2103,7 +2103,7 @@ func (bc *BlockChain) insertChainWithFuncAndCh(chain types.Blocks, verifySeals b
 		substart = time.Now()
 
 		// NOTE 20210724
-		usedGas = block.GasUsed()
+		usedGas := block.GasUsed()
 
 		if err := bc.validator.ValidateState(block, statedb, receipts, usedGas); err != nil {
 			bc.reportBlock(block, receipts, err)
