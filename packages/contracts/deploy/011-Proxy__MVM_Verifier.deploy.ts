@@ -10,7 +10,7 @@ import {
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
-  
+
   await deployAndRegister({
     hre,
     name: 'Proxy__MVM_Verifier',

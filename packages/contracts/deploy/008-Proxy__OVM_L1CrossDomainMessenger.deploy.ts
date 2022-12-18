@@ -1,9 +1,7 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
-import { hexStringEquals } from '../src/hardhat-deploy-ethers'
-
-/* Imports: Internal */
 import {
+  hexStringEquals,
   getDeployedContract,
   deployAndRegister,
   waitUntilTrue,
@@ -34,7 +32,6 @@ const deployFn: DeployFunction = async (hre) => {
       })
     },
   })
-
 }
 
 deployFn.tags = ['Proxy__OVM_L1CrossDomainMessenger']

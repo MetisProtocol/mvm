@@ -1,37 +1,34 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import { ethers } from 'ethers'
-import { hexStringEquals, registerAddress } from '../src/hardhat-deploy-ethers'
+import {
+  hexStringEquals,
+  registerAddress,
+  getDeployedContract,
+  waitUntilTrue,
+  getAdvancedContract,
+  deployAndRegister,
+} from '../src/hardhat-deploy-ethers'
 /* Imports: Internal */
 import { predeploys } from '../src/predeploys'
 import {
   getContractInterface,
   getContractDefinition,
 } from '../src/contract-defs'
-import {
-  getDeployedContract,
-  waitUntilTrue,
-  getAdvancedContract,
-  deployAndRegister,
-} from '../src/hardhat-deploy-ethers'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
-  
+
   const Lib_AddressManager = await getDeployedContract(
     hre,
     'Lib_AddressManager'
   )
-  
-// Set up a reference to the proxy as if it were the L1StandardBridge contract.
-  const contract = await getDeployedContract(
-    hre,
-    'Proxy__MVM_Verifier',
-    {
-      iface: 'MVM_Verifier',
-      signerOrProvider: deployer,
-    }
-  )
+
+  // Set up a reference to the proxy as if it were the L1StandardBridge contract.
+  const contract = await getDeployedContract(hre, 'Proxy__MVM_Verifier', {
+    iface: 'MVM_Verifier',
+    signerOrProvider: deployer,
+  })
 
   // Because of the `iface` parameter supplied to the deployment function above, the `contract`
   // variable that we here will have the interface of the L1StandardBridge contract. However,
@@ -52,7 +49,6 @@ const deployFn: DeployFunction = async (hre) => {
   const managerArtifact = getContractDefinition('MVM_Verifier')
   const managerCode = managerArtifact.deployedBytecode
 
-  
   console.log(`Setting verifier code...`)
 
   await proxy.setCode(managerCode)
@@ -75,7 +71,7 @@ const deployFn: DeployFunction = async (hre) => {
     hre.ethers.utils.hexZeroPad('0x00', 32),
     hre.ethers.utils.hexZeroPad(Lib_AddressManager.address, 32)
   )
-  
+
   console.log(`Confirming that addressmgr address was correctly set...`)
   console.log(await contract.libAddressManager())
   await waitUntilTrue(async () => {
@@ -84,7 +80,7 @@ const deployFn: DeployFunction = async (hre) => {
       Lib_AddressManager.address
     )
   })
-  
+
   console.log(
     `Setting metis address to ${(hre as any).deployConfig.mvmMetisAddress}...`
   )
@@ -93,7 +89,7 @@ const deployFn: DeployFunction = async (hre) => {
     hre.ethers.utils.hexZeroPad('0x01', 32),
     hre.ethers.utils.hexZeroPad((hre as any).deployConfig.mvmMetisAddress, 32)
   )
-  
+
   console.log(`Confirming that metis address was correctly set...`)
   await waitUntilTrue(async () => {
     return hexStringEquals(
@@ -101,31 +97,33 @@ const deployFn: DeployFunction = async (hre) => {
       (hre as any).deployConfig.mvmMetisAddress
     )
   })
-  
+
   //temporarily setting the metis manager to deployer
   await registerAddress({
     hre,
     name: 'METIS_MANAGER',
     address: deployer,
   })
-  
+
   //setting the whitelist
   console.log(
     `Setting WhiteList ${(hre as any).deployConfig.mvmMetisManager}...`
   )
   await contract.setWhiteList((hre as any).deployConfig.mvmMetisManager, true)
-  
+
   console.log(`Confirming that whitelist setting...`)
   await waitUntilTrue(async () => {
-    return await contract.isWhiteListed((hre as any).deployConfig.mvmMetisManager) == true
+    return (
+      (await contract.isWhiteListed(
+        (hre as any).deployConfig.mvmMetisManager
+      )) === true
+    )
   })
 
   //setting the whitelist
-  console.log(
-    `Setting minStake ...`
-  )
-  await contract.setMinStake("200000000000000000000")
-  
+  console.log(`Setting minStake ...`)
+  await contract.setMinStake('200000000000000000000')
+
   // Finally we transfer ownership of the proxy to the ovmAddressManagerOwner address.
   const owner = (hre as any).deployConfig.mvmMetisManager
   console.log(`Setting owner address to ${owner}...`)
@@ -140,7 +138,7 @@ const deployFn: DeployFunction = async (hre) => {
       owner
     )
   })
-  
+
   await registerAddress({
     hre,
     name: (hre as any).deployConfig.l2chainid + '_MVM_FraudVerifier',

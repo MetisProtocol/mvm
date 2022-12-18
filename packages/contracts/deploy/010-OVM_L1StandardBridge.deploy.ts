@@ -1,7 +1,13 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import { ethers } from 'ethers'
-import { hexStringEquals } from '../src/hardhat-deploy-ethers'
+import {
+  hexStringEquals,
+  getDeployedContract,
+  waitUntilTrue,
+  getAdvancedContract,
+  deployAndRegister,
+} from '../src/hardhat-deploy-ethers'
 import {
   defaultHardhatNetworkHdAccountsConfigParams,
   defaultHardhatNetworkParams,
@@ -12,12 +18,6 @@ import {
   getContractInterface,
   getContractDefinition,
 } from '../src/contract-defs'
-import {
-  getDeployedContract,
-  waitUntilTrue,
-  getAdvancedContract,
-  deployAndRegister,
-} from '../src/hardhat-deploy-ethers'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
@@ -25,22 +25,19 @@ const deployFn: DeployFunction = async (hre) => {
     hre,
     'Lib_AddressManager'
   )
-  
+
   const { chainId } = await hre.ethers.provider.getNetwork()
-  var bridge;
-  if (chainId === defaultHardhatNetworkParams.chainId) {
-    bridge = 'L1StandardBridgeLocal'
-  } else
-  {
-    bridge = 'L1StandardBridge'
-  }
-    const L1StandardBridge = await getDeployedContract(
-      hre,
-      'Proxy__OVM_L1StandardBridge',
-      {
-        iface: bridge,
-      }
-    )
+  const bridge =
+    chainId === defaultHardhatNetworkParams.chainId
+      ? 'L1StandardBridgeLocal'
+      : 'L1StandardBridge'
+  const L1StandardBridge = await getDeployedContract(
+    hre,
+    'Proxy__OVM_L1StandardBridge',
+    {
+      iface: bridge,
+    }
+  )
   // Set up a reference to the proxy as if it were the L1StandardBridge contract.
   const contract = await getDeployedContract(
     hre,
@@ -138,7 +135,7 @@ const deployFn: DeployFunction = async (hre) => {
     hre.ethers.utils.hexZeroPad('0x02', 32),
     hre.ethers.utils.hexZeroPad((hre as any).deployConfig.mvmMetisAddress, 32)
   )
-  
+
   console.log(`Confirming that metis address was correctly set...`)
   await waitUntilTrue(async () => {
     return hexStringEquals(
@@ -146,14 +143,14 @@ const deployFn: DeployFunction = async (hre) => {
       (hre as any).deployConfig.mvmMetisAddress
     )
   })
-  
+
   //console.log(`Setting addressmgr address to ${Lib_AddressManager.address}...`)
   // Set Slot 3 to the Address Manager Address
   await proxy.setStorage(
     hre.ethers.utils.hexZeroPad('0x03', 32),
     hre.ethers.utils.hexZeroPad(Lib_AddressManager.address, 32)
   )
-  
+
   console.log(`Confirming that addressmgr address was correctly set...`)
   await waitUntilTrue(async () => {
     return hexStringEquals(
@@ -162,16 +159,17 @@ const deployFn: DeployFunction = async (hre) => {
     )
   })
 
-
   // Finally we transfer ownership of the proxy to the ovmAddressManagerOwner address.
   const owner = (hre as any).deployConfig.mvmMetisManager
   console.log(`Setting owner address to ${owner}...`)
   await proxy.setOwner(owner)
 
   console.log(`Confirming that owner address was correctly set...`)
-  console.log(await proxy.connect(proxy.signer.provider).callStatic.getOwner({
-        from: ethers.constants.AddressZero,
-      }))
+  console.log(
+    await proxy.connect(proxy.signer.provider).callStatic.getOwner({
+      from: ethers.constants.AddressZero,
+    })
+  )
   await waitUntilTrue(async () => {
     return hexStringEquals(
       await proxy.connect(proxy.signer.provider).callStatic.getOwner({
