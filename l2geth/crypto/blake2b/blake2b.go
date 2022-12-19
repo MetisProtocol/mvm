@@ -313,7 +313,7 @@ func consumeUint64(b []byte) ([]byte, uint64) {
 	return b[8:], x
 }
 
-func consumeUint32(b []byte) ([]byte, uint32) {
-	x := binary.BigEndian.Uint32(b)
-	return b[4:], x
-}
+// func consumeUint32(b []byte) ([]byte, uint32) {
+// 	x := binary.BigEndian.Uint32(b)
+// 	return b[4:], x
+// }

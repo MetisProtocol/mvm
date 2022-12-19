@@ -347,7 +347,7 @@ func (b *LesApiBackend) ProxyTransaction(ctx context.Context, tx *types.Transact
 
 func (b *LesApiBackend) ProxyEstimateGas(ctx context.Context, arg interface{}) (uint64, error) {
 	if !b.IsRpcProxySupport() {
-		return 0, errors.New("Not support proxy estimate gas")
+		return 0, errors.New("not support proxy estimate gas")
 	}
 	return b.eth.rpcClient.EstimateGasByArg(ctx, arg)
 }

@@ -17,15 +17,15 @@
 package params
 
 import (
-  "encoding/binary"
-  "fmt"
-  "math/big"
-  "math/bits"
-  "os"
-  "strconv"
+	"encoding/binary"
+	"fmt"
+	"math/big"
+	"math/bits"
+	"os"
+	"strconv"
 
-  "github.com/ethereum-optimism/optimism/l2geth/common"
-  "github.com/ethereum-optimism/optimism/l2geth/crypto"
+	"github.com/ethereum-optimism/optimism/l2geth/common"
+	"github.com/ethereum-optimism/optimism/l2geth/crypto"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -431,15 +431,15 @@ func (c *ChainConfig) IsEWASM(num *big.Int) bool {
 // IsSDUpdate returns whether num represents a block number after the SD update fork
 func (c *ChainConfig) IsSDUpdate(num *big.Int) bool {
 	if c.ChainID.Cmp(MainnetChainID) == 0 {
-    suicideForkNumber := os.Getenv("EMERGENCY_FORK20222_NUMBER")
-    if suicideForkNumber != "" {
-      parsed, err := strconv.ParseInt(suicideForkNumber, 10, bits.UintSize)
-      if err != nil {
-        panic(err)
-      }
-      AndromedaMainnetSDUpdateForkNum = big.NewInt(parsed)
-    }
-    return isForked(AndromedaMainnetSDUpdateForkNum, num)
+		suicideForkNumber := os.Getenv("EMERGENCY_FORK20222_NUMBER")
+		if suicideForkNumber != "" {
+			parsed, err := strconv.ParseInt(suicideForkNumber, 10, bits.UintSize)
+			if err != nil {
+				panic(err)
+			}
+			AndromedaMainnetSDUpdateForkNum = big.NewInt(parsed)
+		}
+		return isForked(AndromedaMainnetSDUpdateForkNum, num)
 	}
 	if c.ChainID.Cmp(OpKovanChainID) == 0 {
 		return isForked(OpKovanSDUpdateForkNum, num)

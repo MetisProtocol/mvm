@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/l2geth/common"
@@ -443,7 +442,7 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 
 	t.Run(test.name, func(t *testing.T) {
 		_, err := RunPrecompiledContract(p, in, contract)
-		if !reflect.DeepEqual(err, test.expectedError) {
+		if err != test.expectedError {
 			t.Errorf("Expected error [%v], got [%v]", test.expectedError, err)
 		}
 		// Verify that the precompile did not touch the input buffer
@@ -484,7 +483,7 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 			return
 		}
 		if common.Bytes2Hex(res) != test.expected {
-			bench.Error(fmt.Sprintf("Expected %v, got %v", test.expected, common.Bytes2Hex(res)))
+			bench.Errorf(fmt.Sprintf("Expected %v, got %v", test.expected, common.Bytes2Hex(res)))
 			return
 		}
 	})

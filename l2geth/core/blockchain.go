@@ -1661,7 +1661,7 @@ func (bc *BlockChain) insertChainWithFunc(chain types.Blocks, verifySeals bool, 
 			if err := bc.addFutureBlock(block); err != nil {
 				return it.index, err
 			}
-			block, err = it.next()
+			// block, err = it.next()
 		}
 
 		// NOTE 20210724
@@ -1670,7 +1670,7 @@ func (bc *BlockChain) insertChainWithFunc(chain types.Blocks, verifySeals bool, 
 			if err := bc.addFutureBlock(block); err != nil {
 				return it.index, err
 			}
-			block, err = it.next()
+			// block, err = it.next()
 		}
 
 		stats.queued += it.processed()
@@ -1975,7 +1975,7 @@ func (bc *BlockChain) insertChainWithFuncAndCh(chain types.Blocks, verifySeals b
 				cherr <- err
 				return it.index, err
 			}
-			block, err = it.next()
+			// block, err = it.next()
 		}
 
 		// NOTE 20210724
@@ -1986,7 +1986,7 @@ func (bc *BlockChain) insertChainWithFuncAndCh(chain types.Blocks, verifySeals b
 				cherr <- err
 				return it.index, err
 			}
-			block, err = it.next()
+			// block, err = it.next()
 		}
 
 		stats.queued += it.processed()
@@ -2349,7 +2349,6 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 					l := *log
 					if removed {
 						l.Removed = true
-					} else {
 					}
 					logs = append(logs, &l)
 				}
