@@ -1,6 +1,13 @@
 /* External Imports */
 import { Promise as bPromise } from 'bluebird'
-import { Contract, ethers, Signer, providers, BigNumber } from 'ethers'
+import {
+  Contract,
+  ethers,
+  Signer,
+  providers,
+  BigNumber,
+  PopulatedTransaction,
+} from 'ethers'
 import { TransactionReceipt } from '@ethersproject/abstract-provider'
 import { getContractFactory } from '@metis.io/contracts'
 import { L2Block, RollupInfo, Bytes32, remove0x } from '@metis.io/core-utils'
@@ -269,24 +276,30 @@ export class StateBatchSubmitter extends BatchSubmitter {
       if (!mpcInfo || !mpcInfo.mpc_address) {
         throw new Error('MPC 1 info get failed')
       }
+      const txUnsign: PopulatedTransaction = {
+        to: tx.to,
+        data: tx.data,
+        value: ethers.utils.parseEther('0'),
+      }
       const mpcAddress = mpcInfo.mpc_address
-      tx.nonce = await this.signer.provider.getTransactionCount(mpcAddress)
-      tx.gasLimit = await this.signer.provider.estimateGas({
+      txUnsign.nonce = await this.signer.provider.getTransactionCount(
+        mpcAddress
+      )
+      txUnsign.gasLimit = await this.signer.provider.estimateGas({
         to: tx.to,
         from: mpcAddress,
         data: tx.data,
       })
-      tx.value = ethers.utils.parseEther('0')
-      tx.chainId = (await this.signer.provider.getNetwork()).chainId
+      txUnsign.chainId = (await this.signer.provider.getNetwork()).chainId
       // mpc model can use ynatm
       // tx.gasPrice = gasPrice
 
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return this.transactionSubmitter.submitSignedTransaction(
-          tx,
+          txUnsign,
           async (gasPrice) => {
-            tx.gasPrice = gasPrice
-            const signedTx = await mpcClient.signTx(tx, mpcInfo.mpc_id)
+            txUnsign.gasPrice = gasPrice
+            const signedTx = await mpcClient.signTx(txUnsign, mpcInfo.mpc_id)
             return signedTx
           },
           this._makeHooks('appendSequencerBatch')
