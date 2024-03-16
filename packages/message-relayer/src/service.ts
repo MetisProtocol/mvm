@@ -341,22 +341,41 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       })
     }
 
+    const l1ChainId = (await this.options.l1RpcProvider.getNetwork()).chainId
     let startingBlock = this.state.lastQueriedL1Block
     while (
       startingBlock < (await this.options.l1RpcProvider.getBlockNumber())
     ) {
+      let sccContract = this.state.StateCommitmentChain
+      let endBlock = startingBlock + this.options.getLogsInterval
+      if (l1ChainId === 1) {
+        // changed address at 19439449
+        const setHeight1 = 19439449
+        if (endBlock > setHeight1 && startingBlock < setHeight1) {
+          endBlock = setHeight1
+        }
+        if (
+          (endBlock > setHeight1 && startingBlock < setHeight1) ||
+          endBlock <= setHeight1
+        ) {
+          sccContract = loadContract(
+            'StateCommitmentChain',
+            '0xf209815E595Cdf3ed0aAF9665b1772e608AB9380',
+            this.options.l1RpcProvider
+          )
+        }
+      }
       this.state.lastQueriedL1Block = startingBlock
       this.logger.info('Querying events', {
         startingBlock,
-        endBlock: startingBlock + this.options.getLogsInterval,
+        endBlock,
       })
 
-      const events: ethers.Event[] =
-        await this.state.StateCommitmentChain.queryFilter(
-          this.state.StateCommitmentChain.filters.StateBatchAppended(),
-          startingBlock,
-          startingBlock + this.options.getLogsInterval
-        )
+      const events: ethers.Event[] = await sccContract.queryFilter(
+        sccContract.filters.StateBatchAppended(),
+        startingBlock,
+        endBlock
+      )
       const filteredEvents = events.filter((event) => {
         if (event != undefined) {
           return event.args._chainId.toNumber() == this.options.l2ChainId
@@ -367,7 +386,8 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
 
       this.state.eventCache = this.state.eventCache.concat(filteredEvents)
       //this.state.eventCache = this.state.eventCache.concat(events)
-      startingBlock += this.options.getLogsInterval
+      // startingBlock += this.options.getLogsInterval
+      startingBlock = endBlock
 
       // We need to stop syncing early once we find the event we're looking for to avoid putting
       // *all* events into memory at the same time. Otherwise we'll get OOM killed.
