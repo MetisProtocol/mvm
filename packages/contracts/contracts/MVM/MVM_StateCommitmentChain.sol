@@ -129,6 +129,16 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
         return (timestamp + FRAUD_PROOF_WINDOW) > block.timestamp;
     }
 
+    function insideFraudProofWindowByChainId(
+        uint256,
+        Lib_OVMCodec.ChainBatchHeader memory _batchHeader
+    ) public view override returns (bool _inside) {
+        (uint256 timestamp, ) = abi.decode(_batchHeader.extraData, (uint256, address));
+
+        require(timestamp != 0, "Batch header timestamp cannot be zero");
+        return timestamp + FRAUD_PROOF_WINDOW > block.timestamp;
+    }
+
     /**********************
      * Internal Functions *
      **********************/
@@ -356,7 +366,7 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
         uint256 _chainId,
         bytes32[] memory _batch,
         bytes memory _extraData,
-        address proposer
+        address
     ) internal {
         (uint40 totalElements, uint40 lastSequencerTimestamp) = _getBatchExtraDataByChainId(
             _chainId

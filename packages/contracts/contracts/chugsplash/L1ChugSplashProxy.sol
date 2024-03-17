@@ -106,6 +106,11 @@ contract L1ChugSplashProxy {
         _doProxyCall();
     }
 
+    receive() external payable {
+        // Proxy call by default.
+        _doProxyCall();
+    }
+
     /********************
      * Public Functions *
      ********************/
