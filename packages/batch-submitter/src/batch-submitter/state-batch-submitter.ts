@@ -71,7 +71,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
       minBalanceEther,
       blockOffset,
       logger,
-      metrics
+      metrics,
+      mpcUrl.length > 0
     )
     this.fraudSubmissionAddress = fraudSubmissionAddress
     this.transactionSubmitter = transactionSubmitter
@@ -325,6 +326,20 @@ export class StateBatchSubmitter extends BatchSubmitter {
       submitTransaction,
       'Submitted state root batch!'
     )
+  }
+
+  public async _mpcBalanceCheck(): Promise<boolean> {
+    if (!this.useMpc) {
+      return true
+    }
+    this.logger.info('MPC model balance check of state batch submitter...')
+    const mpcClient = new MpcClient(this.mpcUrl)
+    const mpcInfo = await mpcClient.getLatestMpc('1')
+    if (!mpcInfo || !mpcInfo.mpc_address) {
+      this.logger.error('MPC 1 info get failed')
+      return false
+    }
+    return this._hasEnoughETHToCoverGasCosts(mpcInfo.mpc_address)
   }
 
   /*********************

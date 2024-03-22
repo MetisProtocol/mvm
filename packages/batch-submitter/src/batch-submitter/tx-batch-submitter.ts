@@ -108,7 +108,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       minBalanceEther,
       blockOffset,
       logger,
-      metrics
+      metrics,
+      mpcUrl.length > 0
     )
     this.validateBatch = validateBatch
     this.autoFixBatchOptions = autoFixBatchOptions
@@ -464,6 +465,20 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     })
 
     return this.submitAppendSequencerBatch(batchParams)
+  }
+
+  public async _mpcBalanceCheck(): Promise<boolean> {
+    if (!this.useMpc) {
+      return true
+    }
+    this.logger.info('MPC model balance check of tx batch submitter...')
+    const mpcClient = new MpcClient(this.mpcUrl)
+    const mpcInfo = await mpcClient.getLatestMpc()
+    if (!mpcInfo || !mpcInfo.mpc_address) {
+      this.logger.error('MPC 0 info get failed')
+      return false
+    }
+    return this._hasEnoughETHToCoverGasCosts(mpcInfo.mpc_address)
   }
 
   /*********************

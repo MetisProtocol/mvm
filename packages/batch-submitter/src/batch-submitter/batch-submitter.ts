@@ -57,7 +57,8 @@ export abstract class BatchSubmitter {
     readonly minBalanceEther: number,
     readonly blockOffset: number,
     readonly logger: Logger,
-    readonly defaultMetrics: Metrics
+    readonly defaultMetrics: Metrics,
+    readonly useMpc: boolean
   ) {
     this.metrics = this._registerMetrics(defaultMetrics)
   }
@@ -71,6 +72,7 @@ export abstract class BatchSubmitter {
   public abstract _onSync(): Promise<TransactionReceipt>
   public abstract _getBatchStartAndEnd(): Promise<BlockRange>
   public abstract _updateChainInfo(): Promise<void>
+  public abstract _mpcBalanceCheck(): Promise<boolean>
 
   public async submitNextBatch(): Promise<TransactionReceipt> {
     if (typeof this.l2ChainId === 'undefined') {
@@ -78,7 +80,12 @@ export abstract class BatchSubmitter {
     }
     await this._updateChainInfo()
 
-    if (!(await this._hasEnoughETHToCoverGasCosts())) {
+    if (!this.useMpc && !(await this._hasEnoughETHToCoverGasCosts())) {
+      await sleep(this.resubmissionTimeout)
+      return
+    }
+
+    if (this.useMpc && !(await this._mpcBalanceCheck())) {
       await sleep(this.resubmissionTimeout)
       return
     }
@@ -107,9 +114,17 @@ export abstract class BatchSubmitter {
     )
   }
 
-  protected async _hasEnoughETHToCoverGasCosts(): Promise<boolean> {
-    const address = await this.signer.getAddress()
-    const balance = await this.signer.getBalance()
+  protected async _hasEnoughETHToCoverGasCosts(
+    mpcAddress?: string
+  ): Promise<boolean> {
+    const mpcAddressEnabled =
+      mpcAddress && mpcAddress.length === 42 && mpcAddress.startsWith('0x')
+    const address = mpcAddressEnabled
+      ? mpcAddress
+      : await this.signer.getAddress()
+    const balance = mpcAddressEnabled
+      ? await this.signer.provider.getBalance(mpcAddress)
+      : await this.signer.getBalance()
     const ether = utils.formatEther(balance)
     const num = parseFloat(ether)
 
