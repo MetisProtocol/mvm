@@ -110,6 +110,8 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
+
+  l1BN uint64 // make sure L1BlockNumber set once per block by TxPool
 }
 
 // task contains all information for consensus engine sealing and result submitting.
@@ -798,6 +800,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		family:    mapset.NewSet(),
 		uncles:    mapset.NewSet(),
 		header:    header,
+    l1BN:      uint64(0),
 	}
 
 	// when 08 is processed ancestors contain 07 (quick block)
@@ -910,8 +913,6 @@ func (w *worker) commitTransactionsWithError(txs *types.TransactionsByPriceAndNo
 
 	parent := w.chain.CurrentBlock()
 	pn := parent.Number().Uint64()
-	l1TS := uint64(0)
-	l1BN := uint64(0)
 	deSeqModel := false
 	log.Debug("Special info in worker: commitTransactionsWithError", "cmp to DeSeqBlock", pn+1)
 	if rcfg.DeSeqBlock > 0 && pn+1 >= rcfg.DeSeqBlock {
@@ -956,14 +957,12 @@ func (w *worker) commitTransactionsWithError(txs *types.TransactionsByPriceAndNo
 
 		// setIndex, l1Timestamp, l1BlockNumber
 		if deSeqModel {
-			tx.SetIndex(pn)
-			if l1BN == 0 {
-				l1BN = tx.L1BlockNumber().Uint64()
-				l1TS = tx.L1Timestamp()
-			} else {
-				tx.SetL1BlockNumber(l1BN)
-				tx.SetL1Timestamp(l1TS)
-			}
+      if w.current.l1BN == 0 {
+        w.current.l1BN = tx.L1BlockNumber().Uint64()
+      }
+      tx.SetL1BlockNumber(w.current.l1BN)
+      tx.SetL1Timestamp(w.current.header.Time)
+      tx.SetIndex(pn)
 		}
 
 		// Error may be ignored here. The error has already been checked
@@ -1297,24 +1296,14 @@ func (w *worker) commit(uncles []*types.Header, interval func(), start time.Time
 
 	// Make sure txs.L1Timestamp set to block
 	pn := w.current.header.Number.Uint64() - 1
-	l1BN := uint64(0)
 	deSeqModel := false
 	blockTime := w.current.header.Time
 	log.Debug("Special info in worker: commit", "cmp to DeSeqBlock", pn+1)
 	if rcfg.DeSeqBlock > 0 && pn+1 >= rcfg.DeSeqBlock {
 		deSeqModel = true
 	}
-	if deSeqModel {
-		for index, tx := range w.current.txs {
-			tx.SetIndex(pn)
-			tx.SetL1Timestamp(blockTime)
-			if index == 0 {
-				l1BN = tx.L1BlockNumber().Uint64()
-			} else {
-				tx.SetL1BlockNumber(l1BN)
-			}
-		}
-	}
+
+  // Note, cannot modify any tx info in the method, because TX apply to EVM before, block.time will be effected
 
 	s := w.current.state.Copy()
 	block, err := w.engine.FinalizeAndAssemble(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
