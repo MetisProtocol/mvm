@@ -4,59 +4,28 @@ version: '3.8'
 
 services:
   dtl:
-    image: ericlee42/metis:dtl-3
+    image: metisdao/dtl:${VERSION:-dev}
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile
       target: data-transport-layer
-      x-bake:
-        platforms:
-          - 'linux/amd64'
-          - 'linux/arm64'
-        output: type=docker
 
   relayer:
-    image: ericlee42/metis:message-relayer-3
+    image: metisdao/relayer:${VERSION:-dev}
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile
       target: message-relayer
-      x-bake:
-        platforms:
-          - 'linux/amd64'
-          - 'linux/arm64'
-        output: type=docker
 
   batch-submitter:
-    image: ericlee42/metis:batch-submitter-3
+    image: metisdao/batch-submitter:${VERSION:-dev}
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile
       target: batch-submitter
-      x-bake:
-        platforms:
-          - 'linux/amd64'
-          - 'linux/arm64'
-        output: type=docker
 
   l2geth:
-    image: ericlee42/metis:l2geth-3
+    image: metisdao/l2geth:${VERSION:-dev}
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.geth
-      x-bake:
-        platforms:
-          - 'linux/amd64'
-          - 'linux/arm64'
-        output: type=docker
-
-  gas-oracle:
-    image: ericlee42/metis:gas-oracle-3
-    build:
-      context: ..
-      dockerfile: ./ops/docker/Dockerfile.gas-oracle
-      x-bake:
-        platforms:
-          - 'linux/amd64'
-          - 'linux/arm64'
-        output: type=docker

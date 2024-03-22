@@ -1,0 +1,892 @@
+{
+  "address": "0xfaAd7fFe832775c66Fb3586f0AF3Ffc09B173ff2",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_libAddressManager",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_fraudProofWindow",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_sequencerPublishWindow",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "_batchIndex",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "_batchRoot",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_batchSize",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_prevTotalElements",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "_extraData",
+          "type": "bytes"
+        }
+      ],
+      "name": "StateBatchAppended",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "_batchIndex",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "_batchRoot",
+          "type": "bytes32"
+        }
+      ],
+      "name": "StateBatchDeleted",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "DEFAULT_CHAINID",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "FRAUD_PROOF_WINDOW",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "SEQUENCER_PUBLISH_WINDOW",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32[]",
+          "name": "_batch",
+          "type": "bytes32[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_shouldStartAtElement",
+          "type": "uint256"
+        }
+      ],
+      "name": "appendStateBatch",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "_batch",
+          "type": "bytes32[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_shouldStartAtElement",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "proposer",
+          "type": "string"
+        }
+      ],
+      "name": "appendStateBatchByChainId",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "batches",
+      "outputs": [
+        {
+          "internalType": "contract IChainStorageContainer",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "batchIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "batchRoot",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "batchSize",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "prevTotalElements",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "extraData",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Lib_OVMCodec.ChainBatchHeader",
+          "name": "_batchHeader",
+          "type": "tuple"
+        }
+      ],
+      "name": "deleteStateBatch",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "batchIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "batchRoot",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "batchSize",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "prevTotalElements",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "extraData",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Lib_OVMCodec.ChainBatchHeader",
+          "name": "_batchHeader",
+          "type": "tuple"
+        }
+      ],
+      "name": "deleteStateBatchByChainId",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getLastSequencerTimestamp",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_lastSequencerTimestamp",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getLastSequencerTimestampByChainId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_lastSequencerTimestamp",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getTotalBatches",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_totalBatches",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTotalBatchesByChainId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_totalBatches",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getTotalElements",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_totalElements",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTotalElementsByChainId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_totalElements",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "batchIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "batchRoot",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "batchSize",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "prevTotalElements",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "extraData",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Lib_OVMCodec.ChainBatchHeader",
+          "name": "_batchHeader",
+          "type": "tuple"
+        }
+      ],
+      "name": "insideFraudProofWindow",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_inside",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "batchIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "batchRoot",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "batchSize",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "prevTotalElements",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "extraData",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Lib_OVMCodec.ChainBatchHeader",
+          "name": "_batchHeader",
+          "type": "tuple"
+        }
+      ],
+      "name": "insideFraudProofWindowByChainId",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_inside",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "libAddressManager",
+      "outputs": [
+        {
+          "internalType": "contract Lib_AddressManager",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_name",
+          "type": "string"
+        }
+      ],
+      "name": "resolve",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "window",
+          "type": "uint256"
+        }
+      ],
+      "name": "setFraudProofWindow",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_element",
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "batchIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "batchRoot",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "batchSize",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "prevTotalElements",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "extraData",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Lib_OVMCodec.ChainBatchHeader",
+          "name": "_batchHeader",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "index",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32[]",
+              "name": "siblings",
+              "type": "bytes32[]"
+            }
+          ],
+          "internalType": "struct Lib_OVMCodec.ChainInclusionProof",
+          "name": "_proof",
+          "type": "tuple"
+        }
+      ],
+      "name": "verifyStateCommitment",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "_element",
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "batchIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "batchRoot",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "batchSize",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "prevTotalElements",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "extraData",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Lib_OVMCodec.ChainBatchHeader",
+          "name": "_batchHeader",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "index",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32[]",
+              "name": "siblings",
+              "type": "bytes32[]"
+            }
+          ],
+          "internalType": "struct Lib_OVMCodec.ChainInclusionProof",
+          "name": "_proof",
+          "type": "tuple"
+        }
+      ],
+      "name": "verifyStateCommitmentByChainId",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x456342b1526f43a00b7a59dadf943d971145e67f007b5daeff0cc2e35cde40a8",
+  "receipt": {
+    "to": null,
+    "from": "0x021F2589D1A3b0400ECe6e35AA90aadB76C3aeA1",
+    "contractAddress": "0xfaAd7fFe832775c66Fb3586f0AF3Ffc09B173ff2",
+    "transactionIndex": 142,
+    "gasUsed": "2162645",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x44f60c7d467a83a1fd3b8a229b4bd0f8a3a84d637d8a987ccad93f7c3ee35760",
+    "transactionHash": "0x456342b1526f43a00b7a59dadf943d971145e67f007b5daeff0cc2e35cde40a8",
+    "logs": [],
+    "blockNumber": 5535357,
+    "cumulativeGasUsed": "22784330",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xa66Fa1eD0f1C1ee300893B4eb5493FeAD9a7e9c3",
+    604800,
+    1800
+  ],
+  "solcInputHash": "85de57aba6d9c38e3816c5894a634aba",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.9+commit.e5eed63a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_libAddressManager\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_fraudProofWindow\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_sequencerPublishWindow\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"_batchIndex\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_batchRoot\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_batchSize\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_prevTotalElements\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"_extraData\",\"type\":\"bytes\"}],\"name\":\"StateBatchAppended\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"_batchIndex\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_batchRoot\",\"type\":\"bytes32\"}],\"name\":\"StateBatchDeleted\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"DEFAULT_CHAINID\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"FRAUD_PROOF_WINDOW\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"SEQUENCER_PUBLISH_WINDOW\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"_batch\",\"type\":\"bytes32[]\"},{\"internalType\":\"uint256\",\"name\":\"_shouldStartAtElement\",\"type\":\"uint256\"}],\"name\":\"appendStateBatch\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32[]\",\"name\":\"_batch\",\"type\":\"bytes32[]\"},{\"internalType\":\"uint256\",\"name\":\"_shouldStartAtElement\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"proposer\",\"type\":\"string\"}],\"name\":\"appendStateBatchByChainId\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"batches\",\"outputs\":[{\"internalType\":\"contract IChainStorageContainer\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"batchRoot\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"batchSize\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"prevTotalElements\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"extraData\",\"type\":\"bytes\"}],\"internalType\":\"struct Lib_OVMCodec.ChainBatchHeader\",\"name\":\"_batchHeader\",\"type\":\"tuple\"}],\"name\":\"deleteStateBatch\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"batchRoot\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"batchSize\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"prevTotalElements\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"extraData\",\"type\":\"bytes\"}],\"internalType\":\"struct Lib_OVMCodec.ChainBatchHeader\",\"name\":\"_batchHeader\",\"type\":\"tuple\"}],\"name\":\"deleteStateBatchByChainId\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLastSequencerTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_lastSequencerTimestamp\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"}],\"name\":\"getLastSequencerTimestampByChainId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_lastSequencerTimestamp\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTotalBatches\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_totalBatches\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"}],\"name\":\"getTotalBatchesByChainId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_totalBatches\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTotalElements\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_totalElements\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"}],\"name\":\"getTotalElementsByChainId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_totalElements\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"batchRoot\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"batchSize\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"prevTotalElements\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"extraData\",\"type\":\"bytes\"}],\"internalType\":\"struct Lib_OVMCodec.ChainBatchHeader\",\"name\":\"_batchHeader\",\"type\":\"tuple\"}],\"name\":\"insideFraudProofWindow\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_inside\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"batchRoot\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"batchSize\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"prevTotalElements\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"extraData\",\"type\":\"bytes\"}],\"internalType\":\"struct Lib_OVMCodec.ChainBatchHeader\",\"name\":\"_batchHeader\",\"type\":\"tuple\"}],\"name\":\"insideFraudProofWindowByChainId\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_inside\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"libAddressManager\",\"outputs\":[{\"internalType\":\"contract Lib_AddressManager\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_name\",\"type\":\"string\"}],\"name\":\"resolve\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"window\",\"type\":\"uint256\"}],\"name\":\"setFraudProofWindow\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"_element\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"batchRoot\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"batchSize\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"prevTotalElements\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"extraData\",\"type\":\"bytes\"}],\"internalType\":\"struct Lib_OVMCodec.ChainBatchHeader\",\"name\":\"_batchHeader\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"bytes32[]\",\"name\":\"siblings\",\"type\":\"bytes32[]\"}],\"internalType\":\"struct Lib_OVMCodec.ChainInclusionProof\",\"name\":\"_proof\",\"type\":\"tuple\"}],\"name\":\"verifyStateCommitment\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_chainId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"_element\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"batchIndex\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"batchRoot\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"batchSize\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"prevTotalElements\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"extraData\",\"type\":\"bytes\"}],\"internalType\":\"struct Lib_OVMCodec.ChainBatchHeader\",\"name\":\"_batchHeader\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"bytes32[]\",\"name\":\"siblings\",\"type\":\"bytes32[]\"}],\"internalType\":\"struct Lib_OVMCodec.ChainInclusionProof\",\"name\":\"_proof\",\"type\":\"tuple\"}],\"name\":\"verifyStateCommitmentByChainId\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"The State Commitment Chain (SCC) contract contains a list of proposed state roots which Proposers assert to be a result of each transaction in the Canonical Transaction Chain (CTC). Elements here have a 1:1 correspondence with transactions in the CTC, and should be the unique state root calculated off-chain by applying the canonical transactions one by one. Runtime target: EVM\",\"kind\":\"dev\",\"methods\":{\"appendStateBatch(bytes32[],uint256)\":{\"params\":{\"_batch\":\"Batch of state roots.\",\"_shouldStartAtElement\":\"Index of the element at which this batch should start.\"}},\"appendStateBatchByChainId(uint256,bytes32[],uint256,string)\":{\"params\":{\"_batch\":\"Batch of state roots.\",\"_chainId\":\"identity for the l2 chain.\",\"_shouldStartAtElement\":\"Index of the element at which this batch should start.\"}},\"batches()\":{\"returns\":{\"_0\":\"Reference to the batch storage container.\"}},\"constructor\":{\"params\":{\"_libAddressManager\":\"Address of the Address Manager.\"}},\"deleteStateBatch((uint256,bytes32,uint256,uint256,bytes))\":{\"params\":{\"_batchHeader\":\"Header of the batch to start deleting from.\"}},\"deleteStateBatchByChainId(uint256,(uint256,bytes32,uint256,uint256,bytes))\":{\"params\":{\"_batchHeader\":\"Header of the batch to start deleting from.\",\"_chainId\":\"identity for the l2 chain.\"}},\"getLastSequencerTimestamp()\":{\"returns\":{\"_lastSequencerTimestamp\":\"Last sequencer batch timestamp.\"}},\"getLastSequencerTimestampByChainId(uint256)\":{\"params\":{\"_chainId\":\"identity for the l2 chain.\"},\"returns\":{\"_lastSequencerTimestamp\":\"Last sequencer batch timestamp.\"}},\"getTotalBatches()\":{\"returns\":{\"_totalBatches\":\"Total submitted batches.\"}},\"getTotalBatchesByChainId(uint256)\":{\"params\":{\"_chainId\":\"identity for the l2 chain.\"},\"returns\":{\"_totalBatches\":\"Total submitted batches.\"}},\"getTotalElements()\":{\"returns\":{\"_totalElements\":\"Total submitted elements.\"}},\"getTotalElementsByChainId(uint256)\":{\"params\":{\"_chainId\":\"identity for the l2 chain.\"},\"returns\":{\"_totalElements\":\"Total submitted elements.\"}},\"insideFraudProofWindow((uint256,bytes32,uint256,uint256,bytes))\":{\"params\":{\"_batchHeader\":\"Header of the batch to check.\"},\"returns\":{\"_inside\":\"Whether or not the batch is inside the fraud proof window.\"}},\"resolve(string)\":{\"params\":{\"_name\":\"Name to resolve an address for.\"},\"returns\":{\"_0\":\"Address associated with the given name.\"}},\"verifyStateCommitment(bytes32,(uint256,bytes32,uint256,uint256,bytes),(uint256,bytes32[]))\":{\"params\":{\"_batchHeader\":\"Header of the batch in which the element was included.\",\"_element\":\"Hash of the element to verify a proof for.\",\"_proof\":\"Merkle inclusion proof for the element.\"}},\"verifyStateCommitmentByChainId(uint256,bytes32,(uint256,bytes32,uint256,uint256,bytes),(uint256,bytes32[]))\":{\"params\":{\"_batchHeader\":\"Header of the batch in which the element was included.\",\"_chainId\":\"identity for the l2 chain.\",\"_element\":\"Hash of the element to verify a proof for.\",\"_proof\":\"Merkle inclusion proof for the element.\"}}},\"title\":\"MVM_StateCommitmentChain\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"appendStateBatch(bytes32[],uint256)\":{\"notice\":\"Appends a batch of state roots to the chain.\"},\"appendStateBatchByChainId(uint256,bytes32[],uint256,string)\":{\"notice\":\"Appends a batch of state roots to the chain.\"},\"batches()\":{\"notice\":\"Accesses the batch storage container.\"},\"deleteStateBatch((uint256,bytes32,uint256,uint256,bytes))\":{\"notice\":\"Deletes all state roots after (and including) a given batch.\"},\"deleteStateBatchByChainId(uint256,(uint256,bytes32,uint256,uint256,bytes))\":{\"notice\":\"Deletes all state roots after (and including) a given batch.\"},\"getLastSequencerTimestamp()\":{\"notice\":\"Retrieves the timestamp of the last batch submitted by the sequencer.\"},\"getLastSequencerTimestampByChainId(uint256)\":{\"notice\":\"Retrieves the timestamp of the last batch submitted by the sequencer.\"},\"getTotalBatches()\":{\"notice\":\"Retrieves the total number of batches submitted.\"},\"getTotalBatchesByChainId(uint256)\":{\"notice\":\"Retrieves the total number of batches submitted.\"},\"getTotalElements()\":{\"notice\":\"Retrieves the total number of elements submitted.\"},\"getTotalElementsByChainId(uint256)\":{\"notice\":\"Retrieves the total number of elements submitted.\"},\"insideFraudProofWindow((uint256,bytes32,uint256,uint256,bytes))\":{\"notice\":\"Checks whether a given batch is still inside its fraud proof window.\"},\"resolve(string)\":{\"notice\":\"Resolves the address associated with a given name.\"},\"verifyStateCommitment(bytes32,(uint256,bytes32,uint256,uint256,bytes),(uint256,bytes32[]))\":{\"notice\":\"Verifies a batch inclusion proof.\"},\"verifyStateCommitmentByChainId(uint256,bytes32,(uint256,bytes32,uint256,uint256,bytes),(uint256,bytes32[]))\":{\"notice\":\"Verifies a batch inclusion proof.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/MVM/MVM_StateCommitmentChain.sol\":\"MVM_StateCommitmentChain\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":10000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    constructor() {\\n        _setOwner(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions anymore. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby removing any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _setOwner(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _setOwner(newOwner);\\n    }\\n\\n    function _setOwner(address newOwner) private {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0x6bb804a310218875e89d12c053e94a13a4607cdf7cc2052f3e52bd32a0dc50a1\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0x90565a39ae45c80f0468dc96c7b20d0afc3055f344c8203a0c9258239f350b9f\",\"license\":\"MIT\"},\"contracts/L1/rollup/IChainStorageContainer.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >0.5.0 <0.9.0;\\n\\n/**\\n * @title IChainStorageContainer\\n */\\ninterface IChainStorageContainer {\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    /**\\n     * Sets the container's global metadata field. We're using `bytes27` here because we use five\\n     * bytes to maintain the length of the underlying data structure, meaning we have an extra\\n     * 27 bytes to store arbitrary data.\\n     * @param _globalMetadata New global metadata to set.\\n     */\\n    function setGlobalMetadata(bytes27 _globalMetadata) external;\\n\\n    /**\\n     * Retrieves the container's global metadata field.\\n     * @return Container global metadata field.\\n     */\\n    function getGlobalMetadata() external view returns (bytes27);\\n\\n    /**\\n     * Retrieves the number of objects stored in the container.\\n     * @return Number of objects in the container.\\n     */\\n    function length() external view returns (uint256);\\n\\n    /**\\n     * Pushes an object into the container.\\n     * @param _object A 32 byte value to insert into the container.\\n     */\\n    function push(bytes32 _object) external;\\n\\n    /**\\n     * Pushes an object into the container. Function allows setting the global metadata since\\n     * we'll need to touch the \\\"length\\\" storage slot anyway, which also contains the global\\n     * metadata (it's an optimization).\\n     * @param _object A 32 byte value to insert into the container.\\n     * @param _globalMetadata New global metadata for the container.\\n     */\\n    function push(bytes32 _object, bytes27 _globalMetadata) external;\\n\\n    /**\\n     * Set an object into the container. Function allows setting the global metadata since\\n     * we'll need to touch the \\\"length\\\" storage slot anyway, which also contains the global\\n     * metadata (it's an optimization).\\n     * @param _index position.\\n     * @param _object A 32 byte value to insert into the container.\\n     */\\n    function setByChainId(\\n        uint256 _chainId,\\n        uint256 _index,\\n        bytes32 _object\\n    ) external;\\n\\n    /**\\n     * Retrieves an object from the container.\\n     * @param _index Index of the particular object to access.\\n     * @return 32 byte object value.\\n     */\\n    function get(uint256 _index) external view returns (bytes32);\\n\\n    /**\\n     * Removes all objects after and including a given index.\\n     * @param _index Object index to delete from.\\n     */\\n    function deleteElementsAfterInclusive(uint256 _index) external;\\n\\n    /**\\n     * Removes all objects after and including a given index. Also allows setting the global\\n     * metadata field.\\n     * @param _index Object index to delete from.\\n     * @param _globalMetadata New global metadata for the container.\\n     */\\n    function deleteElementsAfterInclusive(uint256 _index, bytes27 _globalMetadata) external;\\n\\n    /**\\n     * Sets the container's global metadata field. We're using `bytes27` here because we use five\\n     * bytes to maintain the length of the underlying data structure, meaning we have an extra\\n     * 27 bytes to store arbitrary data.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _globalMetadata New global metadata to set.\\n     */\\n    function setGlobalMetadataByChainId(uint256 _chainId, bytes27 _globalMetadata) external;\\n\\n    /**\\n     * Retrieves the container's global metadata field.\\n     * @param _chainId identity for the l2 chain.\\n     * @return Container global metadata field.\\n     */\\n    function getGlobalMetadataByChainId(uint256 _chainId) external view returns (bytes27);\\n\\n    /**\\n     * Retrieves the number of objects stored in the container.\\n     * @param _chainId identity for the l2 chain.\\n     * @return Number of objects in the container.\\n     */\\n    function lengthByChainId(uint256 _chainId) external view returns (uint256);\\n\\n    /**\\n     * Pushes an object into the container.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _object A 32 byte value to insert into the container.\\n     */\\n    function pushByChainId(uint256 _chainId, bytes32 _object) external;\\n\\n    /**\\n     * Pushes an object into the container. Function allows setting the global metadata since\\n     * we'll need to touch the \\\"length\\\" storage slot anyway, which also contains the global\\n     * metadata (it's an optimization).\\n     * @param _chainId identity for the l2 chain.\\n     * @param _object A 32 byte value to insert into the container.\\n     * @param _globalMetadata New global metadata for the container.\\n     */\\n    function pushByChainId(\\n        uint256 _chainId,\\n        bytes32 _object,\\n        bytes27 _globalMetadata\\n    ) external;\\n\\n    /**\\n     * Retrieves an object from the container.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _index Index of the particular object to access.\\n     * @return 32 byte object value.\\n     */\\n    function getByChainId(uint256 _chainId, uint256 _index) external view returns (bytes32);\\n\\n    /**\\n     * Removes all objects after and including a given index.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _index Object index to delete from.\\n     */\\n    function deleteElementsAfterInclusiveByChainId(uint256 _chainId, uint256 _index) external;\\n\\n    /**\\n     * Removes all objects after and including a given index. Also allows setting the global\\n     * metadata field.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _index Object index to delete from.\\n     * @param _globalMetadata New global metadata for the container.\\n     */\\n    function deleteElementsAfterInclusiveByChainId(\\n        uint256 _chainId,\\n        uint256 _index,\\n        bytes27 _globalMetadata\\n    ) external;\\n}\\n\",\"keccak256\":\"0x6e5473cd0f460bd5386c5f111c03d091b165b1b9391394d25326d30174b17fa4\",\"license\":\"MIT\"},\"contracts/L1/rollup/IStateCommitmentChain.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >0.5.0 <0.9.0;\\n\\n/* Library Imports */\\nimport { Lib_OVMCodec } from \\\"../../libraries/codec/Lib_OVMCodec.sol\\\";\\nimport { IChainStorageContainer } from \\\"./IChainStorageContainer.sol\\\";\\n\\n/**\\n * @title IStateCommitmentChain\\n */\\ninterface IStateCommitmentChain {\\n    /**********\\n     * Events *\\n     **********/\\n\\n    event StateBatchAppended(\\n        uint256 _chainId,\\n        uint256 indexed _batchIndex,\\n        bytes32 _batchRoot,\\n        uint256 _batchSize,\\n        uint256 _prevTotalElements,\\n        bytes _extraData\\n    );\\n\\n    event StateBatchDeleted(uint256 _chainId, uint256 indexed _batchIndex, bytes32 _batchRoot);\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    function batches() external view returns (IChainStorageContainer);\\n\\n    /**\\n     * Retrieves the total number of elements submitted.\\n     * @return _totalElements Total submitted elements.\\n     */\\n    function getTotalElements() external view returns (uint256 _totalElements);\\n\\n    /**\\n     * Retrieves the total number of batches submitted.\\n     * @return _totalBatches Total submitted batches.\\n     */\\n    function getTotalBatches() external view returns (uint256 _totalBatches);\\n\\n    /**\\n     * Retrieves the timestamp of the last batch submitted by the sequencer.\\n     * @return _lastSequencerTimestamp Last sequencer batch timestamp.\\n     */\\n    function getLastSequencerTimestamp() external view returns (uint256 _lastSequencerTimestamp);\\n\\n    /**\\n     * Appends a batch of state roots to the chain.\\n     * @param _batch Batch of state roots.\\n     * @param _shouldStartAtElement Index of the element at which this batch should start.\\n     */\\n    function appendStateBatch(bytes32[] calldata _batch, uint256 _shouldStartAtElement) external;\\n\\n    /**\\n     * Deletes all state roots after (and including) a given batch.\\n     * @param _batchHeader Header of the batch to start deleting from.\\n     */\\n    function deleteStateBatch(Lib_OVMCodec.ChainBatchHeader memory _batchHeader) external;\\n\\n    /**\\n     * Verifies a batch inclusion proof.\\n     * @param _element Hash of the element to verify a proof for.\\n     * @param _batchHeader Header of the batch in which the element was included.\\n     * @param _proof Merkle inclusion proof for the element.\\n     */\\n    function verifyStateCommitment(\\n        bytes32 _element,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader,\\n        Lib_OVMCodec.ChainInclusionProof memory _proof\\n    ) external view returns (bool _verified);\\n\\n    /**\\n     * Checks whether a given batch is still inside its fraud proof window.\\n     * @param _batchHeader Header of the batch to check.\\n     * @return _inside Whether or not the batch is inside the fraud proof window.\\n     */\\n    function insideFraudProofWindow(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)\\n        external\\n        view\\n        returns (bool _inside);\\n\\n    /********************\\n     * chain id added func *\\n     ********************/\\n\\n    /**\\n     * Retrieves the total number of elements submitted.\\n     * @param _chainId identity for the l2 chain.\\n     * @return _totalElements Total submitted elements.\\n     */\\n    function getTotalElementsByChainId(uint256 _chainId)\\n        external\\n        view\\n        returns (uint256 _totalElements);\\n\\n    /**\\n     * Retrieves the total number of batches submitted.\\n     * @param _chainId identity for the l2 chain.\\n     * @return _totalBatches Total submitted batches.\\n     */\\n    function getTotalBatchesByChainId(uint256 _chainId)\\n        external\\n        view\\n        returns (uint256 _totalBatches);\\n\\n    /**\\n     * Retrieves the timestamp of the last batch submitted by the sequencer.\\n     * @param _chainId identity for the l2 chain.\\n     * @return _lastSequencerTimestamp Last sequencer batch timestamp.\\n     */\\n    function getLastSequencerTimestampByChainId(uint256 _chainId)\\n        external\\n        view\\n        returns (uint256 _lastSequencerTimestamp);\\n\\n    /**\\n     * Appends a batch of state roots to the chain.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _batch Batch of state roots.\\n     * @param _shouldStartAtElement Index of the element at which this batch should start.\\n     */\\n    function appendStateBatchByChainId(\\n        uint256 _chainId,\\n        bytes32[] calldata _batch,\\n        uint256 _shouldStartAtElement,\\n        string calldata proposer\\n    ) external;\\n\\n    /**\\n     * Deletes all state roots after (and including) a given batch.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _batchHeader Header of the batch to start deleting from.\\n     */\\n    function deleteStateBatchByChainId(\\n        uint256 _chainId,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader\\n    ) external;\\n\\n    /**\\n     * Verifies a batch inclusion proof.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _element Hash of the element to verify a proof for.\\n     * @param _batchHeader Header of the batch in which the element was included.\\n     * @param _proof Merkle inclusion proof for the element.\\n     */\\n    function verifyStateCommitmentByChainId(\\n        uint256 _chainId,\\n        bytes32 _element,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader,\\n        Lib_OVMCodec.ChainInclusionProof memory _proof\\n    ) external view returns (bool _verified);\\n\\n    /**\\n     * Checks whether a given batch is still inside its fraud proof window.\\n     * @param _chainId identity for the l2 chain.\\n     * @param _batchHeader Header of the batch to check.\\n     * @return _inside Whether or not the batch is inside the fraud proof window.\\n     */\\n    function insideFraudProofWindowByChainId(\\n        uint256 _chainId,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader\\n    ) external view returns (bool _inside);\\n}\\n\",\"keccak256\":\"0xa7e8ab4f2dca0197e1a37ef99fe615449e7c3adabece3677ab9a5aee91510c07\",\"license\":\"MIT\"},\"contracts/L1/verification/IBondManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/**\\n * @title IBondManager\\n */\\ninterface IBondManager {\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    function isCollateralized(address _who) external view returns (bool);\\n\\n    function isCollateralizedByChainId(\\n        uint256 _chainId,\\n        address _who,\\n        address _prop\\n    ) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x666cc1401df59fb833615dbe53193fe664ddbb39ec0e5c5812b009fe38c29c08\",\"license\":\"MIT\"},\"contracts/MVM/MVM_StateCommitmentChain.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/* Library Imports */\\nimport { Lib_OVMCodec } from \\\"../libraries/codec/Lib_OVMCodec.sol\\\";\\nimport { Lib_AddressResolver } from \\\"../libraries/resolver/Lib_AddressResolver.sol\\\";\\nimport { Lib_MerkleTree } from \\\"../libraries/utils/Lib_MerkleTree.sol\\\";\\nimport { Lib_Uint } from \\\"../libraries/utils/Lib_Uint.sol\\\";\\n\\n/* Interface Imports */\\nimport { IStateCommitmentChain } from \\\"../L1/rollup/IStateCommitmentChain.sol\\\";\\n// import { ICanonicalTransactionChain } from \\\"../L1/rollup/ICanonicalTransactionChain.sol\\\";\\nimport { IBondManager } from \\\"../L1/verification/IBondManager.sol\\\";\\nimport { IChainStorageContainer } from \\\"../L1/rollup/IChainStorageContainer.sol\\\";\\n\\n/**\\n * @title MVM_StateCommitmentChain\\n * @dev The State Commitment Chain (SCC) contract contains a list of proposed state roots which\\n * Proposers assert to be a result of each transaction in the Canonical Transaction Chain (CTC).\\n * Elements here have a 1:1 correspondence with transactions in the CTC, and should be the unique\\n * state root calculated off-chain by applying the canonical transactions one by one.\\n *\\n * Runtime target: EVM\\n */\\ncontract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {\\n    /*************\\n     * Constants *\\n     *************/\\n\\n    uint256 public FRAUD_PROOF_WINDOW;\\n    uint256 public SEQUENCER_PUBLISH_WINDOW;\\n\\n    uint256 public DEFAULT_CHAINID = 1088;\\n\\n    /***************\\n     * Constructor *\\n     ***************/\\n\\n    /**\\n     * @param _libAddressManager Address of the Address Manager.\\n     */\\n    constructor(\\n        address _libAddressManager,\\n        uint256 _fraudProofWindow,\\n        uint256 _sequencerPublishWindow\\n    ) Lib_AddressResolver(_libAddressManager) {\\n        FRAUD_PROOF_WINDOW = _fraudProofWindow;\\n        SEQUENCER_PUBLISH_WINDOW = _sequencerPublishWindow;\\n    }\\n\\n    function setFraudProofWindow(uint256 window) external {\\n        require(msg.sender == resolve(\\\"METIS_MANAGER\\\"), \\\"now allowed\\\");\\n        FRAUD_PROOF_WINDOW = window;\\n    }\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    /**\\n     * Accesses the batch storage container.\\n     * @return Reference to the batch storage container.\\n     */\\n    function batches() public view returns (IChainStorageContainer) {\\n        return IChainStorageContainer(resolve(\\\"ChainStorageContainer-SCC-batches\\\"));\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function getTotalElements() external view returns (uint256 _totalElements) {\\n        return getTotalElementsByChainId(DEFAULT_CHAINID);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function getTotalBatches() external view returns (uint256 _totalBatches) {\\n        return getTotalBatchesByChainId(DEFAULT_CHAINID);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function getLastSequencerTimestamp() external view returns (uint256 _lastSequencerTimestamp) {\\n        return getLastSequencerTimestampByChainId(DEFAULT_CHAINID);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function appendStateBatch(bytes32[] memory _batch, uint256 _shouldStartAtElement) external {\\n        //require (1==0, \\\"don't use\\\");\\n        string memory proposer = string(\\n            abi.encodePacked(Lib_Uint.uint2str(DEFAULT_CHAINID), \\\"_MVM_Proposer\\\")\\n        );\\n        appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, proposer);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function deleteStateBatch(Lib_OVMCodec.ChainBatchHeader memory _batchHeader) external {\\n        deleteStateBatchByChainId(DEFAULT_CHAINID, _batchHeader);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function verifyStateCommitment(\\n        bytes32 _element,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader,\\n        Lib_OVMCodec.ChainInclusionProof memory _proof\\n    ) external view returns (bool) {\\n        return verifyStateCommitmentByChainId(DEFAULT_CHAINID, _element, _batchHeader, _proof);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function insideFraudProofWindow(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)\\n        public\\n        view\\n        returns (bool _inside)\\n    {\\n        (uint256 timestamp, ) = abi.decode(_batchHeader.extraData, (uint256, address));\\n\\n        require(timestamp != 0, \\\"Batch header timestamp cannot be zero\\\");\\n        return (timestamp + FRAUD_PROOF_WINDOW) > block.timestamp;\\n    }\\n\\n    function insideFraudProofWindowByChainId(\\n        uint256,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader\\n    ) public view override returns (bool _inside) {\\n        (uint256 timestamp, ) = abi.decode(_batchHeader.extraData, (uint256, address));\\n\\n        require(timestamp != 0, \\\"Batch header timestamp cannot be zero\\\");\\n        return timestamp + FRAUD_PROOF_WINDOW > block.timestamp;\\n    }\\n\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Parses the batch context from the extra data.\\n     * @return Total number of elements submitted.\\n     * @return Timestamp of the last batch submitted by the sequencer.\\n     */\\n    function _getBatchExtraData() internal view returns (uint40, uint40) {\\n        return _getBatchExtraDataByChainId(DEFAULT_CHAINID);\\n    }\\n\\n    /**\\n     * Encodes the batch context for the extra data.\\n     * @param _totalElements Total number of elements submitted.\\n     * @param _lastSequencerTimestamp Timestamp of the last batch submitted by the sequencer.\\n     * @return Encoded batch context.\\n     */\\n    function _makeBatchExtraData(uint40 _totalElements, uint40 _lastSequencerTimestamp)\\n        internal\\n        pure\\n        returns (bytes27)\\n    {\\n        bytes27 extraData;\\n        assembly {\\n            extraData := _totalElements\\n            extraData := or(extraData, shl(40, _lastSequencerTimestamp))\\n            extraData := shl(40, extraData)\\n        }\\n\\n        return extraData;\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function getTotalElementsByChainId(uint256 _chainId)\\n        public\\n        view\\n        override\\n        returns (uint256 _totalElements)\\n    {\\n        (uint40 totalElements, ) = _getBatchExtraDataByChainId(_chainId);\\n        return uint256(totalElements);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function getTotalBatchesByChainId(uint256 _chainId)\\n        public\\n        view\\n        override\\n        returns (uint256 _totalBatches)\\n    {\\n        return batches().lengthByChainId(_chainId);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function getLastSequencerTimestampByChainId(uint256 _chainId)\\n        public\\n        view\\n        override\\n        returns (uint256 _lastSequencerTimestamp)\\n    {\\n        (, uint40 lastSequencerTimestamp) = _getBatchExtraDataByChainId(_chainId);\\n        return uint256(lastSequencerTimestamp);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function appendStateBatchByChainId(\\n        uint256 _chainId,\\n        bytes32[] memory _batch,\\n        uint256 _shouldStartAtElement,\\n        string memory proposer\\n    ) public override {\\n        // Fail fast in to make sure our batch roots aren't accidentally made fraudulent by the\\n        // publication of batches by some other user.\\n        require(\\n            _shouldStartAtElement == getTotalElementsByChainId(_chainId),\\n            \\\"Actual batch start index does not match expected start index.\\\"\\n        );\\n\\n        address proposerAddr = resolve(proposer);\\n\\n        // Proposers must have previously staked at the BondManager\\n        require(\\n            IBondManager(resolve(\\\"BondManager\\\")).isCollateralizedByChainId(\\n                _chainId,\\n                msg.sender,\\n                proposerAddr\\n            ),\\n            \\\"Proposer does not have enough collateral posted\\\"\\n        );\\n\\n        require(_batch.length > 0, \\\"Cannot submit an empty state batch.\\\");\\n\\n        // Not check this when submit transaction batch to inbox address\\n        // require(\\n        //     getTotalElementsByChainId(_chainId) + _batch.length <=\\n        //         ICanonicalTransactionChain(resolve(\\\"CanonicalTransactionChain\\\"))\\n        //             .getTotalElementsByChainId(_chainId),\\n        //     \\\"Number of state roots cannot exceed the number of canonical transactions.\\\"\\n        // );\\n\\n        // Pass the block's timestamp and the publisher of the data\\n        // to be used in the fraud proofs\\n        _appendBatchByChainId(\\n            _chainId,\\n            _batch,\\n            abi.encode(block.timestamp, msg.sender),\\n            proposerAddr\\n        );\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function deleteStateBatchByChainId(\\n        uint256 _chainId,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader\\n    ) public override {\\n        require(\\n            msg.sender ==\\n                resolve(\\n                    string(abi.encodePacked(Lib_Uint.uint2str(_chainId), \\\"_MVM_FraudVerifier\\\"))\\n                ),\\n            \\\"State batches can only be deleted by the MVM_FraudVerifier.\\\"\\n        );\\n\\n        require(\\n            insideFraudProofWindow(_batchHeader),\\n            \\\"State batches can only be deleted within the fraud proof window.\\\"\\n        );\\n\\n        _deleteBatchByChainId(_chainId, _batchHeader);\\n    }\\n\\n    /**\\n     * @inheritdoc IStateCommitmentChain\\n     */\\n    function verifyStateCommitmentByChainId(\\n        uint256 _chainId,\\n        bytes32 _element,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader,\\n        Lib_OVMCodec.ChainInclusionProof memory _proof\\n    ) public view override returns (bool) {\\n        require(_isValidBatchHeaderByChainId(_chainId, _batchHeader), \\\"Invalid batch header.\\\");\\n\\n        require(\\n            Lib_MerkleTree.verify(\\n                _batchHeader.batchRoot,\\n                _element,\\n                _proof.index,\\n                _proof.siblings,\\n                _batchHeader.batchSize\\n            ),\\n            \\\"Invalid inclusion proof.\\\"\\n        );\\n\\n        return true;\\n    }\\n\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Parses the batch context from the extra data.\\n     * @return Total number of elements submitted.\\n     * @return Timestamp of the last batch submitted by the sequencer.\\n     */\\n    function _getBatchExtraDataByChainId(uint256 _chainId) internal view returns (uint40, uint40) {\\n        bytes27 extraData = batches().getGlobalMetadataByChainId(_chainId);\\n\\n        uint40 totalElements;\\n        uint40 lastSequencerTimestamp;\\n        assembly {\\n            extraData := shr(40, extraData)\\n            totalElements := and(\\n                extraData,\\n                0x000000000000000000000000000000000000000000000000000000FFFFFFFFFF\\n            )\\n            lastSequencerTimestamp := shr(\\n                40,\\n                and(extraData, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000000000)\\n            )\\n        }\\n\\n        return (totalElements, lastSequencerTimestamp);\\n    }\\n\\n    /**\\n     * Encodes the batch context for the extra data.\\n     * @param _totalElements Total number of elements submitted.\\n     * @param _lastSequencerTimestamp Timestamp of the last batch submitted by the sequencer.\\n     * @return Encoded batch context.\\n     */\\n    function _makeBatchExtraDataByChainId(uint40 _totalElements, uint40 _lastSequencerTimestamp)\\n        internal\\n        pure\\n        returns (bytes27)\\n    {\\n        bytes27 extraData;\\n        assembly {\\n            extraData := _totalElements\\n            extraData := or(extraData, shl(40, _lastSequencerTimestamp))\\n            extraData := shl(40, extraData)\\n        }\\n\\n        return extraData;\\n    }\\n\\n    /**\\n     * Appends a batch to the chain.\\n     * @param _batch Elements within the batch.\\n     * @param _extraData Any extra data to append to the batch.\\n     */\\n    function _appendBatchByChainId(\\n        uint256 _chainId,\\n        bytes32[] memory _batch,\\n        bytes memory _extraData,\\n        address\\n    ) internal {\\n        (uint40 totalElements, uint40 lastSequencerTimestamp) = _getBatchExtraDataByChainId(\\n            _chainId\\n        );\\n\\n        lastSequencerTimestamp = uint40(block.timestamp);\\n\\n        // For efficiency reasons getMerkleRoot modifies the `_batch` argument in place\\n        // while calculating the root hash therefore any arguments passed to it must not\\n        // be used again afterwards\\n        Lib_OVMCodec.ChainBatchHeader memory batchHeader = Lib_OVMCodec.ChainBatchHeader({\\n            batchIndex: getTotalBatchesByChainId(_chainId),\\n            batchRoot: Lib_MerkleTree.getMerkleRoot(_batch),\\n            batchSize: _batch.length,\\n            prevTotalElements: totalElements,\\n            extraData: _extraData\\n        });\\n\\n        emit StateBatchAppended(\\n            _chainId,\\n            batchHeader.batchIndex,\\n            batchHeader.batchRoot,\\n            batchHeader.batchSize,\\n            batchHeader.prevTotalElements,\\n            batchHeader.extraData\\n        );\\n\\n        batches().pushByChainId(\\n            _chainId,\\n            Lib_OVMCodec.hashBatchHeader(batchHeader),\\n            _makeBatchExtraDataByChainId(\\n                uint40(batchHeader.prevTotalElements + batchHeader.batchSize),\\n                lastSequencerTimestamp\\n            )\\n        );\\n    }\\n\\n    /**\\n     * Removes a batch and all subsequent batches from the chain.\\n     * @param _batchHeader Header of the batch to remove.\\n     */\\n    function _deleteBatchByChainId(\\n        uint256 _chainId,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader\\n    ) internal {\\n        require(\\n            _batchHeader.batchIndex < batches().lengthByChainId(_chainId),\\n            \\\"Invalid batch index.\\\"\\n        );\\n\\n        require(_isValidBatchHeaderByChainId(_chainId, _batchHeader), \\\"Invalid batch header.\\\");\\n\\n        batches().deleteElementsAfterInclusiveByChainId(\\n            _chainId,\\n            _batchHeader.batchIndex,\\n            _makeBatchExtraDataByChainId(uint40(_batchHeader.prevTotalElements), 0)\\n        );\\n\\n        emit StateBatchDeleted(_chainId, _batchHeader.batchIndex, _batchHeader.batchRoot);\\n    }\\n\\n    /**\\n     * Checks that a batch header matches the stored hash for the given index.\\n     * @param _batchHeader Batch header to validate.\\n     * @return Whether or not the header matches the stored one.\\n     */\\n    function _isValidBatchHeaderByChainId(\\n        uint256 _chainId,\\n        Lib_OVMCodec.ChainBatchHeader memory _batchHeader\\n    ) internal view returns (bool) {\\n        return\\n            Lib_OVMCodec.hashBatchHeader(_batchHeader) ==\\n            batches().getByChainId(_chainId, _batchHeader.batchIndex);\\n    }\\n}\\n\",\"keccak256\":\"0x6530f28309f6df1f448cc99a126d619a7201c6b76f0253331e977756c349e699\",\"license\":\"MIT\"},\"contracts/libraries/codec/Lib_OVMCodec.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/* Library Imports */\\nimport { Lib_RLPReader } from \\\"../rlp/Lib_RLPReader.sol\\\";\\n\\n/**\\n * @title Lib_OVMCodec\\n */\\nlibrary Lib_OVMCodec {\\n    /*********\\n     * Enums *\\n     *********/\\n\\n    enum QueueOrigin {\\n        SEQUENCER_QUEUE,\\n        L1TOL2_QUEUE\\n    }\\n\\n    /***********\\n     * Structs *\\n     ***********/\\n\\n    struct EVMAccount {\\n        uint256 nonce;\\n        uint256 balance;\\n        bytes32 storageRoot;\\n        bytes32 codeHash;\\n    }\\n\\n    struct ChainBatchHeader {\\n        uint256 batchIndex;\\n        bytes32 batchRoot;\\n        uint256 batchSize;\\n        uint256 prevTotalElements;\\n        bytes extraData;\\n    }\\n\\n    struct ChainInclusionProof {\\n        uint256 index;\\n        bytes32[] siblings;\\n    }\\n\\n    struct Transaction {\\n        uint256 timestamp;\\n        uint256 blockNumber;\\n        QueueOrigin l1QueueOrigin;\\n        address l1TxOrigin;\\n        address entrypoint;\\n        uint256 gasLimit;\\n        bytes data;\\n    }\\n\\n    struct TransactionChainElement {\\n        bool isSequenced;\\n        uint256 queueIndex; // QUEUED TX ONLY\\n        uint256 timestamp; // SEQUENCER TX ONLY\\n        uint256 blockNumber; // SEQUENCER TX ONLY\\n        bytes txData; // SEQUENCER TX ONLY\\n    }\\n\\n    struct QueueElement {\\n        bytes32 transactionHash;\\n        uint40 timestamp;\\n        uint40 blockNumber;\\n    }\\n\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Encodes a standard OVM transaction.\\n     * @param _transaction OVM transaction to encode.\\n     * @return Encoded transaction bytes.\\n     */\\n    function encodeTransaction(Transaction memory _transaction)\\n        internal\\n        pure\\n        returns (bytes memory)\\n    {\\n        return\\n            abi.encodePacked(\\n                _transaction.timestamp,\\n                _transaction.blockNumber,\\n                _transaction.l1QueueOrigin,\\n                _transaction.l1TxOrigin,\\n                _transaction.entrypoint,\\n                _transaction.gasLimit,\\n                _transaction.data\\n            );\\n    }\\n\\n    /**\\n     * Hashes a standard OVM transaction.\\n     * @param _transaction OVM transaction to encode.\\n     * @return Hashed transaction\\n     */\\n    function hashTransaction(Transaction memory _transaction) internal pure returns (bytes32) {\\n        return keccak256(encodeTransaction(_transaction));\\n    }\\n\\n    /**\\n     * @notice Decodes an RLP-encoded account state into a useful struct.\\n     * @param _encoded RLP-encoded account state.\\n     * @return Account state struct.\\n     */\\n    function decodeEVMAccount(bytes memory _encoded) internal pure returns (EVMAccount memory) {\\n        Lib_RLPReader.RLPItem[] memory accountState = Lib_RLPReader.readList(_encoded);\\n\\n        return\\n            EVMAccount({\\n                nonce: Lib_RLPReader.readUint256(accountState[0]),\\n                balance: Lib_RLPReader.readUint256(accountState[1]),\\n                storageRoot: Lib_RLPReader.readBytes32(accountState[2]),\\n                codeHash: Lib_RLPReader.readBytes32(accountState[3])\\n            });\\n    }\\n\\n    /**\\n     * Calculates a hash for a given batch header.\\n     * @param _batchHeader Header to hash.\\n     * @return Hash of the header.\\n     */\\n    function hashBatchHeader(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)\\n        internal\\n        pure\\n        returns (bytes32)\\n    {\\n        return\\n            keccak256(\\n                abi.encode(\\n                    _batchHeader.batchRoot,\\n                    _batchHeader.batchSize,\\n                    _batchHeader.prevTotalElements,\\n                    _batchHeader.extraData\\n                )\\n            );\\n    }\\n}\\n\",\"keccak256\":\"0xd727df7cc99ff84e9c5722120163e7bf0077170758a4c9b0aa90b8e3abb0e134\",\"license\":\"MIT\"},\"contracts/libraries/resolver/Lib_AddressManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/* External Imports */\\nimport { Ownable } from \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\n\\n/**\\n * @title Lib_AddressManager\\n */\\ncontract Lib_AddressManager is Ownable {\\n    /**********\\n     * Events *\\n     **********/\\n\\n    event AddressSet(string indexed _name, address _newAddress, address _oldAddress);\\n\\n    /*************\\n     * Variables *\\n     *************/\\n\\n    mapping(bytes32 => address) private addresses;\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    /**\\n     * Changes the address associated with a particular name.\\n     * @param _name String name to associate an address with.\\n     * @param _address Address to associate with the name.\\n     */\\n    function setAddress(string memory _name, address _address) external onlyOwner {\\n        bytes32 nameHash = _getNameHash(_name);\\n        address oldAddress = addresses[nameHash];\\n        addresses[nameHash] = _address;\\n\\n        emit AddressSet(_name, _address, oldAddress);\\n    }\\n\\n    /**\\n     * Retrieves the address associated with a given name.\\n     * @param _name Name to retrieve an address for.\\n     * @return Address associated with the given name.\\n     */\\n    function getAddress(string memory _name) external view returns (address) {\\n        return addresses[_getNameHash(_name)];\\n    }\\n\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Computes the hash of a name.\\n     * @param _name Name to compute a hash for.\\n     * @return Hash of the given name.\\n     */\\n    function _getNameHash(string memory _name) internal pure returns (bytes32) {\\n        return keccak256(abi.encodePacked(_name));\\n    }\\n}\\n\",\"keccak256\":\"0xcde9b29429d512c549f7c1b8a033f161fa71c18cda08b241748663854196ae14\",\"license\":\"MIT\"},\"contracts/libraries/resolver/Lib_AddressResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/* Library Imports */\\nimport { Lib_AddressManager } from \\\"./Lib_AddressManager.sol\\\";\\n\\n/**\\n * @title Lib_AddressResolver\\n */\\nabstract contract Lib_AddressResolver {\\n    /*************\\n     * Variables *\\n     *************/\\n\\n    Lib_AddressManager public libAddressManager;\\n\\n    /***************\\n     * Constructor *\\n     ***************/\\n\\n    /**\\n     * @param _libAddressManager Address of the Lib_AddressManager.\\n     */\\n    constructor(address _libAddressManager) {\\n        libAddressManager = Lib_AddressManager(_libAddressManager);\\n    }\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    /**\\n     * Resolves the address associated with a given name.\\n     * @param _name Name to resolve an address for.\\n     * @return Address associated with the given name.\\n     */\\n    function resolve(string memory _name) public view returns (address) {\\n        return libAddressManager.getAddress(_name);\\n    }\\n}\\n\",\"keccak256\":\"0x515c4db671a28e2fe180201f6d11c0208c05f582ca3489fb6b8e81c27659bc62\",\"license\":\"MIT\"},\"contracts/libraries/rlp/Lib_RLPReader.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/**\\n * @title Lib_RLPReader\\n * @dev Adapted from \\\"RLPReader\\\" by Hamdi Allam (hamdi.allam97@gmail.com).\\n */\\nlibrary Lib_RLPReader {\\n    /*************\\n     * Constants *\\n     *************/\\n\\n    uint256 internal constant MAX_LIST_LENGTH = 32;\\n\\n    /*********\\n     * Enums *\\n     *********/\\n\\n    enum RLPItemType {\\n        DATA_ITEM,\\n        LIST_ITEM\\n    }\\n\\n    /***********\\n     * Structs *\\n     ***********/\\n\\n    struct RLPItem {\\n        uint256 length;\\n        uint256 ptr;\\n    }\\n\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Converts bytes to a reference to memory position and length.\\n     * @param _in Input bytes to convert.\\n     * @return Output memory reference.\\n     */\\n    function toRLPItem(bytes memory _in) internal pure returns (RLPItem memory) {\\n        uint256 ptr;\\n        assembly {\\n            ptr := add(_in, 32)\\n        }\\n\\n        return RLPItem({ length: _in.length, ptr: ptr });\\n    }\\n\\n    /**\\n     * Reads an RLP list value into a list of RLP items.\\n     * @param _in RLP list value.\\n     * @return Decoded RLP list items.\\n     */\\n    function readList(RLPItem memory _in) internal pure returns (RLPItem[] memory) {\\n        (uint256 listOffset, , RLPItemType itemType) = _decodeLength(_in);\\n\\n        require(itemType == RLPItemType.LIST_ITEM, \\\"Invalid RLP list value.\\\");\\n\\n        // Solidity in-memory arrays can't be increased in size, but *can* be decreased in size by\\n        // writing to the length. Since we can't know the number of RLP items without looping over\\n        // the entire input, we'd have to loop twice to accurately size this array. It's easier to\\n        // simply set a reasonable maximum list length and decrease the size before we finish.\\n        RLPItem[] memory out = new RLPItem[](MAX_LIST_LENGTH);\\n\\n        uint256 itemCount = 0;\\n        uint256 offset = listOffset;\\n        while (offset < _in.length) {\\n            require(itemCount < MAX_LIST_LENGTH, \\\"Provided RLP list exceeds max list length.\\\");\\n\\n            (uint256 itemOffset, uint256 itemLength, ) = _decodeLength(\\n                RLPItem({ length: _in.length - offset, ptr: _in.ptr + offset })\\n            );\\n\\n            out[itemCount] = RLPItem({ length: itemLength + itemOffset, ptr: _in.ptr + offset });\\n\\n            itemCount += 1;\\n            offset += itemOffset + itemLength;\\n        }\\n\\n        // Decrease the array size to match the actual item count.\\n        assembly {\\n            mstore(out, itemCount)\\n        }\\n\\n        return out;\\n    }\\n\\n    /**\\n     * Reads an RLP list value into a list of RLP items.\\n     * @param _in RLP list value.\\n     * @return Decoded RLP list items.\\n     */\\n    function readList(bytes memory _in) internal pure returns (RLPItem[] memory) {\\n        return readList(toRLPItem(_in));\\n    }\\n\\n    /**\\n     * Reads an RLP bytes value into bytes.\\n     * @param _in RLP bytes value.\\n     * @return Decoded bytes.\\n     */\\n    function readBytes(RLPItem memory _in) internal pure returns (bytes memory) {\\n        (uint256 itemOffset, uint256 itemLength, RLPItemType itemType) = _decodeLength(_in);\\n\\n        require(itemType == RLPItemType.DATA_ITEM, \\\"Invalid RLP bytes value.\\\");\\n\\n        return _copy(_in.ptr, itemOffset, itemLength);\\n    }\\n\\n    /**\\n     * Reads an RLP bytes value into bytes.\\n     * @param _in RLP bytes value.\\n     * @return Decoded bytes.\\n     */\\n    function readBytes(bytes memory _in) internal pure returns (bytes memory) {\\n        return readBytes(toRLPItem(_in));\\n    }\\n\\n    /**\\n     * Reads an RLP string value into a string.\\n     * @param _in RLP string value.\\n     * @return Decoded string.\\n     */\\n    function readString(RLPItem memory _in) internal pure returns (string memory) {\\n        return string(readBytes(_in));\\n    }\\n\\n    /**\\n     * Reads an RLP string value into a string.\\n     * @param _in RLP string value.\\n     * @return Decoded string.\\n     */\\n    function readString(bytes memory _in) internal pure returns (string memory) {\\n        return readString(toRLPItem(_in));\\n    }\\n\\n    /**\\n     * Reads an RLP bytes32 value into a bytes32.\\n     * @param _in RLP bytes32 value.\\n     * @return Decoded bytes32.\\n     */\\n    function readBytes32(RLPItem memory _in) internal pure returns (bytes32) {\\n        require(_in.length <= 33, \\\"Invalid RLP bytes32 value.\\\");\\n\\n        (uint256 itemOffset, uint256 itemLength, RLPItemType itemType) = _decodeLength(_in);\\n\\n        require(itemType == RLPItemType.DATA_ITEM, \\\"Invalid RLP bytes32 value.\\\");\\n\\n        uint256 ptr = _in.ptr + itemOffset;\\n        bytes32 out;\\n        assembly {\\n            out := mload(ptr)\\n\\n            // Shift the bytes over to match the item size.\\n            if lt(itemLength, 32) {\\n                out := div(out, exp(256, sub(32, itemLength)))\\n            }\\n        }\\n\\n        return out;\\n    }\\n\\n    /**\\n     * Reads an RLP bytes32 value into a bytes32.\\n     * @param _in RLP bytes32 value.\\n     * @return Decoded bytes32.\\n     */\\n    function readBytes32(bytes memory _in) internal pure returns (bytes32) {\\n        return readBytes32(toRLPItem(_in));\\n    }\\n\\n    /**\\n     * Reads an RLP uint256 value into a uint256.\\n     * @param _in RLP uint256 value.\\n     * @return Decoded uint256.\\n     */\\n    function readUint256(RLPItem memory _in) internal pure returns (uint256) {\\n        return uint256(readBytes32(_in));\\n    }\\n\\n    /**\\n     * Reads an RLP uint256 value into a uint256.\\n     * @param _in RLP uint256 value.\\n     * @return Decoded uint256.\\n     */\\n    function readUint256(bytes memory _in) internal pure returns (uint256) {\\n        return readUint256(toRLPItem(_in));\\n    }\\n\\n    /**\\n     * Reads an RLP bool value into a bool.\\n     * @param _in RLP bool value.\\n     * @return Decoded bool.\\n     */\\n    function readBool(RLPItem memory _in) internal pure returns (bool) {\\n        require(_in.length == 1, \\\"Invalid RLP boolean value.\\\");\\n\\n        uint256 ptr = _in.ptr;\\n        uint256 out;\\n        assembly {\\n            out := byte(0, mload(ptr))\\n        }\\n\\n        require(out == 0 || out == 1, \\\"Lib_RLPReader: Invalid RLP boolean value, must be 0 or 1\\\");\\n\\n        return out != 0;\\n    }\\n\\n    /**\\n     * Reads an RLP bool value into a bool.\\n     * @param _in RLP bool value.\\n     * @return Decoded bool.\\n     */\\n    function readBool(bytes memory _in) internal pure returns (bool) {\\n        return readBool(toRLPItem(_in));\\n    }\\n\\n    /**\\n     * Reads an RLP address value into a address.\\n     * @param _in RLP address value.\\n     * @return Decoded address.\\n     */\\n    function readAddress(RLPItem memory _in) internal pure returns (address) {\\n        if (_in.length == 1) {\\n            return address(0);\\n        }\\n\\n        require(_in.length == 21, \\\"Invalid RLP address value.\\\");\\n\\n        return address(uint160(readUint256(_in)));\\n    }\\n\\n    /**\\n     * Reads an RLP address value into a address.\\n     * @param _in RLP address value.\\n     * @return Decoded address.\\n     */\\n    function readAddress(bytes memory _in) internal pure returns (address) {\\n        return readAddress(toRLPItem(_in));\\n    }\\n\\n    /**\\n     * Reads the raw bytes of an RLP item.\\n     * @param _in RLP item to read.\\n     * @return Raw RLP bytes.\\n     */\\n    function readRawBytes(RLPItem memory _in) internal pure returns (bytes memory) {\\n        return _copy(_in);\\n    }\\n\\n    /*********************\\n     * Private Functions *\\n     *********************/\\n\\n    /**\\n     * Decodes the length of an RLP item.\\n     * @param _in RLP item to decode.\\n     * @return Offset of the encoded data.\\n     * @return Length of the encoded data.\\n     * @return RLP item type (LIST_ITEM or DATA_ITEM).\\n     */\\n    function _decodeLength(RLPItem memory _in)\\n        private\\n        pure\\n        returns (\\n            uint256,\\n            uint256,\\n            RLPItemType\\n        )\\n    {\\n        require(_in.length > 0, \\\"RLP item cannot be null.\\\");\\n\\n        uint256 ptr = _in.ptr;\\n        uint256 prefix;\\n        assembly {\\n            prefix := byte(0, mload(ptr))\\n        }\\n\\n        if (prefix <= 0x7f) {\\n            // Single byte.\\n\\n            return (0, 1, RLPItemType.DATA_ITEM);\\n        } else if (prefix <= 0xb7) {\\n            // Short string.\\n\\n            uint256 strLen = prefix - 0x80;\\n\\n            require(_in.length > strLen, \\\"Invalid RLP short string.\\\");\\n\\n            return (1, strLen, RLPItemType.DATA_ITEM);\\n        } else if (prefix <= 0xbf) {\\n            // Long string.\\n            uint256 lenOfStrLen = prefix - 0xb7;\\n\\n            require(_in.length > lenOfStrLen, \\\"Invalid RLP long string length.\\\");\\n\\n            uint256 strLen;\\n            assembly {\\n                // Pick out the string length.\\n                strLen := div(mload(add(ptr, 1)), exp(256, sub(32, lenOfStrLen)))\\n            }\\n\\n            require(_in.length > lenOfStrLen + strLen, \\\"Invalid RLP long string.\\\");\\n\\n            return (1 + lenOfStrLen, strLen, RLPItemType.DATA_ITEM);\\n        } else if (prefix <= 0xf7) {\\n            // Short list.\\n            uint256 listLen = prefix - 0xc0;\\n\\n            require(_in.length > listLen, \\\"Invalid RLP short list.\\\");\\n\\n            return (1, listLen, RLPItemType.LIST_ITEM);\\n        } else {\\n            // Long list.\\n            uint256 lenOfListLen = prefix - 0xf7;\\n\\n            require(_in.length > lenOfListLen, \\\"Invalid RLP long list length.\\\");\\n\\n            uint256 listLen;\\n            assembly {\\n                // Pick out the list length.\\n                listLen := div(mload(add(ptr, 1)), exp(256, sub(32, lenOfListLen)))\\n            }\\n\\n            require(_in.length > lenOfListLen + listLen, \\\"Invalid RLP long list.\\\");\\n\\n            return (1 + lenOfListLen, listLen, RLPItemType.LIST_ITEM);\\n        }\\n    }\\n\\n    /**\\n     * Copies the bytes from a memory location.\\n     * @param _src Pointer to the location to read from.\\n     * @param _offset Offset to start reading from.\\n     * @param _length Number of bytes to read.\\n     * @return Copied bytes.\\n     */\\n    function _copy(\\n        uint256 _src,\\n        uint256 _offset,\\n        uint256 _length\\n    ) private pure returns (bytes memory) {\\n        bytes memory out = new bytes(_length);\\n        if (out.length == 0) {\\n            return out;\\n        }\\n\\n        uint256 src = _src + _offset;\\n        uint256 dest;\\n        assembly {\\n            dest := add(out, 32)\\n        }\\n\\n        // Copy over as many complete words as we can.\\n        for (uint256 i = 0; i < _length / 32; i++) {\\n            assembly {\\n                mstore(dest, mload(src))\\n            }\\n\\n            src += 32;\\n            dest += 32;\\n        }\\n\\n        // Pick out the remaining bytes.\\n        uint256 mask;\\n        unchecked {\\n            mask = 256**(32 - (_length % 32)) - 1;\\n        }\\n\\n        assembly {\\n            mstore(dest, or(and(mload(src), not(mask)), and(mload(dest), mask)))\\n        }\\n        return out;\\n    }\\n\\n    /**\\n     * Copies an RLP item into bytes.\\n     * @param _in RLP item to copy.\\n     * @return Copied bytes.\\n     */\\n    function _copy(RLPItem memory _in) private pure returns (bytes memory) {\\n        return _copy(_in.ptr, 0, _in.length);\\n    }\\n}\\n\",\"keccak256\":\"0xde4a27577a23b2b11b21e8af3e1a0df50b0b27f08864795f7a84b1e3c230da33\",\"license\":\"MIT\"},\"contracts/libraries/utils/Lib_MerkleTree.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/**\\n * @title Lib_MerkleTree\\n * @author River Keefer\\n */\\nlibrary Lib_MerkleTree {\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Calculates a merkle root for a list of 32-byte leaf hashes.  WARNING: If the number\\n     * of leaves passed in is not a power of two, it pads out the tree with zero hashes.\\n     * If you do not know the original length of elements for the tree you are verifying, then\\n     * this may allow empty leaves past _elements.length to pass a verification check down the line.\\n     * Note that the _elements argument is modified, therefore it must not be used again afterwards\\n     * @param _elements Array of hashes from which to generate a merkle root.\\n     * @return Merkle root of the leaves, with zero hashes for non-powers-of-two (see above).\\n     */\\n    function getMerkleRoot(bytes32[] memory _elements) internal pure returns (bytes32) {\\n        require(_elements.length > 0, \\\"Lib_MerkleTree: Must provide at least one leaf hash.\\\");\\n\\n        if (_elements.length == 1) {\\n            return _elements[0];\\n        }\\n\\n        uint256[16] memory defaults = [\\n            0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563,\\n            0x633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d,\\n            0x890740a8eb06ce9be422cb8da5cdafc2b58c0a5e24036c578de2a433c828ff7d,\\n            0x3b8ec09e026fdc305365dfc94e189a81b38c7597b3d941c279f042e8206e0bd8,\\n            0xecd50eee38e386bd62be9bedb990706951b65fe053bd9d8a521af753d139e2da,\\n            0xdefff6d330bb5403f63b14f33b578274160de3a50df4efecf0e0db73bcdd3da5,\\n            0x617bdd11f7c0a11f49db22f629387a12da7596f9d1704d7465177c63d88ec7d7,\\n            0x292c23a9aa1d8bea7e2435e555a4a60e379a5a35f3f452bae60121073fb6eead,\\n            0xe1cea92ed99acdcb045a6726b2f87107e8a61620a232cf4d7d5b5766b3952e10,\\n            0x7ad66c0a68c72cb89e4fb4303841966e4062a76ab97451e3b9fb526a5ceb7f82,\\n            0xe026cc5a4aed3c22a58cbd3d2ac754c9352c5436f638042dca99034e83636516,\\n            0x3d04cffd8b46a874edf5cfae63077de85f849a660426697b06a829c70dd1409c,\\n            0xad676aa337a485e4728a0b240d92b3ef7b3c372d06d189322bfd5f61f1e7203e,\\n            0xa2fca4a49658f9fab7aa63289c91b7c7b6c832a6d0e69334ff5b0a3483d09dab,\\n            0x4ebfd9cd7bca2505f7bef59cc1c12ecc708fff26ae4af19abe852afe9e20c862,\\n            0x2def10d13dd169f550f578bda343d9717a138562e0093b380a1120789d53cf10\\n        ];\\n\\n        // Reserve memory space for our hashes.\\n        bytes memory buf = new bytes(64);\\n\\n        // We'll need to keep track of left and right siblings.\\n        bytes32 leftSibling;\\n        bytes32 rightSibling;\\n\\n        // Number of non-empty nodes at the current depth.\\n        uint256 rowSize = _elements.length;\\n\\n        // Current depth, counting from 0 at the leaves\\n        uint256 depth = 0;\\n\\n        // Common sub-expressions\\n        uint256 halfRowSize; // rowSize / 2\\n        bool rowSizeIsOdd; // rowSize % 2 == 1\\n\\n        while (rowSize > 1) {\\n            halfRowSize = rowSize / 2;\\n            rowSizeIsOdd = rowSize % 2 == 1;\\n\\n            for (uint256 i = 0; i < halfRowSize; i++) {\\n                leftSibling = _elements[(2 * i)];\\n                rightSibling = _elements[(2 * i) + 1];\\n                assembly {\\n                    mstore(add(buf, 32), leftSibling)\\n                    mstore(add(buf, 64), rightSibling)\\n                }\\n\\n                _elements[i] = keccak256(buf);\\n            }\\n\\n            if (rowSizeIsOdd) {\\n                leftSibling = _elements[rowSize - 1];\\n                rightSibling = bytes32(defaults[depth]);\\n                assembly {\\n                    mstore(add(buf, 32), leftSibling)\\n                    mstore(add(buf, 64), rightSibling)\\n                }\\n\\n                _elements[halfRowSize] = keccak256(buf);\\n            }\\n\\n            rowSize = halfRowSize + (rowSizeIsOdd ? 1 : 0);\\n            depth++;\\n        }\\n\\n        return _elements[0];\\n    }\\n\\n    /**\\n     * Verifies a merkle branch for the given leaf hash.  Assumes the original length\\n     * of leaves generated is a known, correct input, and does not return true for indices\\n     * extending past that index (even if _siblings would be otherwise valid.)\\n     * @param _root The Merkle root to verify against.\\n     * @param _leaf The leaf hash to verify inclusion of.\\n     * @param _index The index in the tree of this leaf.\\n     * @param _siblings Array of sibline nodes in the inclusion proof, starting from depth 0\\n     * (bottom of the tree).\\n     * @param _totalLeaves The total number of leaves originally passed into.\\n     * @return Whether or not the merkle branch and leaf passes verification.\\n     */\\n    function verify(\\n        bytes32 _root,\\n        bytes32 _leaf,\\n        uint256 _index,\\n        bytes32[] memory _siblings,\\n        uint256 _totalLeaves\\n    ) internal pure returns (bool) {\\n        require(_totalLeaves > 0, \\\"Lib_MerkleTree: Total leaves must be greater than zero.\\\");\\n\\n        require(_index < _totalLeaves, \\\"Lib_MerkleTree: Index out of bounds.\\\");\\n\\n        require(\\n            _siblings.length == _ceilLog2(_totalLeaves),\\n            \\\"Lib_MerkleTree: Total siblings does not correctly correspond to total leaves.\\\"\\n        );\\n\\n        bytes32 computedRoot = _leaf;\\n\\n        for (uint256 i = 0; i < _siblings.length; i++) {\\n            if ((_index & 1) == 1) {\\n                computedRoot = keccak256(abi.encodePacked(_siblings[i], computedRoot));\\n            } else {\\n                computedRoot = keccak256(abi.encodePacked(computedRoot, _siblings[i]));\\n            }\\n\\n            _index >>= 1;\\n        }\\n\\n        return _root == computedRoot;\\n    }\\n\\n    /*********************\\n     * Private Functions *\\n     *********************/\\n\\n    /**\\n     * Calculates the integer ceiling of the log base 2 of an input.\\n     * @param _in Unsigned input to calculate the log.\\n     * @return ceil(log_base_2(_in))\\n     */\\n    function _ceilLog2(uint256 _in) private pure returns (uint256) {\\n        require(_in > 0, \\\"Lib_MerkleTree: Cannot compute ceil(log_2) of 0.\\\");\\n\\n        if (_in == 1) {\\n            return 0;\\n        }\\n\\n        // Find the highest set bit (will be floor(log_2)).\\n        // Borrowed with <3 from https://github.com/ethereum/solidity-examples\\n        uint256 val = _in;\\n        uint256 highest = 0;\\n        for (uint256 i = 128; i >= 1; i >>= 1) {\\n            if (val & (((uint256(1) << i) - 1) << i) != 0) {\\n                highest += i;\\n                val >>= i;\\n            }\\n        }\\n\\n        // Increment by one if this is not a perfect logarithm.\\n        if ((uint256(1) << highest) != _in) {\\n            highest += 1;\\n        }\\n\\n        return highest;\\n    }\\n}\\n\",\"keccak256\":\"0x84351e7b8be5007b77a67c1e3f34f46ed0c1ddc67e4e76797fd06f01ca9325aa\",\"license\":\"MIT\"},\"contracts/libraries/utils/Lib_Uint.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/**\\n * @title Lib_Uint\\n * @author\\n */\\nlibrary Lib_Uint {\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Convert uint to string\\n     * @param _i uint value.\\n     * @return _uintAsString string momery value.\\n     */\\n    function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {\\n        if (_i == 0) {\\n            return \\\"0\\\";\\n        }\\n        uint256 j = _i;\\n        uint256 len;\\n        while (j != 0) {\\n            len++;\\n            j /= 10;\\n        }\\n        bytes memory bstr = new bytes(len);\\n        uint256 k = len;\\n        while (_i != 0) {\\n            k = k - 1;\\n            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));\\n            bytes1 b1 = bytes1(temp);\\n            bstr[k] = b1;\\n            _i /= 10;\\n        }\\n        return string(bstr);\\n    }\\n}\\n\",\"keccak256\":\"0x00408d812fdd202f5693796c9b67821b5c7114aca93484c88cdc63b0caa3c288\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405261044060035534801561001657600080fd5b50604051620025533803806200255383398101604081905261003791610063565b600080546001600160a01b0319166001600160a01b0394909416939093179092556001556002556100a6565b60008060006060848603121561007857600080fd5b83516001600160a01b038116811461008f57600080fd5b602085015160409095015190969495509392505050565b61249d80620000b66000396000f3fe608060405234801561001057600080fd5b50600436106101775760003560e01c806381eb62ef116100d8578063ab59f7b81161008c578063cfdf677e11610066578063cfdf677e146102f5578063d710083f146102fd578063e561dddc1461031057600080fd5b8063ab59f7b8146102c6578063b8e189ac146102d9578063c17b291b146102ec57600080fd5b80638c7de742116100bd5780638c7de7421461028d5780638ca5cbb9146102a05780639418bddd146102b357600080fd5b806381eb62ef146102715780638a52e6221461027a57600080fd5b80635cb583741161012f5780637aa63a86116101145780637aa63a861461024e5780637ad168a01461025657806380931e371461025e57600080fd5b80635cb58374146102285780636d3454bf1461023b57600080fd5b8063461a447811610160578063461a4478146101db5780634d69ee57146101ee5780635bbbb7ed1461021157600080fd5b8063299ca4781461017c5780632ab65ec7146101c6575b600080fd5b60005461019c9073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6101d96101d4366004611d05565b610318565b005b61019c6101e9366004611d6c565b610478565b6102016101fc366004611e90565b610525565b60405190151581526020016101bd565b61021a60035481565b6040519081526020016101bd565b61021a610236366004611efd565b61053d565b610201610249366004611d05565b610558565b61021a610601565b61021a610613565b61020161026c366004611f16565b610620565b61021a60025481565b61021a610288366004611efd565b6106ec565b61021a61029b366004611efd565b610707565b6101d96102ae366004611f8d565b61079b565b6102016102c1366004611fd2565b6107dc565b6101d96102d4366004611efd565b610884565b6101d96102e7366004611fd2565b610941565b61021a60015481565b61019c610950565b6101d961030b366004612007565b610973565b61021a610c25565b61034861032483610c32565b60405160200161033491906120a2565b604051602081830303815290604052610478565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146103ed5760405162461bcd60e51b815260206004820152603b60248201527f537461746520626174636865732063616e206f6e6c792062652064656c65746560448201527f6420627920746865204d564d5f467261756456657269666965722e000000000060648201526084015b60405180910390fd5b6103f6816107dc565b61046a576040805162461bcd60e51b81526020600482015260248101919091527f537461746520626174636865732063616e206f6e6c792062652064656c65746560448201527f642077697468696e207468652066726175642070726f6f662077696e646f772e60648201526084016103e4565b6104748282610d8f565b5050565b600080546040517fbf40fac100000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff9091169063bf40fac1906104cf90859060040161212d565b60206040518083038186803b1580156104e757600080fd5b505afa1580156104fb573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061051f9190612162565b92915050565b6000610535600354858585610620565b949350505050565b60008061054983610fe1565b64ffffffffff16949350505050565b6000808260800151806020019051810190610573919061217f565b509050806105e95760405162461bcd60e51b815260206004820152602560248201527f4261746368206865616465722074696d657374616d702063616e6e6f7420626560448201527f207a65726f00000000000000000000000000000000000000000000000000000060648201526084016103e4565b42600154826105f891906121de565b11949350505050565b600061060e6003546106ec565b905090565b600061060e60035461053d565b600061062c8584611093565b6106785760405162461bcd60e51b815260206004820152601560248201527f496e76616c6964206261746368206865616465722e000000000000000000000060448201526064016103e4565b610695836020015185846000015185602001518760400151611158565b6106e15760405162461bcd60e51b815260206004820152601860248201527f496e76616c696420696e636c7573696f6e2070726f6f662e000000000000000060448201526064016103e4565b506001949350505050565b6000806106f883610fe1565b5064ffffffffff169392505050565b6000610711610950565b73ffffffffffffffffffffffffffffffffffffffff1663576f2588836040518263ffffffff1660e01b815260040161074b91815260200190565b60206040518083038186803b15801561076357600080fd5b505afa158015610777573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061051f91906121f6565b60006107a8600354610c32565b6040516020016107b8919061220f565b60405160208183030381529060405290506107d7600354848484610973565b505050565b60008082608001518060200190518101906107f7919061217f565b5090508061086d5760405162461bcd60e51b815260206004820152602560248201527f4261746368206865616465722074696d657374616d702063616e6e6f7420626560448201527f207a65726f00000000000000000000000000000000000000000000000000000060648201526084016103e4565b426001548261087c91906121de565b119392505050565b6108c26040518060400160405280600d81526020017f4d455449535f4d414e4147455200000000000000000000000000000000000000815250610478565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161461093c5760405162461bcd60e51b815260206004820152600b60248201527f6e6f7720616c6c6f77656400000000000000000000000000000000000000000060448201526064016103e4565b600155565b61094d60035482610318565b50565b600061060e60405180606001604052806021815260200161244760219139610478565b61097c846106ec565b82146109f05760405162461bcd60e51b815260206004820152603d60248201527f41637475616c20626174636820737461727420696e64657820646f6573206e6f60448201527f74206d6174636820657870656374656420737461727420696e6465782e00000060648201526084016103e4565b60006109fb82610478565b9050610a3b6040518060400160405280600b81526020017f426f6e644d616e61676572000000000000000000000000000000000000000000815250610478565b6040517ff3b96f1c0000000000000000000000000000000000000000000000000000000081526004810187905233602482015273ffffffffffffffffffffffffffffffffffffffff8381166044830152919091169063f3b96f1c9060640160206040518083038186803b158015610ab157600080fd5b505afa158015610ac5573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ae99190612250565b610b5b5760405162461bcd60e51b815260206004820152602f60248201527f50726f706f73657220646f6573206e6f74206861766520656e6f75676820636f60448201527f6c6c61746572616c20706f73746564000000000000000000000000000000000060648201526084016103e4565b6000845111610bd25760405162461bcd60e51b815260206004820152602360248201527f43616e6e6f74207375626d697420616e20656d7074792073746174652062617460448201527f63682e000000000000000000000000000000000000000000000000000000000060648201526084016103e4565b610c1e85854233604051602001610c0992919091825273ffffffffffffffffffffffffffffffffffffffff16602082015260400190565b604051602081830303815290604052846113c6565b5050505050565b600061060e600354610707565b606081610c7257505060408051808201909152600181527f3000000000000000000000000000000000000000000000000000000000000000602082015290565b8160005b8115610c9c5780610c8681612272565b9150610c959050600a836122da565b9150610c76565b60008167ffffffffffffffff811115610cb757610cb7611b70565b6040519080825280601f01601f191660200182016040528015610ce1576020820181803683370190505b509050815b8515610d8657610cf76001826122ee565b90506000610d06600a886122da565b610d1190600a612305565b610d1b90886122ee565b610d26906030612342565b905060008160f81b905080848481518110610d4357610d43612367565b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a905350610d7d600a896122da565b97505050610ce6565b50949350505050565b610d97610950565b73ffffffffffffffffffffffffffffffffffffffff1663576f2588836040518263ffffffff1660e01b8152600401610dd191815260200190565b60206040518083038186803b158015610de957600080fd5b505afa158015610dfd573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e2191906121f6565b815110610e705760405162461bcd60e51b815260206004820152601460248201527f496e76616c696420626174636820696e6465782e00000000000000000000000060448201526064016103e4565b610e7a8282611093565b610ec65760405162461bcd60e51b815260206004820152601560248201527f496e76616c6964206261746368206865616465722e000000000000000000000060448201526064016103e4565b610ece610950565b8151606083015173ffffffffffffffffffffffffffffffffffffffff929092169163bc05257691859160281b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e086901b168152600481019390935260248301919091527fffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000166044820152606401600060405180830381600087803b158015610f7a57600080fd5b505af1158015610f8e573d6000803e3d6000fd5b5050505080600001517f6e9c082632d809680ee6227e58afd9a7c24ee8a43d61577b2e98f9e185fc630d838360200151604051610fd5929190918252602082015260400190565b60405180910390a25050565b6000806000610fee610950565b73ffffffffffffffffffffffffffffffffffffffff166324a49415856040518263ffffffff1660e01b815260040161102891815260200190565b60206040518083038186803b15801561104057600080fd5b505afa158015611054573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906110789190612396565b64ffffffffff602882901c169560509190911c945092505050565b600061109d610950565b82516040517f67d18b9b00000000000000000000000000000000000000000000000000000000815260048101869052602481019190915273ffffffffffffffffffffffffffffffffffffffff91909116906367d18b9b9060440160206040518083038186803b15801561110f57600080fd5b505afa158015611123573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061114791906121f6565b61115083611563565b149392505050565b60008082116111cf5760405162461bcd60e51b815260206004820152603760248201527f4c69625f4d65726b6c65547265653a20546f74616c206c6561766573206d757360448201527f742062652067726561746572207468616e207a65726f2e00000000000000000060648201526084016103e4565b8184106112435760405162461bcd60e51b8152602060048201526024808201527f4c69625f4d65726b6c65547265653a20496e646578206f7574206f6620626f7560448201527f6e64732e0000000000000000000000000000000000000000000000000000000060648201526084016103e4565b61124c826115a9565b8351146112e75760405162461bcd60e51b815260206004820152604d60248201527f4c69625f4d65726b6c65547265653a20546f74616c207369626c696e6773206460448201527f6f6573206e6f7420636f72726563746c7920636f72726573706f6e6420746f2060648201527f746f74616c206c65617665732e00000000000000000000000000000000000000608482015260a4016103e4565b8460005b84518110156113b95785600116600114156113525784818151811061131257611312612367565b602002602001015182604051602001611335929190918252602082015260400190565b6040516020818303038152906040528051906020012091506113a0565b8185828151811061136557611365612367565b6020026020010151604051602001611387929190918252602082015260400190565b6040516020818303038152906040528051906020012091505b60019590951c94806113b181612272565b9150506112eb565b5090951495945050505050565b6000806113d286610fe1565b9150915042905060006040518060a001604052806113ef89610707565b81526020016113fd8861168c565b8152602001875181526020018464ffffffffff16815260200186815250905080600001517fbaa1d762384057169afd12b625998a5a7ed502c2e229acdbead30f3f6496399d8883602001518460400151856060015186608001516040516114689594939291906123d8565b60405180910390a2611478610950565b73ffffffffffffffffffffffffffffffffffffffff1663e6e436c08861149d84611563565b6114c2856040015186606001516114b491906121de565b602888811b91909117901b90565b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e086901b168152600481019390935260248301919091527fffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000166044820152606401600060405180830381600087803b15801561154257600080fd5b505af1158015611556573d6000803e3d6000fd5b5050505050505050505050565b6000816020015182604001518360600151846080015160405160200161158c9493929190612403565b604051602081830303815290604052805190602001209050919050565b60008082116116205760405162461bcd60e51b815260206004820152603060248201527f4c69625f4d65726b6c65547265653a2043616e6e6f7420636f6d70757465206360448201527f65696c286c6f675f3229206f6620302e0000000000000000000000000000000060648201526084016103e4565b816001141561163157506000919050565b81600060805b6001811061166f578061164d600180831b6122ee565b901b8316156116675761166081836121de565b92811c9291505b60011c611637565b506001811b8414611685576105356001826121de565b9392505050565b6000808251116117045760405162461bcd60e51b815260206004820152603460248201527f4c69625f4d65726b6c65547265653a204d7573742070726f766964652061742060448201527f6c65617374206f6e65206c65616620686173682e00000000000000000000000060648201526084016103e4565b815160011415611730578160008151811061172157611721612367565b60200260200101519050919050565b60408051610200810182527f290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56381527f633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d60208201527f890740a8eb06ce9be422cb8da5cdafc2b58c0a5e24036c578de2a433c828ff7d818301527f3b8ec09e026fdc305365dfc94e189a81b38c7597b3d941c279f042e8206e0bd86060808301919091527fecd50eee38e386bd62be9bedb990706951b65fe053bd9d8a521af753d139e2da60808301527fdefff6d330bb5403f63b14f33b578274160de3a50df4efecf0e0db73bcdd3da560a08301527f617bdd11f7c0a11f49db22f629387a12da7596f9d1704d7465177c63d88ec7d760c08301527f292c23a9aa1d8bea7e2435e555a4a60e379a5a35f3f452bae60121073fb6eead60e08301527fe1cea92ed99acdcb045a6726b2f87107e8a61620a232cf4d7d5b5766b3952e106101008301527f7ad66c0a68c72cb89e4fb4303841966e4062a76ab97451e3b9fb526a5ceb7f826101208301527fe026cc5a4aed3c22a58cbd3d2ac754c9352c5436f638042dca99034e836365166101408301527f3d04cffd8b46a874edf5cfae63077de85f849a660426697b06a829c70dd1409c6101608301527fad676aa337a485e4728a0b240d92b3ef7b3c372d06d189322bfd5f61f1e7203e6101808301527fa2fca4a49658f9fab7aa63289c91b7c7b6c832a6d0e69334ff5b0a3483d09dab6101a08301527f4ebfd9cd7bca2505f7bef59cc1c12ecc708fff26ae4af19abe852afe9e20c8626101c08301527f2def10d13dd169f550f578bda343d9717a138562e0093b380a1120789d53cf106101e083015282518381529081018352909160009190602082018180368337505085519192506000918291508180805b6001841115611b46576119e16002856122da565b91506119ee600285612432565b600114905060005b82811015611a9a578a611a0a826002612305565b81518110611a1a57611a1a612367565b602002602001015196508a816002611a329190612305565b611a3d9060016121de565b81518110611a4d57611a4d612367565b6020026020010151955086602089015285604089015287805190602001208b8281518110611a7d57611a7d612367565b602090810291909101015280611a9281612272565b9150506119f6565b508015611b165789611aad6001866122ee565b81518110611abd57611abd612367565b60200260200101519550878360108110611ad957611ad9612367565b602002015160001b945085602088015284604088015286805190602001208a8381518110611b0957611b09612367565b6020026020010181815250505b80611b22576000611b25565b60015b611b329060ff16836121de565b935082611b3e81612272565b9350506119cd565b89600081518110611b5957611b59612367565b602002602001015198505050505050505050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016810167ffffffffffffffff81118282101715611be657611be6611b70565b604052919050565b600067ffffffffffffffff831115611c0857611c08611b70565b611c3960207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f86011601611b9f565b9050828152838383011115611c4d57600080fd5b828260208301376000602084830101529392505050565b600060a08284031215611c7657600080fd5b60405160a0810167ffffffffffffffff8282108183111715611c9a57611c9a611b70565b81604052829350843583526020850135602084015260408501356040840152606085013560608401526080850135915080821115611cd757600080fd5b508301601f81018513611ce957600080fd5b611cf885823560208401611bee565b6080830152505092915050565b60008060408385031215611d1857600080fd5b82359150602083013567ffffffffffffffff811115611d3657600080fd5b611d4285828601611c64565b9150509250929050565b600082601f830112611d5d57600080fd5b61168583833560208501611bee565b600060208284031215611d7e57600080fd5b813567ffffffffffffffff811115611d9557600080fd5b61053584828501611d4c565b600082601f830112611db257600080fd5b8135602067ffffffffffffffff821115611dce57611dce611b70565b8160051b611ddd828201611b9f565b9283528481018201928281019087851115611df757600080fd5b83870192505b84831015611e1657823582529183019190830190611dfd565b979650505050505050565b600060408284031215611e3357600080fd5b6040516040810167ffffffffffffffff8282108183111715611e5757611e57611b70565b81604052829350843583526020850135915080821115611e7657600080fd5b50611e8385828601611da1565b6020830152505092915050565b600080600060608486031215611ea557600080fd5b83359250602084013567ffffffffffffffff80821115611ec457600080fd5b611ed087838801611c64565b93506040860135915080821115611ee657600080fd5b50611ef386828701611e21565b9150509250925092565b600060208284031215611f0f57600080fd5b5035919050565b60008060008060808587031215611f2c57600080fd5b8435935060208501359250604085013567ffffffffffffffff80821115611f5257600080fd5b611f5e88838901611c64565b93506060870135915080821115611f7457600080fd5b50611f8187828801611e21565b91505092959194509250565b60008060408385031215611fa057600080fd5b823567ffffffffffffffff811115611fb757600080fd5b611fc385828601611da1565b95602094909401359450505050565b600060208284031215611fe457600080fd5b813567ffffffffffffffff811115611ffb57600080fd5b61053584828501611c64565b6000806000806080858703121561201d57600080fd5b84359350602085013567ffffffffffffffff8082111561203c57600080fd5b61204888838901611da1565b945060408701359350606087013591508082111561206557600080fd5b50611f8187828801611d4c565b60005b8381101561208d578181015183820152602001612075565b8381111561209c576000848401525b50505050565b600082516120b4818460208701612072565b7f5f4d564d5f467261756456657269666965720000000000000000000000000000920191825250601201919050565b600081518084526120fb816020860160208601612072565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169290920160200192915050565b60208152600061168560208301846120e3565b73ffffffffffffffffffffffffffffffffffffffff8116811461094d57600080fd5b60006020828403121561217457600080fd5b815161168581612140565b6000806040838503121561219257600080fd5b8251915060208301516121a481612140565b809150509250929050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600082198211156121f1576121f16121af565b500190565b60006020828403121561220857600080fd5b5051919050565b60008251612221818460208701612072565b7f5f4d564d5f50726f706f73657200000000000000000000000000000000000000920191825250600d01919050565b60006020828403121561226257600080fd5b8151801515811461168557600080fd5b60007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8214156122a4576122a46121af565b5060010190565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b6000826122e9576122e96122ab565b500490565b600082821015612300576123006121af565b500390565b6000817fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff048311821515161561233d5761233d6121af565b500290565b600060ff821660ff84168060ff0382111561235f5761235f6121af565b019392505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b6000602082840312156123a857600080fd5b81517fffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000008116811461168557600080fd5b85815284602082015283604082015282606082015260a060808201526000611e1660a08301846120e3565b84815283602082015282604082015260806060820152600061242860808301846120e3565b9695505050505050565b600082612441576124416122ab565b50069056fe436861696e53746f72616765436f6e7461696e65722d5343432d62617463686573a2646970667358221220c7c9a643e7529205ff672e020a056c41edbca24d11e9ea845179ac9cb9f87acc64736f6c63430008090033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101775760003560e01c806381eb62ef116100d8578063ab59f7b81161008c578063cfdf677e11610066578063cfdf677e146102f5578063d710083f146102fd578063e561dddc1461031057600080fd5b8063ab59f7b8146102c6578063b8e189ac146102d9578063c17b291b146102ec57600080fd5b80638c7de742116100bd5780638c7de7421461028d5780638ca5cbb9146102a05780639418bddd146102b357600080fd5b806381eb62ef146102715780638a52e6221461027a57600080fd5b80635cb583741161012f5780637aa63a86116101145780637aa63a861461024e5780637ad168a01461025657806380931e371461025e57600080fd5b80635cb58374146102285780636d3454bf1461023b57600080fd5b8063461a447811610160578063461a4478146101db5780634d69ee57146101ee5780635bbbb7ed1461021157600080fd5b8063299ca4781461017c5780632ab65ec7146101c6575b600080fd5b60005461019c9073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6101d96101d4366004611d05565b610318565b005b61019c6101e9366004611d6c565b610478565b6102016101fc366004611e90565b610525565b60405190151581526020016101bd565b61021a60035481565b6040519081526020016101bd565b61021a610236366004611efd565b61053d565b610201610249366004611d05565b610558565b61021a610601565b61021a610613565b61020161026c366004611f16565b610620565b61021a60025481565b61021a610288366004611efd565b6106ec565b61021a61029b366004611efd565b610707565b6101d96102ae366004611f8d565b61079b565b6102016102c1366004611fd2565b6107dc565b6101d96102d4366004611efd565b610884565b6101d96102e7366004611fd2565b610941565b61021a60015481565b61019c610950565b6101d961030b366004612007565b610973565b61021a610c25565b61034861032483610c32565b60405160200161033491906120a2565b604051602081830303815290604052610478565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146103ed5760405162461bcd60e51b815260206004820152603b60248201527f537461746520626174636865732063616e206f6e6c792062652064656c65746560448201527f6420627920746865204d564d5f467261756456657269666965722e000000000060648201526084015b60405180910390fd5b6103f6816107dc565b61046a576040805162461bcd60e51b81526020600482015260248101919091527f537461746520626174636865732063616e206f6e6c792062652064656c65746560448201527f642077697468696e207468652066726175642070726f6f662077696e646f772e60648201526084016103e4565b6104748282610d8f565b5050565b600080546040517fbf40fac100000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff9091169063bf40fac1906104cf90859060040161212d565b60206040518083038186803b1580156104e757600080fd5b505afa1580156104fb573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061051f9190612162565b92915050565b6000610535600354858585610620565b949350505050565b60008061054983610fe1565b64ffffffffff16949350505050565b6000808260800151806020019051810190610573919061217f565b509050806105e95760405162461bcd60e51b815260206004820152602560248201527f4261746368206865616465722074696d657374616d702063616e6e6f7420626560448201527f207a65726f00000000000000000000000000000000000000000000000000000060648201526084016103e4565b42600154826105f891906121de565b11949350505050565b600061060e6003546106ec565b905090565b600061060e60035461053d565b600061062c8584611093565b6106785760405162461bcd60e51b815260206004820152601560248201527f496e76616c6964206261746368206865616465722e000000000000000000000060448201526064016103e4565b610695836020015185846000015185602001518760400151611158565b6106e15760405162461bcd60e51b815260206004820152601860248201527f496e76616c696420696e636c7573696f6e2070726f6f662e000000000000000060448201526064016103e4565b506001949350505050565b6000806106f883610fe1565b5064ffffffffff169392505050565b6000610711610950565b73ffffffffffffffffffffffffffffffffffffffff1663576f2588836040518263ffffffff1660e01b815260040161074b91815260200190565b60206040518083038186803b15801561076357600080fd5b505afa158015610777573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061051f91906121f6565b60006107a8600354610c32565b6040516020016107b8919061220f565b60405160208183030381529060405290506107d7600354848484610973565b505050565b60008082608001518060200190518101906107f7919061217f565b5090508061086d5760405162461bcd60e51b815260206004820152602560248201527f4261746368206865616465722074696d657374616d702063616e6e6f7420626560448201527f207a65726f00000000000000000000000000000000000000000000000000000060648201526084016103e4565b426001548261087c91906121de565b119392505050565b6108c26040518060400160405280600d81526020017f4d455449535f4d414e4147455200000000000000000000000000000000000000815250610478565b73ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161461093c5760405162461bcd60e51b815260206004820152600b60248201527f6e6f7720616c6c6f77656400000000000000000000000000000000000000000060448201526064016103e4565b600155565b61094d60035482610318565b50565b600061060e60405180606001604052806021815260200161244760219139610478565b61097c846106ec565b82146109f05760405162461bcd60e51b815260206004820152603d60248201527f41637475616c20626174636820737461727420696e64657820646f6573206e6f60448201527f74206d6174636820657870656374656420737461727420696e6465782e00000060648201526084016103e4565b60006109fb82610478565b9050610a3b6040518060400160405280600b81526020017f426f6e644d616e61676572000000000000000000000000000000000000000000815250610478565b6040517ff3b96f1c0000000000000000000000000000000000000000000000000000000081526004810187905233602482015273ffffffffffffffffffffffffffffffffffffffff8381166044830152919091169063f3b96f1c9060640160206040518083038186803b158015610ab157600080fd5b505afa158015610ac5573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ae99190612250565b610b5b5760405162461bcd60e51b815260206004820152602f60248201527f50726f706f73657220646f6573206e6f74206861766520656e6f75676820636f60448201527f6c6c61746572616c20706f73746564000000000000000000000000000000000060648201526084016103e4565b6000845111610bd25760405162461bcd60e51b815260206004820152602360248201527f43616e6e6f74207375626d697420616e20656d7074792073746174652062617460448201527f63682e000000000000000000000000000000000000000000000000000000000060648201526084016103e4565b610c1e85854233604051602001610c0992919091825273ffffffffffffffffffffffffffffffffffffffff16602082015260400190565b604051602081830303815290604052846113c6565b5050505050565b600061060e600354610707565b606081610c7257505060408051808201909152600181527f3000000000000000000000000000000000000000000000000000000000000000602082015290565b8160005b8115610c9c5780610c8681612272565b9150610c959050600a836122da565b9150610c76565b60008167ffffffffffffffff811115610cb757610cb7611b70565b6040519080825280601f01601f191660200182016040528015610ce1576020820181803683370190505b509050815b8515610d8657610cf76001826122ee565b90506000610d06600a886122da565b610d1190600a612305565b610d1b90886122ee565b610d26906030612342565b905060008160f81b905080848481518110610d4357610d43612367565b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a905350610d7d600a896122da565b97505050610ce6565b50949350505050565b610d97610950565b73ffffffffffffffffffffffffffffffffffffffff1663576f2588836040518263ffffffff1660e01b8152600401610dd191815260200190565b60206040518083038186803b158015610de957600080fd5b505afa158015610dfd573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e2191906121f6565b815110610e705760405162461bcd60e51b815260206004820152601460248201527f496e76616c696420626174636820696e6465782e00000000000000000000000060448201526064016103e4565b610e7a8282611093565b610ec65760405162461bcd60e51b815260206004820152601560248201527f496e76616c6964206261746368206865616465722e000000000000000000000060448201526064016103e4565b610ece610950565b8151606083015173ffffffffffffffffffffffffffffffffffffffff929092169163bc05257691859160281b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e086901b168152600481019390935260248301919091527fffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000166044820152606401600060405180830381600087803b158015610f7a57600080fd5b505af1158015610f8e573d6000803e3d6000fd5b5050505080600001517f6e9c082632d809680ee6227e58afd9a7c24ee8a43d61577b2e98f9e185fc630d838360200151604051610fd5929190918252602082015260400190565b60405180910390a25050565b6000806000610fee610950565b73ffffffffffffffffffffffffffffffffffffffff166324a49415856040518263ffffffff1660e01b815260040161102891815260200190565b60206040518083038186803b15801561104057600080fd5b505afa158015611054573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906110789190612396565b64ffffffffff602882901c169560509190911c945092505050565b600061109d610950565b82516040517f67d18b9b00000000000000000000000000000000000000000000000000000000815260048101869052602481019190915273ffffffffffffffffffffffffffffffffffffffff91909116906367d18b9b9060440160206040518083038186803b15801561110f57600080fd5b505afa158015611123573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061114791906121f6565b61115083611563565b149392505050565b60008082116111cf5760405162461bcd60e51b815260206004820152603760248201527f4c69625f4d65726b6c65547265653a20546f74616c206c6561766573206d757360448201527f742062652067726561746572207468616e207a65726f2e00000000000000000060648201526084016103e4565b8184106112435760405162461bcd60e51b8152602060048201526024808201527f4c69625f4d65726b6c65547265653a20496e646578206f7574206f6620626f7560448201527f6e64732e0000000000000000000000000000000000000000000000000000000060648201526084016103e4565b61124c826115a9565b8351146112e75760405162461bcd60e51b815260206004820152604d60248201527f4c69625f4d65726b6c65547265653a20546f74616c207369626c696e6773206460448201527f6f6573206e6f7420636f72726563746c7920636f72726573706f6e6420746f2060648201527f746f74616c206c65617665732e00000000000000000000000000000000000000608482015260a4016103e4565b8460005b84518110156113b95785600116600114156113525784818151811061131257611312612367565b602002602001015182604051602001611335929190918252602082015260400190565b6040516020818303038152906040528051906020012091506113a0565b8185828151811061136557611365612367565b6020026020010151604051602001611387929190918252602082015260400190565b6040516020818303038152906040528051906020012091505b60019590951c94806113b181612272565b9150506112eb565b5090951495945050505050565b6000806113d286610fe1565b9150915042905060006040518060a001604052806113ef89610707565b81526020016113fd8861168c565b8152602001875181526020018464ffffffffff16815260200186815250905080600001517fbaa1d762384057169afd12b625998a5a7ed502c2e229acdbead30f3f6496399d8883602001518460400151856060015186608001516040516114689594939291906123d8565b60405180910390a2611478610950565b73ffffffffffffffffffffffffffffffffffffffff1663e6e436c08861149d84611563565b6114c2856040015186606001516114b491906121de565b602888811b91909117901b90565b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e086901b168152600481019390935260248301919091527fffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000166044820152606401600060405180830381600087803b15801561154257600080fd5b505af1158015611556573d6000803e3d6000fd5b5050505050505050505050565b6000816020015182604001518360600151846080015160405160200161158c9493929190612403565b604051602081830303815290604052805190602001209050919050565b60008082116116205760405162461bcd60e51b815260206004820152603060248201527f4c69625f4d65726b6c65547265653a2043616e6e6f7420636f6d70757465206360448201527f65696c286c6f675f3229206f6620302e0000000000000000000000000000000060648201526084016103e4565b816001141561163157506000919050565b81600060805b6001811061166f578061164d600180831b6122ee565b901b8316156116675761166081836121de565b92811c9291505b60011c611637565b506001811b8414611685576105356001826121de565b9392505050565b6000808251116117045760405162461bcd60e51b815260206004820152603460248201527f4c69625f4d65726b6c65547265653a204d7573742070726f766964652061742060448201527f6c65617374206f6e65206c65616620686173682e00000000000000000000000060648201526084016103e4565b815160011415611730578160008151811061172157611721612367565b60200260200101519050919050565b60408051610200810182527f290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56381527f633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d60208201527f890740a8eb06ce9be422cb8da5cdafc2b58c0a5e24036c578de2a433c828ff7d818301527f3b8ec09e026fdc305365dfc94e189a81b38c7597b3d941c279f042e8206e0bd86060808301919091527fecd50eee38e386bd62be9bedb990706951b65fe053bd9d8a521af753d139e2da60808301527fdefff6d330bb5403f63b14f33b578274160de3a50df4efecf0e0db73bcdd3da560a08301527f617bdd11f7c0a11f49db22f629387a12da7596f9d1704d7465177c63d88ec7d760c08301527f292c23a9aa1d8bea7e2435e555a4a60e379a5a35f3f452bae60121073fb6eead60e08301527fe1cea92ed99acdcb045a6726b2f87107e8a61620a232cf4d7d5b5766b3952e106101008301527f7ad66c0a68c72cb89e4fb4303841966e4062a76ab97451e3b9fb526a5ceb7f826101208301527fe026cc5a4aed3c22a58cbd3d2ac754c9352c5436f638042dca99034e836365166101408301527f3d04cffd8b46a874edf5cfae63077de85f849a660426697b06a829c70dd1409c6101608301527fad676aa337a485e4728a0b240d92b3ef7b3c372d06d189322bfd5f61f1e7203e6101808301527fa2fca4a49658f9fab7aa63289c91b7c7b6c832a6d0e69334ff5b0a3483d09dab6101a08301527f4ebfd9cd7bca2505f7bef59cc1c12ecc708fff26ae4af19abe852afe9e20c8626101c08301527f2def10d13dd169f550f578bda343d9717a138562e0093b380a1120789d53cf106101e083015282518381529081018352909160009190602082018180368337505085519192506000918291508180805b6001841115611b46576119e16002856122da565b91506119ee600285612432565b600114905060005b82811015611a9a578a611a0a826002612305565b81518110611a1a57611a1a612367565b602002602001015196508a816002611a329190612305565b611a3d9060016121de565b81518110611a4d57611a4d612367565b6020026020010151955086602089015285604089015287805190602001208b8281518110611a7d57611a7d612367565b602090810291909101015280611a9281612272565b9150506119f6565b508015611b165789611aad6001866122ee565b81518110611abd57611abd612367565b60200260200101519550878360108110611ad957611ad9612367565b602002015160001b945085602088015284604088015286805190602001208a8381518110611b0957611b09612367565b6020026020010181815250505b80611b22576000611b25565b60015b611b329060ff16836121de565b935082611b3e81612272565b9350506119cd565b89600081518110611b5957611b59612367565b602002602001015198505050505050505050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016810167ffffffffffffffff81118282101715611be657611be6611b70565b604052919050565b600067ffffffffffffffff831115611c0857611c08611b70565b611c3960207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f86011601611b9f565b9050828152838383011115611c4d57600080fd5b828260208301376000602084830101529392505050565b600060a08284031215611c7657600080fd5b60405160a0810167ffffffffffffffff8282108183111715611c9a57611c9a611b70565b81604052829350843583526020850135602084015260408501356040840152606085013560608401526080850135915080821115611cd757600080fd5b508301601f81018513611ce957600080fd5b611cf885823560208401611bee565b6080830152505092915050565b60008060408385031215611d1857600080fd5b82359150602083013567ffffffffffffffff811115611d3657600080fd5b611d4285828601611c64565b9150509250929050565b600082601f830112611d5d57600080fd5b61168583833560208501611bee565b600060208284031215611d7e57600080fd5b813567ffffffffffffffff811115611d9557600080fd5b61053584828501611d4c565b600082601f830112611db257600080fd5b8135602067ffffffffffffffff821115611dce57611dce611b70565b8160051b611ddd828201611b9f565b9283528481018201928281019087851115611df757600080fd5b83870192505b84831015611e1657823582529183019190830190611dfd565b979650505050505050565b600060408284031215611e3357600080fd5b6040516040810167ffffffffffffffff8282108183111715611e5757611e57611b70565b81604052829350843583526020850135915080821115611e7657600080fd5b50611e8385828601611da1565b6020830152505092915050565b600080600060608486031215611ea557600080fd5b83359250602084013567ffffffffffffffff80821115611ec457600080fd5b611ed087838801611c64565b93506040860135915080821115611ee657600080fd5b50611ef386828701611e21565b9150509250925092565b600060208284031215611f0f57600080fd5b5035919050565b60008060008060808587031215611f2c57600080fd5b8435935060208501359250604085013567ffffffffffffffff80821115611f5257600080fd5b611f5e88838901611c64565b93506060870135915080821115611f7457600080fd5b50611f8187828801611e21565b91505092959194509250565b60008060408385031215611fa057600080fd5b823567ffffffffffffffff811115611fb757600080fd5b611fc385828601611da1565b95602094909401359450505050565b600060208284031215611fe457600080fd5b813567ffffffffffffffff811115611ffb57600080fd5b61053584828501611c64565b6000806000806080858703121561201d57600080fd5b84359350602085013567ffffffffffffffff8082111561203c57600080fd5b61204888838901611da1565b945060408701359350606087013591508082111561206557600080fd5b50611f8187828801611d4c565b60005b8381101561208d578181015183820152602001612075565b8381111561209c576000848401525b50505050565b600082516120b4818460208701612072565b7f5f4d564d5f467261756456657269666965720000000000000000000000000000920191825250601201919050565b600081518084526120fb816020860160208601612072565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169290920160200192915050565b60208152600061168560208301846120e3565b73ffffffffffffffffffffffffffffffffffffffff8116811461094d57600080fd5b60006020828403121561217457600080fd5b815161168581612140565b6000806040838503121561219257600080fd5b8251915060208301516121a481612140565b809150509250929050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600082198211156121f1576121f16121af565b500190565b60006020828403121561220857600080fd5b5051919050565b60008251612221818460208701612072565b7f5f4d564d5f50726f706f73657200000000000000000000000000000000000000920191825250600d01919050565b60006020828403121561226257600080fd5b8151801515811461168557600080fd5b60007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8214156122a4576122a46121af565b5060010190565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b6000826122e9576122e96122ab565b500490565b600082821015612300576123006121af565b500390565b6000817fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff048311821515161561233d5761233d6121af565b500290565b600060ff821660ff84168060ff0382111561235f5761235f6121af565b019392505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b6000602082840312156123a857600080fd5b81517fffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000008116811461168557600080fd5b85815284602082015283604082015282606082015260a060808201526000611e1660a08301846120e3565b84815283602082015282604082015260806060820152600061242860808301846120e3565b9695505050505050565b600082612441576124416122ab565b50069056fe436861696e53746f72616765436f6e7461696e65722d5343432d62617463686573a2646970667358221220c7c9a643e7529205ff672e020a056c41edbca24d11e9ea845179ac9cb9f87acc64736f6c63430008090033",
+  "devdoc": {
+    "details": "The State Commitment Chain (SCC) contract contains a list of proposed state roots which Proposers assert to be a result of each transaction in the Canonical Transaction Chain (CTC). Elements here have a 1:1 correspondence with transactions in the CTC, and should be the unique state root calculated off-chain by applying the canonical transactions one by one. Runtime target: EVM",
+    "kind": "dev",
+    "methods": {
+      "appendStateBatch(bytes32[],uint256)": {
+        "params": {
+          "_batch": "Batch of state roots.",
+          "_shouldStartAtElement": "Index of the element at which this batch should start."
+        }
+      },
+      "appendStateBatchByChainId(uint256,bytes32[],uint256,string)": {
+        "params": {
+          "_batch": "Batch of state roots.",
+          "_chainId": "identity for the l2 chain.",
+          "_shouldStartAtElement": "Index of the element at which this batch should start."
+        }
+      },
+      "batches()": {
+        "returns": {
+          "_0": "Reference to the batch storage container."
+        }
+      },
+      "constructor": {
+        "params": {
+          "_libAddressManager": "Address of the Address Manager."
+        }
+      },
+      "deleteStateBatch((uint256,bytes32,uint256,uint256,bytes))": {
+        "params": {
+          "_batchHeader": "Header of the batch to start deleting from."
+        }
+      },
+      "deleteStateBatchByChainId(uint256,(uint256,bytes32,uint256,uint256,bytes))": {
+        "params": {
+          "_batchHeader": "Header of the batch to start deleting from.",
+          "_chainId": "identity for the l2 chain."
+        }
+      },
+      "getLastSequencerTimestamp()": {
+        "returns": {
+          "_lastSequencerTimestamp": "Last sequencer batch timestamp."
+        }
+      },
+      "getLastSequencerTimestampByChainId(uint256)": {
+        "params": {
+          "_chainId": "identity for the l2 chain."
+        },
+        "returns": {
+          "_lastSequencerTimestamp": "Last sequencer batch timestamp."
+        }
+      },
+      "getTotalBatches()": {
+        "returns": {
+          "_totalBatches": "Total submitted batches."
+        }
+      },
+      "getTotalBatchesByChainId(uint256)": {
+        "params": {
+          "_chainId": "identity for the l2 chain."
+        },
+        "returns": {
+          "_totalBatches": "Total submitted batches."
+        }
+      },
+      "getTotalElements()": {
+        "returns": {
+          "_totalElements": "Total submitted elements."
+        }
+      },
+      "getTotalElementsByChainId(uint256)": {
+        "params": {
+          "_chainId": "identity for the l2 chain."
+        },
+        "returns": {
+          "_totalElements": "Total submitted elements."
+        }
+      },
+      "insideFraudProofWindow((uint256,bytes32,uint256,uint256,bytes))": {
+        "params": {
+          "_batchHeader": "Header of the batch to check."
+        },
+        "returns": {
+          "_inside": "Whether or not the batch is inside the fraud proof window."
+        }
+      },
+      "resolve(string)": {
+        "params": {
+          "_name": "Name to resolve an address for."
+        },
+        "returns": {
+          "_0": "Address associated with the given name."
+        }
+      },
+      "verifyStateCommitment(bytes32,(uint256,bytes32,uint256,uint256,bytes),(uint256,bytes32[]))": {
+        "params": {
+          "_batchHeader": "Header of the batch in which the element was included.",
+          "_element": "Hash of the element to verify a proof for.",
+          "_proof": "Merkle inclusion proof for the element."
+        }
+      },
+      "verifyStateCommitmentByChainId(uint256,bytes32,(uint256,bytes32,uint256,uint256,bytes),(uint256,bytes32[]))": {
+        "params": {
+          "_batchHeader": "Header of the batch in which the element was included.",
+          "_chainId": "identity for the l2 chain.",
+          "_element": "Hash of the element to verify a proof for.",
+          "_proof": "Merkle inclusion proof for the element."
+        }
+      }
+    },
+    "title": "MVM_StateCommitmentChain",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "appendStateBatch(bytes32[],uint256)": {
+        "notice": "Appends a batch of state roots to the chain."
+      },
+      "appendStateBatchByChainId(uint256,bytes32[],uint256,string)": {
+        "notice": "Appends a batch of state roots to the chain."
+      },
+      "batches()": {
+        "notice": "Accesses the batch storage container."
+      },
+      "deleteStateBatch((uint256,bytes32,uint256,uint256,bytes))": {
+        "notice": "Deletes all state roots after (and including) a given batch."
+      },
+      "deleteStateBatchByChainId(uint256,(uint256,bytes32,uint256,uint256,bytes))": {
+        "notice": "Deletes all state roots after (and including) a given batch."
+      },
+      "getLastSequencerTimestamp()": {
+        "notice": "Retrieves the timestamp of the last batch submitted by the sequencer."
+      },
+      "getLastSequencerTimestampByChainId(uint256)": {
+        "notice": "Retrieves the timestamp of the last batch submitted by the sequencer."
+      },
+      "getTotalBatches()": {
+        "notice": "Retrieves the total number of batches submitted."
+      },
+      "getTotalBatchesByChainId(uint256)": {
+        "notice": "Retrieves the total number of batches submitted."
+      },
+      "getTotalElements()": {
+        "notice": "Retrieves the total number of elements submitted."
+      },
+      "getTotalElementsByChainId(uint256)": {
+        "notice": "Retrieves the total number of elements submitted."
+      },
+      "insideFraudProofWindow((uint256,bytes32,uint256,uint256,bytes))": {
+        "notice": "Checks whether a given batch is still inside its fraud proof window."
+      },
+      "resolve(string)": {
+        "notice": "Resolves the address associated with a given name."
+      },
+      "verifyStateCommitment(bytes32,(uint256,bytes32,uint256,uint256,bytes),(uint256,bytes32[]))": {
+        "notice": "Verifies a batch inclusion proof."
+      },
+      "verifyStateCommitmentByChainId(uint256,bytes32,(uint256,bytes32,uint256,uint256,bytes),(uint256,bytes32[]))": {
+        "notice": "Verifies a batch inclusion proof."
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 16289,
+        "contract": "contracts/MVM/MVM_StateCommitmentChain.sol:MVM_StateCommitmentChain",
+        "label": "libAddressManager",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_contract(Lib_AddressManager)16281"
+      },
+      {
+        "astId": 12560,
+        "contract": "contracts/MVM/MVM_StateCommitmentChain.sol:MVM_StateCommitmentChain",
+        "label": "FRAUD_PROOF_WINDOW",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 12562,
+        "contract": "contracts/MVM/MVM_StateCommitmentChain.sol:MVM_StateCommitmentChain",
+        "label": "SEQUENCER_PUBLISH_WINDOW",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 12565,
+        "contract": "contracts/MVM/MVM_StateCommitmentChain.sol:MVM_StateCommitmentChain",
+        "label": "DEFAULT_CHAINID",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_uint256"
+      }
+    ],
+    "types": {
+      "t_contract(Lib_AddressManager)16281": {
+        "encoding": "inplace",
+        "label": "contract Lib_AddressManager",
+        "numberOfBytes": "20"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

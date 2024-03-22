@@ -93,5 +93,12 @@ func init() {
 		SeqValidHeight = parsed
 	}
 
+	// for testing
+	if defSeqAddr := os.Getenv("SEQSET_FIRST_SEQUENCER"); defSeqAddr != "" {
+		if addr := common.HexToAddress(defSeqAddr); !addr.IsZero() {
+			DefaultSeqAdderss = addr
+		}
+	}
+
 	fmt.Println("rcfg UsingOVM ", UsingOVM, " envChainID ", envChainID, "envSeqValidHeight", envSvh, "defaultSeqAdderss", DefaultSeqAdderss.Hex())
 }

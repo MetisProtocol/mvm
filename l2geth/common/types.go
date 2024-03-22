@@ -296,6 +296,16 @@ func (a *Address) UnmarshalGraphQL(input interface{}) error {
 	return err
 }
 
+// IsZero returns if the the address is a zero address
+func (a *Address) IsZero() bool {
+	for _, b := range a.Bytes() {
+		if b != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // UnprefixedAddress allows marshaling an Address without 0x prefix.
 type UnprefixedAddress Address
 

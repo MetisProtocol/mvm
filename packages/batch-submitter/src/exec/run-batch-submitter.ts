@@ -2,7 +2,6 @@
 import { injectL2Context, Bcfg, MinioConfig } from '@metis.io/core-utils'
 import * as Sentry from '@sentry/node'
 import { Logger, Metrics, createMetricsServer } from '@eth-optimism/common-ts'
-import { exit } from 'process'
 import { Signer, Wallet } from 'ethers'
 import {
   StaticJsonRpcProvider,
@@ -406,7 +405,7 @@ export const run = async () => {
         key,
         value: val,
       })
-      exit(1)
+      process.exit(1)
     }
   }
 
@@ -534,6 +533,18 @@ export const run = async () => {
     SEQSET_UPGRADE_ONLY
   )
 
+  let stopped = false
+
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, stopping...')
+    stopped = true
+  })
+
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, stopping...')
+    stopped = true
+  })
+
   // Loops infinitely!
   const loop = async (
     func: () => Promise<TransactionReceipt>
@@ -578,7 +589,7 @@ export const run = async () => {
       }
     }
 
-    while (true) {
+    while (!stopped) {
       try {
         await func()
       } catch (err) {
@@ -616,8 +627,10 @@ export const run = async () => {
         }
         logger.info('Retrying...')
       }
-      // Sleep
-      await new Promise((r) => setTimeout(r, requiredEnvVars.POLL_INTERVAL))
+      if (!stopped) {
+        // Sleep
+        await new Promise((r) => setTimeout(r, requiredEnvVars.POLL_INTERVAL))
+      }
     }
   }
 
