@@ -9,15 +9,15 @@ import {
 import { predeploys } from '../src/predeploys'
 
 const deployFn: DeployFunction = async (hre) => {
-  const { deployer } = await hre.getNamedAccounts()
-  const contract = await getDeployedContract(
-    hre,
-    'Proxy__MVM_CanonicalTransaction',
-    {
-      iface: 'MVM_CanonicalTransaction',
-      signerOrProvider: deployer,
-    }
-  )
+  // const { deployer } = await hre.getNamedAccounts()
+  // const contract = await getDeployedContract(
+  //   hre,
+  //   'Proxy__MVM_CanonicalTransaction',
+  //   {
+  //     iface: 'MVM_CanonicalTransaction',
+  //     signerOrProvider: deployer,
+  //   }
+  // )
 
   // if use minio DA, register this as contract.address, else use ovmSequencerAddress
   await registerAddress({

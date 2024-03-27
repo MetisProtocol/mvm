@@ -1,0 +1,144 @@
+name: 'devnet'
+
+services:
+  # this is a helper service used because there's no official hardhat image
+  hardhat:
+    image: localdev/hardhat
+    build:
+      context: ./ops/docker/hardhat
+      dockerfile: Dockerfile
+    ports:
+      - ${L1CHAIN_HTTP_PORT:-9545}:8545
+    restart: on-failure
+
+  deployer:
+    depends_on:
+      - hardhat
+    image: localdev/deployer
+    build:
+      context: .
+      dockerfile: ./ops/docker/Dockerfile
+      target: deployer
+    entrypoint: ./deployer.sh
+    environment:
+      FRAUD_PROOF_WINDOW_SECONDS: 0
+      L1_NODE_WEB3_URL: http://hardhat:8545
+      # these keys are hardhat's first 2 accounts, DO NOT use in production
+      DEPLOYER_PRIVATE_KEY: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+      SEQUENCER_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
+      GAS_PRICE_ORACLE_OWNER: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+      # setting the whitelist owner to address(0) disables the whitelist
+      WHITELIST_OWNER: '0x0000000000000000000000000000000000000000'
+      L1_FEE_WALLET_ADDRESS: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+      L2_CHAIN_ID: 108800
+      L2_BLOCK_GAS_LIMIT: 11000000
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
+      GAS_PRICE_ORACLE_OVERHEAD: '2750'
+      GAS_PRICE_ORACLE_SCALAR: '1500000'
+      GAS_PRICE_ORACLE_L1_BASE_FEE: '0'
+      GAS_PRICE_ORACLE_GAS_PRICE: '1'
+      GAS_PRICE_ORACLE_DECIMALS: '6'
+      NO_COMPILE: 1
+      SEQENCER_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      PROPOSER_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      RELAYER_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      METIS_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      MIN_L1_ERC20_BRIDGE_COST: 0
+      BERLIN_BLOCK: 0
+    healthcheck:
+      test: ['CMD-SHELL', 'curl http://127.0.0.1:8081/addresses.json']
+      interval: 5s
+      timeout: 3s
+      retries: 1000
+    ports:
+      - ${DEPLOYER_PORT:-8080}:8081
+
+  l1dtl:
+    image: localdev/data-transport-layer
+    build:
+      context: .
+      dockerfile: ./ops/docker/Dockerfile
+      target: data-transport-layer
+    entrypoint: ./dtl.sh
+    environment:
+      # used for setting the address manager address
+      URL: http://deployer:8081/addresses.json
+      DATA_TRANSPORT_LAYER__L1_RPC_ENDPOINT: http://hardhat:8545
+      DATA_TRANSPORT_LAYER__L2_RPC_ENDPOINT: http://l2geth:8545
+      DATA_TRANSPORT_LAYER__ETH_NETWORK_NAME: hardhat
+      DATA_TRANSPORT_LAYER__SYNC_FROM_L1: 'true'
+      DATA_TRANSPORT_LAYER__SYNC_FROM_L2: 'false'
+      DATA_TRANSPORT_LAYER__L2_CHAIN_ID: 108800
+      DATA_TRANSPORT_LAYER__L1_START_HEIGHT: 1
+      DATA_TRANSPORT_LAYER__MINIO_ENABLED: 'false'
+      DATA_TRANSPORT_LAYER__SERVER_HOSTNAME: '0.0.0.0'
+      DATA_TRANSPORT_LAYER__SERVER_PORT: 7878
+      DATA_TRANSPORT_LAYER__CONFIRMATIONS: '1'
+      DATA_TRANSPORT_LAYER__POLLING_INTERVAL: '10000'
+      DATA_TRANSPORT_LAYER__TRANSACTIONS_PER_POLLING_INTERVAL: '100'
+      DATA_TRANSPORT_LAYER__LOGS_PER_POLLING_INTERVAL: '100'
+      DATA_TRANSPORT_LAYER__DANGEROUSLY_CATCH_ALL_ERRORS: 'true'
+      DATA_TRANSPORT_LAYER__DB_PATH: /data/db
+      DATA_TRANSPORT_LAYER__DESEQBLOCK: 0
+      DATA_TRANSPORT_LAYER__BATCH_INBOX_SENDER: 0x
+      DATA_TRANSPORT_LAYER__BATCH_INBOX_ADDRESS: 0x
+      DATA_TRANSPORT_LAYER__BATCH_INBOX_START_INDEX: 0
+      DATA_TRANSPORT_LAYER__BATCH_INBOX_L1_HEIGHT: 0
+    healthcheck:
+      test: ['CMD-SHELL', 'curl http://127.0.0.1:7878']
+      interval: 5s
+      timeout: 3s
+      retries: 6
+    depends_on:
+      deployer:
+        condition: service_healthy
+    ports:
+      - ${DTL_PORT:-7878}:7878
+    restart: on-failure
+
+  l2geth:
+    image: localdev/l2geth
+    build:
+      context: .
+      dockerfile: ./ops/docker/Dockerfile.geth
+    entrypoint: sh ./geth.sh
+    depends_on:
+      l1dtl:
+        condition: service_healthy
+    environment:
+      DATADIR: /root/.ethereum
+      USING_OVM: 'true'
+      NO_USB: 'true'
+      RETRIES: 60
+      TARGET_GAS_LIMIT: '50000000'
+      GCMODE: 'archive'
+      IPC_DISABLE: 'false'
+      ETH1_HTTP: http://hardhat:8545
+      ETH1_SYNC_SERVICE_ENABLE: 'true'
+      ETH1_CONFIRMATION_DEPTH: '1'
+      ROLLUP_TIMESTAMP_REFRESH: 1s
+      ROLLUP_BACKEND: 'l1'
+      ROLLUP_POLL_INTERVAL_FLAG: '1s'
+      ROLLUP_ENABLE_L2_GAS_POLLING: 'true'
+      ETH1_CTC_DEPLOYMENT_HEIGHT: 1
+      ROLLUP_STATE_DUMP_PATH: http://deployer:8081/state-dump.latest.json
+      ROLLUP_CLIENT_HTTP: http://l1dtl:7878
+      BLOCK_SIGNER_KEY: '6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27'
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
+      SEQSET_VALID_HEIGHT: 10000000000000
+      SEQSET_CONTRACT: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
+      SEQSET_FIRST_SEQUENCER: '0x00000398232E2064F896018496b4b44b3D62751F'
+      SEQ_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
+      SEQ_PRIV: '6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27'
+      DESEQBLOCK: '0'
+      NETWORK_ID: 108800
+      CHAIN_ID: 108800
+      RPC_ENABLE: true
+      RPC_ADDR: 0.0.0.0
+      RPC_PORT: 8545
+      RPC_API: eth,net,rollup,mvm,web3,admin,debug,rollupbridge
+      RPC_CORS_DOMAIN: '*'
+      RPC_VHOSTS: '*'
+    ports:
+      - ${L2GETH_HTTP_PORT:-8545}:8545
+    restart: on-failure

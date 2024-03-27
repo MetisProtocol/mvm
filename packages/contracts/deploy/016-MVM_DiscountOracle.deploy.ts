@@ -1,9 +1,9 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
-import { registerAddress } from '../src/hardhat-deploy-ethers'
 
 /* Imports: Internal */
 import {
+  registerAddress,
   deployAndRegister,
   getDeployedContract,
 } from '../src/hardhat-deploy-ethers'

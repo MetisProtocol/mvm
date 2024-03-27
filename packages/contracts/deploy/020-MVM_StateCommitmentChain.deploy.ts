@@ -1,14 +1,14 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
-import { ethers } from 'ethers'
-import { hexStringEquals, registerAddress } from '../src/hardhat-deploy-ethers'
+
 /* Imports: Internal */
-import { predeploys } from '../src/predeploys'
 import {
   getContractInterface,
   getContractDefinition,
 } from '../src/contract-defs'
 import {
+  hexStringEquals,
+  registerAddress,
   getDeployedContract,
   waitUntilTrue,
   getAdvancedContract,
@@ -40,7 +40,7 @@ const deployFn: DeployFunction = async (hre) => {
   // L1ChugSplashProxy interface.
   const proxy = getAdvancedContract({
     hre,
-    contract: new ethers.Contract(
+    contract: new hre.ethers.Contract(
       contract.address,
       getContractInterface('L1ChugSplashProxy'),
       contract.signer
@@ -59,7 +59,7 @@ const deployFn: DeployFunction = async (hre) => {
   await waitUntilTrue(async () => {
     const implementation = await proxy.callStatic.getImplementation()
     return (
-      !hexStringEquals(implementation, ethers.constants.AddressZero) &&
+      !hexStringEquals(implementation, hre.ethers.constants.AddressZero) &&
       hexStringEquals(
         await contract.provider.getCode(implementation),
         managerCode
@@ -160,7 +160,7 @@ const deployFn: DeployFunction = async (hre) => {
   await waitUntilTrue(async () => {
     return hexStringEquals(
       await proxy.connect(proxy.signer.provider).callStatic.getOwner({
-        from: ethers.constants.AddressZero,
+        from: hre.ethers.constants.AddressZero,
       }),
       owner
     )

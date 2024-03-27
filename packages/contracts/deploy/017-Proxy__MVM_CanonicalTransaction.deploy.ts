@@ -3,10 +3,6 @@ import { DeployFunction } from 'hardhat-deploy/dist/types'
 
 /* Imports: Internal */
 import { deployAndRegister } from '../src/hardhat-deploy-ethers'
-import {
-  defaultHardhatNetworkHdAccountsConfigParams,
-  defaultHardhatNetworkParams,
-} from 'hardhat/internal/core/config/default-config'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()

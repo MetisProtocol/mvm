@@ -1,14 +1,14 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import { ethers } from 'ethers'
-import { hexStringEquals, registerAddress } from '../src/hardhat-deploy-ethers'
 /* Imports: Internal */
-import { predeploys } from '../src/predeploys'
 import {
   getContractInterface,
   getContractDefinition,
 } from '../src/contract-defs'
 import {
+  hexStringEquals,
+  registerAddress,
   getDeployedContract,
   waitUntilTrue,
   getAdvancedContract,
@@ -101,7 +101,7 @@ const deployFn: DeployFunction = async (hre) => {
 
   console.log(`Confirming that txDataSliceSize was correctly set...`)
   await waitUntilTrue(async () => {
-    return (await contract.txDataSliceSize()) == txDataSliceSize
+    return Number(await contract.txDataSliceSize()) === txDataSliceSize
   })
 
   console.log(`Setting stakeSeqSeconds to ${stakeSeqSeconds}...`)
@@ -113,7 +113,7 @@ const deployFn: DeployFunction = async (hre) => {
 
   console.log(`Confirming that stakeSeqSeconds was correctly set...`)
   await waitUntilTrue(async () => {
-    return (await contract.stakeSeqSeconds()) == stakeSeqSeconds
+    return Number(await contract.stakeSeqSeconds()) === stakeSeqSeconds
   })
 
   console.log(`Setting stakeBaseCost to ${stakeBaseCost}...`)
@@ -130,7 +130,7 @@ const deployFn: DeployFunction = async (hre) => {
 
   console.log(`Confirming that stakeBaseCost was correctly set...`)
   await waitUntilTrue(async () => {
-    return (await contract.stakeBaseCost()) == stakeBaseCost
+    return (await contract.stakeBaseCost()).toString() === stakeBaseCost
   })
 
   console.log(`Setting txDataSliceCount to ${txDataSliceCount}...`)
@@ -142,7 +142,7 @@ const deployFn: DeployFunction = async (hre) => {
 
   console.log(`Confirming that txDataSliceCount was correctly set...`)
   await waitUntilTrue(async () => {
-    return (await contract.txDataSliceCount()) == txDataSliceCount
+    return Number(await contract.txDataSliceCount()) === txDataSliceCount
   })
 
   console.log(`Setting txBatchSize to ${txBatchSize}...`)
@@ -154,7 +154,7 @@ const deployFn: DeployFunction = async (hre) => {
 
   console.log(`Confirming that txBatchSize was correctly set...`)
   await waitUntilTrue(async () => {
-    return (await contract.txBatchSize()) == txBatchSize
+    return Number(await contract.txBatchSize()) === txBatchSize
   })
 
   console.log(
@@ -167,7 +167,7 @@ const deployFn: DeployFunction = async (hre) => {
     return (
       (await contract.isWhiteListed(
         (hre as any).deployConfig.mvmMetisManager
-      )) == true
+      )) === true
     )
   })
 
@@ -206,23 +206,23 @@ const deployFn: DeployFunction = async (hre) => {
     args: [],
   })
 
-  /**
-  const MVM_DiscountOracle = await getDeployedContract(
-    hre,
-    'MVM_DiscountOracle',
-    {
-      signerOrProvider: deployer,
-      iface: 'MVM_DiscountOracle',
-    }
-  )
-  
-  // setAddressChainId discountOracle to l2chainid
-  await MVM_CanonicalTransaction.setAddressChainId(MVM_DiscountOracle.address, (hre as any).deployConfig.l2chainid)
-  console.log(`set MVM_DiscountOracle address ${MVM_DiscountOracle.address} to l2chainid ${(hre as any).deployConfig.l2chainid}`)
-  
-  // setAddressChainId discountOracle to l2chainid
-  await contract.setAddressChainId(MVM_DiscountOracle.address, (hre as any).deployConfig.l2chainid)
-  console.log(`Proxy set MVM_DiscountOracle address ${MVM_DiscountOracle.address} to l2chainid ${(hre as any).deployConfig.l2chainid}`)
+  /*
+    const MVM_DiscountOracle = await getDeployedContract(
+      hre,
+      'MVM_DiscountOracle',
+      {
+        signerOrProvider: deployer,
+        iface: 'MVM_DiscountOracle',
+      }
+    )
+
+    // setAddressChainId discountOracle to l2chainid
+    await MVM_CanonicalTransaction.setAddressChainId(MVM_DiscountOracle.address, (hre as any).deployConfig.l2chainid)
+    console.log(`set MVM_DiscountOracle address ${MVM_DiscountOracle.address} to l2chainid ${(hre as any).deployConfig.l2chainid}`)
+
+    // setAddressChainId discountOracle to l2chainid
+    await contract.setAddressChainId(MVM_DiscountOracle.address, (hre as any).deployConfig.l2chainid)
+    console.log(`Proxy set MVM_DiscountOracle address ${MVM_DiscountOracle.address} to l2chainid ${(hre as any).deployConfig.l2chainid}`)
   */
 }
 

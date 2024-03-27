@@ -1,18 +1,14 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import { ethers } from 'ethers'
-import { hexStringEquals } from '../src/hardhat-deploy-ethers'
-import {
-  defaultHardhatNetworkHdAccountsConfigParams,
-  defaultHardhatNetworkParams,
-} from 'hardhat/internal/core/config/default-config'
+
 /* Imports: Internal */
-import { predeploys } from '../src/predeploys'
 import {
   getContractInterface,
   getContractDefinition,
 } from '../src/contract-defs'
 import {
+  hexStringEquals,
   getDeployedContract,
   waitUntilTrue,
   getAdvancedContract,

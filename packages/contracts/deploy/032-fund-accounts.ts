@@ -44,10 +44,16 @@ const deployFn: DeployFunction = async (hre) => {
         )
         const balance = await wallet.getBalance()
         const depositAmount = balance.div(2) // Deposit half of the wallet's balance into L2.
-        await L1StandardBridge.connect(wallet).depositETH(8_000_000, '0x', {
-          value: depositAmount,
-          gasLimit: 2_000_000, // Idk, gas estimation was broken and this fixes it.
-        })
+        await L1StandardBridge.connect(wallet).depositETHToByChainId(
+          (hre as any).deployConfig.l2chainid,
+          wallet.address,
+          8_000_000,
+          '0x',
+          {
+            value: depositAmount,
+            gasLimit: 2_000_000, // Idk, gas estimation was broken and this fixes it.
+          }
+        )
         console.log(
           `✓ Funded ${wallet.address} on L2 with ${hre.ethers.utils.formatEther(
             depositAmount

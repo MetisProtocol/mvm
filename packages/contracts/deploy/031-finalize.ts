@@ -1,9 +1,9 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
-import { hexStringEquals } from '../src/hardhat-deploy-ethers'
 
 /* Imports: Internal */
 import {
+  hexStringEquals,
   getDeployedContract,
   waitUntilTrue,
 } from '../src/hardhat-deploy-ethers'

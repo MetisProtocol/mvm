@@ -1,11 +1,7 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import { ethers } from 'ethers'
-import { hexStringEquals } from '../src/hardhat-deploy-ethers'
-import {
-  defaultHardhatNetworkHdAccountsConfigParams,
-  defaultHardhatNetworkParams,
-} from 'hardhat/internal/core/config/default-config'
+import { defaultHardhatNetworkParams } from 'hardhat/internal/core/config/default-config'
 /* Imports: Internal */
 import { predeploys } from '../src/predeploys'
 import {
@@ -13,6 +9,7 @@ import {
   getContractDefinition,
 } from '../src/contract-defs'
 import {
+  hexStringEquals,
   getDeployedContract,
   waitUntilTrue,
   getAdvancedContract,
@@ -27,19 +24,11 @@ const deployFn: DeployFunction = async (hre) => {
   )
 
   const { chainId } = await hre.ethers.provider.getNetwork()
-  var bridge
-  if (chainId === defaultHardhatNetworkParams.chainId) {
-    bridge = 'L1StandardBridgeLocal'
-  } else {
-    bridge = 'L1StandardBridge'
-  }
-  const L1StandardBridge = await getDeployedContract(
-    hre,
-    'Proxy__OVM_L1StandardBridge',
-    {
-      iface: bridge,
-    }
-  )
+  const bridge =
+    chainId === defaultHardhatNetworkParams.chainId
+      ? 'L1StandardBridgeLocal'
+      : 'L1StandardBridge'
+
   // Set up a reference to the proxy as if it were the L1StandardBridge contract.
   const contract = await getDeployedContract(
     hre,

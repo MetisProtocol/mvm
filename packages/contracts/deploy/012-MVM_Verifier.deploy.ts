@@ -1,14 +1,14 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import { ethers } from 'ethers'
-import { hexStringEquals, registerAddress } from '../src/hardhat-deploy-ethers'
 /* Imports: Internal */
-import { predeploys } from '../src/predeploys'
 import {
   getContractInterface,
   getContractDefinition,
 } from '../src/contract-defs'
 import {
+  hexStringEquals,
+  registerAddress,
   getDeployedContract,
   waitUntilTrue,
   getAdvancedContract,
@@ -115,7 +115,7 @@ const deployFn: DeployFunction = async (hre) => {
     return (
       (await contract.isWhiteListed(
         (hre as any).deployConfig.mvmMetisManager
-      )) == true
+      )) === true
     )
   })
 
