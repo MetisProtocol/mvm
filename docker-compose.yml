@@ -119,7 +119,6 @@ services:
       ROLLUP_TIMESTAMP_REFRESH: 1s
       ROLLUP_BACKEND: 'l1'
       ROLLUP_POLL_INTERVAL_FLAG: '1s'
-      ROLLUP_ENABLE_L2_GAS_POLLING: 'true'
       ETH1_CTC_DEPLOYMENT_HEIGHT: 1
       ROLLUP_STATE_DUMP_PATH: http://deployer:8081/state-dump.latest.json
       ROLLUP_CLIENT_HTTP: http://l1dtl:7878
