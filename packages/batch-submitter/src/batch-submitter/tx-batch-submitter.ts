@@ -526,9 +526,9 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
           this.encodeSequencerBatchOptions
         )
 
-    this.logger.info('submitter with mpc', { url: this.mpcUrl })
     // MPC enabled: prepare nonce, gasPrice
     if (this.mpcUrl) {
+      this.logger.info('submitter with mpc', { url: this.mpcUrl })
       const mpcClient = new MpcClient(this.mpcUrl)
       const mpcInfo = await mpcClient.getLatestMpc()
       if (!mpcInfo || !mpcInfo.mpc_address) {

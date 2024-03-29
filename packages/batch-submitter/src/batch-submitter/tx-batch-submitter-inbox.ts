@@ -147,7 +147,6 @@ export class TransactionBatchSubmitterInbox {
       ) => Promise<boolean>
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
-    this.logger.info('submitter with mpc', { url: mpcUrl })
     const tx: PopulatedTransaction = {
       to: this.inboxAddress,
       data: '0x' + batchParams.inputData,
@@ -155,6 +154,7 @@ export class TransactionBatchSubmitterInbox {
     }
     // MPC enabled: prepare nonce, gasPrice
     if (mpcUrl) {
+      this.logger.info('submitter with mpc', { url: mpcUrl })
       const mpcClient = new MpcClient(mpcUrl)
       const mpcInfo = await mpcClient.getLatestMpc()
       if (!mpcInfo || !mpcInfo.mpc_address) {
