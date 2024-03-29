@@ -40,15 +40,24 @@ const deployFn: DeployFunction = async (hre) => {
     address: deployer,
   })
 
-  await MVM_DiscountOracle.setWhitelistedXDomainSender(l1bridge.address, true)
-  const accessStored =
-    await MVM_DiscountOracle.callStatic.isXDomainSenderAllowed(l1bridge.address)
-  console.log('l1bridge.address access:', accessStored)
+  if ((hre as any).deployConfig.allowAllXDomainSenders) {
+    console.log('set allowAllXDomainSenders')
+    await MVM_DiscountOracle.setAllowAllXDomainSenders(true)
+  } else {
+    await MVM_DiscountOracle.setWhitelistedXDomainSender(l1bridge.address, true)
+    const accessStored =
+      await MVM_DiscountOracle.callStatic.isXDomainSenderAllowed(
+        l1bridge.address
+      )
+    console.log('l1bridge.address access:', accessStored)
 
-  await MVM_DiscountOracle.setWhitelistedXDomainSender(chainmgr.address, true)
-  const accessStored2 =
-    await MVM_DiscountOracle.callStatic.isXDomainSenderAllowed(chainmgr.address)
-  console.log('chainmgr.address access:', accessStored2)
+    await MVM_DiscountOracle.setWhitelistedXDomainSender(chainmgr.address, true)
+    const accessStored2 =
+      await MVM_DiscountOracle.callStatic.isXDomainSenderAllowed(
+        chainmgr.address
+      )
+    console.log('chainmgr.address access:', accessStored2)
+  }
 }
 
 deployFn.tags = ['MVM_DiscountOracle', 'upgrade3']

@@ -96,6 +96,12 @@ task('deploy')
     undefined,
     types.int
   )
+  .addOptionalParam(
+    'allowAllXDomainSenders',
+    'allow all XDomainSenders',
+    false,
+    types.boolean
+  )
   .setAction(async (args, hre: any, runSuper) => {
     // Necessary because hardhat doesn't let us attach non-optional parameters to existing tasks.
     const validateAddressArg = (argName: string) => {
