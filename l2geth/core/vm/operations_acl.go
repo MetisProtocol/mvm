@@ -22,6 +22,8 @@ import (
 	"github.com/ethereum-optimism/optimism/l2geth/common"
 	"github.com/ethereum-optimism/optimism/l2geth/common/math"
 	"github.com/ethereum-optimism/optimism/l2geth/params"
+	"github.com/ethereum-optimism/optimism/l2geth/rollup/dump"
+	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
 )
 
 func makeGasSStoreFunc(clearingRefund uint64) gasFunc {
@@ -56,26 +58,27 @@ func makeGasSStoreFunc(clearingRefund uint64) gasFunc {
 			//		return params.SloadGasEIP2200, nil
 			return cost + params.WarmStorageReadCostEIP2929, nil // SLOAD_GAS
 		}
+		isOvmRefund := rcfg.UsingOVM && evm.chainConfig.IsRFDUpdate(evm.BlockNumber) && dump.OvmEthAddress == contract.Address()
 		original := evm.StateDB.GetCommittedState(contract.Address(), common.BigToHash(x))
 		if original == current {
 			if original == (common.Hash{}) { // create slot (2.1.1)
 				return cost + params.SstoreSetGasEIP2200, nil
 			}
-			if value == (common.Hash{}) { // delete slot (2.1.2b)
+			if value == (common.Hash{}) && !isOvmRefund { // delete slot (2.1.2b)
 				evm.StateDB.AddRefund(clearingRefund)
 			}
 			// EIP-2200 original clause:
 			//		return params.SstoreResetGasEIP2200, nil // write existing slot (2.1.2)
 			return cost + (params.SstoreResetGasEIP2200 - params.ColdSloadCostEIP2929), nil // write existing slot (2.1.2)
 		}
-		if original != (common.Hash{}) {
+		if original != (common.Hash{}) && !isOvmRefund {
 			if current == (common.Hash{}) { // recreate slot (2.2.1.1)
 				evm.StateDB.SubRefund(clearingRefund)
 			} else if value == (common.Hash{}) { // delete slot (2.2.1.2)
 				evm.StateDB.AddRefund(clearingRefund)
 			}
 		}
-		if original == value {
+		if original == value && !isOvmRefund {
 			if original == (common.Hash{}) { // reset to original inexistent slot (2.2.2.1)
 				// EIP 2200 Original clause:
 				//evm.StateDB.AddRefund(params.SstoreSetGasEIP2200 - params.SloadGasEIP2200)

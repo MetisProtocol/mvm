@@ -227,16 +227,18 @@ var (
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int))
 
-	MainnetChainID = big.NewInt(1088)
+	MetisMainnetChainID = big.NewInt(1088)
 
-	// OpKovanChainID is the ID of Optimism's Kovan testnet chain.
-	OpKovanChainID = big.NewInt(69)
+	MetisSepoliaChainID = big.NewInt(59902)
 
-	// AndromedaMainnetSDUpdateForkNum is the height at which the SD update fork activates on Mainnet.
-	AndromedaMainnetSDUpdateForkNum = big.NewInt(750000)
+	// MetisMainnetSDUpdateForkNum is the height at which the SD update fork activates on Mainnet.
+	MetisMainnetSDUpdateForkNum = big.NewInt(750000)
 
-	// OpKovanSDUpdateForkNum is the height at which the SD update fork activates on Kovan.
-	OpKovanSDUpdateForkNum = big.NewInt(1094820)
+	// MetisMainnetRFDUpdateForkNum is the height at which the refund(RFD) update fork activates on Mainnet.
+	MetisMainnetRFDUpdateForkNum = big.NewInt(16500000)
+
+	// MetisSepoliaRFDUpdateForkNum is the height at which the refund(RFD) update fork activates on Goerli.
+	MetisSepoliaRFDUpdateForkNum = big.NewInt(600000)
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -427,11 +429,19 @@ func (c *ChainConfig) IsEWASM(num *big.Int) bool {
 
 // IsSDUpdate returns whether num represents a block number after the SD update fork
 func (c *ChainConfig) IsSDUpdate(num *big.Int) bool {
-	if c.ChainID.Cmp(MainnetChainID) == 0 {
-		return isForked(AndromedaMainnetSDUpdateForkNum, num)
+	if c.ChainID.Cmp(MetisMainnetChainID) == 0 {
+		return isForked(MetisMainnetSDUpdateForkNum, num)
 	}
-	if c.ChainID.Cmp(OpKovanChainID) == 0 {
-		return isForked(OpKovanSDUpdateForkNum, num)
+	return true
+}
+
+// IsRFDUpdate returns whether num represents a block number after the refund update fork
+func (c *ChainConfig) IsRFDUpdate(num *big.Int) bool {
+	if c.ChainID.Cmp(MetisMainnetChainID) == 0 {
+		return isForked(MetisMainnetRFDUpdateForkNum, num)
+	}
+	if c.ChainID.Cmp(MetisSepoliaChainID) == 0 {
+		return isForked(MetisSepoliaRFDUpdateForkNum, num)
 	}
 	return true
 }

@@ -22,6 +22,8 @@ import (
 	"github.com/ethereum-optimism/optimism/l2geth/common"
 	"github.com/ethereum-optimism/optimism/l2geth/common/math"
 	"github.com/ethereum-optimism/optimism/l2geth/params"
+	"github.com/ethereum-optimism/optimism/l2geth/rollup/dump"
+	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
 )
 
 // memoryGasCost calculates the quadratic gas for memory expansion. It does so
@@ -98,6 +100,7 @@ func gasSStore(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySi
 		y, x    = stack.Back(1), stack.Back(0)
 		current = evm.StateDB.GetState(contract.Address(), common.BigToHash(x))
 	)
+	isOvmRefund := rcfg.UsingOVM && evm.chainConfig.IsRFDUpdate(evm.BlockNumber) && dump.OvmEthAddress == contract.Address()
 	// The legacy gas metering only takes into consideration the current state
 	// Legacy rules should be applied if we are in Petersburg (removal of EIP-1283)
 	// OR Constantinople is not active
@@ -111,7 +114,9 @@ func gasSStore(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySi
 		case current == (common.Hash{}) && y.Sign() != 0: // 0 => non 0
 			return params.SstoreSetGas, nil
 		case current != (common.Hash{}) && y.Sign() == 0: // non 0 => 0
-			evm.StateDB.AddRefund(params.SstoreRefundGas)
+			if !isOvmRefund {
+				evm.StateDB.AddRefund(params.SstoreRefundGas)
+			}
 			return params.SstoreClearGas, nil
 		default: // non 0 => non 0 (or 0 => 0)
 			return params.SstoreResetGas, nil
@@ -140,19 +145,19 @@ func gasSStore(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySi
 		if original == (common.Hash{}) { // create slot (2.1.1)
 			return params.NetSstoreInitGas, nil
 		}
-		if value == (common.Hash{}) { // delete slot (2.1.2b)
+		if value == (common.Hash{}) && !isOvmRefund { // delete slot (2.1.2b)
 			evm.StateDB.AddRefund(params.NetSstoreClearRefund)
 		}
 		return params.NetSstoreCleanGas, nil // write existing slot (2.1.2)
 	}
-	if original != (common.Hash{}) {
+	if original != (common.Hash{}) && !isOvmRefund {
 		if current == (common.Hash{}) { // recreate slot (2.2.1.1)
 			evm.StateDB.SubRefund(params.NetSstoreClearRefund)
 		} else if value == (common.Hash{}) { // delete slot (2.2.1.2)
 			evm.StateDB.AddRefund(params.NetSstoreClearRefund)
 		}
 	}
-	if original == value {
+	if original == value && !isOvmRefund {
 		if original == (common.Hash{}) { // reset to original inexistent slot (2.2.2.1)
 			evm.StateDB.AddRefund(params.NetSstoreResetClearRefund)
 		} else { // reset to original existing slot (2.2.2.2)
@@ -186,7 +191,7 @@ func gasSStoreEIP2200(evm *EVM, contract *Contract, stack *Stack, mem *Memory, m
 		current = evm.StateDB.GetState(contract.Address(), common.BigToHash(x))
 	)
 	value := common.BigToHash(y)
-
+	isOvmRefund := rcfg.UsingOVM && evm.chainConfig.IsRFDUpdate(evm.BlockNumber) && dump.OvmEthAddress == contract.Address()
 	if current == value { // noop (1)
 		return params.SstoreNoopGasEIP2200, nil
 	}
@@ -195,19 +200,19 @@ func gasSStoreEIP2200(evm *EVM, contract *Contract, stack *Stack, mem *Memory, m
 		if original == (common.Hash{}) { // create slot (2.1.1)
 			return params.SstoreInitGasEIP2200, nil
 		}
-		if value == (common.Hash{}) { // delete slot (2.1.2b)
+		if value == (common.Hash{}) && !isOvmRefund { // delete slot (2.1.2b)
 			evm.StateDB.AddRefund(params.SstoreClearRefundEIP2200)
 		}
 		return params.SstoreCleanGasEIP2200, nil // write existing slot (2.1.2)
 	}
-	if original != (common.Hash{}) {
+	if original != (common.Hash{}) && !isOvmRefund {
 		if current == (common.Hash{}) { // recreate slot (2.2.1.1)
 			evm.StateDB.SubRefund(params.SstoreClearRefundEIP2200)
 		} else if value == (common.Hash{}) { // delete slot (2.2.1.2)
 			evm.StateDB.AddRefund(params.SstoreClearRefundEIP2200)
 		}
 	}
-	if original == value {
+	if original == value && !isOvmRefund {
 		if original == (common.Hash{}) { // reset to original inexistent slot (2.2.2.1)
 			evm.StateDB.AddRefund(params.SstoreInitRefundEIP2200)
 		} else { // reset to original existing slot (2.2.2.2)
