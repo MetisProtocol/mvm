@@ -96,7 +96,7 @@ export const makeL2GenesisFile = async (
     },
     MVM_Coinbase: {
       l2Bridge: predeploys.L2StandardBridge,
-      l1Token: cfg.l1MetisAddress,
+      l1Token: ethers.constants.AddressZero,
       _name: 'Metis Token',
       _symbol: 'Metis',
     },
