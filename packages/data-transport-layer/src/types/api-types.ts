@@ -80,5 +80,5 @@ export interface AppendBatchElementResponse {
 }
 
 export interface HighestResponse {
-  blockNumber: null | number
+  blockNumber: number
 }
