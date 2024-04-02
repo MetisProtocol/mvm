@@ -294,6 +294,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
         // add start batchInboxL1Height, when highestSyncedL1BatchIndex + 1 < inboxBatchStart, sync first
         if (
+          this.options.syncL1Batch &&
           hasInboxConfig &&
           this.options.batchInboxL1Height &&
           this.options.batchInboxL1Height > 0 &&
