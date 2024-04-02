@@ -37,6 +37,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
       l2ChainId: config.uint('l2-chain-id'),
       syncFromL1: config.bool('sync-from-l1', true),
       syncFromL2: config.bool('sync-from-l2', false),
+      syncL1Batch: config.bool('sync-l1-batch', true),
       transactionsPerPollingInterval: config.uint(
         'transactions-per-polling-interval',
         1000

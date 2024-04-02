@@ -34,6 +34,10 @@ export class L1DataTransportClient {
     return this._get(`/eth/syncing/${this._chainId}`)
   }
 
+  public async highestL1(): Promise<SyncingResponse> {
+    return this._get(`/highest/l1`)
+  }
+
   public async getEnqueueByIndex(index: number): Promise<EnqueueResponse> {
     return this._get(`/enqueue/index/${index}/${this._chainId}`)
   }

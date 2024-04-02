@@ -331,45 +331,47 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           handleEventsTransactionEnqueued
         )
 
-        if (!useBatchInbox) {
-          await this._syncEvents(
-            'CanonicalTransactionChain',
-            'SequencerBatchAppended',
+        if (this.options.syncL1Batch) {
+          if (!useBatchInbox) {
+            await this._syncEvents(
+              'CanonicalTransactionChain',
+              'SequencerBatchAppended',
+              highestSyncedL1Block,
+              targetL1Block,
+              handleEventsSequencerBatchAppended
+            )
+
+            await this._syncEvents(
+              'Proxy__MVM_CanonicalTransaction',
+              'VerifierStake',
+              highestSyncedL1Block,
+              targetL1Block,
+              handleEventsVerifierStake
+            )
+
+            await this._syncEvents(
+              'Proxy__MVM_CanonicalTransaction',
+              'AppendBatchElement',
+              highestSyncedL1Block,
+              targetL1Block,
+              handleEventsAppendBatchElement
+            )
+          }
+
+          await this._syncInboxBatch(
             highestSyncedL1Block,
             targetL1Block,
-            handleEventsSequencerBatchAppended
+            handleEventsSequencerBatchInbox
           )
 
           await this._syncEvents(
-            'Proxy__MVM_CanonicalTransaction',
-            'VerifierStake',
+            'StateCommitmentChain',
+            'StateBatchAppended',
             highestSyncedL1Block,
             targetL1Block,
-            handleEventsVerifierStake
-          )
-
-          await this._syncEvents(
-            'Proxy__MVM_CanonicalTransaction',
-            'AppendBatchElement',
-            highestSyncedL1Block,
-            targetL1Block,
-            handleEventsAppendBatchElement
+            handleEventsStateBatchAppended
           )
         }
-
-        await this._syncInboxBatch(
-          highestSyncedL1Block,
-          targetL1Block,
-          handleEventsSequencerBatchInbox
-        )
-
-        await this._syncEvents(
-          'StateCommitmentChain',
-          'StateBatchAppended',
-          highestSyncedL1Block,
-          targetL1Block,
-          handleEventsStateBatchAppended
-        )
 
         await this.state.db.setHighestSyncedL1Block(targetL1Block)
 
