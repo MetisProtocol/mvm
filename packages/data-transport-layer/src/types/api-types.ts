@@ -78,3 +78,7 @@ export interface VerifierStakeResponse {
 export interface AppendBatchElementResponse {
   batchElement: AppendBatchElementEntry
 }
+
+export interface HighestResponse {
+  blockNumber: number
+}

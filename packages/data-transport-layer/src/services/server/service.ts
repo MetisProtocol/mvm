@@ -27,6 +27,7 @@ import {
   VerifierResultEntry,
   VerifierStakeResponse,
   AppendBatchElementResponse,
+  HighestResponse,
 } from '../../types'
 import { validators } from '../../utils'
 import { L1DataTransportServiceOptions } from '../main/service'
@@ -332,6 +333,18 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
             syncing: false,
             currentTransactionIndex: currentL2Block.index,
           }
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
+      '/highest/l1',
+      async (req): Promise<HighestResponse> => {
+        const db = await this._getDb(null)
+        const blockNumber = await db.getHighestSyncedL1Block()
+        return {
+          blockNumber,
         }
       }
     )

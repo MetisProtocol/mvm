@@ -29,6 +29,7 @@ export interface L1DataTransportServiceOptions {
   port: number
   syncFromL1?: boolean
   syncFromL2?: boolean
+  syncL1Batch: boolean
   transactionsPerPollingInterval: number
   legacySequencerCompatibility: boolean
   useSentry?: boolean
