@@ -1282,6 +1282,14 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 	batch := bc.db.NewBatch()
 	rawdb.WriteTd(batch, block.Hash(), block.NumberU64(), td)
 	rawdb.WriteBlock(batch, block)
+	txsCount := len(block.Transactions())
+	for _, tx := range block.Transactions() {
+		if txsCount == 1 {
+			rawdb.WriteTransactionMeta(batch, block.NumberU64(), tx.GetMeta())
+		} else {
+			rawdb.WriteTransactionMetaHash(batch, tx.Hash(), tx.GetMeta())
+		}
+	}
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write block into disk", "err", err)
 	}
