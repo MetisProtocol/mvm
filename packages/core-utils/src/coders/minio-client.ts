@@ -89,7 +89,7 @@ export class MinioClient {
       )
       console.info('write object successfully', objectKey)
     } catch (x) {
-      console.error('write object err', x.message)
+      console.error('write object err', x)
       if (tryCount <= 0) {
         return ''
       }
@@ -115,33 +115,25 @@ export class MinioClient {
     }
     let data = ''
     try {
-      let self = this
       const bucketName = await this.ensureBucket()
-      data = await new Promise(function (resolve, reject) {
+      data = await new Promise((resolve, reject) => {
         let chunks = ''
-        self.client.getObject(
-          bucketName,
-          objectName,
-          function (err, dataStream) {
-            if (err) {
-              reject(err)
-              return
-            }
-            dataStream.on('data', function (chunk) {
-              chunks += chunk
-            })
-            dataStream.on('end', function () {
-              resolve(chunks)
-            })
-            dataStream.on('error', function (err) {
-              console.log(err)
-              reject(err)
-            })
+        this.client.getObject(bucketName, objectName, (err, dataStream) => {
+          if (err) {
+            reject(err)
+            return
           }
-        )
+          dataStream.on('data', (chunk) => {
+            chunks += chunk
+          })
+          dataStream.on('end', () => {
+            resolve(chunks)
+          })
+          dataStream.on('error', reject)
+        })
       })
       if (!data || data.length === 0) {
-        throw 'getObject err: readable.read'
+        throw new Error('no data')
       }
     } catch (x) {
       console.error('read object err', x.message)
@@ -169,12 +161,12 @@ export class MinioClient {
       const bucketName = await this.ensureBucket()
       const stat = await this.client.statObject(bucketName, objectName)
       if (!stat) {
-        throw 'statObject failed'
+        throw new Error(`no stat found: ${bucketName}/${objectName}`)
       }
       meta = stat.metaData
       if (
-        meta['x-metis-meta-tx-start'] == 'undefined' ||
-        meta['x-metis-meta-tx-total'] == 'undefined' ||
+        typeof meta['x-metis-meta-tx-start'] === 'undefined' ||
+        typeof meta['x-metis-meta-tx-total'] === 'undefined' ||
         !meta['x-metis-meta-tx-timestamp']
       ) {
         return false
