@@ -130,36 +130,21 @@ func (t *Transaction) SetTransactionMeta(meta *TransactionMeta) {
 }
 
 func (t *Transaction) GetMeta() *TransactionMeta {
-	if &t.meta == nil {
-		return nil
-	}
 	return &t.meta
 }
 func (t *Transaction) SetIndex(index uint64) {
-	if &t.meta == nil {
-		return
-	}
 	t.meta.Index = &index
 }
 
 func (t *Transaction) SetL1Timestamp(ts uint64) {
-	if &t.meta == nil {
-		return
-	}
 	t.meta.L1Timestamp = ts
 }
 
 func (t *Transaction) L1Timestamp() uint64 {
-	if &t.meta == nil {
-		return 0
-	}
 	return t.meta.L1Timestamp
 }
 
 func (t *Transaction) SetL1BlockNumber(bn uint64) {
-	if &t.meta == nil {
-		return
-	}
 	t.meta.L1BlockNumber = new(big.Int).SetUint64(bn)
 }
 
@@ -225,18 +210,12 @@ func (t *Transaction) SetL2Tx(l2tx uint) {
 }
 
 func (t *Transaction) SetSeqSign(signResult *SeqSign) {
-	if &t.meta == nil {
-		return
-	}
 	t.meta.R = signResult.R
 	t.meta.S = signResult.S
 	t.meta.V = signResult.V
 }
 
 func (t *Transaction) GetSeqSign() *SeqSign {
-	if &t.meta == nil {
-		return nil
-	}
 	if t.meta.R == nil || t.meta.R.Sign() == 0 {
 		return nil
 	}
