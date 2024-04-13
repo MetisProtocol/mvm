@@ -69,4 +69,5 @@ exec geth \
   --port $PORT \
   --bootnodes="${BOOTNODES}" \
   --syncmode full \
+  --txpool.nolocals="1" \
   "$@"
