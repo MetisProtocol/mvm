@@ -307,11 +307,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       localInboxRecord,
     })
 
-    let endBlock =
-      Math.min(
-        startBlock + this.maxBatchSize,
-        await this.l2Provider.getBlockNumber()
-      ) + 1 // +1 because the `endBlock` is *exclusive*
+    const l2HeighestBlock = await this.l2Provider.getBlockNumber()
+    let endBlock = Math.min(startBlock + this.maxBatchSize, l2HeighestBlock) + 1 // +1 because the `endBlock` is *exclusive*
     // if for seqset upgrade only, end block should less than or equal with seqsetValidHeight-1,
     // this perhaps cause data size to low, force submit
     if (
@@ -335,7 +332,11 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       const l2FinalizeBlock = await this.seqsetContract.finalizedBlock()
       const l2FinalizeBlockNum = BigNumber.from(l2FinalizeBlock).toNumber()
       if (l2FinalizeBlockNum > 0) {
-        endBlock = Math.min(endBlock, l2FinalizeBlockNum + 1)
+        endBlock = Math.min(
+          endBlock,
+          l2FinalizeBlockNum,
+          Math.max(l2HeighestBlock - 200, 0)
+        )
       }
     }
 
