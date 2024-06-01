@@ -1300,16 +1300,26 @@ func (s *SyncService) applyTransactionToPool(tx *types.Transaction, fromLocal bo
 	s.SetLatestIndex(tx.GetMeta().Index)
 	s.SetLatestIndexTime(time.Now().Unix())
 	s.SetLatestVerifiedIndex(tx.GetMeta().Index)
-	if queueIndex := tx.GetMeta().QueueIndex; queueIndex != nil {
-		latestEnqueue := s.GetLatestEnqueueIndex()
-		if latestEnqueue == nil || *latestEnqueue < *queueIndex {
-			s.SetLatestEnqueueIndex(queueIndex)
-		}
-	}
 
 	// TODO should add a outer listen to updated LatestIndex
 	if len(s.chainHeadCh) > 0 {
 		<-s.chainHeadCh
+	}
+	if queueIndex := tx.GetMeta().QueueIndex; queueIndex != nil {
+		latestEnqueue := s.GetLatestEnqueueIndex()
+		if latestEnqueue == nil || *latestEnqueue < *queueIndex {
+			s.SetLatestEnqueueIndex(queueIndex)
+			if !fromLocal {
+				// check tx
+				qTx, _, _, _ := rawdb.ReadTransaction(s.db, tx.Hash())
+				if qTx == nil {
+					log.Warn("sync from other node enqueue not found, restore it", "hash", tx.Hash().Hex(), "equeue", *queueIndex)
+					s.SetLatestEnqueueIndex(latestEnqueue)
+				} else {
+					log.Debug("sync from other node enqueue found", "hash", tx.Hash().Hex(), "equeue", *queueIndex)
+				}
+			}
+		}
 	}
 
 	sender, _ := types.Sender(s.signer, tx)

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/ethereum-optimism/optimism/l2geth/contracts/checkpointoracle/contract/seqset"
 	"github.com/ethereum-optimism/optimism/l2geth/core"
@@ -27,6 +28,12 @@ type RollupAdapter interface {
 	RecoverSeqAddress(tx *types.Transaction) (string, error)
 	// get tx sequencer for checking tx is valid
 	GetTxSequencer(tx *types.Transaction, expectIndex uint64) (common.Address, error)
+	GetEpochByBlockNumber(expectIndex uint64) (struct {
+		Number     *big.Int
+		Signer     common.Address
+		StartBlock *big.Int
+		EndBlock   *big.Int
+	}, error)
 	// check current sequencer is working
 	// CheckSequencerIsWorking() bool
 	//
@@ -70,6 +77,7 @@ type SeqAdapter struct {
 	bc                     *core.BlockChain
 	seqContract            *seqset.Seqset
 	cachedSeqEpoch         *CachedSeqEpoch
+	cachedSeqMux           sync.Mutex
 	preRespan              *PreRespan
 }
 
@@ -119,19 +127,65 @@ func (s *SeqAdapter) removeFirstRespan(arr []*big.Int) []*big.Int {
 	return arr
 }
 
-func (s *SeqAdapter) getSequencer(expectIndex uint64) (common.Address, error) {
+func (s *SeqAdapter) ensureSeqContract() error {
 	var err error
 	if s.localL2Conn == nil {
 		s.localL2Conn, err = ethclient.Dial(s.localL2Url)
 		if err != nil {
-			return common.Address{}, err
+			return err
 		}
 		s.seqContract, err = seqset.NewSeqset(s.l2SeqContract, s.localL2Conn)
 		if err != nil {
 			log.Error("Connect contract err", "l2SeqContract", s.l2SeqContract, "err", err)
 			s.localL2Conn = nil
-			return common.Address{}, err
+			return err
 		}
+	}
+	return nil
+}
+
+func (s *SeqAdapter) GetEpochByBlockNumber(expectIndex uint64) (struct {
+	Number     *big.Int
+	Signer     common.Address
+	StartBlock *big.Int
+	EndBlock   *big.Int
+}, error) {
+	ret := new(struct {
+		Number     *big.Int
+		Signer     common.Address
+		StartBlock *big.Int
+		EndBlock   *big.Int
+	})
+	err := s.ensureSeqContract()
+	if err != nil {
+		return *ret, err
+	}
+	epochNumber, err := s.seqContract.GetEpochByBlock(nil, big.NewInt(int64(expectIndex)))
+	if err != nil {
+		log.Error("Get sequencer error when GetEpochByBlock", "err", err)
+		return *ret, err
+	}
+	currentEpochNumber, err := s.seqContract.CurrentEpochNumber(nil)
+	if err != nil {
+		log.Error("Get sequencer error when CurrentEpochNumber", "err", err)
+		return *ret, err
+	}
+	if epochNumber.Uint64() > currentEpochNumber.Uint64() {
+		log.Error("Get sequencer incorrect epoch number", "epoch", epochNumber.Uint64(), "current", currentEpochNumber.Uint64())
+		return *ret, errors.New("get sequencer incorrect epoch number")
+	}
+	epoch, err := s.seqContract.Epochs(nil, epochNumber)
+	if err != nil {
+		log.Error("Get sequencer error when Epochs", "err", err)
+		return *ret, err
+	}
+	return epoch, nil
+}
+
+func (s *SeqAdapter) getSequencer(expectIndex uint64) (common.Address, error) {
+	err := s.ensureSeqContract()
+	if err != nil {
+		return common.Address{}, err
 	}
 	if s.cachedSeqEpoch.Status && (s.cachedSeqEpoch.StartBlock.Uint64() > expectIndex || s.cachedSeqEpoch.EndBlock.Uint64() < expectIndex) {
 		s.cachedSeqEpoch.Status = false
@@ -164,21 +218,7 @@ func (s *SeqAdapter) getSequencer(expectIndex uint64) (common.Address, error) {
 		// start loading cache
 		log.Info("get tx seqeuencer start epoch cache")
 		// re-cache the epoch info
-		epochNumber, err := s.seqContract.GetEpochByBlock(nil, big.NewInt(int64(expectIndex)))
-		if err != nil {
-			log.Error("Get sequencer error when GetEpochByBlock", "err", err)
-			return common.Address{}, err
-		}
-		currentEpochNumber, err := s.seqContract.CurrentEpochNumber(nil)
-		if err != nil {
-			log.Error("Get sequencer error when CurrentEpochNumber", "err", err)
-			return common.Address{}, err
-		}
-		if epochNumber.Uint64() > currentEpochNumber.Uint64() {
-			log.Error("Get sequencer incorrect epoch number", "epoch", epochNumber.Uint64(), "current", currentEpochNumber.Uint64())
-			return common.Address{}, errors.New("get sequencer incorrect epoch number")
-		}
-		epoch, err := s.seqContract.Epochs(nil, epochNumber)
+		epoch, err := s.GetEpochByBlockNumber(expectIndex)
 		if err != nil {
 			log.Error("Get sequencer error when Epochs", "err", err)
 			return common.Address{}, err
@@ -206,18 +246,9 @@ func (s *SeqAdapter) GetFinalizedBlock() (uint64, error) {
 	if blockNumber < s.seqContractValidHeight {
 		return blockNumber, nil
 	}
-	var err error
-	if s.localL2Conn == nil {
-		s.localL2Conn, err = ethclient.Dial(s.localL2Url)
-		if err != nil {
-			return 0, err
-		}
-		s.seqContract, err = seqset.NewSeqset(s.l2SeqContract, s.localL2Conn)
-		if err != nil {
-			log.Error("Connect contract err", "l2SeqContract", s.l2SeqContract, "err", err)
-			s.localL2Conn = nil
-			return 0, err
-		}
+	err := s.ensureSeqContract()
+	if err != nil {
+		return 0, err
 	}
 	finalizedBlock, err := s.seqContract.FinalizedBlock(nil)
 	if err != nil {
@@ -239,8 +270,21 @@ func (s *SeqAdapter) IsSeqSetContractCall(tx *types.Transaction) (bool, []byte) 
 	if (tx.To() == nil || s.l2SeqContract == common.Address{}) {
 		return false, nil
 	}
-	toAddress := tx.To()
-	if strings.EqualFold(toAddress.String(), s.l2SeqContract.String()) {
+	// from equals MPC
+	err := s.ensureSeqContract()
+	if err != nil {
+		return false, nil
+	}
+	sender, err := types.Sender(types.NewEIP155Signer(s.bc.Config().ChainID), tx)
+	if err != nil {
+		return false, nil
+	}
+	mpcAddress, err := s.seqContract.MpcAddress(nil)
+	if err != nil {
+		log.Error("Get sequencer error when query mpc address from contract", "err", err)
+		return false, nil
+	}
+	if sender == mpcAddress && strings.EqualFold(tx.To().String(), s.l2SeqContract.String()) {
 		return true, tx.Data()
 	}
 	return false, nil
@@ -294,6 +338,9 @@ func (s *SeqAdapter) GetTxSequencer(tx *types.Transaction, expectIndex uint64) (
 		// return default address
 		return rcfg.DefaultSeqAdderss, nil
 	}
+
+	s.cachedSeqMux.Lock()
+	defer s.cachedSeqMux.Unlock()
 
 	if tx != nil {
 		seqOper, data := s.IsSeqSetContractCall(tx)
