@@ -62,6 +62,7 @@ var (
 	constantinopleInstructionSet   = newConstantinopleInstructionSet()
 	istanbulInstructionSet         = newIstanbulInstructionSet()
 	berlinInstructionSet           = newBerlinInstructionSet()
+	shanghaiInstructionSet         = newShanghaiInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -73,6 +74,14 @@ func newBerlinInstructionSet() JumpTable {
 	instructionSet := newIstanbulInstructionSet()
 	enable2929(&instructionSet) // Access lists for trie accesses https://eips.ethereum.org/EIPS/eip-2929
 	enable3529(&instructionSet) // EIP-3529: Reduction in refunds https://eips.ethereum.org/EIPS/eip-3529
+	return instructionSet
+}
+
+// newShanghaiInstructionSet returns the frontier, homestead, byzantium,
+// contantinople, istanbul, petersburg, berlin and shanghai instructions.
+func newShanghaiInstructionSet() JumpTable {
+	instructionSet := newBerlinInstructionSet()
+	enable3855(&instructionSet) // PUSH0 https://eips.ethereum.org/EIPS/eip-3855
 	return instructionSet
 }
 

@@ -94,6 +94,8 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	if !cfg.JumpTable[STOP].valid {
 		var jt JumpTable
 		switch {
+		case evm.chainRules.IsShanghai:
+			jt = shanghaiInstructionSet
 		case evm.chainRules.IsBerlin:
 			jt = berlinInstructionSet
 			// log.Info("Use berlin InstructionSet")

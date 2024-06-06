@@ -47,6 +47,7 @@ export interface RollupDeployConfig {
   gasPriceOracleMinErc20BridgeCost: number
 
   hfBerlinBlock: number
+  hfShanghiBlock: number
 }
 
 /**
@@ -182,6 +183,7 @@ export const makeL2GenesisFile = async (
       istanbulBlock: 0,
       muirGlacierBlock: 0,
       berlinBlock: cfg.hfBerlinBlock,
+      shanghaiBlock: cfg.hfShanghiBlock,
       clique: {
         period: 0,
         epoch: 30000,

@@ -45,6 +45,7 @@ services:
       METIS_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
       MIN_L1_ERC20_BRIDGE_COST: 0
       BERLIN_BLOCK: 0
+      SHANGHAI_BLOCK: 0
       EXTRA_DEV_ADDRS: ${LOCAL_DEV_ADDRS:-0x}
     healthcheck:
       test: ['CMD-SHELL', 'curl http://127.0.0.1:8081/addresses.json']

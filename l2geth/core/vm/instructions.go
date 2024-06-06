@@ -938,6 +938,23 @@ func opPush1(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory
 	return nil, nil
 }
 
+// enable3855 applies EIP-3855 (PUSH0 opcode)
+func enable3855(jt *JumpTable) {
+	// New opcode
+	jt[PUSH0] = operation{
+		execute:     opPush0,
+		constantGas: GasQuickStep,
+		minStack:    minStack(0, 1),
+		maxStack:    maxStack(0, 1),
+	}
+}
+
+// opPush0 implements the PUSH0 opcode
+func opPush0(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	stack.push(new(big.Int))
+	return nil, nil
+}
+
 // make push instruction function
 func makePush(size uint64, pushByteSize int) executionFunc {
 	return func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
