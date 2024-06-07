@@ -194,6 +194,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		// }
 		currentBN := manager.blockchain.CurrentBlock().NumberU64()
 		seqModel, mpcEnabled := manager.syncService.GetSeqAndMpcStatus()
+		// sequencer check enabled: sequencer (not verifier), mpc enabled, current block number >= config seqValidHeight, current block number > startup network block number
 		seqCheckEnabled := seqModel && mpcEnabled && currentBN >= seqAdapter.GetSeqValidHeight() && manager.syncService.IsAboveStartHeight(currentBN)
 		var currentEpoch struct {
 			Number     *big.Int
@@ -223,7 +224,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 				if block.Transactions().Len() == 1 && seqAdapter.IsRespanCall(tx) {
 					respanBN = block.Number()
 				} else {
-					errInfo := "handler blocksBeforeInsert with current self is seq"
+					errInfo := "the sequencer of the current epoch is self, and does not process the incoming blocks"
 					log.Error(errInfo)
 					return errors.New(errInfo)
 				}
