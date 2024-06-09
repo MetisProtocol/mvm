@@ -66,6 +66,7 @@ type StateTransition struct {
 	evm        *vm.EVM
 	// UsingOVM
 	l1FeeInL2 uint64
+	l1Fee     *big.Int
 }
 
 // Message represents a message sent to a contract.
@@ -131,6 +132,7 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 	var (
 		l1FeeInL2 uint64
 	)
+	l1Fee := new(big.Int)
 
 	if rcfg.UsingOVM {
 		if msg.QueueOrigin() == types.QueueOriginSequencer {
@@ -138,6 +140,9 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 			// so it only has to be read from state one time.
 			l1FeeInL2, _ = fees.CalculateL1MsgFeeInL2(msg, evm.StateDB, nil, msg.CheckNonce() == false)
 			// log.Debug("Current L1FeeInL2", "fee", l1FeeInL2)
+		}
+		if msg.GasPrice().Cmp(common.Big0) != 0 {
+			l1Fee, _ = fees.CalculateL1MsgFee(msg, evm.StateDB, nil)
 		}
 	}
 
@@ -150,6 +155,7 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 		data:      msg.Data(),
 		state:     evm.StateDB,
 		l1FeeInL2: l1FeeInL2,
+		l1Fee:     l1Fee,
 	}
 }
 
@@ -188,6 +194,15 @@ func (st *StateTransition) useGas(amount uint64) error {
 func (st *StateTransition) buyGas() error {
 
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+	if rcfg.UsingOVM {
+		// Only charge the L1 fee for QueueOrigin sequencer transactions
+		if st.evm.ChainConfig().IsShanghai(st.evm.Context.BlockNumber) && st.msg.QueueOrigin() == types.QueueOriginSequencer {
+			mgval = mgval.Add(mgval, st.l1Fee)
+			if st.msg.CheckNonce() {
+				log.Debug("Adding L1 fee", "l1-fee", st.l1Fee)
+			}
+		}
+	}
 
 	if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
 		if rcfg.UsingOVM {
@@ -278,6 +293,7 @@ func (st *StateTransition) TransitionDbWithBlockNumber(blockNumber uint64) (ret 
 
 	// take the l1fee from the gas pool first. it is important to show user the actual cost when estimate
 	// it is also important to take it out before the vm call so that the state wont be changed
+	if !st.evm.ChainConfig().IsShanghai(st.evm.Context.BlockNumber) {
 		vmerr = st.useGas(st.l1FeeInL2)
 
 		if vmerr != nil {
@@ -303,6 +319,15 @@ func (st *StateTransition) TransitionDbWithBlockNumber(blockNumber uint64) (ret 
 				ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 			}
 		}
+	} else {
+		if contractCreation {
+			ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
+		} else {
+			// Increment the nonce for the next transaction
+			st.state.SetNonce(msg.From(), st.state.GetNonce(msg.From())+1)
+			ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		}
+	}
 
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr, "ret", hexutil.Encode(ret))
@@ -316,7 +341,20 @@ func (st *StateTransition) TransitionDbWithBlockNumber(blockNumber uint64) (ret 
 
 	st.refundGas()
 
-  st.state.AddBalance(evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	if !st.evm.ChainConfig().IsShanghai(st.evm.Context.BlockNumber) {
+		st.state.AddBalance(evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	} else {
+		if rcfg.UsingOVM {
+			// The L2 Fee is the same as the fee that is charged in the normal geth
+			// codepath. Add the L1 fee to the L2 fee for the total fee that is sent
+			// to the sequencer.
+			l2Fee := new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)
+			fee := new(big.Int).Add(st.l1Fee, l2Fee)
+			st.state.AddBalance(evm.Coinbase, fee)
+		} else {
+			st.state.AddBalance(evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+		}
+	}
 	return ret, st.gasUsed(), vmerr != nil, err
 }
 
