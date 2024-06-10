@@ -205,6 +205,9 @@ func (st *StateTransition) buyGas() error {
 	}
 
 	if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
+		if st.evm.ChainConfig().IsShanghai(st.evm.Context.BlockNumber) {
+			return errInsufficientBalanceForGas
+		}
 		if rcfg.UsingOVM {
 			// Hack to prevent race conditions with the `gas-oracle`
 			// where policy level balance checks pass and then fail
