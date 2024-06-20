@@ -124,13 +124,9 @@ describe('InboxSenderManager', () => {
     })
 
     it('should return the default inbox sender if no address is set for a block', async () => {
-      const blockNumber = 1
-      const defaultInboxSender = await InboxSenderManager.defaultInboxSender()
-
-      const storedInboxSender = await InboxSenderManager.getInboxSender(
-        blockNumber
+      expect(await InboxSenderManager.getInboxSender(1)).to.equal(
+        await InboxSenderManager.defaultInboxSender()
       )
-      expect(storedInboxSender).to.equal(defaultInboxSender)
     })
 
     it('should return the inbox sender for the block if it is between two set blocks', async () => {
