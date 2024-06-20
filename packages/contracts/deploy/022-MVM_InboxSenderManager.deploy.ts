@@ -83,7 +83,7 @@ const deployFn: DeployFunction = async (hre) => {
     )
   })
 
-  // Set Slot 1 to the defaultInboxSender
+  // Set Slot 3 to the defaultInboxSender
   console.log(
     `Setting defaultInboxSender to ${
       (hre as any).deployConfig.inboxSenderAddress
@@ -91,7 +91,7 @@ const deployFn: DeployFunction = async (hre) => {
   )
 
   await proxy.setStorage(
-    hre.ethers.utils.hexZeroPad('0x01', 32),
+    hre.ethers.utils.hexZeroPad('0x03', 32),
     hre.ethers.utils.hexZeroPad(
       (hre as any).deployConfig.inboxSenderAddress,
       32
