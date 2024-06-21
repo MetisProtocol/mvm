@@ -34,6 +34,7 @@ import { MissingElementError } from './handlers/errors'
 import { handleEventsVerifierStake } from './handlers/verifier-stake'
 import { handleEventsAppendBatchElement } from './handlers/append-batch-element'
 import { handleEventsSequencerBatchInbox } from './handlers/sequencer-batch-inbox'
+import { handleInboxSenderSet } from './handlers/inbox-sender-set'
 
 interface L1IngestionMetrics {
   highestSyncedL1Block: Gauge<string>
@@ -117,6 +118,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     l1RpcProvider: BaseProvider
     startingL1BlockNumber: number
     startingL1BatchIndex: number
+    defaultInboxSender: string
   } = {} as any
 
   protected async _init(): Promise<void> {
@@ -229,6 +231,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     if (totalElements > 0) {
       await this.state.db.putHighestL2BlockNumber(totalElements - 1)
     }
+    this.state.defaultInboxSender =
+      await this.state.contracts.Proxy__MVM_InboxSenderManager.defaultInboxSender()
   }
 
   protected async _start(): Promise<void> {
@@ -359,6 +363,14 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             )
           }
 
+          await this._syncEvents(
+            'Proxy__MVM_InboxSenderManager',
+            'InboxSenderSet',
+            highestSyncedL1Block,
+            targetL1Block,
+            handleInboxSenderSet
+          )
+
           await this._syncInboxBatch(
             highestSyncedL1Block,
             targetL1Block,
@@ -477,13 +489,13 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     const extraMap: Record<number, any> = {}
     for (const block of blocks) {
+      const inboxSenderAddress = await this._getInboxSender(block.number)
       for (const tx of block.transactions) {
         if (
           tx.to &&
           tx.to.toLowerCase() ===
             this.options.batchInboxAddress.toLowerCase() &&
-          tx.from.toLowerCase() ===
-            this.options.batchInboxSender.toLowerCase() &&
+          tx.from.toLowerCase() === inboxSenderAddress &&
           tx.data.length >= 140
         ) {
           // check receipt status, 0 fail
@@ -634,7 +646,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             this.state.l1RpcProvider
           )
           // filter chainId
-          const chainId = event.args._chainId.toNumber()
+          const chainId = event.args._chainId
+            ? event.args._chainId.toNumber()
+            : null
           const parsedEvent = await handlers.parseEvent(
             event,
             extraData,
@@ -738,5 +752,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     }
 
     throw new Error(`Unable to find appropriate L1 starting block number`)
+  }
+  private async _getInboxSender(blockNumber: number): Promise<string> {
+    const inboxSender = await this.state.db.getFirstLteInboxSender(blockNumber)
+    if (inboxSender) {
+      return inboxSender.inboxSender
+    }
+    return this.state.defaultInboxSender
   }
 }

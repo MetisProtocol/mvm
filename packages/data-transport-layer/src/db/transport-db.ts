@@ -15,6 +15,7 @@ import {
   VerifierStakeEntry,
   AppendBatchElementEntry,
   BlockEntry,
+  InboxSenderSetEntry,
 } from '../types/database-types'
 import { SimpleDB } from './simple-db'
 
@@ -37,6 +38,7 @@ const TRANSPORT_DB_KEYS = {
   VERIFIER_SUCCESSFUL: `verifier:successful`,
   MVM_CTC_VERIFIER_STAKE: `mvmctc:verifierstake`,
   MVM_CTC_BATCH_ELEMENT: `mvmctc:batchelement`,
+  MVM_CTC_INBOX_SENDER: `mvmctc:inboxsender`,
   BLOCK: `block`,
   UNCONFIRMED_BLOCK: `unconfirmed:block`,
 }
@@ -170,6 +172,12 @@ export class TransportDB {
         entries[entries.length - 1].index
       )
     }
+  }
+
+  public async putInboxSenderSetEntries(
+    entries: InboxSenderSetEntry[]
+  ): Promise<void> {
+    await this._putEntries(TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER, entries)
   }
 
   public async getLatestVerifierStake(): Promise<VerifierStakeEntry> {
@@ -541,6 +549,15 @@ export class TransportDB {
     return fullTransactions
   }
 
+  public async getFirstLteInboxSender(
+    target: number
+  ): Promise<InboxSenderSetEntry> {
+    return this._getFirstLteEntity(
+      TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER,
+      target
+    )
+  }
+
   private async _getFullBlock(block: BlockEntry): Promise<BlockEntry> {
     const fullTransactions = []
     for (const transaction of block.transactions) {
@@ -647,5 +664,12 @@ export class TransportDB {
     endIndex: number
   ): Promise<TEntry[] | []> {
     return this.db.range<TEntry>(`${key}:index`, startIndex, endIndex)
+  }
+
+  private async _getFirstLteEntity<TEntry extends Indexed>(
+    key: string,
+    target: number
+  ): Promise<TEntry | null> {
+    return this.db.getFirstLte<TEntry>(`${key}:index`, target)
   }
 }
