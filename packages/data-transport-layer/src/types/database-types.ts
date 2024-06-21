@@ -99,3 +99,9 @@ export interface BlockEntry {
   transactions: TransactionEntry[]
   confirmed: boolean
 }
+
+export interface InboxSenderSetEntry {
+  index: number
+  blockNumber: number
+  inboxSender: string
+}
