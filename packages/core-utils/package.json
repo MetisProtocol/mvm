@@ -11,6 +11,7 @@
   "scripts": {
     "all": "yarn clean && yarn build && yarn test && yarn lint:fix && yarn lint",
     "build": "tsc -p tsconfig.build.json",
+    "build:proto": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out=./src/da/eigenda/generated --js_out=import_style=commonjs,binary:./src/da/eigenda/generated --grpc_out=./src/da/eigenda/generated --proto_path=./src/da/eigenda/proto/ ./src/da/eigenda/proto/*.proto",
     "clean": "rimraf dist/ ./tsconfig.build.tsbuildinfo",
     "lint": "yarn lint:fix && yarn lint:check",
     "lint:check": "eslint .",
@@ -48,9 +49,13 @@
   "dependencies": {
     "@ethersproject/abstract-provider": "^5.4.1",
     "@ethersproject/providers": "^5.4.5",
+    "@grpc/grpc-js": "^1.10.10",
+    "@metis.io/minio": "^7.0.28",
+    "@types/google-protobuf": "^3.15.12",
     "chai": "^4.3.4",
     "ethers": "^5.4.5",
+    "google-protobuf": "^3.21.2",
     "lodash": "^4.17.21",
-    "@metis.io/minio": "^7.0.28"
+    "protoc-gen-ts": "^0.8.7"
   }
 }

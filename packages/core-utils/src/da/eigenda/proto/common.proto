@@ -1,0 +1,9 @@
+syntax = "proto3";
+package common;
+
+message G1Commitment {
+	// The X coordinate of the KZG commitment. This is the raw byte representation of the field element.
+	bytes x = 1;
+	// The Y coordinate of the KZG commitment. This is the raw byte representation of the field element.
+	bytes y = 2;
+}
