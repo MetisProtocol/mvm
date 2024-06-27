@@ -47,6 +47,15 @@ export interface L1DataTransportServiceOptions {
   minioAccessKey?: string
   minioSecretKey?: string
 
+  eigenDAEnabled?: boolean
+  eigenDARpc?: string
+  eigenDAStatusQueryTimeout?: number
+  eigenDAStatusQueryRetryInterval?: number
+  eigenDACustomQuorumIDs?: number[]
+  eigenDASignerPrivateKey?: string
+  eigenDADisableTLS?: boolean
+  eigenDAWaitForFinalization?: boolean
+
   trustedIndexer?: string
 
   deSeqBlock: number

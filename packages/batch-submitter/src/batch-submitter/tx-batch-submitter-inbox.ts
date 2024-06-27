@@ -14,11 +14,15 @@ import {
   QueueOrigin,
   remove0x,
   toHexString,
+  fromHexString,
   encodeHex,
   L2Transaction,
   zlibCompressHexString,
   MinioClient,
   MinioConfig,
+  IEigenDAClient,
+  EigenDAClientConfig,
+  createEigenDAClient,
 } from '@metis.io/core-utils'
 
 /* Internal Imports */
@@ -50,6 +54,7 @@ export interface InboxBatchParams {
 
 export class TransactionBatchSubmitterInbox {
   private minioClient: MinioClient
+  private eigenDAClient: IEigenDAClient
 
   constructor(
     readonly inboxStorage: InboxStorage,
@@ -58,10 +63,14 @@ export class TransactionBatchSubmitterInbox {
     readonly logger: Logger,
     readonly maxTxSize: number,
     readonly useMinio: boolean,
-    readonly minioConfig: MinioConfig
+    readonly minioConfig: MinioConfig,
+    readonly useEigenDA: boolean,
+    readonly eigenDAConfig: EigenDAClientConfig
   ) {
     if (useMinio && minioConfig) {
       this.minioClient = new MinioClient(minioConfig)
+    } else if (useEigenDA && eigenDAConfig) {
+      this.eigenDAClient = createEigenDAClient(eigenDAConfig)
     }
   }
 
@@ -286,7 +295,7 @@ export class TransactionBatchSubmitterInbox {
     blocks: BatchToInbox
   ): Promise<InboxBatchParams> {
     // [1: DA type] [1: compress type] [32: batch index] [32: L2 start] [4: total blocks, max 65535] [<DATA> { [3: txs count] [5 block timestamp = l1 timestamp of txs] [32 l1BlockNumber of txs, get it from tx0] [1: TX type 0-sequencer 1-enqueue] [3 tx data length] [raw tx data] [3 sign length *sequencerTx*] [sign data] [20 l1Origin *enqueue*] [32 queueIndex *enqueue*].. } ...]
-    // DA: 0 - L1, 1 - memo, 2 - celestia
+    // DA: 0 - L1, 1 - memo, 2 - celestia, 3 - eigenda
     let da = encodeHex(0, 2)
     // Compress Type: 0 - none, 11 - zlib
     const compressType = encodeHex(11, 2)
@@ -368,6 +377,35 @@ export class TransactionBatchSubmitterInbox {
         )
       }
       compressedEncoed = storagedObject
+    } else if (this.useEigenDA && this.eigenDAConfig) {
+      if (!this.eigenDAClient) {
+        throw new Error('Can not initalize eigenda client.')
+      }
+      da = encodeHex(3, 2)
+
+      // save compressedEncoed to eigenda
+      try {
+        const putBlobResult = await this.eigenDAClient.putBlob(
+          fromHexString(compressedEncoed)
+        )
+        console.log('putBlobResult', putBlobResult)
+        const sizeOfTxData = encodeHex(compressedEncoed.length, 8)
+
+        // object key is timestamp[13] + zero[1]{0} + sizeOfTxData[8]{00000000} + blobIndex[4] + batchHeaderHash[64]
+        compressedEncoed = `${encodeHex(
+          new Date().getTime(),
+          13
+        )}0${sizeOfTxData}${putBlobResult.blob_verification_proof.blob_index
+          .toString(16)
+          .padStart(4, '0')}${
+          putBlobResult.blob_verification_proof.batch_metadata.batch_header_hash
+        }`
+      } catch (err) {
+        this.logger.error('Write to Eigen DA error', { err })
+        throw new Error(
+          `Write to Eigen DA failed, l2StartBlock is ${l2StartBlock}.`
+        )
+      }
     }
     // other da should here else
 

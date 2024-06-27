@@ -59,6 +59,26 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
       minioPort: config.uint('minio-port', 5080),
       minioSecretKey: config.str('minio-secret-key'),
       minioUseSsl: config.bool('minio-use-ssl', false),
+      eigenDAEnabled: config.bool('eigenda-enabled', false),
+      eigenDARpc: config.str('eigenda-rpc'),
+      eigenDAStatusQueryTimeout: config.uint(
+        'eigenda-status-query-timeout',
+        5000
+      ),
+      eigenDAStatusQueryRetryInterval: config.uint(
+        'eigenda-status-query-retry-interval',
+        60000
+      ),
+      eigenDACustomQuorumIDs: config
+        .str('eigenda-custom-quorum-ids')
+        .split(',')
+        .map((str) => parseInt(str, 10)),
+      eigenDASignerPrivateKey: config.str('eigenda-signer-private-key'),
+      eigenDADisableTLS: config.bool('eigenda-disable-tls', false),
+      eigenDAWaitForFinalization: config.bool(
+        'eigenda-wait-for-finalization',
+        false
+      ),
       trustedIndexer: config.str('trusted-indexer'),
       deSeqBlock: config.uint('deseqblock', 0),
       batchInboxAddress: config.str('batch-inbox-address'),

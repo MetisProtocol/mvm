@@ -1,5 +1,10 @@
 /* External Imports */
-import { injectL2Context, Bcfg, MinioConfig } from '@metis.io/core-utils'
+import {
+  injectL2Context,
+  Bcfg,
+  MinioConfig,
+  EigenDAClientConfig,
+} from '@metis.io/core-utils'
 import * as Sentry from '@sentry/node'
 import { Logger, Metrics, createMetricsServer } from '@eth-optimism/common-ts'
 import { Signer, Wallet } from 'ethers'
@@ -72,6 +77,16 @@ interface RequiredEnvVars {
   MINIO_USE_SSL: boolean
   MINIO_ACCESS_KEY: string
   MINIO_SECRET_KEY: string
+
+  // EigenDA options
+  EIGENDA_ENABLED: boolean
+  EIGENDA_RPC: string
+  EIGENDA_STATUS_QUERY_TIMEOUT: number
+  EIGENDA_STATUS_QUERY_RETRY_INTERVAL: number
+  EIGENDA_CUSTOM_QUORUM_IDS: number[]
+  EIGENDA_SIGNER_PRIVATE_KEY: string
+  EIGENDA_DISABLE_TLS: boolean
+  EIGENDA_WAIT_FOR_FINALIZATION: boolean
 
   // mpc options
   MPC_URL: string
@@ -377,6 +392,36 @@ export const run = async () => {
     MINIO_SECRET_KEY: config.str('minio-secret-key', env.MINIO_SECRET_KEY),
     MINIO_USE_SSL: config.bool('minio-use-ssl', env.MINIO_USE_SSL === 'true'),
 
+    EIGENDA_ENABLED: config.bool(
+      'eigenda-enabled',
+      env.EIGENDA_ENABLED === 'true'
+    ),
+    EIGENDA_RPC: config.str('eigenda-rpc', env.EIGENDA_RPC),
+    EIGENDA_STATUS_QUERY_TIMEOUT: config.uint(
+      'eigenda-status-query-timeout',
+      parseInt(env.EIGENDA_STATUS_QUERY_TIMEOUT, 10)
+    ),
+    EIGENDA_STATUS_QUERY_RETRY_INTERVAL: config.uint(
+      'eigenda-status-query-retry-interval',
+      parseInt(env.EIGENDA_STATUS_QUERY_RETRY_INTERVAL, 10)
+    ),
+    EIGENDA_CUSTOM_QUORUM_IDS: config
+      .str('eigenda-custom-quorum-ids', env.EIGENDA_CUSTOM_QUORUM_IDS)
+      .split(',')
+      .map((str) => parseInt(str, 10)),
+    EIGENDA_SIGNER_PRIVATE_KEY: config.str(
+      'eigenda-signer-private-key',
+      env.EIGENDA_SIGNER_PRIVATE_KEY
+    ),
+    EIGENDA_DISABLE_TLS: config.bool(
+      'eigenda-disable-tls',
+      env.EIGENDA_DISABLE_TLS === 'true'
+    ),
+    EIGENDA_WAIT_FOR_FINALIZATION: config.bool(
+      'eigenda-wait-for-finalization',
+      env.EIGENDA_WAIT_FOR_FINALIZATION === 'true'
+    ),
+
     MPC_URL: config.str('mpc-url', env.MPC_URL),
 
     BATCH_INBOX_STORAGE_PATH: config.str('batch-inbox-storage-path', '/data'),
@@ -474,6 +519,25 @@ export const run = async () => {
       bucket: requiredEnvVars.MINIO_BUCKET,
     }
   }
+  let eigenDAConfig: EigenDAClientConfig = null
+  if (
+    requiredEnvVars.EIGENDA_ENABLED &&
+    requiredEnvVars.EIGENDA_RPC &&
+    requiredEnvVars.EIGENDA_CUSTOM_QUORUM_IDS &&
+    requiredEnvVars.EIGENDA_STATUS_QUERY_TIMEOUT &&
+    requiredEnvVars.EIGENDA_STATUS_QUERY_RETRY_INTERVAL
+  ) {
+    eigenDAConfig = {
+      rpc: requiredEnvVars.EIGENDA_RPC,
+      signerPrivateKey: requiredEnvVars.EIGENDA_SIGNER_PRIVATE_KEY,
+      statusQueryTimeout: requiredEnvVars.EIGENDA_STATUS_QUERY_TIMEOUT,
+      statusQueryRetryInterval:
+        requiredEnvVars.EIGENDA_STATUS_QUERY_RETRY_INTERVAL,
+      customQuorumIDs: requiredEnvVars.EIGENDA_CUSTOM_QUORUM_IDS,
+      disableTLS: requiredEnvVars.EIGENDA_DISABLE_TLS,
+      waitForFinalization: requiredEnvVars.EIGENDA_WAIT_FOR_FINALIZATION,
+    }
+  }
   const txBatchSubmitter = new TransactionBatchSubmitter(
     sequencerSigner,
     l2Provider,
@@ -494,6 +558,8 @@ export const run = async () => {
     autoFixBatchOptions,
     requiredEnvVars.MINIO_ENABLED,
     minioConfig,
+    requiredEnvVars.EIGENDA_ENABLED,
+    eigenDAConfig,
     requiredEnvVars.MPC_URL,
     requiredEnvVars.BATCH_INBOX_ADDRESS,
     requiredEnvVars.BATCH_INBOX_START_INDEX,

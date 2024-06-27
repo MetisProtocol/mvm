@@ -17,6 +17,7 @@ import {
   EncodeSequencerBatchOptions,
   MinioClient,
   MinioConfig,
+  EigenDAClientConfig,
   remove0x,
   toHexString,
 } from '@metis.io/core-utils'
@@ -52,6 +53,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   private gasThresholdInGwei: number
   private useMinio: boolean
   private minioConfig: MinioConfig
+  private useEigenDA: boolean
+  private eigenDAConfig: EigenDAClientConfig
   private encodeSequencerBatchOptions?: EncodeSequencerBatchOptions
   private mpcUrl: string
   private inboxStorage: InboxStorage
@@ -86,6 +89,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     }, // TODO: Remove this
     useMinio: boolean,
     minioConfig: MinioConfig,
+    useEigenDA: boolean,
+    eigenDAConfig: EigenDAClientConfig,
     mpcUrl: string,
     batchInboxAddress: string,
     batchInboxStartIndex: string,
@@ -117,6 +122,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.transactionSubmitter = transactionSubmitter
     this.useMinio = useMinio
     this.minioConfig = minioConfig
+    this.useEigenDA = useEigenDA
+    this.eigenDAConfig = eigenDAConfig
     this.mpcUrl = mpcUrl
 
     this.inboxAddress = batchInboxAddress
@@ -129,7 +136,9 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.logger,
       this.maxTxSize,
       useMinio,
-      minioConfig
+      minioConfig,
+      useEigenDA,
+      eigenDAConfig
     )
     this.seqsetValidHeight = seqsetValidHeight
     this.seqsetContractAddress = seqsetContractAddress

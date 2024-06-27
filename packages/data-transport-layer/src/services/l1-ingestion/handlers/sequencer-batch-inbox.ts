@@ -13,6 +13,9 @@ import {
   EventArgsSequencerBatchAppended,
   MinioClient,
   MinioConfig,
+  EigenDAClientConfig,
+  IEigenDAClient,
+  createEigenDAClient,
   remove0x,
   zlibDecompress,
 } from '@metis.io/core-utils'
@@ -90,7 +93,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
           `converted buffer length is < 70.`
       )
     }
-    // DA: 0 - L1, 1 - memo, 2 - celestia
+    // DA: 0 - L1, 1 - memo, 2 - celestia, 3 - eigenda
     // current DA is 0
     // Compress Type: 0 - none, 11 - zlib
     const da = BigNumber.from(calldata.slice(0, 1)).toNumber()
@@ -129,6 +132,50 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
         )
       }
       contextData = Buffer.from(daData, 'hex')
+    } else if (da === 3) {
+      let eigenDAClient: IEigenDAClient = null
+      if (
+        options.eigenDAEnabled &&
+        options.eigenDARpc &&
+        options.eigenDAStatusQueryTimeout &&
+        options.eigenDAStatusQueryRetryInterval &&
+        options.eigenDASignerPrivateKey
+      ) {
+        const eigenDAConfig: EigenDAClientConfig = {
+          rpc: options.eigenDARpc,
+          statusQueryTimeout: options.eigenDAStatusQueryTimeout,
+          statusQueryRetryInterval: options.eigenDAStatusQueryRetryInterval,
+          signerPrivateKey: options.eigenDASignerPrivateKey,
+          customQuorumIDs: options.eigenDACustomQuorumIDs,
+          disableTLS: options.eigenDADisableTLS,
+          waitForFinalization: options.eigenDAWaitForFinalization,
+        }
+        eigenDAClient = createEigenDAClient(eigenDAConfig)
+      } else {
+        throw new Error(`Missing EigenDA config for DA type is 3`)
+      }
+      const blobHeader = calldata.slice(-68)
+      console.log(
+        'blobHeader',
+        blobHeader,
+        'blobIndex',
+        blobHeader.readInt32BE(0),
+        'batchHeaderHash',
+        blobHeader.slice(4)
+      )
+      const daData = await eigenDAClient.getBlob(
+        blobHeader.slice(4),
+        blobHeader.readInt32BE(0)
+      )
+      console.log('daData', daData)
+      if (!daData) {
+        throw new Error(
+          `Read data from EigenDA failed, object is ${remove0x(
+            toHexString(contextData)
+          )}`
+        )
+      }
+      contextData = Buffer.from(daData)
     }
     if (compressType === 11) {
       contextData = await zlibDecompress(contextData)

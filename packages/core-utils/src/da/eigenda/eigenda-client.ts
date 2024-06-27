@@ -88,11 +88,18 @@ export const createEigenDAClient = (
               `EigenDA blob dispersal failed in processing with insufficient signatures, requestID=${requestId}`
             )
           case disperser.BlobStatus.CONFIRMED:
-            console.log(
-              'EigenDA blob confirmed, waiting for finalization',
-              'requestID',
-              requestId
-            )
+            if (config.waitForFinalization) {
+              console.log(
+                'EigenDA blob confirmed, waiting for finalization',
+                'requestID',
+                requestId
+              )
+            } else {
+              console.log('EigenDA blob confirmed', 'requestID', requestId)
+              clearInterval(ticker)
+              resultResolve(statusRes.info)
+              return
+            }
             break
           case disperser.BlobStatus.FINALIZED:
             console.log(

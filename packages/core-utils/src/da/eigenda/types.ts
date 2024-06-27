@@ -28,12 +28,10 @@ export interface EigenDAClientConfig {
   rpc: string
   statusQueryTimeout: number
   statusQueryRetryInterval: number
-  responseTimeout: number
   customQuorumIDs: number[]
   signerPrivateKey: string
   disableTLS: boolean
-  putBlobEncodingVersion: Uint8Array
-  disablePointVerificationMode: boolean
+  waitForFinalization: boolean
 }
 
 export interface DisperseClientConfig {
