@@ -69,10 +69,14 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
         'eigenda-status-query-retry-interval',
         60000
       ),
-      eigenDACustomQuorumIDs: config
-        .str('eigenda-custom-quorum-ids')
-        .split(',')
-        .map((str) => parseInt(str, 10)),
+      eigenDACustomQuorumIDs:
+        config.str('eigenda-custom-quorum-ids', '').trim() === ''
+          ? []
+          : config
+              .str('eigenda-custom-quorum-ids', '')
+              .trim()
+              .split(',')
+              .map((str) => parseInt(str, 10)),
       eigenDASignerPrivateKey: config.str('eigenda-signer-private-key'),
       eigenDADisableTLS: config.bool('eigenda-disable-tls', false),
       eigenDAWaitForFinalization: config.bool(
