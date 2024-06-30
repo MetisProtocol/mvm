@@ -397,11 +397,17 @@ export class TransactionBatchSubmitterInbox {
         compressedEncoed = `${encodeHex(
           new Date().getTime(),
           13
-        )}0${sizeOfTxData}${putBlobResult.blob_verification_proof.blob_index
-          .toString(16)
-          .padStart(4, '0')}${
-          putBlobResult.blob_verification_proof.batch_metadata.batch_header_hash
-        }`
+        )}0${sizeOfTxData}${encodeHex(
+          putBlobResult.blob_verification_proof.blob_index,
+          4
+        )}${remove0x(
+          toHexString(
+            Buffer.from(
+              putBlobResult.blob_verification_proof.batch_metadata
+                .batch_header_hash
+            )
+          )
+        )}`
       } catch (err) {
         this.logger.error('Write to Eigen DA error', { err })
         throw new Error(
