@@ -23,6 +23,7 @@ import {
   IEigenDAClient,
   EigenDAClientConfig,
   createEigenDAClient,
+  convertByPaddingEmptyByte,
 } from '@metis.io/core-utils'
 
 /* Internal Imports */
@@ -385,8 +386,9 @@ export class TransactionBatchSubmitterInbox {
 
       // save compressedEncoed to eigenda
       try {
+        console.log('compressedEncoed', compressedEncoed)
         const putBlobResult = await this.eigenDAClient.putBlob(
-          fromHexString(compressedEncoed)
+          convertByPaddingEmptyByte(fromHexString(compressedEncoed))
         )
         console.log('putBlobResult', putBlobResult)
         const sizeOfTxData = encodeHex(compressedEncoed.length, 8)

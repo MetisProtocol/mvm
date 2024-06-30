@@ -18,6 +18,7 @@ import {
   createEigenDAClient,
   remove0x,
   zlibDecompress,
+  removeEmptyByteFromPaddedBytes,
 } from '@metis.io/core-utils'
 
 /* Imports: Internal */
@@ -163,9 +164,11 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
         'batchHeaderHash',
         blobHeader.slice(4)
       )
-      const daData = await eigenDAClient.getBlob(
-        blobHeader.slice(4),
-        blobHeader.readInt32BE(0)
+      const daData = removeEmptyByteFromPaddedBytes(
+        await eigenDAClient.getBlob(
+          blobHeader.slice(4),
+          blobHeader.readInt32BE(0)
+        )
       )
       console.log('daData', daData)
       if (!daData) {

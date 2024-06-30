@@ -405,10 +405,16 @@ export const run = async () => {
       'eigenda-status-query-retry-interval',
       parseInt(env.EIGENDA_STATUS_QUERY_RETRY_INTERVAL, 10)
     ),
-    EIGENDA_CUSTOM_QUORUM_IDS: config
-      .str('eigenda-custom-quorum-ids', env.EIGENDA_CUSTOM_QUORUM_IDS)
-      .split(',')
-      .map((str) => parseInt(str, 10)),
+    EIGENDA_CUSTOM_QUORUM_IDS: !config.str(
+      'eigenda-custom-quorum-ids',
+      env.EIGENDA_CUSTOM_QUORUM_IDS
+    )
+      ? []
+      : config
+          .str('eigenda-custom-quorum-ids', env.EIGENDA_CUSTOM_QUORUM_IDS)
+          .trim()
+          .split(',')
+          .map((str) => parseInt(str, 10)),
     EIGENDA_SIGNER_PRIVATE_KEY: config.str(
       'eigenda-signer-private-key',
       env.EIGENDA_SIGNER_PRIVATE_KEY

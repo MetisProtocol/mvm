@@ -1,8 +1,9 @@
 import { ServiceError, credentials } from '@grpc/grpc-js'
 
 import { disperser } from './generated/disperser'
-import { Wallet, utils } from 'ethers'
+import { Wallet, ethers, utils } from 'ethers'
 import { IDisperserClient, DisperseClientConfig } from './types'
+import { fromHexString } from './../../common'
 
 const {
   DisperserClient,
@@ -32,7 +33,7 @@ export const createDisperserClient = (
       const request = new DisperseBlobRequest({
         data,
         custom_quorum_numbers: customQuorums,
-        account_id: await wallet.getAddress(),
+        account_id: wallet.publicKey,
       })
       client.DisperseBlob(
         request,
@@ -58,23 +59,30 @@ export const createDisperserClient = (
           disperse_request: new DisperseBlobRequest({
             data,
             custom_quorum_numbers: quorums,
-            account_id: await wallet.getAddress(),
+            account_id: wallet.publicKey,
           }),
         })
       )
 
       stream.on('error', (error: ServiceError) => {
+        console.error('stream error', error)
         reject(error)
       })
 
       stream.on('data', async (response: disperser.AuthenticatedReply) => {
         if (response.blob_auth_header) {
           const nonceBytes = utils.arrayify(
-            utils.hexlify(response.blob_auth_header.challenge_parameter)
+            response.blob_auth_header.challenge_parameter
           )
-          const hash = utils.keccak256(nonceBytes)
-          const signature = await wallet.signMessage(hash)
-          const authData = utils.arrayify(signature)
+          const hash = ethers.utils.arrayify(ethers.utils.keccak256(nonceBytes))
+          const seckey = Uint8Array.from(fromHexString(wallet.privateKey))
+          const signingKey = new ethers.utils.SigningKey(seckey)
+          const signature = signingKey.signDigest(hash)
+          const authData = new Uint8Array([
+            ...ethers.utils.arrayify(signature.r),
+            ...ethers.utils.arrayify(signature.s),
+            signature.recoveryParam,
+          ])
           stream.write(
             new AuthenticatedRequest({
               authentication_data: new AuthenticationData({

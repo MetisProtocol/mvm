@@ -32,6 +32,7 @@ export const createEigenDAClient = (
     )
     const blobStatus = disperseReply.result
     const requestId = disperseReply.request_id
+    const requestIdBase64 = Buffer.from(requestId).toString('base64')
 
     if (blobStatus === BlobStatus.FAILED) {
       console.error('Unable to disperse blob to EigenDA, aborting', data)
@@ -41,7 +42,7 @@ export const createEigenDAClient = (
       setTimeout(() => {
         reject(
           new Error(
-            `timed out waiting for EigenDA blob to confirm blob with request id=${requestId}`
+            `timed out waiting for EigenDA blob to confirm blob with request id=${requestIdBase64}`
           )
         )
       }, config.statusQueryTimeout)
@@ -62,40 +63,44 @@ export const createEigenDAClient = (
             console.log(
               'Blob submitted, waiting for dispersal from EigenDA',
               'requestID',
-              requestId
+              requestIdBase64
             )
             break
           case disperser.BlobStatus.FAILED:
             console.error(
               'EigenDA blob dispersal failed in processing',
               'requestID',
-              requestId,
+              requestIdBase64,
               'err',
               statusRes.info
             )
             clearInterval(ticker)
             throw new Error(
-              `EigenDA blob dispersal failed in processing, requestID=${requestId}`
+              `EigenDA blob dispersal failed in processing, requestID=${requestIdBase64}`
             )
           case disperser.BlobStatus.INSUFFICIENT_SIGNATURES:
             console.error(
               'EigenDA blob dispersal failed in processing with insufficient signatures',
               'requestID',
-              requestId
+              requestIdBase64
             )
             clearInterval(ticker)
             throw new Error(
-              `EigenDA blob dispersal failed in processing with insufficient signatures, requestID=${requestId}`
+              `EigenDA blob dispersal failed in processing with insufficient signatures, requestID=${requestIdBase64}`
             )
           case disperser.BlobStatus.CONFIRMED:
             if (config.waitForFinalization) {
               console.log(
                 'EigenDA blob confirmed, waiting for finalization',
                 'requestID',
-                requestId
+                requestIdBase64
               )
             } else {
-              console.log('EigenDA blob confirmed', 'requestID', requestId)
+              console.log(
+                'EigenDA blob confirmed',
+                'requestID',
+                requestIdBase64
+              )
               clearInterval(ticker)
               resultResolve(statusRes.info)
               return
@@ -105,7 +110,7 @@ export const createEigenDAClient = (
             console.log(
               'Successfully dispersed blob to EigenDA',
               'requestID',
-              requestId,
+              requestIdBase64,
               'batchHeaderHash',
               statusRes.info.blob_verification_proof.batch_metadata
                 .batch_header_hash
@@ -123,7 +128,7 @@ export const createEigenDAClient = (
         console.error(
           'Unable to retrieve blob dispersal status, will retry',
           'requestID',
-          requestId,
+          requestIdBase64,
           'err',
           error
         )
