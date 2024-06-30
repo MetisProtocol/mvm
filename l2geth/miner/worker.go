@@ -1181,6 +1181,11 @@ func (w *worker) commitNewWork(interrupt *int32, timestamp int64) {
 	tstart := time.Now()
 	parent := w.chain.CurrentBlock()
 
+  // when timestamp not set yet, give time.Now
+	if timestamp <= 0 {
+		timestamp = time.Now().Unix()
+	}
+
 	num := parent.Number()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
