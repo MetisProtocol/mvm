@@ -386,11 +386,9 @@ export class TransactionBatchSubmitterInbox {
 
       // save compressedEncoed to eigenda
       try {
-        console.log('compressedEncoed', compressedEncoed)
         const putBlobResult = await this.eigenDAClient.putBlob(
           convertByPaddingEmptyByte(fromHexString(compressedEncoed))
         )
-        console.log('putBlobResult', putBlobResult)
         const sizeOfTxData = encodeHex(compressedEncoed.length, 8)
 
         // object key is timestamp[13] + zero[1]{0} + sizeOfTxData[8]{00000000} + blobIndex[4] + batchHeaderHash[64]
@@ -409,9 +407,9 @@ export class TransactionBatchSubmitterInbox {
           )
         )}`
       } catch (err) {
-        this.logger.error('Write to Eigen DA error', { err })
+        this.logger.error('Write to EigenDA error', err.message)
         throw new Error(
-          `Write to Eigen DA failed, l2StartBlock is ${l2StartBlock}.`
+          `Write to EigenDA failed, l2StartBlock is ${l2StartBlock}.`
         )
       }
     }

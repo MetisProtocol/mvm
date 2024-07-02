@@ -30,14 +30,15 @@ export const createEigenDAClient = (
       data,
       customQuorumNumbers
     )
-    const blobStatus = disperseReply.result
-    const requestId = disperseReply.request_id
-    const requestIdBase64 = Buffer.from(requestId).toString('base64')
 
-    if (blobStatus === BlobStatus.FAILED) {
+    if (disperseReply.result === BlobStatus.FAILED) {
       console.error('Unable to disperse blob to EigenDA, aborting', data)
       return
     }
+
+    const requestId = disperseReply.request_id
+    const requestIdBase64 = Buffer.from(requestId).toString('base64')
+
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
         reject(
@@ -56,12 +57,11 @@ export const createEigenDAClient = (
     const ticker = setInterval(async () => {
       try {
         const statusRes = await disperserClient.getBlobStatus(requestId)
-
         switch (statusRes.status) {
           case disperser.BlobStatus.PROCESSING:
           case disperser.BlobStatus.DISPERSING:
             console.log(
-              'Blob submitted, waiting for dispersal from EigenDA',
+              'EigenDA blob submitted, waiting for dispersal from EigenDA',
               'requestID',
               requestIdBase64
             )
@@ -126,7 +126,7 @@ export const createEigenDAClient = (
         }
       } catch (error) {
         console.error(
-          'Unable to retrieve blob dispersal status, will retry',
+          'Unable to retrieve EigenDA blob dispersal status, will retry',
           'requestID',
           requestIdBase64,
           'err',
