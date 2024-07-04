@@ -186,21 +186,49 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		if seqAdapter == nil || rcfg.SeqValidHeight == 0 {
 			return nil
 		}
-		var (
-			block *types.Block
-		)
 		rollupClient := manager.syncService.RollupClient()
 		// syncEnqueueIndex := manager.syncService.GetLatestEnqueueIndex()
 		// var latestEnqueueIndex uint64
 		// if syncEnqueueIndex != nil {
 		// 	latestEnqueueIndex = *syncEnqueueIndex
 		// }
-		for i := 0; i < len(blocks); i++ {
-			block = blocks[i]
+		currentBN := manager.blockchain.CurrentBlock().NumberU64()
+		seqModel, mpcEnabled := manager.syncService.GetSeqAndMpcStatus()
+		// sequencer check enabled: sequencer (not verifier), mpc enabled, current block number >= config seqValidHeight, current block number > startup network block number
+		seqCheckEnabled := seqModel && mpcEnabled && currentBN >= seqAdapter.GetSeqValidHeight() && manager.syncService.IsAboveStartHeight(currentBN)
+		var currentEpoch struct {
+			Number     *big.Int
+			Signer     common.Address
+			StartBlock *big.Int
+			EndBlock   *big.Int
+		}
+		var errEpoch error
+		if seqCheckEnabled {
+			currentEpoch, errEpoch = seqAdapter.GetEpochByBlockNumber(currentBN)
+			if errEpoch != nil {
+				return errEpoch
+			}
+		}
+		var respanBN *big.Int
+		currentSelfSeq := manager.syncService.IsSelfSeqAddress(currentEpoch.Signer)
+		for _, block := range blocks {
 			if block.Transactions().Len() == 0 {
 				continue
 			}
 			blockNumber := block.NumberU64()
+			// check seqset range
+			if seqCheckEnabled && currentSelfSeq && respanBN == nil &&
+				blockNumber >= currentEpoch.StartBlock.Uint64() && blockNumber <= currentEpoch.EndBlock.Uint64() {
+				// check current tx is respan
+				tx := block.Transactions()[0]
+				if block.Transactions().Len() == 1 && seqAdapter.IsRespanCall(tx) {
+					respanBN = block.Number()
+				} else {
+					errInfo := "the sequencer of the current epoch is self, and does not process the incoming blocks"
+					log.Error(errInfo)
+					return errors.New(errInfo)
+				}
+			}
 			if seqAdapter.GetSeqValidHeight() > 0 && blockNumber >= seqAdapter.GetSeqValidHeight() {
 				tx := block.Transactions()[0]
 				// enqueue tx should not verify sequencer sign
@@ -222,7 +250,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 					// check args with dtl l1 enqueue
 					txEnqueue, err := rollupClient.GetEnqueue(*queueIndex)
 					if err != nil {
-						log.Error("handler blocksBeforeInsert get equeue", "err", err)
+						log.Error("handler blocksBeforeInsert get enqueue", "err", err)
 						return err
 					}
 					if txEnqueue.Hash() != tx.Hash() {
