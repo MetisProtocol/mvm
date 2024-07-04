@@ -391,7 +391,7 @@ export class TransactionBatchSubmitterInbox {
         )
         const sizeOfTxData = encodeHex(compressedEncoed.length, 8)
 
-        // object key is timestamp[13] + zero[1]{0} + sizeOfTxData[8]{00000000} + blobIndex[4] + batchHeaderHash[64]
+        // object key is timestamp[13] + zero[1]{0} + sizeOfTxData[8]{00000000} + blobIndex[2] + batchHeaderHash[32]
         compressedEncoed = `${encodeHex(
           new Date().getTime(),
           13

@@ -4,13 +4,10 @@ import {
   BlockWithTransactions,
   TransactionResponse,
 } from '@ethersproject/abstract-provider'
-import { MerkleTree } from 'merkletreejs'
-import { getContractFactory } from '@metis.io/contracts'
 import {
   fromHexString,
   toHexString,
   toRpcHexString,
-  EventArgsSequencerBatchAppended,
   MinioClient,
   MinioConfig,
   EigenDAClientConfig,
@@ -155,22 +152,13 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       } else {
         throw new Error(`Missing EigenDA config for DA type is 3`)
       }
-      const blobHeader = calldata.slice(-68)
-      console.log(
-        'blobHeader',
-        blobHeader,
-        'blobIndex',
-        blobHeader.readInt32BE(0),
-        'batchHeaderHash',
-        blobHeader.slice(4)
-      )
+      const blobHeader = calldata.slice(calldata.length - 34)
       const daData = removeEmptyByteFromPaddedBytes(
         await eigenDAClient.getBlob(
-          blobHeader.slice(4),
-          blobHeader.readInt32BE(0)
+          blobHeader.slice(2),
+          blobHeader.slice(0, 2).readUInt16BE(0)
         )
       )
-      console.log('daData', daData)
       if (!daData) {
         throw new Error(
           `Read data from EigenDA failed, object is ${remove0x(
@@ -178,7 +166,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
           )}`
         )
       }
-      contextData = Buffer.from(daData)
+      contextData = Buffer.from(Buffer.from(daData).toString('utf8'), 'hex')
     }
     if (compressType === 11) {
       contextData = await zlibDecompress(contextData)
