@@ -1,6 +1,6 @@
 # TODO: Prefix all env vars with service name
 # TODO: Allow specifing the image tag to use
-version: "3"
+version: '3'
 
 services:
   # base service builder
@@ -10,7 +10,7 @@ services:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.monorepo
       platforms:
-        - "linux/amd64"
+        - 'linux/amd64'
         # - "linux/arm64"
 
   # this is a helper service used because there's no official hardhat image
@@ -20,7 +20,7 @@ services:
       context: ./docker/hardhat
       dockerfile: Dockerfile
       platforms:
-        - "linux/amd64"
+        - 'linux/amd64'
         # - "linux/arm64"
     ports:
       # expose the service to the host for integration testing
@@ -35,36 +35,36 @@ services:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.deployer
       platforms:
-        - "linux/amd64"
+        - 'linux/amd64'
         # - "linux/arm64"
     entrypoint: ./deployer.sh
     environment:
       FRAUD_PROOF_WINDOW_SECONDS: 0
       L1_NODE_WEB3_URL: http://l1_chain:8545
       # these keys are hardhat's first 2 accounts, DO NOT use in production
-      DEPLOYER_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-      SEQUENCER_PRIVATE_KEY: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
-      GAS_PRICE_ORACLE_OWNER: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      DEPLOYER_PRIVATE_KEY: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+      SEQUENCER_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
+      GAS_PRICE_ORACLE_OWNER: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
       # setting the whitelist owner to address(0) disables the whitelist
-      WHITELIST_OWNER: "0x0000000000000000000000000000000000000000"
-      L1_FEE_WALLET_ADDRESS: "0x391716d440c151c42cdf1c95c1d83a5427bca52c"
+      WHITELIST_OWNER: '0x0000000000000000000000000000000000000000'
+      L1_FEE_WALLET_ADDRESS: '0x391716d440c151c42cdf1c95c1d83a5427bca52c'
       L2_CHAIN_ID: 1088
       L2_BLOCK_GAS_LIMIT: 11000000
-      BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
-      GAS_PRICE_ORACLE_OVERHEAD: "2750"
-      GAS_PRICE_ORACLE_SCALAR: "1500000"
-      GAS_PRICE_ORACLE_L1_BASE_FEE: "1"
-      GAS_PRICE_ORACLE_GAS_PRICE: "1"
-      GAS_PRICE_ORACLE_DECIMALS: "6"
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
+      GAS_PRICE_ORACLE_OVERHEAD: '2750'
+      GAS_PRICE_ORACLE_SCALAR: '1500000'
+      GAS_PRICE_ORACLE_L1_BASE_FEE: '1'
+      GAS_PRICE_ORACLE_GAS_PRICE: '1'
+      GAS_PRICE_ORACLE_DECIMALS: '6'
       # skip compilation when run in docker-compose, since the contracts
       # were already compiled in the builder step
       NO_COMPILE: 1
       # mpc 0: 0x4835bd266b19887d56972474ec22fa769fd2a77b
-      SEQENCER_ADDRESS: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      SEQENCER_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
       # mpc 1: 0xd9ced9f5917c40c171a85764805d41052cfb8fee
-      PROPOSER_ADDRESS: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
-      RELAYER_ADDRESS: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
-      METIS_ADDRESS: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      PROPOSER_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      RELAYER_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      METIS_ADDRESS: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
       MIN_L1_ERC20_BRIDGE_COST: 0
       BERLIN_BLOCK: 0
     ports:
@@ -82,7 +82,7 @@ services:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.data-transport-layer
       platforms:
-        - "linux/amd64"
+        - 'linux/amd64'
         # - "linux/arm64"
     # override with the dtl script and the env vars required for it
     entrypoint: ./dtl.sh
@@ -101,12 +101,20 @@ services:
       # de-seq-block of L2 enables multiple txs per block, both for SYNC_FROM_L1&L2
       DATA_TRANSPORT_LAYER__DESEQBLOCK: 0
       # batch inbox to address, used by SYNC_FROM_L1
-      DATA_TRANSPORT_LAYER__BATCH_INBOX_ADDRESS: "0x"
-      DATA_TRANSPORT_LAYER__BATCH_INBOX_SENDER: ""
+      DATA_TRANSPORT_LAYER__BATCH_INBOX_ADDRESS: '0x'
+      DATA_TRANSPORT_LAYER__BATCH_INBOX_SENDER: ''
       # start batch index
-      DATA_TRANSPORT_LAYER__BATCH_INBOX_START_INDEX: "0"
+      DATA_TRANSPORT_LAYER__BATCH_INBOX_START_INDEX: '0'
       # the batch submitter inbox model upgrade at L1 height
       DATA_TRANSPORT_LAYER__BATCH_INBOX_L1_HEIGHT: 0
+      DATA_TRANSPORT_LAYER__EIGENDA_ENABLED: 'true'
+      DATA_TRANSPORT_LAYER__EIGENDA_RPC: disperser-holesky.eigenda.xyz:443
+      DATA_TRANSPORT_LAYER__EIGENDA_STATUS_QUERY_TIMEOUT: 5000
+      DATA_TRANSPORT_LAYER__EIGENDA_STATUS_QUERY_RETRY_INTERVAL: 600000
+      DATA_TRANSPORT_LAYER__EIGENDA_CUSTOM_QUORUM_IDS:
+      DATA_TRANSPORT_LAYER__EIGENDA_SIGNER_PRIVATE_KEY: 6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27
+      DATA_TRANSPORT_LAYER__EIGENDA_DISABLE_TLS: 'false'
+      DATA_TRANSPORT_LAYER__EIGENDA_WAIT_FOR_FINALIZATION: 'false'
     ports:
       - ${DTL_PORT:-7878}:7878
     restart: on-failure
@@ -184,7 +192,7 @@ services:
       dockerfile: ./ops/docker/Dockerfile.geth
       platforms:
         # - "linux/amd64"
-        - "linux/arm64"
+        - 'linux/arm64'
     # override with the geth script and the env vars required for it
     entrypoint: sh ./geth.sh
     env_file:
@@ -198,12 +206,12 @@ services:
       ETH1_CTC_DEPLOYMENT_HEIGHT: 8
       RETRIES: 60
       # no need to keep this secret, only used internally to sign blocks
-      BLOCK_SIGNER_KEY: "6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"
-      BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
+      BLOCK_SIGNER_KEY: '6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27'
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
       SEQSET_VALID_HEIGHT: 35
-      SEQSET_CONTRACT: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
-      SEQ_ADDRESS: "0x1267397fb5BF6f6Dcc3d18d673616D512dbcd8F0"
-      SEQ_PRIV: "ed3f195449409dc1d22f0119da7678200710a447ff75baa06bfc42829d02d28c"
+      SEQSET_CONTRACT: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
+      SEQ_ADDRESS: '0x1267397fb5BF6f6Dcc3d18d673616D512dbcd8F0'
+      SEQ_PRIV: 'ed3f195449409dc1d22f0119da7678200710a447ff75baa06bfc42829d02d28c'
       # aws or docker, set EXTERNAL_IP to inner ip
       # EXTERNAL_IP:
       # boot node to discover p2p fastly
@@ -241,12 +249,12 @@ services:
       ETH1_CTC_DEPLOYMENT_HEIGHT: 8
       RETRIES: 60
       # no need to keep this secret, only used internally to sign blocks
-      BLOCK_SIGNER_KEY: "6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"
-      BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
+      BLOCK_SIGNER_KEY: '6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27'
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
       SEQSET_VALID_HEIGHT: 35
-      SEQSET_CONTRACT: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
-      SEQ_ADDRESS: "0xC213298C9e90e1AE7b4B97C95A7BE1B811E7c933"
-      SEQ_PRIV: "621cdbc7f440e3d0980f4f620da8136b7b495396138c37b6bda8040de8b1ef6d"
+      SEQSET_CONTRACT: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
+      SEQ_ADDRESS: '0xC213298C9e90e1AE7b4B97C95A7BE1B811E7c933'
+      SEQ_PRIV: '621cdbc7f440e3d0980f4f620da8136b7b495396138c37b6bda8040de8b1ef6d'
       # aws or docker, set EXTERNAL_IP to inner ip
       # EXTERNAL_IP:
       # boot node to discover p2p fastly
@@ -284,10 +292,10 @@ services:
       ETH1_CTC_DEPLOYMENT_HEIGHT: 8
       RETRIES: 60
       # no need to keep this secret, only used internally to sign blocks
-      BLOCK_SIGNER_KEY: "6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"
-      BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
+      BLOCK_SIGNER_KEY: '6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27'
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
       SEQSET_VALID_HEIGHT: 35
-      SEQSET_CONTRACT: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+      SEQSET_CONTRACT: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
       # seq bridge url set to enable RPC only node role
       SEQ_BRIDGE_URL: http://l2gethB:8545
       # aws or docker, set EXTERNAL_IP to inner ip
@@ -332,10 +340,10 @@ services:
       # MVM_GAS_ORACLE_PRICE: 1000
       # MVM_GAS_ORACLE_ADDRESS: "0x420000000000000000000000000000000000000F"
       # no need to keep this secret, only used internally to sign blocks
-      BLOCK_SIGNER_KEY: "6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"
-      BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
+      BLOCK_SIGNER_KEY: '6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27'
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
       SEQSET_VALID_HEIGHT: 35
-      SEQSET_CONTRACT: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+      SEQSET_CONTRACT: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
       # de-seq-block enables multiple txs per block
       DESEQBLOCK: 0
     ports:
@@ -358,7 +366,7 @@ services:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.message-relayer
       platforms:
-        - "linux/amd64"
+        - 'linux/amd64'
         # - "linux/arm64"
     entrypoint: ./relayer.sh
     environment:
@@ -366,12 +374,12 @@ services:
       L2_NODE_WEB3_URL: http://l2geth:8545
       URL: http://deployer:8081/addresses.json
       # a funded hardhat account
-      L1_WALLET_KEY: "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97"
+      L1_WALLET_KEY: '0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97'
       RETRIES: 60
       POLLING_INTERVAL: 500
       GET_LOGS_INTERVAL: 500
-      USE_CHAIN_STORE: "false"
-      STORE_DB_URL: ""
+      USE_CHAIN_STORE: 'false'
+      STORE_DB_URL: ''
       RELAY_NUMBER: 50
     restart: on-failure
 
@@ -387,7 +395,7 @@ services:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.batch-submitter
       platforms:
-        - "linux/amd64"
+        - 'linux/amd64'
         # - "linux/arm64"
     entrypoint: ./batches.sh
     env_file:
@@ -396,17 +404,26 @@ services:
       L1_NODE_WEB3_URL: http://l1_chain:8545
       L2_NODE_WEB3_URL: http://l2geth:8545
       URL: http://deployer:8081/addresses.json
-      SEQUENCER_PRIVATE_KEY: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+      SEQUENCER_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
       # test mpc with chain id 5 http://3.213.188.165:1317
-      MPC_URL: ""
-      BATCH_INBOX_ADDRESS: "0x"
+      MPC_URL: ''
+      BATCH_INBOX_ADDRESS: '0x'
       # start batch index
-      BATCH_INBOX_START_INDEX: "0"
+      BATCH_INBOX_START_INDEX: '0'
       # seq set fork height and contract, if set, should read finalized block height from contract
       SEQSET_VALID_HEIGHT: 35
-      SEQSET_CONTRACT: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+      SEQSET_CONTRACT: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
       # seq set fork submitter during upgrade, it will stop at SEQSET_VALID_HEIGHT-1 if set to 1
       SEQSET_UPGRADE_ONLY: 0
+      MINIO_ENABLED: 'false'
+      EIGENDA_ENABLED: 'true'
+      EIGENDA_RPC: disperser-holesky.eigenda.xyz:443
+      EIGENDA_STATUS_QUERY_TIMEOUT: 1800000
+      EIGENDA_STATUS_QUERY_RETRY_INTERVAL: 5000
+      EIGENDA_CUSTOM_QUORUM_IDS:
+      EIGENDA_SIGNER_PRIVATE_KEY: 6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27
+      EIGENDA_DISABLE_TLS: 'false'
+      EIGENDA_WAIT_FOR_FINALIZATION: 'false'
     restart: on-failure
     volumes:
       - /tmp/mvm/batchSubmitter:/data
@@ -433,10 +450,10 @@ services:
       ETH1_CTC_DEPLOYMENT_HEIGHT: 8
       RETRIES: 60
       ROLLUP_VERIFIER_ENABLE: 'true'
-      BLOCK_SIGNER_KEY: "6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"
-      BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
+      BLOCK_SIGNER_KEY: '6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27'
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
       SEQSET_VALID_HEIGHT: 35
-      SEQSET_CONTRACT: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+      SEQSET_CONTRACT: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
     ports:
       - ${VERIFIER_HTTP_PORT:-8547}:8545
       - ${VERIFIER_WS_PORT:-8548}:8546
@@ -464,10 +481,10 @@ services:
       ETH1_CTC_DEPLOYMENT_HEIGHT: 8
       RETRIES: 60
       ROLLUP_VERIFIER_ENABLE: 'true'
-      BLOCK_SIGNER_KEY: "6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27"
-      BLOCK_SIGNER_ADDRESS: "0x00000398232E2064F896018496b4b44b3D62751F"
+      BLOCK_SIGNER_KEY: '6587ae678cf4fc9a33000cdbf9f35226b71dcc6a4684a31203241f9bcfd55d27'
+      BLOCK_SIGNER_ADDRESS: '0x00000398232E2064F896018496b4b44b3D62751F'
       SEQSET_VALID_HEIGHT: 35
-      SEQSET_CONTRACT: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+      SEQSET_CONTRACT: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
     ports:
       - ${VERIFIER_HTTP_PORT:-8551}:8545
       - ${VERIFIER_WS_PORT:-8552}:8546
@@ -481,7 +498,7 @@ services:
       - l2geth
     image: ethereumoptimism/gas-oracle
     deploy:
-       replicas: 0
+      replicas: 0
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.gas-oracle
@@ -489,5 +506,5 @@ services:
     environment:
       GAS_PRICE_ORACLE_LAYER_TWO_HTTP_URL: http://l1_chain:8545
       GAS_PRICE_ORACLE_ETHEREUM_HTTP_URL: http://l2geth:8545
-      GAS_PRICE_ORACLE_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+      GAS_PRICE_ORACLE_PRIVATE_KEY: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
     restart: on-failure
