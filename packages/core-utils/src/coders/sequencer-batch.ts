@@ -1,6 +1,7 @@
-import { add0x, remove0x, encodeHex } from '../common'
+import { add0x, remove0x, encodeHex, toHexString } from '../common'
 import { BigNumber, ethers } from 'ethers'
 import { MinioClient } from './minio-client'
+import { IEigenDAClient, convertByPaddingEmptyByte } from '../da/eigenda'
 import { MerkleTree } from 'merkletreejs'
 
 export interface BatchContext {
@@ -22,6 +23,8 @@ export interface AppendSequencerBatchParams {
 export interface EncodeSequencerBatchOptions {
   useMinio?: boolean
   minioClient?: MinioClient
+  useEigenDA?: boolean
+  eigenDAClient?: IEigenDAClient
 }
 
 const APPEND_SEQUENCER_BATCH_METHOD_ID = 'appendSequencerBatch()'
@@ -69,7 +72,10 @@ export const encodeAppendSequencerBatch = async (
     encodedTransactionData.length
   )
 
-  if (opts?.useMinio && opts?.minioClient) {
+  if (
+    (opts?.useMinio && opts?.minioClient) ||
+    (opts?.useEigenDA && opts?.eigenDAClient)
+  ) {
     // generate merkle root
     const hash = (el: Buffer | string): Buffer => {
       return Buffer.from(ethers.utils.keccak256(el).slice(2), 'hex')
@@ -98,19 +104,53 @@ export const encodeAppendSequencerBatch = async (
     const tree = new MerkleTree(leafs, hash)
     const batchRoot = remove0x(tree.getHexRoot())
 
-    const storagedObject = await opts?.minioClient?.writeObject(
-      batchRoot,
-      b.shouldStartAtElement,
-      b.totalElementsToAppend,
-      encodedTransactionData,
-      3
-    )
-    console.info(
-      'storage tx data to minio',
-      storagedObject,
-      'context length',
-      contexts.length
-    )
+    let storagedObject = ''
+    if (opts?.useMinio) {
+      storagedObject = await opts?.minioClient?.writeObject(
+        batchRoot,
+        b.shouldStartAtElement,
+        b.totalElementsToAppend,
+        encodedTransactionData,
+        3
+      )
+      console.info(
+        'storage tx data to minio',
+        storagedObject,
+        'context length',
+        contexts.length
+      )
+    } else if (opts?.useEigenDA) {
+      try {
+        const putBlobResult = await opts?.eigenDAClient.putBlob(
+          convertByPaddingEmptyByte(fromHexString(encodedTransactionData))
+        )
+        // object key is timestamp[13] + zero[1]{0} + sizeOfTxData[8]{00000000} + root[64] +blobIndex[2] + batchHeaderHash[32]
+        const sizeOfTxData = encodeHex(batchRoot.length, 8)
+        storagedObject = `${encodeHex(
+          new Date().getTime(),
+          13
+        )}0${sizeOfTxData}${batchRoot}${encodeHex(
+          putBlobResult.blob_verification_proof.blob_index,
+          4
+        )}${remove0x(
+          toHexString(
+            Buffer.from(
+              putBlobResult.blob_verification_proof.batch_metadata
+                .batch_header_hash
+            )
+          )
+        )}`
+        console.info(
+          'storage tx data to EigenDA',
+          storagedObject,
+          'context length',
+          contexts.length
+        )
+      } catch (err) {
+        console.error('Write storage tx data to EigenDA failed.', err)
+        throw new Error(`Write storage tx data to EigenDA failed.`)
+      }
+    }
 
     // the following 2 conditions except empty encodedTransactionData
     if (

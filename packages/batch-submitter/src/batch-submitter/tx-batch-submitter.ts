@@ -20,6 +20,7 @@ import {
   EigenDAClientConfig,
   remove0x,
   toHexString,
+  createEigenDAClient,
 } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
@@ -506,8 +507,12 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
 
       this.encodeSequencerBatchOptions = {
         useMinio: this.useMinio,
+        useEigenDA: this.useEigenDA,
         minioClient: this.minioConfig
           ? new MinioClient(this.minioConfig)
+          : null,
+        eigenDAClient: this.eigenDAConfig
+          ? createEigenDAClient(this.eigenDAConfig)
           : null,
       }
     }
@@ -526,15 +531,16 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     //     this.encodeSequencerBatchOptions
     //   )
     // unsigned tx
-    const tx = this.useMinio
-      ? await this.mvmCtcContract.customPopulateTransaction.appendSequencerBatch(
-          batchParams,
-          this.encodeSequencerBatchOptions
-        )
-      : await this.chainContract.customPopulateTransaction.appendSequencerBatch(
-          batchParams,
-          this.encodeSequencerBatchOptions
-        )
+    const tx =
+      this.useMinio || this.useEigenDA
+        ? await this.mvmCtcContract.customPopulateTransaction.appendSequencerBatch(
+            batchParams,
+            this.encodeSequencerBatchOptions
+          )
+        : await this.chainContract.customPopulateTransaction.appendSequencerBatch(
+            batchParams,
+            this.encodeSequencerBatchOptions
+          )
 
     // MPC enabled: prepare nonce, gasPrice
     if (this.mpcUrl) {

@@ -9,7 +9,11 @@ import {
   EventArgsSequencerBatchAppended,
   MinioClient,
   MinioConfig,
+  IEigenDAClient,
+  EigenDAClientConfig,
+  createEigenDAClient,
   remove0x,
+  removeEmptyByteFromPaddedBytes,
 } from '@metis.io/core-utils'
 
 /* Imports: Internal */
@@ -30,8 +34,12 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
   SequencerBatchAppendedParsedEvent
 > = {
   getExtraData: async (event, l1RpcProvider) => {
-    const eventBlock = await l1RpcProvider.getBlockWithTransactions(event.blockNumber)
-    const l1Transaction = eventBlock.transactions.find(i=>i.hash == event.transactionHash)
+    const eventBlock = await l1RpcProvider.getBlockWithTransactions(
+      event.blockNumber
+    )
+    const l1Transaction = eventBlock.transactions.find(
+      (i) => i.hash === event.transactionHash
+    )
 
     // TODO: We need to update our events so that we actually have enough information to parse this
     // batch without having to pull out this extra event. For the meantime, we need to find this
@@ -104,6 +112,27 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       }
       minioClient = new MinioClient(minioConfig)
     }
+    let eigenDAClient: IEigenDAClient = null
+    if (
+      options.eigenDAEnabled &&
+      options.eigenDARpc &&
+      options.eigenDAStatusQueryTimeout &&
+      options.eigenDAStatusQueryRetryInterval &&
+      options.eigenDASignerPrivateKey
+    ) {
+      const eigenDAConfig: EigenDAClientConfig = {
+        rpc: options.eigenDARpc,
+        statusQueryTimeout: options.eigenDAStatusQueryTimeout,
+        statusQueryRetryInterval: options.eigenDAStatusQueryRetryInterval,
+        signerPrivateKey: options.eigenDASignerPrivateKey,
+        customQuorumIDs: options.eigenDACustomQuorumIDs,
+        disableTLS: options.eigenDADisableTLS,
+        waitForFinalization: options.eigenDAWaitForFinalization,
+      }
+      eigenDAClient = createEigenDAClient(eigenDAConfig)
+    } else {
+      throw new Error(`Missing EigenDA config for DA type is 3`)
+    }
 
     // chainid + 32, so not [12, 15]
     if (calldata.length < 44) {
@@ -131,29 +160,56 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         context.numSubsequentQueueTransactions === 0 &&
         context.numSequencedTransactions === 0
       ) {
-        // calldata = timestamp[13] + zero[1]{0} + sizeOfTxData[8]{00000000} + markleRoot[64]
-        const storageObject = calldata
-          .slice(nextTxPointer)
-          .toString('hex')
-          .slice(0, 86)
-        rootFromCalldata = storageObject.slice(22, 86)
-        fromStorage = true
-        // console.info('calc storage object name', storageObject)
-        const txData = await minioClient.readObject(storageObject, 2)
-        // const verified = await minioClient.verifyObject(storageObject, txData, 2)
-        // if (!verified) {
-        //   throw new Error(`verified calldata from storage error, storage object ${storageObject}`)
-        // }
-        if (!txData) {
-          throw new Error(
-            `got calldata from storage error, storage object ${storageObject}`
+        if (minioClient !== null) {
+          // calldata = timestamp[13] + zero[1]{0} + sizeOfTxData[8]{00000000} + markleRoot[64]
+          const storageObject = calldata
+            .slice(nextTxPointer)
+            .toString('hex')
+            .slice(0, 86)
+          rootFromCalldata = storageObject.slice(22, 86)
+          fromStorage = true
+          // console.info('calc storage object name', storageObject)
+          const txData = await minioClient.readObject(storageObject, 2)
+          // const verified = await minioClient.verifyObject(storageObject, txData, 2)
+          // if (!verified) {
+          //   throw new Error(`verified calldata from storage error, storage object ${storageObject}`)
+          // }
+          if (!txData) {
+            throw new Error(
+              `got calldata from storage error, storage object ${storageObject}`
+            )
+          }
+          console.info('got storage data', storageObject)
+          calldata = Buffer.concat([
+            calldata.slice(0, nextTxPointer),
+            Buffer.from(txData, 'hex'),
+          ])
+        } else if (eigenDAClient !== null) {
+          // calldata = timestamp[13] + zero[1]{0} + sizeOfTxData[8]{00000000} + root[64] + blobIndex[2] + batchHeaderHash[32]
+          const blobHeader = calldata.slice(calldata.length - 34)
+          const daData = removeEmptyByteFromPaddedBytes(
+            await eigenDAClient.getBlob(
+              blobHeader.slice(2),
+              blobHeader.slice(0, 2).readUInt16BE(0)
+            )
           )
+          if (!daData) {
+            throw new Error(
+              `Read data from EigenDA failed, object is ${remove0x(
+                toHexString(blobHeader)
+              )}`
+            )
+          }
+          rootFromCalldata = calldata
+            .slice(nextTxPointer)
+            .toString('hex')
+            .slice(22, 86)
+          fromStorage = true
+          calldata = Buffer.concat([
+            calldata.slice(0, nextTxPointer),
+            Buffer.from(daData),
+          ])
         }
-        console.info('got storage data', storageObject)
-        calldata = Buffer.concat([
-          calldata.slice(0, nextTxPointer),
-          Buffer.from(txData, 'hex'),
-        ])
       }
 
       for (let j = 0; j < context.numSequencedTransactions; j++) {

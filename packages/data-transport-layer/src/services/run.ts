@@ -67,7 +67,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
       ),
       eigenDAStatusQueryRetryInterval: config.uint(
         'eigenda-status-query-retry-interval',
-        60000
+        1800000
       ),
       eigenDACustomQuorumIDs:
         config.str('eigenda-custom-quorum-ids', '').trim() === ''
