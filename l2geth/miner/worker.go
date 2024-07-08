@@ -380,6 +380,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-w.startCh:
 			clearPending(w.chain.CurrentBlock().NumberU64())
 			commit(commitInterruptNewHead)
+			log.Info("Miner newWorkLoop startCh", "interrupt", commitInterruptNewHead)
 
 		// TODO check this should be removed
 		// Remove this code for the OVM implementation. It is responsible for
@@ -404,6 +405,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 			// log.Debug("Special info in worker: newWorkLoop timer.C", "resubmit", resubmit, "cmp to DeSeqBlock", w.chain.CurrentBlock().NumberU64()+1)
 			seqModel, mpcEnabled := w.eth.SyncService().GetSeqAndMpcStatus()
+			log.Info("Miner newWorkLoop time.C", "seqModel", seqModel, "mpcEnabled", mpcEnabled, "isRunning", w.isRunning(), "resubmit", resubmit)
 			if !seqModel {
 				continue
 			}
@@ -412,6 +414,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() && resubmit {
 				// Short circuit if no new transaction arrives.
 				if atomic.LoadInt32(&w.newTxs) == 0 {
+					log.Info("Miner newWorkLoop time.C, timer reset by w.newTxs empty")
 					timer.Reset(recommit)
 					continue
 				}
@@ -454,6 +457,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case adjust := <-w.resubmitAdjustCh:
+			log.Info("Miner newWorkLoop resubmitAdjustCh", "inc", adjust.inc)
 			// Adjust resubmit interval by feedback.
 			if adjust.inc {
 				before := recommit
@@ -470,6 +474,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case <-w.exitCh:
+			log.Info("Miner newWorkLoop exitCh")
 			return
 		}
 	}
@@ -753,6 +758,7 @@ func (w *worker) resultLoop() {
 			// a transaction that cannot be added to the chain, so this
 			// should be updated to a select statement that can also listen
 			// for errors.
+			log.Info("Miner waiting chainHeadCh")
 			head := <-w.chainHeadCh
 			txs := head.Block.Transactions()
 			if len(txs) == 0 {
@@ -761,7 +767,7 @@ func (w *worker) resultLoop() {
 			}
 			txn := txs[0]
 			height := head.Block.Number().Uint64()
-			log.Debug("Miner got new head", "height", height, "block-hash", head.Block.Hash().Hex(), "txn-hash", txn.Hash().Hex())
+			log.Info("Miner got new head", "height", height, "block-hash", head.Block.Hash().Hex(), "txn-hash", txn.Hash().Hex())
 
 			// Prevent memory leak by cleaning up pending tasks
 			// This is mostly copied from the `newWorkLoop`
@@ -1181,7 +1187,7 @@ func (w *worker) commitNewWork(interrupt *int32, timestamp int64) {
 	tstart := time.Now()
 	parent := w.chain.CurrentBlock()
 
-  // when timestamp not set yet, give time.Now
+	// when timestamp not set yet, give time.Now
 	if timestamp <= 0 {
 		timestamp = time.Now().Unix()
 	}
