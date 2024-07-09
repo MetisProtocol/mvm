@@ -1,11 +1,11 @@
 package ethapi
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi"
 	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/vm"
 )
 
 // revertError is an API error that encompasses an EVM revert with JSON error
@@ -28,11 +28,11 @@ func (e *revertError) ErrorData() interface{} {
 
 // newRevertError creates a revertError instance with the provided revert data.
 func newRevertError(revert []byte) *revertError {
-	err := vm.ErrExecutionReverted
+	err := errors.New("execution reverted")
 
 	reason, errUnpack := abi.UnpackRevert(revert)
 	if errUnpack == nil {
-		err = fmt.Errorf("%w: %v", vm.ErrExecutionReverted, reason)
+		err = fmt.Errorf("execution reverted: %s", reason)
 	}
 	return &revertError{
 		error:  err,
