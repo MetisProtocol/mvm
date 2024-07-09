@@ -82,7 +82,7 @@ func updateEpochCache(currentEpochId *big.Int, epoch *Epoch, prependBeginning bo
 
 func processSeqSetBlock(bc *BlockChain, statedb *state.StateDB, block *types.Block, parent *types.Header) error {
 	currentBN := new(big.Int).Add(big.NewInt(1), parent.Number)
-	if !bc.Config().IsSeqSetEnabled(currentBN) {
+	if !bc.Config().IsSeqSetPeerEnabled(currentBN) {
 		return nil
 	}
 	// check seqset

@@ -241,15 +241,17 @@ var (
 	MetisSepoliaRFDUpdateForkNum = big.NewInt(600000)
 
 	MetisMainnetRollupConfig = &MVMRollupConfig{
-		SeqSetContract: common.HexToAddress("0x0fe382b74C3894B65c10E5C12ae60Bbd8FAf5b48"),
-		SeqSetHeight:   big.NewInt(15214531),
-		TxPoolHeight:   big.NewInt(16500000),
+		SeqSetContract:   common.HexToAddress("0x0fe382b74C3894B65c10E5C12ae60Bbd8FAf5b48"),
+		SeqSetHeight:     big.NewInt(15214531),
+		SeqSetPeerHeight: big.NewInt(15214531),
+		TxPoolHeight:     big.NewInt(16500000),
 	}
 
 	MetisSepoliaRollupConfig = &MVMRollupConfig{
-		SeqSetContract: common.HexToAddress("0xdE8d56212118906a0CeCD331e842429714b4c47B"),
-		SeqSetHeight:   big.NewInt(1000),
-		TxPoolHeight:   big.NewInt(600000),
+		SeqSetContract:   common.HexToAddress("0xdE8d56212118906a0CeCD331e842429714b4c47B"),
+		SeqSetHeight:     big.NewInt(1000),
+		SeqSetPeerHeight: big.NewInt(920000),
+		TxPoolHeight:     big.NewInt(600000),
 	}
 
 	MetisFallbackRollupConfig = &MVMRollupConfig{}
@@ -298,9 +300,10 @@ type CheckpointOracleConfig struct {
 }
 
 type MVMRollupConfig struct {
-	SeqSetContract common.Address `json:"seqset_contract"`
-	SeqSetHeight   *big.Int       `json:"seqset_height,omitempty"`
-	TxPoolHeight   *big.Int       `json:"txpool_height,omitempty"`
+	SeqSetContract   common.Address `json:"seqset_contract"`
+	SeqSetHeight     *big.Int       `json:"seqset_height,omitempty"`
+	SeqSetPeerHeight *big.Int       `json:"seqset_peer_height,omitempty"`
+	TxPoolHeight     *big.Int       `json:"txpool_height,omitempty"`
 }
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -511,6 +514,16 @@ func (c *ChainConfig) IsSeqSetEnabled(num *big.Int) bool {
 		return isForked(MetisSepoliaRollupConfig.SeqSetHeight, num)
 	}
 	return isForked(MetisFallbackRollupConfig.SeqSetHeight, num)
+}
+
+func (c *ChainConfig) IsSeqSetPeerEnabled(num *big.Int) bool {
+	if c.ChainID.Cmp(MetisMainnetChainID) == 0 {
+		return isForked(MetisMainnetRollupConfig.SeqSetPeerHeight, num)
+	}
+	if c.ChainID.Cmp(MetisSepoliaChainID) == 0 {
+		return isForked(MetisSepoliaRollupConfig.SeqSetPeerHeight, num)
+	}
+	return isForked(MetisFallbackRollupConfig.SeqSetPeerHeight, num)
 }
 
 func (c *ChainConfig) IsMetisMainnet() bool {
