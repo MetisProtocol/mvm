@@ -41,6 +41,11 @@ type Error interface {
 	ErrorCode() int // returns the code
 }
 
+type ErrorWithData interface {
+	Error() string
+	ErrorData() interface{}
+}
+
 // ServerCodec implements reading, parsing and writing RPC messages for the server side of
 // a RPC session. Implementations must be go-routine safe since the codec can be called in
 // multiple go-routines concurrently.
