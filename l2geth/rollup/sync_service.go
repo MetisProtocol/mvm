@@ -102,6 +102,7 @@ type SyncService struct {
 
 	syncQueueFromOthers chan *types.Block
 	enqueueIndexNil     bool
+	latestIndexMu       sync.RWMutex
 }
 
 // NewSyncService returns an initialized sync service
@@ -898,6 +899,9 @@ func (s *SyncService) GetLatestIndexTime() *uint64 {
 
 // GetLatestIndex reads the last CTC index that was processed
 func (s *SyncService) GetLatestIndex() *uint64 {
+	s.latestIndexMu.RLock()
+	defer s.latestIndexMu.RUnlock()
+
 	return rawdb.ReadHeadIndex(s.db)
 }
 
@@ -913,6 +917,9 @@ func (s *SyncService) GetNextIndex() uint64 {
 // SetLatestIndex writes the last CTC index that was processed
 func (s *SyncService) SetLatestIndex(index *uint64) {
 	if index != nil {
+		s.latestIndexMu.Lock()
+		defer s.latestIndexMu.Unlock()
+
 		rawdb.WriteHeadIndex(s.db, *index)
 	}
 }
@@ -1999,6 +2006,15 @@ func (s *SyncService) syncQueueTransactionRange(start, end uint64) error {
 					}
 				}
 				return fmt.Errorf("Cannot apply transaction: %w", err)
+			}
+			continue
+		}
+		if err != nil && strings.Contains(err.Error(), "Failed to make block with enqueue exists") {
+			queueIndex := tx.GetMeta().QueueIndex
+			if queueIndex != nil {
+				log.Error("syncQueueTransactionRange apply repeated, ignore and continue", "tx", tx.Hash(), "queueIndex", *queueIndex, "err", err)
+			} else {
+				log.Error("syncQueueTransactionRange apply repeated, ignore and continue", "tx", tx.Hash(), "err", err)
 			}
 			continue
 		}
