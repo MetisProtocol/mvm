@@ -202,6 +202,9 @@ type worker struct {
 	skipSealHook func(*task) bool                   // Method to decide whether skipping the sealing.
 	fullTaskHook func()                             // Method to call before pushing the full sealing task.
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
+
+	makeCurrentMu sync.Mutex // The lock used to protect makeCurrent
+	resultChMu    sync.Mutex // The lock used to protect resultCh
 }
 
 func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool, init bool) *worker {
@@ -699,14 +702,17 @@ func (w *worker) resultLoop() {
 	for {
 		select {
 		case block := <-w.resultCh:
+			w.resultChMu.Lock()
 			// Short circuit when receiving empty result.
 			if block == nil {
 				w.handleErrInTask(errors.New("Block is nil"), true)
+				w.resultChMu.Unlock()
 				continue
 			}
 			// Short circuit when receiving duplicate result caused by resubmitting.
-			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+			if w.chain.HasBlock(block.Hash(), block.NumberU64()) || w.chain.GetBlockByNumber(block.NumberU64()) != nil {
 				w.handleErrInTask(errors.New("Dulplicate block"), true)
+				w.resultChMu.Unlock()
 				continue
 			}
 			var (
@@ -719,6 +725,7 @@ func (w *worker) resultLoop() {
 			if !exist {
 				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
 				w.handleErrInTask(errors.New("Block found but no relative pending task"), true)
+				w.resultChMu.Unlock()
 				continue
 			}
 			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
@@ -746,6 +753,7 @@ func (w *worker) resultLoop() {
 			if err != nil {
 				w.handleErrInTask(err, true)
 				log.Error("Failed writing block to chain", "err", err)
+				w.resultChMu.Unlock()
 				continue
 			}
 
@@ -763,6 +771,7 @@ func (w *worker) resultLoop() {
 			txs := head.Block.Transactions()
 			if len(txs) == 0 {
 				log.Warn("No transactions in block")
+				w.resultChMu.Unlock()
 				continue
 			}
 			txn := txs[0]
@@ -786,6 +795,8 @@ func (w *worker) resultLoop() {
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
+
+			w.resultChMu.Unlock()
 
 		case <-w.exitCh:
 			return
@@ -1061,6 +1072,9 @@ func (w *worker) commitTransactionsWithError(txs *types.TransactionsByPriceAndNo
 // on reading from a channel that is written to when a new block is added to the
 // chain.
 func (w *worker) commitNewTx(tx *types.Transaction) error {
+	w.makeCurrentMu.Lock()
+	defer w.makeCurrentMu.Unlock()
+
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	tstart := time.Now()
@@ -1094,6 +1108,13 @@ func (w *worker) commitNewTx(tx *types.Transaction) error {
 		index := num.Uint64()
 		meta.Index = &index
 		tx.SetTransactionMeta(meta)
+	}
+	if w.chainConfig.IsShanghai(new(big.Int).Add(num, common.Big1)) && tx.GetMeta().QueueOrigin == types.QueueOriginL1ToL2 {
+		// Check tx hash again if it is enqueue
+		lookup := w.chain.GetTransactionLookup(tx.Hash())
+		if lookup != nil {
+			return fmt.Errorf("Failed to make block with enqueue exists, hash: %s", tx.Hash().Hex())
+		}
 	}
 	header := &types.Header{
 		ParentHash: parent.Hash(),
@@ -1179,6 +1200,9 @@ func (w *worker) commitNewTxDeSeq(txs []*types.Transaction, blockTime uint64) er
 
 // commitNewWork generates several new sealing tasks based on the parent block.
 func (w *worker) commitNewWork(interrupt *int32, timestamp int64) {
+	w.makeCurrentMu.Lock()
+	defer w.makeCurrentMu.Unlock()
+
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
