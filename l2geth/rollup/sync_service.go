@@ -1348,6 +1348,15 @@ func (s *SyncService) applyTransactionToPool(tx *types.Transaction, fromLocal bo
 				return err
 			}
 		}
+
+		// clean sequencer epoch cache when respan
+		if blockNumber >= s.seqAdapter.GetSeqValidHeight() && tx.QueueOrigin() != types.QueueOriginL1ToL2 {
+			isRespan := s.RollupAdapter().IsRespanCall(tx)
+			if isRespan {
+				s.RollupAdapter().RemoveCachedSeqEpoch()
+			}
+		}
+
 		log.Info("sync from other node applyTransactionToPool finish", "current latest", *s.GetLatestIndex())
 		return nil
 	}
@@ -1578,6 +1587,15 @@ func (s *SyncService) applyTransactionToTip(tx *types.Transaction, fromLocal boo
 				return err
 			}
 		}
+
+		// clean sequencer epoch cache when respan
+		if blockNumber >= s.seqAdapter.GetSeqValidHeight() && tx.QueueOrigin() != types.QueueOriginL1ToL2 {
+			isRespan := s.RollupAdapter().IsRespanCall(tx)
+			if isRespan {
+				s.RollupAdapter().RemoveCachedSeqEpoch()
+			}
+		}
+
 		log.Info("sync from other node applyTransactionToTip finish", "current latest", *s.GetLatestIndex())
 		return nil
 	}

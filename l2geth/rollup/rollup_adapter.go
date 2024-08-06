@@ -46,6 +46,7 @@ type RollupAdapter interface {
 	SetPreRespan(oldAddress common.Address, newAddress common.Address, number uint64) error
 	IsPreRespanSequencer(seqAddress string, number uint64) bool
 	IsNotNextRespanSequencer(seqAddress string, number uint64) bool
+	RemoveCachedSeqEpoch()
 }
 
 // Cached seq epoch, if recommit or block number < start | > end, clear cache with status false
@@ -414,6 +415,13 @@ func (s *SeqAdapter) GetTxSequencer(tx *types.Transaction, expectIndex uint64) (
 	}
 
 	return address, err
+}
+
+func (s *SeqAdapter) RemoveCachedSeqEpoch() {
+	s.cachedSeqMux.Lock()
+	defer s.cachedSeqMux.Unlock()
+	s.cachedSeqEpoch.Status = false
+	log.Info("Removed cachedSeqEpoch")
 }
 
 func (s *SeqAdapter) CheckPosLayerSynced() (bool, error) {
