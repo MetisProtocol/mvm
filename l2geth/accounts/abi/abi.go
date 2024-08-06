@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/ethereum-optimism/optimism/l2geth/common"
 	"github.com/ethereum-optimism/optimism/l2geth/crypto"
@@ -189,13 +190,34 @@ func (abi *ABI) EventByID(topic common.Hash) (*Event, error) {
 	return nil, fmt.Errorf("no event with id: %#x", topic.Hex())
 }
 
+// panicReasons map is for readable panic codes
+// see this linkage for the details
+// https://docs.soliditylang.org/en/v0.8.21/control-structures.html#panic-via-assert-and-error-via-require
+// the reason string list is copied from ether.js
+// https://github.com/ethers-io/ethers.js/blob/fa3a883ff7c88611ce766f58bdd4b8ac90814470/src.ts/abi/interface.ts#L207-L218
+var panicReasons = map[uint64]string{
+	0x00: "generic panic",
+	0x01: "assert(false)",
+	0x11: "arithmetic underflow or overflow",
+	0x12: "division or modulo by zero",
+	0x21: "enum overflow",
+	0x22: "invalid encoded storage byte array accessed",
+	0x31: "out-of-bounds array access; popping on an empty array",
+	0x32: "out-of-bounds access of an array or bytesN",
+	0x41: "out of memory",
+	0x51: "uninitialized function",
+}
+
 // UsingOVM
 // Both RevertSelector and UnpackRevert were pulled from upstream
 // geth as they were not present in the version of geth that this
 // codebase was forked from. These are useful for displaying revert
 // messages to users when they use `eth_call`
 // RevertSelector is a special function selector for revert reason unpacking.
-var RevertSelector = crypto.Keccak256([]byte("Error(string)"))[:4]
+var revertSelector = crypto.Keccak256([]byte("Error(string)"))[:4]
+
+// panicSelector is a special function selector for panic reason unpacking.
+var panicSelector = crypto.Keccak256([]byte("Panic(uint256)"))[:4]
 
 // UnpackRevert resolves the abi-encoded revert reason. According to the solidity
 // docs https://docs.soliditylang.org/en/v0.8.4/control-structures.html#revert,
@@ -205,13 +227,28 @@ func UnpackRevert(data []byte) (string, error) {
 	if len(data) < 4 {
 		return "", errors.New("invalid data for unpacking")
 	}
-	if !bytes.Equal(data[:4], RevertSelector) {
-		return "", errors.New("invalid data for unpacking")
+	switch {
+	case bytes.Equal(data[:4], revertSelector):
+		typ, _ := NewType("string", "", nil)
+		unpacked, err := (Arguments{{Type: typ}}).UnpackValues(data[4:])
+		if err != nil {
+			return "", err
+		}
+		return unpacked[0].(string), nil
+	case bytes.Equal(data[:4], panicSelector):
+		typ, _ := NewType("uint256", "", nil)
+		unpacked, err := (Arguments{{Type: typ}}).UnpackValues(data[4:])
+		if err != nil {
+			return "", err
+		}
+		pCode := unpacked[0].(*big.Int)
+		if pCode.IsUint64() {
+			if reason, ok := panicReasons[pCode.Uint64()]; ok {
+				return reason, nil
+			}
+		}
+		return fmt.Sprintf("unknown panic code: %#x", pCode), nil
 	}
-	typ, _ := NewType("string", "", nil)
-	unpacked, err := (Arguments{{Type: typ}}).UnpackValues(data[4:])
-	if err != nil {
-		return "", err
-	}
-	return unpacked[0].(string), nil
+
+	return "", errors.New("invalid data for unpacking")
 }

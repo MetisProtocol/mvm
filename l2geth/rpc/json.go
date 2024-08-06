@@ -115,6 +115,10 @@ func errorMessage(err error) *jsonrpcMessage {
 	if ok {
 		msg.Error.Code = ec.ErrorCode()
 	}
+	de, ok := err.(ErrorWithData)
+	if ok {
+		msg.Error.Data = de.ErrorData()
+	}
 	return msg
 }
 

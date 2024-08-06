@@ -1031,14 +1031,6 @@ func (w *worker) commitTransactionsWithError(txs *types.TransactionsByPriceAndNo
 				txs.Shift()
 			}
 		}
-		// UsingOVM
-		// Return specific execution errors directly to the user to
-		// avoid returning the generic ErrCannotCommitTxnErr. It is safe
-		// to return the error directly since l2geth only processes at
-		// most one transaction per block.
-		if err != nil {
-			return err
-		}
 	}
 
 	if !w.isRunning() && len(coalescedLogs) > 0 {

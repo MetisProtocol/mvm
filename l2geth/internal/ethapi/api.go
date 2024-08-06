@@ -27,7 +27,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum-optimism/optimism/l2geth/accounts"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi"
 	"github.com/ethereum-optimism/optimism/l2geth/accounts/keystore"
 	"github.com/ethereum-optimism/optimism/l2geth/accounts/scwallet"
 	"github.com/ethereum-optimism/optimism/l2geth/common"
@@ -978,12 +977,7 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNrOr
 		return nil, err
 	}
 	if failed {
-		reason, errUnpack := abi.UnpackRevert(result)
-		err := errors.New("execution reverted")
-		if errUnpack == nil {
-			err = fmt.Errorf("execution reverted: %v", reason)
-		}
-		return (hexutil.Bytes)(result), err
+		return (hexutil.Bytes)(result), newRevertError(result)
 	}
 	return (hexutil.Bytes)(result), err
 }
@@ -1092,13 +1086,8 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 	if hi == cap {
 		ok, res, _ := executable(hi)
 		if !ok {
-			if len(res) >= 4 && bytes.Equal(res[:4], abi.RevertSelector) {
-				reason, errUnpack := abi.UnpackRevert(res)
-				err := errors.New("execution reverted")
-				if errUnpack == nil {
-					err = fmt.Errorf("execution reverted: %v", reason)
-				}
-				return 0, err
+			if len(res) >= 4 {
+				return 0, newRevertError(res)
 			}
 			return 0, fmt.Errorf("gas required exceeds allowance (%d)", cap)
 		}
