@@ -426,17 +426,20 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 					expectSeq, err := w.eth.SyncService().GetTxSequencer(nil, nextBN)
 					if err != nil {
 						log.Warn("GetTxSequencer error in worker timer", "err", err)
+						timer.Reset(recommit)
 						continue
 					}
 					if !w.eth.SyncService().IsSelfSeqAddress(expectSeq) {
 						log.Warn("Current sequencer incorrect in worker timer, clear pending", "current sequencer", expectSeq.String())
 						clearPending(w.chain.CurrentBlock().NumberU64())
+						timer.Reset(recommit)
 						continue
 					}
 					// check startup sync height of L2 RPC
 					if !w.eth.SyncService().IsAboveStartHeight(nextBN) {
 						log.Warn("Block number below sync start height in worker timer, clear pending", "block number", nextBN)
 						clearPending(w.chain.CurrentBlock().NumberU64())
+						timer.Reset(recommit)
 						continue
 					}
 				}
