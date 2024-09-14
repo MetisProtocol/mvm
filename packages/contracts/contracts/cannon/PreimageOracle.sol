@@ -4,7 +4,7 @@ pragma solidity 0.8.15;
 import { IPreimageOracle } from "./interfaces/IPreimageOracle.sol";
 import { ISemver } from "contracts/universal/ISemver.sol";
 import { PreimageKeyLib } from "./PreimageKeyLib.sol";
-import { LibKeccak } from "@lib-keccak/LibKeccak.sol";
+import { LibKeccak } from "../libraries/crypto/LibKeccak.sol";
 import "contracts/cannon/libraries/CannonErrors.sol";
 import "contracts/cannon/libraries/CannonTypes.sol";
 
