@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/exec"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/program"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/exec"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/program"
 )
 
 func setWitnessField(witness StateWitness, fieldOffset int, fieldData []byte) {

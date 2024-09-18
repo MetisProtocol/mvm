@@ -3,7 +3,7 @@ package exec
 import (
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/memory"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/memory"
 )
 
 type MemTracker interface {

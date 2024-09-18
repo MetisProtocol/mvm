@@ -1,8 +1,8 @@
 package exec
 
 import (
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/memory"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/memory"
 )
 
 func GetInstructionDetails(pc uint32, memory *memory.Memory) (insn, opcode, fun uint32) {

@@ -3,7 +3,7 @@ package exec
 import (
 	"encoding/binary"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 )
 
 type PreimageReader interface {

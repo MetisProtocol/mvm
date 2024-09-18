@@ -8,10 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/exec"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/testutil"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/exec"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/testutil"
 )
 
 func TestEVM_CloneFlags(t *testing.T) {
