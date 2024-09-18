@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 )
 
 const (

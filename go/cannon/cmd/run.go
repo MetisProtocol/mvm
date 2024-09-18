@@ -10,18 +10,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/program"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/singlethreaded"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded"
+
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
+
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/program"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/singlethreaded"
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 var (

@@ -4,13 +4,15 @@ import (
 	"debug/elf"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/program"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/singlethreaded"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded"
+
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
+
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/program"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/singlethreaded"
 )
 
 var (

@@ -14,9 +14,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 type MIPSEVM struct {

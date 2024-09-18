@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 )
 
 func CopyRegisters(state mipsevm.FPVMState) *[32]uint32 {

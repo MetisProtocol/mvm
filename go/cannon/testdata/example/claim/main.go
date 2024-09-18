@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 type rawHint string

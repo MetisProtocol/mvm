@@ -4,8 +4,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/testutil"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/testutil"
 )
 
 type StateMutatorMultiThreaded struct {

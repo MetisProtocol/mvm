@@ -5,7 +5,13 @@ toolchain go1.22.7
 use (
 	./go/batch-submitter
 	./go/gas-oracle
+	./go/op-preimage
+	./go/cannon
 	//./go/op-challenger
 	./go/utils
 	./l2geth
+
+	// for cannon testing
+	go/cannon/testdata/example/alloc
+	go/cannon/testdata/example/claim
 )

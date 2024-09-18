@@ -6,12 +6,12 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	mttestutil "github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded/testutil"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/singlethreaded"
-	sttestutil "github.com/ethereum-optimism/optimism/cannon/mipsevm/singlethreaded/testutil"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/testutil"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded"
+	mttestutil "github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded/testutil"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/singlethreaded"
+	sttestutil "github.com/ethereum-optimism/optimism/go/cannon/mipsevm/singlethreaded/testutil"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/testutil"
 )
 
 type VMFactory func(po mipsevm.PreimageOracle, stdOut, stdErr io.Writer, log log.Logger, opts ...testutil.StateOption) mipsevm.FPVM
