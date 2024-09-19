@@ -9,12 +9,13 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/snapshots"
 	"github.com/ethereum/go-ethereum/common"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/keccak/merkle"

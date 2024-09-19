@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 

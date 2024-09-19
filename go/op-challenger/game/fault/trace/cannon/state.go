@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/singlethreaded"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
+
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/singlethreaded"
 )
 
 func parseState(path string) (*singlethreaded.State, error) {

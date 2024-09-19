@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"strconv"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 const (

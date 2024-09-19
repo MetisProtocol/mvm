@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/clock"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
@@ -19,6 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/keccak/matrix"

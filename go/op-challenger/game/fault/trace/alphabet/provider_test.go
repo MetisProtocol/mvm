@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"testing"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 

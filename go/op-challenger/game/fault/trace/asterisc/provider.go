@@ -10,10 +10,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ethereum-optimism/optimism/op-program/host/kvstore"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/config"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/trace/utils"
