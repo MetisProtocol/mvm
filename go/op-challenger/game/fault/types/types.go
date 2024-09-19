@@ -9,11 +9,12 @@ import (
 	"math/big"
 	"time"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 var (

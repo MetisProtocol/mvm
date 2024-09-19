@@ -4,9 +4,10 @@ import (
 	_ "embed"
 	"math/big"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 )

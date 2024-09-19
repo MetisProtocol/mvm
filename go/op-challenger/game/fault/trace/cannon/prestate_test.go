@@ -9,9 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/memory"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/singlethreaded"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/memory"
+	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/singlethreaded"
 )
 
 func newCannonPrestateProvider(dataDir string, prestate string) *CannonPrestateProvider {

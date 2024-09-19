@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	"github.com/urfave/cli/v2"
+
+	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/flags"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/runner"

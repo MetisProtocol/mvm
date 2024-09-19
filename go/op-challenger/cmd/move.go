@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/go/op-challenger/flags"
-	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
+
+	"github.com/ethereum-optimism/optimism/go/op-challenger/flags"
+	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts"
 )
 
 var (

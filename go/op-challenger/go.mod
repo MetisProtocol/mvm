@@ -4,10 +4,19 @@ go 1.21
 
 toolchain go1.22.7
 
+replace (
+	github.com/ethereum-optimism/optimism/go/cannon => ../cannon
+	github.com/ethereum-optimism/optimism/go/op-preimage => ../op-preimage
+	github.com/ethereum-optimism/optimism/go/op-program => ../op-program
+)
+
 require (
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/crate-crypto/go-kzg-4844 v1.0.0
 	github.com/ethereum-optimism/optimism v1.9.1
+	github.com/ethereum-optimism/optimism/go/cannon v0.0.0-00010101000000-000000000000
+	github.com/ethereum-optimism/optimism/go/op-preimage v0.0.0
+	github.com/ethereum-optimism/optimism/go/op-program v0.0.0-00010101000000-000000000000
 	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20240821192748-42bd03ba8313
 	github.com/ethereum/go-ethereum v1.14.8
 	github.com/hashicorp/golang-lru/v2 v2.0.7
@@ -186,13 +195,13 @@ require (
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
-	golang.org/x/term v0.23.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/term v0.24.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect

@@ -4,13 +4,14 @@ import (
 	"context"
 	"testing"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	batchingTest "github.com/ethereum-optimism/optimism/op-service/sources/batching/test"
 	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/snapshots"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 )
