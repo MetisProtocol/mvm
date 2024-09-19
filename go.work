@@ -5,13 +5,23 @@ toolchain go1.22.7
 use (
 	./go/batch-submitter
 	./go/gas-oracle
-	./go/op-preimage
-	./go/cannon
-	//./go/op-challenger
 	./go/utils
 	./l2geth
+
+	// for fault dispute game
+	./go/op-preimage
+	./go/op-program
+	./go/cannon
+	//./go/op-challenger
 
 	// for cannon testing
 	go/cannon/testdata/example/alloc
 	go/cannon/testdata/example/claim
 )
+
+replace (
+	github.com/ethereum-optimism/optimism/go/op-preimage v0.0.0 => ./go/op-preimage
+	github.com/ethereum-optimism/optimism/go/op-program v0.0.0 => ./go/op-program
+	github.com/ethereum-optimism/optimism/go/cannon v0.0.0 => ./go/cannon
+)
+
