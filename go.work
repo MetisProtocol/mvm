@@ -9,10 +9,11 @@ use (
 	./l2geth
 
 	// for fault dispute game
+	./go/cannon
 	./go/op-preimage
 	./go/op-program
-	./go/cannon
 	./go/op-challenger
+	./go/op-proposer
 
 	// for cannon testing
 	go/cannon/testdata/example/alloc

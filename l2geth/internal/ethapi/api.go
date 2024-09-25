@@ -2212,24 +2212,16 @@ type OutputResponse struct {
 	Status                *types.SyncStatus `json:"syncStatus"`
 }
 
-type PublicMvmAPI struct {
+type PublicOptimismAPI struct {
 	b        Backend
 	chainAPI *PublicBlockChainAPI
 }
 
-func NewPublicMvmAPI(b Backend, chainAPI *PublicBlockChainAPI) *PublicMvmAPI {
-	return &PublicMvmAPI{b: b, chainAPI: chainAPI}
+func (api *PublicOptimismAPI) SyncStatus(_ context.Context) (*types.SyncStatus, error) {
+	return api.b.SyncStatus()
 }
 
-func (api *PublicMvmAPI) FinalizedBlockNumber(ctx context.Context) (hexutil.Uint64, error) {
-	finalizedBlockNumber, err := api.b.FinalizedBlockNumber()
-	if err != nil {
-		return hexutil.Uint64(0), err
-	}
-	return hexutil.Uint64(finalizedBlockNumber), nil
-}
-
-func (api *PublicMvmAPI) OutputAtBlock(ctx context.Context, number uint64) (*OutputResponse, error) {
+func (api *PublicOptimismAPI) OutputAtBlock(ctx context.Context, number uint64) (*OutputResponse, error) {
 	block, err := api.b.BlockByNumber(ctx, rpc.BlockNumber(number))
 	if err != nil {
 		return nil, err
@@ -2287,6 +2279,27 @@ func (api *PublicMvmAPI) OutputAtBlock(ctx context.Context, number uint64) (*Out
 		StateRoot:             outputV0.StateRoot,
 		Status:                syncStatus,
 	}, nil
+}
+
+func NewPublicOptimismAPI(b Backend, chainAPI *PublicBlockChainAPI) *PublicOptimismAPI {
+	return &PublicOptimismAPI{b: b, chainAPI: chainAPI}
+}
+
+type PublicMvmAPI struct {
+	b        Backend
+	chainAPI *PublicBlockChainAPI
+}
+
+func NewPublicMvmAPI(b Backend) *PublicMvmAPI {
+	return &PublicMvmAPI{b: b}
+}
+
+func (api *PublicMvmAPI) FinalizedBlockNumber(ctx context.Context) (hexutil.Uint64, error) {
+	finalizedBlockNumber, err := api.b.FinalizedBlockNumber()
+	if err != nil {
+		return hexutil.Uint64(0), err
+	}
+	return hexutil.Uint64(finalizedBlockNumber), nil
 }
 
 // PublicDebugAPI is the collection of Ethereum APIs exposed over the public
