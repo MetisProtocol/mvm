@@ -26,6 +26,8 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/tyler-smith/go-bip39"
+
 	"github.com/ethereum-optimism/optimism/l2geth/accounts"
 	"github.com/ethereum-optimism/optimism/l2geth/accounts/keystore"
 	"github.com/ethereum-optimism/optimism/l2geth/accounts/scwallet"
@@ -40,13 +42,14 @@ import (
 	"github.com/ethereum-optimism/optimism/l2geth/core/vm"
 	"github.com/ethereum-optimism/optimism/l2geth/crypto"
 	"github.com/ethereum-optimism/optimism/l2geth/ethclient"
+	"github.com/ethereum-optimism/optimism/l2geth/ethdb/memorydb"
 	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"github.com/ethereum-optimism/optimism/l2geth/p2p"
 	"github.com/ethereum-optimism/optimism/l2geth/params"
 	"github.com/ethereum-optimism/optimism/l2geth/rlp"
 	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
 	"github.com/ethereum-optimism/optimism/l2geth/rpc"
-	"github.com/tyler-smith/go-bip39"
+	"github.com/ethereum-optimism/optimism/l2geth/trie"
 )
 
 var (
@@ -60,6 +63,10 @@ const (
 	// defaultDialTimeout is default duration the service will wait on
 	// startup to make a connection to either the L1 or L2 backends.
 	defaultDialTimeout = 5 * time.Second
+)
+
+const (
+	OVML2ToL1MessagePasser = "0x4200000000000000000000000000000000000000"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum related information.
@@ -564,7 +571,13 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
 }
 
-// Result structs for GetProof
+// StorageResult & AccountResult are the result structs for GetProof
+type StorageResult struct {
+	Key   string       `json:"key"`
+	Value *hexutil.Big `json:"value"`
+	Proof []string     `json:"proof"`
+}
+
 type AccountResult struct {
 	Address      common.Address  `json:"address"`
 	AccountProof []string        `json:"accountProof"`
@@ -574,10 +587,70 @@ type AccountResult struct {
 	StorageHash  common.Hash     `json:"storageHash"`
 	StorageProof []StorageResult `json:"storageProof"`
 }
-type StorageResult struct {
-	Key   string       `json:"key"`
-	Value *hexutil.Big `json:"value"`
-	Proof []string     `json:"proof"`
+
+// Verify an account (and optionally storage) proof from the getProof RPC. See https://eips.ethereum.org/EIPS/eip-1186
+func (res *AccountResult) Verify(stateRoot common.Hash) error {
+	// verify storage proof values, if any, against the storage trie root hash of the account
+	for i, entry := range res.StorageProof {
+		// load all MPT nodes into a DB
+		db := memorydb.New()
+		for j, encodedNode := range entry.Proof {
+			hexDecodedNode := hexutil.MustDecode(encodedNode)
+			nodeKey := hexDecodedNode
+			if len(encodedNode) >= 32 { // small MPT nodes are not hashed
+				nodeKey = crypto.Keccak256(hexDecodedNode)
+			}
+			if err := db.Put(nodeKey, hexDecodedNode); err != nil {
+				return fmt.Errorf("failed to load storage proof node %d of storage value %d into mem db: %w", j, i, err)
+			}
+		}
+		path := crypto.Keccak256(common.HexToHash(entry.Key).Bytes())
+		val, _, err := trie.VerifyProof(res.StorageHash, path, db)
+		if err != nil {
+			return fmt.Errorf("failed to verify storage value %d with key %s (path %x) in storage trie %s: %w", i, entry.Key, path, res.StorageHash, err)
+		}
+		if val == nil && entry.Value.ToInt().Cmp(common.Big0) == 0 { // empty storage is zero by default
+			continue
+		}
+		comparison, err := rlp.EncodeToBytes(entry.Value.ToInt().Bytes())
+		if err != nil {
+			return fmt.Errorf("failed to encode storage value %d with key %s (path %x) in storage trie %s: %w", i, entry.Key, path, res.StorageHash, err)
+		}
+		if !bytes.Equal(val, comparison) {
+			return fmt.Errorf("value %d in storage proof does not match proven value at key %s (path %x)", i, entry.Key, path)
+		}
+	}
+
+	accountClaimed := []any{uint64(res.Nonce), res.Balance.ToInt().Bytes(), res.StorageHash, res.CodeHash}
+	accountClaimedValue, err := rlp.EncodeToBytes(accountClaimed)
+	if err != nil {
+		return fmt.Errorf("failed to encode account from retrieved values: %w", err)
+	}
+
+	// create a db with all account trie nodes
+	db := memorydb.New()
+	for i, encodedNode := range res.AccountProof {
+		hexDecodedNode := hexutil.MustDecode(encodedNode)
+		nodeKey := hexDecodedNode
+		if len(encodedNode) >= 32 { // small MPT nodes are not hashed
+			nodeKey = crypto.Keccak256(hexDecodedNode)
+		}
+		if err := db.Put(nodeKey, hexDecodedNode); err != nil {
+			return fmt.Errorf("failed to load account proof node %d into mem db: %w", i, err)
+		}
+	}
+	path := crypto.Keccak256(res.Address[:])
+	accountProofValue, _, err := trie.VerifyProof(stateRoot, path, db)
+	if err != nil {
+		return fmt.Errorf("failed to verify account value with key %s (path %x) in account trie %s: %w", res.Address, path, stateRoot, err)
+	}
+
+	if !bytes.Equal(accountClaimedValue, accountProofValue) {
+		return fmt.Errorf("L1 RPC is tricking us, account proof does not match provided deserialized values:\n"+
+			"  claimed: %x\n"+
+			"  proof:   %x", accountClaimedValue, accountProofValue)
+	}
+	return err
 }
 
 // GetProof returns the Merkle-proof for a given account and optionally some storage keys.
@@ -2130,12 +2203,22 @@ func (api *BridgeRollupAPI) SetPreRespan(ctx context.Context, oldAddress common.
 	return api.b.SetPreRespan(ctx, oldAddress, newAddress, number)
 }
 
-type PublicMvmAPI struct {
-	b Backend
+type OutputResponse struct {
+	Version               common.Hash       `json:"version"`
+	OutputRoot            common.Hash       `json:"outputRoot"`
+	BlockRef              types.L2BlockRef  `json:"blockRef"`
+	WithdrawalStorageRoot common.Hash       `json:"withdrawalStorageRoot"`
+	StateRoot             common.Hash       `json:"stateRoot"`
+	Status                *types.SyncStatus `json:"syncStatus"`
 }
 
-func NewPublicMvmAPI(b Backend) *PublicMvmAPI {
-	return &PublicMvmAPI{b: b}
+type PublicMvmAPI struct {
+	b        Backend
+	chainAPI *PublicBlockChainAPI
+}
+
+func NewPublicMvmAPI(b Backend, chainAPI *PublicBlockChainAPI) *PublicMvmAPI {
+	return &PublicMvmAPI{b: b, chainAPI: chainAPI}
 }
 
 func (api *PublicMvmAPI) FinalizedBlockNumber(ctx context.Context) (hexutil.Uint64, error) {
@@ -2144,6 +2227,66 @@ func (api *PublicMvmAPI) FinalizedBlockNumber(ctx context.Context) (hexutil.Uint
 		return hexutil.Uint64(0), err
 	}
 	return hexutil.Uint64(finalizedBlockNumber), nil
+}
+
+func (api *PublicMvmAPI) OutputAtBlock(ctx context.Context, number uint64) (*OutputResponse, error) {
+	block, err := api.b.BlockByNumber(ctx, rpc.BlockNumber(number))
+	if err != nil {
+		return nil, err
+	}
+
+	l1BlockRef, err := api.b.L1OriginOfL2(block.NumberU64())
+	if err != nil {
+		return nil, err
+	}
+
+	syncStatus, err := api.b.SyncStatus()
+	if err != nil {
+		return nil, err
+	}
+
+	proof, err := api.chainAPI.GetProof(
+		ctx,
+		common.HexToAddress(OVML2ToL1MessagePasser),
+		[]string{},
+		rpc.BlockNumberOrHashWithHash(block.Hash(), true),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if proof == nil {
+		return nil, errors.New("proof not found")
+	}
+	if err := proof.Verify(block.Header().Root); err != nil {
+		return nil, err
+	}
+
+	outputV0 := &types.OutputV0{
+		StateRoot:                block.Header().Root,
+		MessagePasserStorageRoot: proof.StorageHash,
+		BlockHash:                block.Hash(),
+	}
+
+	l2BlockRef := types.L2BlockRef{
+		Hash:       block.Hash(),
+		Number:     block.NumberU64(),
+		ParentHash: block.ParentHash(),
+		Time:       block.Time(),
+		L1Origin: types.BlockID{
+			Hash:   l1BlockRef.Hash,
+			Number: l1BlockRef.Number,
+		},
+		SequenceNumber: 0, // TODO: not used right now, just keep it as 0 for now
+	}
+
+	return &OutputResponse{
+		Version:               outputV0.Version(),
+		OutputRoot:            types.OutputRoot(outputV0),
+		BlockRef:              l2BlockRef,
+		WithdrawalStorageRoot: outputV0.MessagePasserStorageRoot,
+		StateRoot:             outputV0.StateRoot,
+		Status:                syncStatus,
+	}, nil
 }
 
 // PublicDebugAPI is the collection of Ethereum APIs exposed over the public

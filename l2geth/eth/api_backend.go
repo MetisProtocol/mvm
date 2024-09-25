@@ -709,3 +709,11 @@ func (b *EthAPIBackend) SetPreRespan(ctx context.Context, oldAddress common.Addr
 func (b *EthAPIBackend) FinalizedBlockNumber() (uint64, error) {
 	return b.eth.syncService.RollupAdapter().GetFinalizedBlock()
 }
+
+func (b *EthAPIBackend) SyncStatus() (*types.SyncStatus, error) {
+	return b.eth.syncService.RollupClient().SyncStatusV2()
+}
+
+func (b *EthAPIBackend) L1OriginOfL2(l2block uint64) (*types.L1BlockRef, error) {
+	return b.eth.syncService.RollupClient().GetL1Origin(l2block)
+}
