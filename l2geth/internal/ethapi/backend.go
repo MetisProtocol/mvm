@@ -148,7 +148,11 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 		}, {
 			Namespace: "mvm",
 			Version:   "1.0",
-			Service:   NewPublicMvmAPI(apiBackend, NewPublicBlockChainAPI(apiBackend)),
+			Service:   NewPublicMvmAPI(apiBackend),
+		}, {
+			Namespace: "optimism",
+			Version:   "1.0",
+			Service:   NewPublicOptimismAPI(apiBackend, NewPublicBlockChainAPI(apiBackend)),
 		}, {
 			Namespace: "txpool",
 			Version:   "1.0",
