@@ -28,9 +28,11 @@ import {
   VerifierStakeResponse,
   AppendBatchElementResponse,
   HighestResponse,
+  SyncStatusResponse, L1BlockRef, L2BlockRef,
 } from '../../types'
 import { validators } from '../../utils'
 import { L1DataTransportServiceOptions } from '../main/service'
+import { Block } from '@ethersproject/abstract-provider'
 
 export interface L1TransportServerOptions
   extends L1DataTransportServiceOptions {
@@ -1043,6 +1045,174 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         return {
           batchElement: result,
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
+      '/rollup/safe-head/:chainId/:l1bock',
+      async (req): Promise<L2BlockRef> => {
+        const l1BlockNumber = BigNumber.from(req.params.l1block).toNumber()
+        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const [derivedFromL1Block, safeL2Block] =
+          await this.state.db.getL2SafeHeadFromL1Block(l1BlockNumber, chainId)
+
+        // get l1 block and l2 block async
+        const derivedFromL1BlockPromise = this.state.l1RpcProvider.getBlock(
+          `0x${derivedFromL1Block.toString(16)}`
+        )
+        const safeL2BlockPromise = this.state.l2RpcProvider.getBlock(
+          `0x${safeL2Block.toString(16)}`
+        )
+        const [l1Block, l2Block] = await Promise.all<Block>([
+          derivedFromL1BlockPromise,
+          safeL2BlockPromise,
+        ])
+
+        return {
+          hash: l2Block.hash,
+          number: safeL2Block,
+          parentHash: l2Block.parentHash,
+          timestamp: l2Block.timestamp,
+          l1origin: {
+            hash: l1Block.hash,
+            number: l1Block.number,
+          },
+          sequenceNumber: 0,
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
+      '/rollup/l1origin/:chainId/:l2block',
+      async (req): Promise<L1BlockRef> => {
+        const l2BlockNumber = BigNumber.from(req.params.l2block).toNumber()
+        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const l1BlockNumber = await this.state.db.getL1OriginOfL2Block(
+          l2BlockNumber,
+          chainId
+        )
+
+        const l1Block = await this.state.l1RpcProvider.getBlock(
+          `0x${l1BlockNumber.toString(16)}`
+        )
+
+        return {
+          hash: l1Block.hash,
+          number: l1Block.number,
+          parentHash: l1Block.parentHash,
+          time: l1Block.timestamp,
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
+      '/rollup/sync-status/:chainId',
+      async (req): Promise<SyncStatusResponse> => {
+        const chainId = BigNumber.from(req.params.chainId).toNumber()
+
+        // convert eth block to block ref
+        const buildL1BlockRef = (block: Block): L1BlockRef => {
+          return {
+            hash: block.hash,
+            number: block.number,
+            parentHash: block.parentHash,
+            time: block.timestamp,
+          }
+        }
+
+        // retrieve required L1 blocks
+        const lastDerivedL1Block = await this.state.db.getLastDerivedL1Block(
+          chainId
+        )
+
+        const lastDerivedL1Promise = this.state.l1RpcProvider.getBlock(
+          `0x${lastDerivedL1Block.toString(16)}`
+        )
+
+        // query required blocks from L1 asynchronously
+        const headL1Promise = this.state.l1RpcProvider.getBlock('latest')
+        const safeL1Promise = this.state.l1RpcProvider.getBlock('safe')
+        const finalizedL1Promise =
+          this.state.l1RpcProvider.getBlock('finalized')
+        const [lastDerivedL1, headL1, safeL1, finalizedL1] = (
+          await Promise.all<Block>([
+            lastDerivedL1Promise,
+            headL1Promise,
+            safeL1Promise,
+            finalizedL1Promise,
+          ])
+        ).map(buildL1BlockRef)
+
+        // build L2 block ref from L2 block and L1 block ref
+        const buildL2BlockRef = (
+          l2Block: Block,
+          l1Block: L1BlockRef | undefined
+        ): L2BlockRef => {
+          return {
+            hash: l2Block.hash,
+            number: l2Block.number,
+            parentHash: l2Block.parentHash,
+            timestamp: l2Block.timestamp,
+            l1origin: !l1Block
+              ? undefined
+              : {
+                  hash: l1Block.hash,
+                  number: l1Block.number,
+                },
+            // TODO: currently we are not using this for FDG, leave this as 0 for now
+            sequenceNumber: 0,
+          }
+        }
+
+        // retrieve required L2 blocks
+        const [, safeL2Block] = await this.state.db.getL2SafeHeadFromL1Block(
+          lastDerivedL1.number,
+          chainId
+        )
+        const safeL2 = buildL2BlockRef(
+          await this.state.l2RpcProvider.getBlock(
+            `0x${safeL2Block.toString(16)}`
+          ),
+          lastDerivedL1
+        )
+        const unsafeL2 = buildL2BlockRef(
+          await this.state.l2RpcProvider.getBlock('latest'),
+          undefined
+        )
+
+        // find the latest finalized L2 block
+        const [derivedFromL1Block, finalizedL2Block] =
+          await this.state.db.getL2SafeHeadFromL1Block(
+            finalizedL1.number,
+            chainId
+          )
+        const currentL1Finalized = buildL1BlockRef(
+          await this.state.l1RpcProvider.getBlock(
+            `0x${derivedFromL1Block.toString(16)}`
+          )
+        )
+        const finalizedL2 = buildL2BlockRef(
+          await this.state.l2RpcProvider.getBlock(
+            `0x${finalizedL2Block.toString(16)}`
+          ),
+          currentL1Finalized
+        )
+
+        return {
+          currentL1: lastDerivedL1,
+          headL1,
+          safeL1,
+          finalizedL1,
+          unsafeL2,
+          safeL2,
+          finalizedL2,
+          // FIXME: use safe l2 as pending safe l2 for now,
+          //  since currently we don't have a way to get pending safe l2.
+          pendingSafeL2: safeL2,
         }
       }
     )

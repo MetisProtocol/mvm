@@ -280,7 +280,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
 
     // Add an additional field to the enqueued transactions in the database
     // if they have already been confirmed
-    entry.blockEntries.forEach(async (block) => {
+    for (const block of entry.blockEntries) {
       if (options.deSeqBlock > 0 && block.index + 1 >= options.deSeqBlock) {
         await db.putBlockEntries([block])
       } else {
@@ -294,9 +294,23 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
           )
         }
       }
-    })
+    }
+
+    await db.setL2BlockToL1BlockMapping(
+      entry.transactionBatchEntry.blockNumber,
+      options.l2ChainId,
+      entry.blockEntries.map((block) => block.index)
+    )
 
     await db.putTransactionBatchEntries([entry.transactionBatchEntry])
+
+    // save the mapping of L1 block number to L2 block number
+    await db.setL1BlockToL2BlockMapping(
+      entry.transactionBatchEntry.blockNumber,
+      options.l2ChainId,
+      entry.transactionBatchEntry.prevTotalElements +
+        entry.transactionBatchEntry.size
+    )
   },
 }
 

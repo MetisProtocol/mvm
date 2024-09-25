@@ -7,11 +7,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-resty/resty/v2"
+
 	"github.com/ethereum-optimism/optimism/l2geth/common"
 	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
 	"github.com/ethereum-optimism/optimism/l2geth/core/types"
 	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/go-resty/resty/v2"
 )
 
 // Constants that are used to compare against values in the deserialized JSON
@@ -144,6 +145,8 @@ type RollupClient interface {
 	GetLatestTransactionBatchIndex() (*uint64, error)
 	GetTransactionBatch(uint64) (*Batch, []*types.Transaction, error)
 	SyncStatus(Backend) (*SyncStatus, error)
+	SyncStatusV2() (*types.SyncStatus, error)
+	GetL1Origin(l2block uint64) (*types.L1BlockRef, error)
 	GetStateRoot(index uint64) (common.Hash, error)
 	SetLastVerifier(index uint64, stateRoot string, verifierRoot string, success bool) error
 	GetRawBlock(uint64, Backend) (*BlockResponse, error)
@@ -161,7 +164,7 @@ type Client struct {
 	signer  *types.EIP155Signer
 	chainID string
 
-  useInbox bool
+	useInbox bool
 }
 
 // TransactionResponse represents the response from the remote server when
@@ -371,20 +374,20 @@ func (c *Client) GetLatestTransactionIndex(backend Backend) (*uint64, error) {
 
 // GetLatestTransactionBatchIndex returns the latest transaction batch index
 func (c *Client) GetLatestTransactionBatchIndex() (*uint64, error) {
-  var batch *Batch
-  var err error
-  if !c.useInbox {
-	  batch, _, err = c.GetLatestTransactionBatch()
-  } else {
-	  batch, _, err = c.GetLatestBlockBatch()
-  }
+	var batch *Batch
+	var err error
+	if !c.useInbox {
+		batch, _, err = c.GetLatestTransactionBatch()
+	} else {
+		batch, _, err = c.GetLatestBlockBatch()
+	}
 	if err != nil {
 		if strings.Contains(err.Error(), "USE_INBOX_BATCH_INDEX") {
 			batch, _, err = c.GetLatestBlockBatch()
 			if err != nil {
 				return nil, err
 			}
-      c.useInbox = true
+			c.useInbox = true
 		} else {
 			return nil, err
 		}
@@ -691,6 +694,47 @@ func (c *Client) SyncStatus(backend Backend) (*SyncStatus, error) {
 	return status, nil
 }
 
+func (c *Client) GetL1Origin(l2block uint64) (*types.L1BlockRef, error) {
+	response, err := c.client.R().
+		SetPathParams(map[string]string{
+			"chainId": c.chainID,
+			"l2block": strconv.FormatUint(l2block, 10),
+		}).
+		SetResult(&types.L1BlockRef{}).
+		Get("/rollup/l1origin/{chainId}/{l2block}")
+
+	if err != nil {
+		return nil, fmt.Errorf("Cannot fetch l1 origin of l2: %w", err)
+	}
+
+	l1BlockRef, ok := response.Result().(*types.L1BlockRef)
+	if !ok {
+		return nil, fmt.Errorf("Cannot parse l1 block ref")
+	}
+
+	return l1BlockRef, nil
+}
+
+func (c *Client) SyncStatusV2() (*types.SyncStatus, error) {
+	response, err := c.client.R().
+		SetPathParams(map[string]string{
+			"chainId": c.chainID,
+		}).
+		SetResult(&SyncStatus{}).
+		Get("/rollup/sync-status/{chainId}")
+
+	if err != nil {
+		return nil, fmt.Errorf("Cannot fetch sync status: %w", err)
+	}
+
+	status, ok := response.Result().(*types.SyncStatus)
+	if !ok {
+		return nil, fmt.Errorf("Cannot parse sync status")
+	}
+
+	return status, nil
+}
+
 // GetLatestTransactionBatch will return the latest transaction batch
 func (c *Client) GetLatestTransactionBatch() (*Batch, []*types.Transaction, error) {
 	response, err := c.client.R().
@@ -849,7 +893,7 @@ func (c *Client) GetLatestBlock(backend Backend) (*types.Block, error) {
 
 	if err != nil {
 		// return nil, fmt.Errorf("cannot fetch latest block: %w", err)
-    return nil, errElementNotFound
+		return nil, errElementNotFound
 	}
 	res, ok := response.Result().(*BlockResponse)
 	if !ok {

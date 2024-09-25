@@ -39,6 +39,10 @@ const TRANSPORT_DB_KEYS = {
   MVM_CTC_BATCH_ELEMENT: `mvmctc:batchelement`,
   BLOCK: `block`,
   UNCONFIRMED_BLOCK: `unconfirmed:block`,
+
+  // FDG required keys
+  L1_BLOCK_TO_L2_MAPPER_PREFIX: `l1tol2blockmapper:`,
+  L2_BLOCK_TO_L1_MAPPER_PREFIX: `l2tol1blockmapper:`,
 }
 
 interface Indexed {
@@ -406,6 +410,82 @@ export class TransportDB {
         value: batch,
       },
     ])
+  }
+
+  public async getLastDerivedL1Block(l2ChainId: number): Promise<number> {
+    const derivedL1Blocks = await this.db.rangeKV<number, number>(
+      `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
+      0,
+      undefined, // set no limit to upper bound
+      true, // reads in reverse order
+      true // only needs to latest entry
+    )
+
+    return !derivedL1Blocks ? 0 : derivedL1Blocks[0].key
+  }
+
+  public async getL1OriginOfL2Block(
+    l2block: number,
+    l2ChainId: number
+  ): Promise<number> {
+    const l1Origin = await this.db.get<number>(
+      `${TRANSPORT_DB_KEYS.L2_BLOCK_TO_L1_MAPPER_PREFIX}${l2ChainId}`,
+      l2block
+    )
+
+    return !l1Origin ? 0 : l1Origin
+  }
+
+  // getL2SafeHeadFromL1Block returns the latest safe l2 block along with the corresponding l1 block number,
+  // the first element of the tuple is the l1 block number that is closet to the given l1 block number,
+  // the second element of the tuple is the safe l2 block number.
+  public async getL2SafeHeadFromL1Block(
+    l1block: number,
+    l2ChainId: number
+  ): Promise<[number, number]> {
+    const l2Blocks = await this.db.rangeKV<number, number>(
+      `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
+      0,
+      l1block,
+      true, // reads in reverse order
+      true // only needs to latest entry
+    )
+
+    return !l2Blocks ? [0, 0] : [l2Blocks[0].key, l2Blocks[0].value]
+  }
+
+  public async setL1BlockToL2BlockMapping(
+    l1block: number,
+    l2ChainId: number,
+    l2block: number
+  ): Promise<void> {
+    return this.db.put<number>([
+      {
+        key: `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
+        index: l1block,
+        value: l2block,
+      },
+    ])
+  }
+
+  public async setL2BlockToL1BlockMapping(
+    l1block: number,
+    l2ChainId: number,
+    l2blocks: number[]
+  ): Promise<void> {
+    if (!l2blocks) {
+      return
+    }
+
+    return this.db.put<number>(
+      l2blocks.map((l2block) => {
+        return {
+          key: `${TRANSPORT_DB_KEYS.L2_BLOCK_TO_L1_MAPPER_PREFIX}${l2ChainId}`,
+          index: l2block,
+          value: l1block,
+        }
+      })
+    )
   }
 
   public async getStartingL1Block(): Promise<number> {
