@@ -38,7 +38,6 @@ func NewL2Client(client client.RPC, log log.Logger, metrics caching.Metrics, con
 }
 
 func (s *L2Client) OutputByRoot(ctx context.Context, l2OutputRoot common.Hash) (eth.Output, error) {
-
 	var outputV0 eth.OutputV0
 	err := s.rpcClient.CallContext(ctx, &outputV0, "optimism_outputByRoot", s.l2Head, l2OutputRoot)
 	if err != nil {
