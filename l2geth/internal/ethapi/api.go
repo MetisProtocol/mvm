@@ -2221,8 +2221,27 @@ func (api *PublicOptimismAPI) SyncStatus(_ context.Context) (*types.SyncStatus, 
 	return api.b.SyncStatus()
 }
 
+func (api *PublicOptimismAPI) OutputByRoot(ctx context.Context, l2BlockHash, l2OutputRoot common.Hash) (*types.OutputV0, error) {
+	outputV0, err := api.OutputAtBlockV0(ctx, l2BlockHash, l2OutputRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	actualOutputRoot := types.OutputRoot(outputV0)
+	if actualOutputRoot != l2OutputRoot {
+		return nil, fmt.Errorf("output root %v from specified L2 block %v does not match requested output root %v", actualOutputRoot, l2BlockHash, l2OutputRoot)
+	}
+
+	return outputV0, nil
+}
+
 func (api *PublicOptimismAPI) OutputAtBlock(ctx context.Context, number uint64) (*OutputResponse, error) {
 	block, err := api.b.BlockByNumber(ctx, rpc.BlockNumber(number))
+	if err != nil {
+		return nil, err
+	}
+
+	outputV0, err := api.OutputAtBlockV0(ctx, block.Hash(), block.Root())
 	if err != nil {
 		return nil, err
 	}
@@ -2235,28 +2254,6 @@ func (api *PublicOptimismAPI) OutputAtBlock(ctx context.Context, number uint64) 
 	syncStatus, err := api.b.SyncStatus()
 	if err != nil {
 		return nil, err
-	}
-
-	proof, err := api.chainAPI.GetProof(
-		ctx,
-		common.HexToAddress(OVML2ToL1MessagePasser),
-		[]string{},
-		rpc.BlockNumberOrHashWithHash(block.Hash(), true),
-	)
-	if err != nil {
-		return nil, err
-	}
-	if proof == nil {
-		return nil, errors.New("proof not found")
-	}
-	if err := proof.Verify(block.Header().Root); err != nil {
-		return nil, err
-	}
-
-	outputV0 := &types.OutputV0{
-		StateRoot:                block.Header().Root,
-		MessagePasserStorageRoot: proof.StorageHash,
-		BlockHash:                block.Hash(),
 	}
 
 	l2BlockRef := types.L2BlockRef{
@@ -2279,6 +2276,33 @@ func (api *PublicOptimismAPI) OutputAtBlock(ctx context.Context, number uint64) 
 		StateRoot:             outputV0.StateRoot,
 		Status:                syncStatus,
 	}, nil
+}
+
+func (api *PublicOptimismAPI) OutputAtBlockV0(ctx context.Context, blockHash common.Hash, blockRoot common.Hash) (*types.OutputV0, error) {
+	proof, err := api.chainAPI.GetProof(
+		ctx,
+		common.HexToAddress(OVML2ToL1MessagePasser),
+		[]string{},
+		rpc.BlockNumberOrHashWithHash(blockHash, true),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if proof == nil {
+		return nil, errors.New("proof not found")
+	}
+	if err := proof.Verify(blockRoot); err != nil {
+		return nil, err
+	}
+
+	outputV0 := &types.OutputV0{
+		StateRoot:                blockRoot,
+		MessagePasserStorageRoot: proof.StorageHash,
+		BlockHash:                blockHash,
+	}
+
+	return outputV0, nil
 }
 
 func NewPublicOptimismAPI(b Backend, chainAPI *PublicBlockChainAPI) *PublicOptimismAPI {
@@ -2325,6 +2349,15 @@ func (api *PublicDebugAPI) GetBlockRlp(ctx context.Context, number uint64) (stri
 		return "", err
 	}
 	return fmt.Sprintf("%x", encoded), nil
+}
+
+// DbGet returns the raw value of a key stored in the database.
+func (api *PublicDebugAPI) DbGet(key string) (hexutil.Bytes, error) {
+	blob, err := common.ParseHexOrString(key)
+	if err != nil {
+		return nil, err
+	}
+	return api.b.ChainDb().Get(blob)
 }
 
 // TestSignCliqueBlock fetches the given block number, and attempts to sign it as a clique header with the
