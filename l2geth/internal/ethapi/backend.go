@@ -110,6 +110,8 @@ type Backend interface {
 
 	// Metis-specific API
 	FinalizedBlockNumber() (uint64, error)
+
+	// OP compatible API
 	SyncStatus() (*types.SyncStatus, error)
 	L1OriginOfL2(l2block uint64) (*types.L1BlockRef, error)
 }
