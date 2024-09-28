@@ -335,6 +335,11 @@ func (bs *BatcherService) initRPCServer(cfg *CLIConfig) error {
 		bs.Version,
 		oprpc.WithLogger(bs.Log),
 	)
+
+	batcherAPI := rpc.NewBatcherAPI(bs.driver)
+	server.AddAPI(rpc.GetBatcherAPI(batcherAPI))
+	bs.Log.Info("Batcher RPC enabled")
+
 	if cfg.RPC.EnableAdmin {
 		adminAPI := rpc.NewAdminAPI(bs.driver, bs.Metrics, bs.Log)
 		server.AddAPI(rpc.GetAdminAPI(adminAPI))
