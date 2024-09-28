@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	gethrpc "github.com/ethereum/go-ethereum/rpc"
 
@@ -13,6 +14,7 @@ import (
 type BatcherDriver interface {
 	StartBatchSubmitting() error
 	StopBatchSubmitting(ctx context.Context) error
+	SubmitBlocks(ctx context.Context, startBlock, endBlock uint64) ([]common.Hash, error)
 }
 
 type adminAPI struct {
@@ -40,4 +42,25 @@ func (a *adminAPI) StartBatcher(_ context.Context) error {
 
 func (a *adminAPI) StopBatcher(ctx context.Context) error {
 	return a.b.StopBatchSubmitting(ctx)
+}
+
+type batcherAPI struct {
+	b BatcherDriver
+}
+
+func NewBatcherAPI(dr BatcherDriver) *batcherAPI {
+	return &batcherAPI{
+		b: dr,
+	}
+}
+
+func GetBatcherAPI(api *batcherAPI) gethrpc.API {
+	return gethrpc.API{
+		Namespace: "batcher",
+		Service:   api,
+	}
+}
+
+func (a *batcherAPI) SubmitBlocks(ctx context.Context, startBlock, endBlock uint64) ([]common.Hash, error) {
+	return a.b.SubmitBlocks(ctx, startBlock, endBlock)
 }

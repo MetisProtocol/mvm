@@ -211,6 +211,32 @@ func (l *BatchSubmitter) loadBlocksIntoState(ctx context.Context) error {
 	return nil
 }
 
+func (l *BatchSubmitter) loadBlocksRangIntoState(ctx context.Context, startBlock, endBlock uint64) error {
+	start, end, err := l.calculateL2BlockRangeToStore(ctx)
+	if err != nil {
+		l.Log.Warn("Error calculating L2 block range", "err", err)
+		return err
+	} else if start.Number >= end.Number {
+		return errors.New("start number is >= end number")
+	}
+
+	// Add all blocks in range to "state"
+	for i := startBlock; i < endBlock; i++ {
+		block, err := l.loadBlockIntoState(ctx, i)
+		if errors.Is(err, ErrReorg) {
+			l.Log.Warn("Found L2 reorg", "block_number", i)
+			l.lastStoredBlock = eth.BlockID{}
+			return err
+		} else if err != nil {
+			l.Log.Warn("Failed to load block into state", "err", err)
+			return err
+		}
+		l.lastStoredBlock = eth.ToBlockID(block)
+	}
+
+	return nil
+}
+
 // loadBlockIntoState fetches & stores a single block into `state`. It returns the block it loaded.
 func (l *BatchSubmitter) loadBlockIntoState(ctx context.Context, blockNumber uint64) (*types.Block, error) {
 	l2Client, err := l.EndpointProvider.EthClient(ctx)
@@ -296,6 +322,91 @@ const (
 	TxpoolBlocked
 	TxpoolCancelPending
 )
+
+// SubmitBlocks submit all blocks in the range [startBlock, endBlock] to L1
+func (l *BatchSubmitter) SubmitBlocks(ctx context.Context, startBlock, endBlock uint64) ([]common.Hash, error) {
+	receiptsCh := make(chan txmgr.TxReceipt[txRef])
+	queue := txmgr.NewQueue[txRef](ctx, l.Txmgr, l.Config.MaxPendingTransactions)
+
+	// start the receipt/result processing loop
+	receiptLoopDone := make(chan struct{})
+	defer close(receiptLoopDone) // shut down receipt loop
+
+	var (
+		txpoolState       atomic.Int32
+		txpoolBlockedBlob bool
+		txHashes          []common.Hash
+		wg                sync.WaitGroup
+	)
+	wg.Add(1)
+	txpoolState.Store(TxpoolGood)
+	go func() {
+		defer wg.Done()
+
+		for {
+			select {
+			case r := <-receiptsCh:
+				if errors.Is(r.Err, txpool.ErrAlreadyReserved) && txpoolState.CompareAndSwap(TxpoolGood, TxpoolBlocked) {
+					txpoolBlockedBlob = r.ID.isBlob
+					l.Log.Info("incompatible tx in txpool")
+				} else if r.ID.isCancel && txpoolState.CompareAndSwap(TxpoolCancelPending, TxpoolGood) {
+					// Set state to TxpoolGood even if the cancellation transaction ended in error
+					// since the stuck transaction could have cleared while we were waiting.
+					l.Log.Info("txpool may no longer be blocked", "err", r.Err)
+				}
+				l.Log.Info("Handling receipt", "id", r.ID)
+				l.handleReceipt(r)
+
+				// need to cache the receipts
+				txHashes = append(txHashes, r.Receipt.TxHash)
+			case <-receiptLoopDone:
+				l.Log.Info("Receipt processing loop done")
+				return
+			}
+		}
+	}()
+
+	publishAndWait := func() {
+		l.publishStateToL1(queue, receiptsCh)
+		if !l.Txmgr.IsClosed() {
+			queue.Wait()
+		} else {
+			l.Log.Info("Txmgr is closed, remaining channel data won't be sent")
+		}
+	}
+
+	if txpoolState.CompareAndSwap(TxpoolBlocked, TxpoolCancelPending) {
+		// txpoolState is set to Blocked only if Send() is returning
+		// ErrAlreadyReserved. In this case, the TxMgr nonce should be reset to nil,
+		// allowing us to send a cancellation transaction.
+		l.cancelBlockingTx(queue, receiptsCh, txpoolBlockedBlob)
+	}
+	if txpoolState.Load() != TxpoolGood {
+		return nil, errors.New("txpool is blocked")
+	}
+	if err := l.loadBlocksRangIntoState(ctx, startBlock, endBlock); errors.Is(err, ErrReorg) {
+		err := l.state.Close()
+		if err != nil {
+			if errors.Is(err, ErrPendingAfterClose) {
+				l.Log.Warn("Closed channel manager to handle L2 reorg with pending channel(s) remaining - submitting")
+			} else {
+				l.Log.Error("Error closing the channel manager to handle a L2 reorg", "err", err)
+			}
+		}
+		// on reorg we want to publish all pending state then wait until each result clears before resetting
+		// the state.
+		publishAndWait()
+		l.clearState(ctx)
+
+		// wait for the receipt loop to finish
+		wg.Wait()
+
+		return txHashes, err
+	}
+
+	l.publishStateToL1(queue, receiptsCh)
+	return txHashes, nil
+}
 
 func (l *BatchSubmitter) loop() {
 	defer l.wg.Done()
