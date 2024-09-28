@@ -11,9 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/go/op-batcher/metrics"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/dial"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
@@ -22,6 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/ethereum-optimism/optimism/go/op-batcher/metrics"
 
 	altda "github.com/ethereum-optimism/optimism/go/op-alt-da"
 )
@@ -183,7 +183,7 @@ func (l *BatchSubmitter) loadBlocksIntoState(ctx context.Context) error {
 		return errors.New("start number is >= end number")
 	}
 
-	var latestBlock *types.Block
+	// var latestBlock *types.Block
 	// Add all blocks to "state"
 	for i := start.Number + 1; i < end.Number+1; i++ {
 		block, err := l.loadBlockIntoState(ctx, i)
@@ -196,16 +196,18 @@ func (l *BatchSubmitter) loadBlocksIntoState(ctx context.Context) error {
 			return err
 		}
 		l.lastStoredBlock = eth.ToBlockID(block)
-		latestBlock = block
+		// latestBlock = block
 	}
 
-	l2ref, err := derive.L2BlockToBlockRef(l.RollupConfig, latestBlock)
-	if err != nil {
-		l.Log.Warn("Invalid L2 block loaded into state", "err", err)
-		return err
-	}
-
-	l.Metr.RecordL2BlocksLoaded(l2ref)
+	// TODO: Currently we don't have deposit transaction in each L2 block,
+	//       so we can't derive L2 block ref from L2 block yet.
+	// l2ref, err := derive.L2BlockToBlockRef(l.RollupConfig, latestBlock)
+	// if err != nil {
+	// 	 l.Log.Warn("Invalid L2 block loaded into state", "err", err)
+	// 	 return err
+	// }
+	//
+	// l.Metr.RecordL2BlocksLoaded(l2ref)
 	return nil
 }
 
