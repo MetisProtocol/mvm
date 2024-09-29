@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -37,7 +38,10 @@ func GetAdminAPI(api *adminAPI) gethrpc.API {
 }
 
 func (a *adminAPI) StartBatcher(_ context.Context) error {
-	return a.b.StartBatchSubmitting()
+	// return a.b.StartBatchSubmitting()
+	// TODO: currently we still need the old Metis ts batcher to submit commitment to the chain to maintain compatibility,
+	//       so we can only allow this new batcher to be invoked manually by the old batcher for now.
+	return errors.New("we do not allow the batcher to auto execute")
 }
 
 func (a *adminAPI) StopBatcher(ctx context.Context) error {
@@ -61,6 +65,8 @@ func GetBatcherAPI(api *batcherAPI) gethrpc.API {
 	}
 }
 
+// SubmitBlocks allows other components to invoke op-batcher to submit a range of blocks to L1.
+// Please make sure this is only called by the old Metis ts batcher. DO NOT expose this to the public.
 func (a *batcherAPI) SubmitBlocks(ctx context.Context, startBlock, endBlock uint64) ([]common.Hash, error) {
 	return a.b.SubmitBlocks(ctx, startBlock, endBlock)
 }

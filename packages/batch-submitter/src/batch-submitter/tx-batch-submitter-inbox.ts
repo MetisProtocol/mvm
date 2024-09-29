@@ -49,7 +49,8 @@ export interface InboxBatchParams {
 }
 
 export class TransactionBatchSubmitterInbox {
-  private minioClient: MinioClient
+  private readonly minioClient: MinioClient
+  private readonly opBatcherProvider: providers.StaticJsonRpcProvider
 
   constructor(
     readonly inboxStorage: InboxStorage,
@@ -58,10 +59,14 @@ export class TransactionBatchSubmitterInbox {
     readonly logger: Logger,
     readonly maxTxSize: number,
     readonly useMinio: boolean,
-    readonly minioConfig: MinioConfig
+    readonly minioConfig?: MinioConfig,
+    readonly useBlob?: boolean,
+    opBatcherRPC?: string
   ) {
     if (useMinio && minioConfig) {
       this.minioClient = new MinioClient(minioConfig)
+    } else if (useBlob && opBatcherRPC) {
+      this.opBatcherProvider = new providers.StaticJsonRpcProvider(opBatcherRPC)
     }
   }
 
@@ -286,92 +291,109 @@ export class TransactionBatchSubmitterInbox {
     blocks: BatchToInbox
   ): Promise<InboxBatchParams> {
     // [1: DA type] [1: compress type] [32: batch index] [32: L2 start] [4: total blocks, max 65535] [<DATA> { [3: txs count] [5 block timestamp = l1 timestamp of txs] [32 l1BlockNumber of txs, get it from tx0] [1: TX type 0-sequencer 1-enqueue] [3 tx data length] [raw tx data] [3 sign length *sequencerTx*] [sign data] [20 l1Origin *enqueue*] [32 queueIndex *enqueue*].. } ...]
-    // DA: 0 - L1, 1 - memo, 2 - celestia
+    // DA: 0 - L1, 1 - memo, 2 - celestia, 3 - blob
     let da = encodeHex(0, 2)
     // Compress Type: 0 - none, 11 - zlib
-    const compressType = encodeHex(11, 2)
+    let compressType = encodeHex(11, 2)
     const batchIndex = encodeHex(nextBatchIndex, 64)
     const l2Start = encodeHex(l2StartBlock, 64)
     const totalElements = encodeHex(blocks.length, 8)
 
-    let encodeBlockData = ''
-    blocks.forEach((inboxElement: BatchToInboxElement) => {
-      // block encode, [3 txs count] [5 block timestamp = l1 timestamp of txs] [32 l1BlockNumber of txs, get it from tx0]
-      // tx[0], [1 type 0 sequencerTx, 1 enqueue] [3 tx data length] [raw tx data] [3 sign length *sequencerTx*] [sign data] [20 l1Origin *enqueue*] [32 queueIndex *enqueue*]
-      // for enqueue, queueIndex can use nonce, so not encode it
-      encodeBlockData += encodeHex(inboxElement.txs.length, 6)
-      encodeBlockData += encodeHex(inboxElement.timestamp, 10)
-
-      let txIndex = 0
-      inboxElement.txs.forEach((inboxTx: BatchToInboxRawTx) => {
-        const curTx = inboxTx.rawTransaction
-        if (curTx.length % 2 !== 0) {
-          throw new Error('Unexpected uneven hex string value!')
-        }
-        if (txIndex === 0) {
-          // put l1BlockNumber to block level info
-          encodeBlockData += encodeHex(inboxTx.l1BlockNumber, 64)
-        }
-        txIndex++
-        encodeBlockData += encodeHex(inboxTx.isSequencerTx ? 0 : 1, 2)
-        if (inboxTx.isSequencerTx) {
-          encodeBlockData += remove0x(
-            BigNumber.from(remove0x(curTx).length / 2).toHexString()
-          ).padStart(6, '0')
-          encodeBlockData += remove0x(curTx)
-          encodeBlockData += remove0x(
-            BigNumber.from(remove0x(inboxTx.seqSign).length / 2).toHexString()
-          ).padStart(6, '0')
-          encodeBlockData += inboxTx.seqSign
-        } else {
-          // use 0 length
-          encodeBlockData += remove0x(
-            BigNumber.from('0').toHexString()
-          ).padStart(6, '0')
-          encodeBlockData += remove0x(inboxTx.l1TxOrigin)
-          const encodedNonce = encodeHex(inboxTx.queueIndex, 32)
-          encodeBlockData += encodedNonce
-        }
-      })
-    })
+    let compressedEncoded = ''
     let encoded = ''
-    let compressedEncoed = ''
-    try {
-      compressedEncoed = await zlibCompressHexString(encodeBlockData)
-    } catch (err) {
-      this.logger.error('Zlib compress error', { err })
-      throw new Error('Zlib compress encode blocks data error.')
-    }
 
-    if (this.useMinio && this.minioConfig) {
-      if (!this.minioClient) {
-        throw new Error('Can not initalize minio client.')
+    if (!this.useBlob) {
+      let encodeBlockData = ''
+      blocks.forEach((inboxElement: BatchToInboxElement) => {
+        // block encode, [3 txs count] [5 block timestamp = l1 timestamp of txs] [32 l1BlockNumber of txs, get it from tx0]
+        // tx[0], [1 type 0 sequencerTx, 1 enqueue] [3 tx data length] [raw tx data] [3 sign length *sequencerTx*] [sign data] [20 l1Origin *enqueue*] [32 queueIndex *enqueue*]
+        // for enqueue, queueIndex can use nonce, so not encode it
+        encodeBlockData += encodeHex(inboxElement.txs.length, 6)
+        encodeBlockData += encodeHex(inboxElement.timestamp, 10)
+
+        let txIndex = 0
+        inboxElement.txs.forEach((inboxTx: BatchToInboxRawTx) => {
+          const curTx = inboxTx.rawTransaction
+          if (curTx.length % 2 !== 0) {
+            throw new Error('Unexpected uneven hex string value!')
+          }
+          if (txIndex === 0) {
+            // put l1BlockNumber to block level info
+            encodeBlockData += encodeHex(inboxTx.l1BlockNumber, 64)
+          }
+          txIndex++
+          encodeBlockData += encodeHex(inboxTx.isSequencerTx ? 0 : 1, 2)
+          if (inboxTx.isSequencerTx) {
+            encodeBlockData += remove0x(
+              BigNumber.from(remove0x(curTx).length / 2).toHexString()
+            ).padStart(6, '0')
+            encodeBlockData += remove0x(curTx)
+            encodeBlockData += remove0x(
+              BigNumber.from(remove0x(inboxTx.seqSign).length / 2).toHexString()
+            ).padStart(6, '0')
+            encodeBlockData += inboxTx.seqSign
+          } else {
+            // use 0 length
+            encodeBlockData += remove0x(
+              BigNumber.from('0').toHexString()
+            ).padStart(6, '0')
+            encodeBlockData += remove0x(inboxTx.l1TxOrigin)
+            const encodedNonce = encodeHex(inboxTx.queueIndex, 32)
+            encodeBlockData += encodedNonce
+          }
+        })
+      })
+
+      try {
+        compressedEncoded = await zlibCompressHexString(encodeBlockData)
+      } catch (err) {
+        this.logger.error('Zlib compress error', {err})
+        throw new Error('Zlib compress encode blocks data error.')
       }
-      da = encodeHex(1, 2)
 
-      // use block 0 state root as batch root
-      const batchRoot = remove0x(blocks[0].stateRoot)
+      if (this.useMinio && this.minioConfig) {
+        if (!this.minioClient) {
+          throw new Error('Can not initalize minio client.')
+        }
+        da = encodeHex(1, 2)
 
-      // save compressedEncoed to memo storage
-      const storagedObject = await this.minioClient.writeObject(
-        batchRoot,
-        l2StartBlock,
-        blocks.length,
-        compressedEncoed,
-        3
-      )
-      this.logger.info('storage tx data to minio', { storagedObject })
+        // use block 0 state root as batch root
+        const batchRoot = remove0x(blocks[0].stateRoot)
 
-      if (!storagedObject) {
-        throw new Error(
-          `Write to minio DA failed, l2StartBlock is ${l2StartBlock}.`
+        // save compressedEncoed to memo storage
+        const storagedObject = await this.minioClient.writeObject(
+          batchRoot,
+          l2StartBlock,
+          blocks.length,
+          compressedEncoded,
+          3
         )
+        this.logger.info('storage tx data to minio', {storagedObject})
+
+        if (!storagedObject) {
+          throw new Error(
+            `Write to minio DA failed, l2StartBlock is ${l2StartBlock}.`
+          )
+        }
+        compressedEncoded = storagedObject
       }
-      compressedEncoed = storagedObject
+    } else {
+      const txHashes = await this.opBatcherProvider.send(
+        'batcher_submitBlocks',
+        [l2StartBlock, l2StartBlock + blocks.length]
+      )
+      this.logger.info('submitted blocks to op batcher', { txHashes })
+      // concat all tx hashes [32B Hash][32B Hash][...],
+      // each tx contains a single frame of the submitted block,
+      // when decoding, split the string by 64 to get the tx hashes array,
+      // and use the tx hashes to get corresponding blobs from L1
+      compressedEncoded = txHashes.join('')
+      compressType = encodeHex(0, 2) // overwrite the compress type to not compressed
+      da = encodeHex(3, 2) // overwrite da type to blob
     }
     // other da should here else
 
-    encoded = `${da}${compressType}${batchIndex}${l2Start}${totalElements}${compressedEncoed}`
+    encoded = `${da}${compressType}${batchIndex}${l2Start}${totalElements}${compressedEncoded}`
     return {
       inputData: encoded,
       batch: blocks,

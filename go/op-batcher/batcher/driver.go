@@ -212,11 +212,7 @@ func (l *BatchSubmitter) loadBlocksIntoState(ctx context.Context) error {
 }
 
 func (l *BatchSubmitter) loadBlocksRangIntoState(ctx context.Context, startBlock, endBlock uint64) error {
-	start, end, err := l.calculateL2BlockRangeToStore(ctx)
-	if err != nil {
-		l.Log.Warn("Error calculating L2 block range", "err", err)
-		return err
-	} else if start.Number >= end.Number {
+	if startBlock >= endBlock {
 		return errors.New("start number is >= end number")
 	}
 
