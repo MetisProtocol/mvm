@@ -68,6 +68,7 @@ export interface SequencerBatchAppendedExtraData {
 
   // blob related
   blobIndex: number
+  blobCount: number
 }
 
 export interface SequencerBatchAppendedParsedEvent {

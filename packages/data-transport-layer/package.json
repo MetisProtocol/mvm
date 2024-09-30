@@ -27,9 +27,9 @@
   "dependencies": {
     "@eth-optimism/common-ts": "0.1.5",
     "@eth-optimism/contracts": "^0.4.13",
+    "@ethersproject/contracts": "^5.4.0",
     "@ethersproject/providers": "^5.4.5",
     "@ethersproject/transactions": "^5.4.0",
-    "@ethersproject/contracts": "^5.4.0",
     "@lodestar/api": "^1.22.0",
     "@metis.io/contracts": "^1.2.*",
     "@metis.io/core-utils": "^0.6.1",
@@ -48,7 +48,8 @@
     "level": "^6.0.1",
     "levelup": "^4.4.0",
     "merkletreejs": "^0.3.10",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "pako": "^2.1.0"
   },
   "devDependencies": {
     "@ethersproject/abstract-provider": "^5.4.1",

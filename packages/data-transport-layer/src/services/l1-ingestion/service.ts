@@ -517,9 +517,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               tx,
             })
           }
-        } else {
-          blobIndex += tx.blobVersionedHashes.length
         }
+
+        blobIndex += tx.blobVersionedHashes.length
       }
     }
     const extraDatas: any[] = []
