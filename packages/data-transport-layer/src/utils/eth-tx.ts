@@ -1,14 +1,14 @@
 /* Imports: External */
-import { ethers } from 'ethers'
+import { ethers, toBigInt, toNumber } from 'ethers'
 
 export const parseSignatureVParam = (
-  v: number | ethers.BigNumber,
+  v: number | bigint,
   chainId: number
 ): number => {
-  const vNumber = ethers.BigNumber.from(v)
+  const vNumber = toBigInt(v)
   // for non-eip155 transactions
-  if (vNumber.eq(27) || vNumber.eq(28)) {
-    return vNumber.toNumber()
+  if (vNumber === toBigInt(27) || vNumber === toBigInt(28)) {
+    return toNumber(vNumber)
   }
-  return vNumber.toNumber() - 2 * chainId - 35
+  return toNumber(vNumber) - 2 * chainId - 35
 }

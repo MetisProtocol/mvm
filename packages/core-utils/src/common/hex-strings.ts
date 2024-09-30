@@ -55,9 +55,9 @@ export const toHexString = (inp: Buffer | string | number | null): string => {
   }
 }
 
-export const toRpcHexString = (n: number | BigNumber): string => {
-  let num
-  if (typeof n === 'number') {
+export const toRpcHexString = (n: number | bigint | BigNumber): string => {
+  let num: string
+  if (typeof n === 'number' || typeof n === 'bigint') {
     num = '0x' + n.toString(16)
   } else {
     num = n.toHexString()

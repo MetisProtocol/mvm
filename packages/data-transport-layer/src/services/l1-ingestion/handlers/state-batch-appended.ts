@@ -1,6 +1,5 @@
 /* Imports: External */
 import { getContractFactory } from '@metis.io/contracts'
-import { BigNumber } from 'ethers'
 
 /* Imports: Internal */
 import {
@@ -12,6 +11,7 @@ import {
   EventHandlerSet,
 } from '../../../types'
 import { MissingElementError } from './errors'
+import { toBigInt, toNumber } from 'ethers'
 
 export const handleEventsStateBatchAppended: EventHandlerSet<
   EventArgsStateBatchAppended,
@@ -19,8 +19,12 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
   StateBatchAppendedParsedEvent
 > = {
   getExtraData: async (event, l1RpcProvider) => {
-    const eventBlock = await l1RpcProvider.getBlockWithTransactions(event.blockNumber)
-    const l1Transaction = eventBlock.transactions.find(i=>i.hash == event.transactionHash)
+    const eventBlock = await l1RpcProvider.getBlockWithTransactions(
+      event.blockNumber
+    )
+    const l1Transaction = eventBlock.transactions.find(
+      (i) => i.hash === event.transactionHash
+    )
 
     return {
       timestamp: eventBlock.timestamp,
@@ -41,8 +45,8 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
     const stateRootEntries: StateRootEntry[] = []
     for (let i = 0; i < stateRoots.length; i++) {
       stateRootEntries.push({
-        index: event.args._prevTotalElements.add(BigNumber.from(i)).toNumber(),
-        batchIndex: event.args._batchIndex.toNumber(),
+        index: toNumber(event.args._prevTotalElements) + i,
+        batchIndex: toNumber(event.args._batchIndex),
         value: stateRoots[i],
         confirmed: true,
       })
@@ -51,13 +55,13 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
     // Using .toNumber() here and in other places because I want to move everything to use
     // BigNumber + hex, but that'll take a lot of work. This makes it easier in the future.
     const stateRootBatchEntry: StateRootBatchEntry = {
-      index: event.args._batchIndex.toNumber(),
-      blockNumber: BigNumber.from(extraData.blockNumber).toNumber(),
-      timestamp: BigNumber.from(extraData.timestamp).toNumber(),
+      index: toNumber(event.args._batchIndex),
+      blockNumber: toNumber(extraData.blockNumber),
+      timestamp: toNumber(extraData.timestamp),
       submitter: extraData.submitter,
-      size: event.args._batchSize.toNumber(),
+      size: toNumber(event.args._batchSize),
       root: event.args._batchRoot,
-      prevTotalElements: event.args._prevTotalElements.toNumber(),
+      prevTotalElements: toNumber(event.args._prevTotalElements),
       extraData: event.args._extraData,
       l1TransactionHash: extraData.l1TransactionHash,
     }

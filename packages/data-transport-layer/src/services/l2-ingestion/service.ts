@@ -1,7 +1,6 @@
 /* Imports: External */
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
 import { StaticJsonRpcProvider } from '@ethersproject/providers'
-import { BigNumber } from 'ethers'
 import { LevelUp } from 'levelup'
 import axios from 'axios'
 import bfj from 'bfj'
@@ -18,6 +17,7 @@ import { sleep, toRpcHexString, validators } from '../../utils'
 import { L1DataTransportServiceOptions } from '../main/service'
 import { handleSequencerBlock } from './handlers/transaction'
 import { handleDeSequencerBlock } from './handlers/transaction-deseq'
+import { toNumber } from 'ethers'
 
 interface L2IngestionMetrics {
   highestSyncedL2Block: Gauge<string>
@@ -219,8 +219,8 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
       // Just making sure that the blocks will come back in increasing order.
       blocks = (await Promise.all(blockPromises)).sort((a, b) => {
         return (
-          BigNumber.from(a.number).toNumber() -
-          BigNumber.from(b.number).toNumber()
+          toNumber(a.number) -
+          toNumber(b.number)
         )
       })
     } else {

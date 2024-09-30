@@ -1,5 +1,5 @@
 import { BaseProvider } from '@ethersproject/providers'
-import { BigNumber, Event } from 'ethers'
+import { Event } from '@ethersproject/contracts'
 
 import { TransportDB } from '../db/transport-db'
 import {
@@ -60,11 +60,14 @@ export interface SequencerBatchAppendedExtraData {
   gasLimit: string
 
   // Stuff from TransactionBatchAppended.
-  prevTotalElements: BigNumber
-  batchIndex: BigNumber
-  batchSize: BigNumber
+  prevTotalElements: bigint
+  batchIndex: bigint
+  batchSize: bigint
   batchRoot: string
   batchExtraData: string
+
+  // blob related
+  blobIndex: number
 }
 
 export interface SequencerBatchAppendedParsedEvent {

@@ -1,21 +1,22 @@
 /* Imports: External */
-import { BigNumber, ethers, constants } from 'ethers'
+import { ethers, toBigInt, toNumber } from 'ethers'
 import {
   BlockWithTransactions,
   TransactionResponse,
 } from '@ethersproject/abstract-provider'
-import { MerkleTree } from 'merkletreejs'
-import { getContractFactory } from '@metis.io/contracts'
 import {
   fromHexString,
   toHexString,
-  toRpcHexString,
-  EventArgsSequencerBatchAppended,
   MinioClient,
   MinioConfig,
   remove0x,
   zlibDecompress,
 } from '@metis.io/core-utils'
+import { getClient } from '@lodestar/api'
+import { networksChainConfig } from '@lodestar/config/networks'
+import { ChainConfig } from '@lodestar/config/chainConfig'
+import { createChainForkConfig, ChainForkConfig } from '@lodestar/config'
+import { chainConfig } from '@lodestar/config/chainConfig/configs/minimal'
 
 /* Imports: Internal */
 import {
@@ -46,15 +47,12 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
     if (calldata.length > 70) {
       const offset = 2
       // l2 block number - 1, in order to keep same as CTC
-      batchSubmissionData.prevTotalElements = BigNumber.from(
-        calldata.slice(offset + 32, offset + 64)
-      ).sub(1)
-      batchSubmissionData.batchIndex = BigNumber.from(
-        calldata.slice(offset, offset + 32)
-      )
-      batchSubmissionData.batchSize = BigNumber.from(
-        calldata.slice(offset + 64, offset + 68)
-      )
+      batchSubmissionData.prevTotalElements =
+        toBigInt(calldata.slice(offset + 32, offset + 64)) - toBigInt(1)
+      batchSubmissionData.batchIndex =
+        toBigInt(calldata.slice(offset, offset + 32))
+      batchSubmissionData.batchSize =
+        toBigInt(calldata.slice(offset + 64, offset + 68))
       batchSubmissionVerified = true
     }
 
@@ -77,6 +75,8 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       batchSize: batchSubmissionData.batchSize,
       batchRoot: eventBlock.parentHash,
       batchExtraData: '',
+
+      blobIndex: event.blobIndex,
     }
   },
   parseEvent: async (event, extraData, l2ChainId, options) => {
@@ -90,11 +90,11 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
           `converted buffer length is < 70.`
       )
     }
-    // DA: 0 - L1, 1 - memo, 2 - celestia
+    // DA: 0 - L1, 1 - memo, 2 - celestia, 3 - blob
     // current DA is 0
     // Compress Type: 0 - none, 11 - zlib
-    const da = BigNumber.from(calldata.slice(0, 1)).toNumber()
-    const compressType = BigNumber.from(calldata.slice(1, 2)).toNumber()
+    const da = toNumber(calldata.slice(0, 1))
+    const compressType = toNumber(calldata.slice(1, 2))
     let contextData = calldata.slice(70)
     // da first
     if (da === 1) {
@@ -129,131 +129,197 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
         )
       }
       contextData = Buffer.from(daData, 'hex')
+    } else if (da === 3) {
+      if (contextData.length % 32 !== 0) {
+        throw new Error(
+          `Blob tx hashes length is not multiple of 32, data: ${contextData}`
+        )
+      }
+
+      // fetch blobs from cl
+      let config: ChainConfig
+      if (options.l2ChainId === 1088) {
+        config = networksChainConfig.mainnet
+      } else if (options.l2ChainId === 1089) {
+        config = networksChainConfig.sepolia
+      } else {
+        config = chainConfig
+      }
+      const chainForkConfig = createChainForkConfig(config)
+      const api = getClient(
+        { baseUrl: options.beaconChainRpcUrl },
+        { config: chainForkConfig }
+      )
+
+      // TODO: cache this somewhere, no need to retrieve this every time
+      const genesis = await api.beacon.getGenesis()
+
+      const l1RpcProvider = new ethers.JsonRpcProvider(options.l1RpcProviderUrl)
+
+      for (let i = 0; i < contextData.length; i += 32) {
+        const txHash = contextData.slice(i, i + 32)
+
+        // get block timestamp
+        // fetch receipt from el
+        const receipt = await l1RpcProvider.getTransactionReceipt(
+          `0x${txHash.toString('hex')}`
+        )
+
+        if (!receipt) {
+          throw new Error(`Receipt of ${txHash} not found`)
+        }
+
+        // TODO: cache this somewhere, no need to retrieve this every time
+        const block = await l1RpcProvider.getBlock(receipt.blockNumber)
+
+        if (!block) {
+          throw new Error(`Block ${receipt.blockNumber} not found`)
+        }
+
+        // calculate the slot number
+        const slot =
+          (block.timestamp / 1000 - genesis.value().genesisTime) /
+          chainConfig.SECONDS_PER_SLOT
+
+        // get blob from cl
+        const blobs = await api.beacon.getBlobSidecars({
+          blockId: slot.toString(10),
+          // TODO: where to get the blob index from?
+        })
+      }
     }
     if (compressType === 11) {
       contextData = await zlibDecompress(contextData)
     }
-    let offset = 0
-    let blockIndex = 0
-    const l2Start = BigNumber.from(calldata.slice(2 + 32, 2 + 64)).toNumber()
-    let pointerEnd = false
-    while (!pointerEnd) {
-      const txCount = BigNumber.from(
-        contextData.slice(offset, offset + 3)
-      ).toNumber()
-      offset += 3
-      const blockTimestamp = BigNumber.from(
-        contextData.slice(offset, offset + 5)
-      ).toNumber()
-      offset += 5
-      const l1BlockNumber = BigNumber.from(
-        contextData.slice(offset, offset + 32)
-      ).toNumber()
-      offset += 32
 
-      const blockEntry: BlockEntry = {
-        index: l2Start + blockIndex - 1, // keep same rule as single tx index
-        batchIndex: extraData.batchIndex.toNumber(),
-        timestamp: blockTimestamp,
-        transactions: [],
-        confirmed: true,
-      }
-      blockIndex++
-
-      for (let i = 0; i < txCount; i++) {
-        const txType = BigNumber.from(
-          contextData.slice(offset, offset + 1)
-        ).toNumber()
-        offset += 1
-        const txDataLen = BigNumber.from(
+    // when using blob data, the context data is not in the old Metis format,
+    // it is chunked by optimism frames, so we need to parse it differently
+    if (da !== 3) {
+      let offset = 0
+      let blockIndex = 0
+      const l2Start = toNumber(calldata.slice(2 + 32, 2 + 64))
+      let pointerEnd = false
+      while (!pointerEnd) {
+        const txCount = toNumber(
           contextData.slice(offset, offset + 3)
-        ).toNumber()
+        )
         offset += 3
+        const blockTimestamp = toNumber(
+          contextData.slice(offset, offset + 5)
+        )
+        offset += 5
+        const l1BlockNumber = toNumber(
+          contextData.slice(offset, offset + 32)
+        )
+        offset += 32
 
-        const transactionEntry: TransactionEntry = {
-          index: blockEntry.index,
-          batchIndex: extraData.batchIndex.toNumber(),
-          blockNumber: l1BlockNumber,
+        const blockEntry: BlockEntry = {
+          index: l2Start + blockIndex - 1, // keep same rule as single tx index
+          batchIndex: Number(extraData.batchIndex),
           timestamp: blockTimestamp,
-          gasLimit: BigNumber.from(0).toString(),
-          target: constants.AddressZero,
-          origin: null,
-          data: '0x',
-          queueOrigin: 'sequencer',
-          value: '0x0',
-          queueIndex: null,
-          decoded: null,
+          transactions: [],
           confirmed: true,
-          seqSign: null,
         }
-        let signData = null
-        if (txType === 0) {
-          const txData: Buffer = contextData.slice(offset, offset + txDataLen)
-          offset += txDataLen
-          const decoded = decodeSequencerBatchTransaction(txData, l2ChainId)
-          transactionEntry.data = toHexString(txData)
-          transactionEntry.value = decoded.value
-          transactionEntry.decoded = decoded
-          const signLen = BigNumber.from(
+        blockIndex++
+
+        for (let i = 0; i < txCount; i++) {
+          const txType = toNumber(
+            contextData.slice(offset, offset + 1)
+          )
+          offset += 1
+          const txDataLen = toNumber(
             contextData.slice(offset, offset + 3)
-          ).toNumber()
+          )
           offset += 3
-          if (signLen > 0) {
-            const decodedSign = remove0x(
-              toHexString(contextData.slice(offset, offset + signLen))
-            )
-            offset += signLen
 
-            // sign length is 64 * 2 + 2, or '000000'
-            if (decodedSign && decodedSign === '000000') {
-              // transactionEntries[i].seqSign = '0x0,0x0,0x0'
-              signData = '0x0,0x0,0x0'
-            } else if (!decodedSign || decodedSign.length < 130) {
-              // transactionEntries[i].seqSign = ''
-              signData = ''
-            } else {
-              const seqR =
-                '0x' + removeLeadingZeros(decodedSign.substring(0, 64))
-              const seqS =
-                '0x' + removeLeadingZeros(decodedSign.substring(64, 128))
-              let seqV = decodedSign.substring(128)
-              if (seqV.length > 0) {
-                seqV = '0x' + removeLeadingZeros(seqV)
-              } else {
-                seqV = '0x0'
-              }
-              // transactionEntries[i].seqSign = `${seqR},${seqS},${seqV}`
-              signData = `${seqR},${seqS},${seqV}`
-            }
-
-            transactionEntry.seqSign = signData
+          const transactionEntry: TransactionEntry = {
+            index: blockEntry.index,
+            batchIndex: Number(extraData.batchIndex),
+            blockNumber: l1BlockNumber,
+            timestamp: blockTimestamp,
+            gasLimit: Number(0).toString(),
+            target: ethers.ZeroAddress,
+            origin: null,
+            data: '0x',
+            queueOrigin: 'sequencer',
+            value: '0x0',
+            queueIndex: null,
+            decoded: null,
+            confirmed: true,
+            seqSign: null,
           }
-        } else {
-          const l1Origin = toHexString(contextData.slice(offset, offset + 20))
-          offset += 20
-          const queueIndex = toHexString(contextData.slice(offset, offset + 16))
-          offset += 16
-          transactionEntry.origin = l1Origin
-          transactionEntry.queueIndex = BigNumber.from(queueIndex).toNumber()
-          transactionEntry.queueOrigin = 'l1'
-        }
-        blockEntry.transactions.push(transactionEntry)
-        blockEntries.push(blockEntry)
-      }
+          let signData = null
+          if (txType === 0) {
+            const txData: Buffer = contextData.slice(offset, offset + txDataLen)
+            offset += txDataLen
+            const decoded = decodeSequencerBatchTransaction(txData, l2ChainId)
+            transactionEntry.data = toHexString(txData)
+            transactionEntry.value = decoded.value
+            transactionEntry.decoded = decoded
+            const signLen = toNumber(
+              contextData.slice(offset, offset + 3)
+            )
+            offset += 3
+            if (signLen > 0) {
+              const decodedSign = remove0x(
+                toHexString(contextData.slice(offset, offset + signLen))
+              )
+              offset += signLen
 
-      if (offset >= contextData.length) {
-        pointerEnd = true
+              // sign length is 64 * 2 + 2, or '000000'
+              if (decodedSign && decodedSign === '000000') {
+                // transactionEntries[i].seqSign = '0x0,0x0,0x0'
+                signData = '0x0,0x0,0x0'
+              } else if (!decodedSign || decodedSign.length < 130) {
+                // transactionEntries[i].seqSign = ''
+                signData = ''
+              } else {
+                const seqR =
+                  '0x' + removeLeadingZeros(decodedSign.substring(0, 64))
+                const seqS =
+                  '0x' + removeLeadingZeros(decodedSign.substring(64, 128))
+                let seqV = decodedSign.substring(128)
+                if (seqV.length > 0) {
+                  seqV = '0x' + removeLeadingZeros(seqV)
+                } else {
+                  seqV = '0x0'
+                }
+                // transactionEntries[i].seqSign = `${seqR},${seqS},${seqV}`
+                signData = `${seqR},${seqS},${seqV}`
+              }
+
+              transactionEntry.seqSign = signData
+            }
+          } else {
+            const l1Origin = toHexString(contextData.slice(offset, offset + 20))
+            offset += 20
+            const queueIndex = toHexString(contextData.slice(offset, offset + 16))
+            offset += 16
+            transactionEntry.origin = l1Origin
+            transactionEntry.queueIndex = toNumber(queueIndex)
+            transactionEntry.queueOrigin = 'l1'
+          }
+          blockEntry.transactions.push(transactionEntry)
+          blockEntries.push(blockEntry)
+        }
+
+        if (offset >= contextData.length) {
+          pointerEnd = true
+        }
       }
+    } else {
+      // parse the blob data
+      extraData.blobIndex
     }
 
     const transactionBatchEntry: TransactionBatchEntry = {
-      index: extraData.batchIndex.toNumber(),
+      index: Number(extraData.batchIndex),
       root: extraData.batchRoot,
-      size: extraData.batchSize.toNumber(),
-      prevTotalElements: extraData.prevTotalElements.toNumber(),
+      size: Number(extraData.batchSize),
+      prevTotalElements: Number(extraData.prevTotalElements),
       extraData: extraData.batchExtraData,
-      blockNumber: BigNumber.from(extraData.blockNumber).toNumber(),
-      timestamp: BigNumber.from(extraData.timestamp).toNumber(),
+      blockNumber: extraData.blockNumber,
+      timestamp: extraData.timestamp,
       submitter: extraData.submitter,
       l1TransactionHash: extraData.l1TransactionHash,
     }
@@ -326,18 +392,18 @@ const parseSequencerBatchContext = (
   offset: number
 ): SequencerBatchContext => {
   return {
-    numSequencedTransactions: BigNumber.from(
+    numSequencedTransactions: toNumber(
       calldata.slice(offset, offset + 3)
-    ).toNumber(),
-    numSubsequentQueueTransactions: BigNumber.from(
+    ),
+    numSubsequentQueueTransactions: toNumber(
       calldata.slice(offset + 3, offset + 6)
-    ).toNumber(),
-    timestamp: BigNumber.from(
+    ),
+    timestamp: toNumber(
       calldata.slice(offset + 6, offset + 11)
-    ).toNumber(),
-    blockNumber: BigNumber.from(
+    ),
+    blockNumber: toNumber(
       calldata.slice(offset + 11, offset + 16)
-    ).toNumber(),
+    ),
   }
 }
 
@@ -345,19 +411,19 @@ const decodeSequencerBatchTransaction = (
   transaction: Buffer,
   l2ChainId: number
 ): DecodedSequencerBatchTransaction => {
-  const decodedTx = ethers.utils.parseTransaction(transaction)
+  const decodedTx = ethers.Transaction.from(`0x${transaction.toString('hex')}`)
 
   return {
-    nonce: BigNumber.from(decodedTx.nonce).toString(),
-    gasPrice: BigNumber.from(decodedTx.gasPrice).toString(),
-    gasLimit: BigNumber.from(decodedTx.gasLimit).toString(),
-    value: toRpcHexString(decodedTx.value),
+    nonce: decodedTx.nonce.toString(),
+    gasPrice: decodedTx.gasPrice.toString(),
+    gasLimit: decodedTx.gasLimit.toString(),
+    value: decodedTx.value.toString(),
     target: decodedTx.to ? toHexString(decodedTx.to) : null,
     data: toHexString(decodedTx.data),
     sig: {
-      v: parseSignatureVParam(decodedTx.v, l2ChainId),
-      r: toHexString(decodedTx.r),
-      s: toHexString(decodedTx.s),
+      v: parseSignatureVParam(decodedTx.signature.v, l2ChainId),
+      r: toHexString(decodedTx.signature.r),
+      s: toHexString(decodedTx.signature.s),
     },
   }
 }

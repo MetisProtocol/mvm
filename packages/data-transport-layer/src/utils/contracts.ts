@@ -1,12 +1,11 @@
 /* Imports: External */
-import { constants, Contract, Signer } from 'ethers'
-import { BaseProvider } from '@ethersproject/providers'
+import { Contract, Signer, Provider, ethers } from 'ethers'
 import { getContractInterface } from '@metis.io/contracts'
 
 export const loadContract = (
   name: string,
   address: string,
-  provider: BaseProvider
+  provider: Provider
 ): Contract => {
   return new Contract(address, getContractInterface(name) as any, provider)
 }
@@ -15,11 +14,13 @@ export const loadProxyFromManager = async (
   name: string,
   proxy: string,
   Lib_AddressManager: Contract,
-  provider: BaseProvider
+  provider: Provider
 ): Promise<Contract> => {
-  const address = await Lib_AddressManager.getAddress(proxy)
+  const address = await Lib_AddressManager.getFunction('getAddress').staticCall(
+    proxy
+  )
 
-  if (address === constants.AddressZero) {
+  if (address === ethers.ZeroAddress) {
     throw new Error(
       `Lib_AddressManager does not have a record for a contract named: ${proxy}`
     )
@@ -36,7 +37,7 @@ export interface OptimismContracts {
 }
 
 export const loadOptimismContracts = async (
-  l1RpcProvider: BaseProvider,
+  l1RpcProvider: Provider,
   addressManagerAddress: string,
   signer?: Signer
 ): Promise<OptimismContracts> => {

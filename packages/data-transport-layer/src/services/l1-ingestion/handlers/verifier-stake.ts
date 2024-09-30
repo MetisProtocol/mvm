@@ -1,10 +1,10 @@
 /* Imports: Internal */
-import { BigNumber } from 'ethers'
 import {
   EventArgsVerifierStake,
   EventHandlerSet,
   VerifierStakeEntry,
 } from '../../../types'
+import { toNumber } from 'ethers'
 
 export const handleEventsVerifierStake: EventHandlerSet<
   EventArgsVerifierStake,
@@ -18,13 +18,13 @@ export const handleEventsVerifierStake: EventHandlerSet<
     // console.log(`got event VerifierStake: ${JSON.stringify(event.args)}`)
     const eventBlock = await event.getBlock()
     return {
-      index: event.args._batchIndex.toNumber(),
+      index: toNumber(event.args._batchIndex),
       sender: event.args._sender,
-      chainId: event.args._chainId.toNumber(),
-      batchIndex: event.args._batchIndex.toNumber(),
-      blockNumber: event.args._blockNumber.toNumber(),
+      chainId: toNumber(event.args._chainId),
+      batchIndex: toNumber(event.args._batchIndex),
+      blockNumber: toNumber(event.args._blockNumber),
       amount: event.args._amount.toString(),
-      l1BlockNumber: BigNumber.from(event.blockNumber).toNumber(),
+      l1BlockNumber: toNumber(event.blockNumber),
       timestamp: eventBlock.timestamp,
     }
   },

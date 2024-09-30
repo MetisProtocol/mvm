@@ -1,10 +1,10 @@
 /* Imports: Internal */
-import { BigNumber } from 'ethers'
 import {
   AppendBatchElementEntry,
   EventArgsAppendBatchElement,
   EventHandlerSet,
 } from '../../../types'
+import { toNumber } from 'ethers'
 
 export const handleEventsAppendBatchElement: EventHandlerSet<
   EventArgsAppendBatchElement,
@@ -18,15 +18,15 @@ export const handleEventsAppendBatchElement: EventHandlerSet<
     // console.log(`got event AppendBatchElement: ${JSON.stringify(event.args)}`)
     const eventBlock = await event.getBlock()
     return {
-      index: event.args._batchIndex.toNumber(),
-      chainId: event.args._chainId.toNumber(),
-      batchIndex: event.args._batchIndex.toNumber(),
+      index: toNumber(event.args._batchIndex),
+      chainId: toNumber(event.args._chainId),
+      batchIndex: toNumber(event.args._batchIndex),
       shouldStartAtElement: event.args._shouldStartAtElement,
       totalElementsToAppend: event.args._totalElementsToAppend,
-      txBatchSize: event.args._txBatchSize.toNumber(),
-      txBatchTime: event.args._txBatchTime.toNumber(),
+      txBatchSize: toNumber(event.args._txBatchSize),
+      txBatchTime: toNumber(event.args._txBatchTime),
       root: event.args._root,
-      l1BlockNumber: BigNumber.from(event.blockNumber).toNumber(),
+      l1BlockNumber: toNumber(event.blockNumber),
       timestamp: eventBlock.timestamp,
     }
   },

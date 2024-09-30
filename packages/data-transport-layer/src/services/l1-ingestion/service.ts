@@ -2,9 +2,8 @@
 import { fromHexString, FallbackProvider } from '@metis.io/core-utils'
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
 import { BaseProvider } from '@ethersproject/providers'
-import { BlockWithTransactions } from '@ethersproject/abstract-provider'
 import { LevelUp } from 'levelup'
-import { constants } from 'ethers'
+import { Block, ethers, EventLog } from 'ethers'
 import { Gauge, Counter } from 'prom-client'
 
 /* Imports: Internal */
@@ -34,6 +33,7 @@ import { MissingElementError } from './handlers/errors'
 import { handleEventsVerifierStake } from './handlers/verifier-stake'
 import { handleEventsAppendBatchElement } from './handlers/append-batch-element'
 import { handleEventsSequencerBatchInbox } from './handlers/sequencer-batch-inbox'
+import { v5ToV6ProviderWrapper } from '../../client/provider-wrapper'
 
 interface L1IngestionMetrics {
   highestSyncedL1Block: Gauge<string>
@@ -147,11 +147,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     const Lib_AddressManager = loadContract(
       'Lib_AddressManager',
       this.options.addressManager,
-      this.state.l1RpcProvider
+      v5ToV6ProviderWrapper(this.state.l1RpcProvider)
     )
 
     const code = await this.state.l1RpcProvider.getCode(
-      Lib_AddressManager.address
+      await Lib_AddressManager.getAddress()
     )
     if (fromHexString(code).length === 0) {
       throw new Error(
@@ -163,7 +163,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // Just check to make sure this doesn't throw. If this is a valid AddressManager, then this
       // call should succeed. If it throws, then our AddressManager is broken. We don't care about
       // the result.
-      await Lib_AddressManager.getAddress(
+      await Lib_AddressManager.getFunction('getAddress').staticCall(
         `Here's a contract name that definitely doesn't exist.`
       )
     } catch (err) {
@@ -175,7 +175,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // Would be nice if this weren't necessary, maybe one day.
     // TODO: Probably just assert inside here that all of the contracts have code in them.
     this.state.contracts = await loadOptimismContracts(
-      this.state.l1RpcProvider,
+      v5ToV6ProviderWrapper(this.state.l1RpcProvider),
       this.options.addressManager
     )
 
@@ -407,7 +407,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           }
 
           // Find the last good element and reset the highest synced L1 block to go back to the
-          // last good element. Will resync other event types too but we have no issues with
+          // last good element. Will resync other event types too, but we have no issues with
           // syncing the same events more than once.
           const eventName = err.name
           if (!(eventName in handlers)) {
@@ -464,12 +464,13 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     handlers: EventHandlerSetAny<any, any>
   ): Promise<void> {
     const blockPromises = []
+    const v6Provider = v5ToV6ProviderWrapper(this.state.l1RpcProvider)
     for (let i = fromL1Block; i <= toL1Block; i++) {
-      blockPromises.push(this.state.l1RpcProvider.getBlockWithTransactions(i))
+      blockPromises.push(v6Provider.getBlock(i, true))
     }
 
     // Just making sure that the blocks will come back in increasing order.
-    const blocks = (await Promise.all(blockPromises)) as BlockWithTransactions[]
+    const blocks = (await Promise.all(blockPromises)) as Block[]
     this.logger.info('_syncInboxBatch get blocks', {
       fromL1Block,
       toL1Block,
@@ -477,7 +478,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     const extraMap: Record<number, any> = {}
     for (const block of blocks) {
-      for (const tx of block.transactions) {
+      // we need to keep tracking the blob data index in a block in order to get the correct one for
+      // our batch tx
+      let blobIndex = 0
+      for (const tx of block.prefetchedTransactions) {
         if (
           tx.to &&
           tx.to.toLowerCase() ===
@@ -496,10 +500,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           ) {
             continue
           }
-          // verfiy data
+          // verify data
           const makeEvent = {
             transaction: tx,
             block,
+            blobIndex,
           }
           try {
             const extraData = await handlers.getExtraData(
@@ -512,6 +517,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               tx,
             })
           }
+        } else {
+          blobIndex += tx.blobVersionedHashes.length
         }
       }
     }
@@ -684,10 +691,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       )
       const addressDict = addressEvent[chainId]
       if (!addressDict[contractName]) {
-        return constants.AddressZero
+        return ethers.ZeroAddress
       }
       const arr = addressDict[contractName]
-      let findAddress = constants.AddressZero
+      let findAddress = ethers.ZeroAddress
       for (let i = arr.length - 1; i >= 0; i--) {
         const addr = arr[i]
         if (blockNumber >= addr.Start) {
@@ -708,10 +715,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     )
 
     if (events.length > 0) {
-      return events[events.length - 1].args._newAddress
+      return (events[events.length - 1] as EventLog).args._newAddress
     } else {
       // Address wasn't set before this.
-      return constants.AddressZero
+      return ethers.ZeroAddress
     }
   }
 

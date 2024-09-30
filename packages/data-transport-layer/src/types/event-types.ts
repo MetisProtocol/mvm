@@ -1,60 +1,58 @@
 /* Imports: External */
-import { ethers } from 'ethers'
-
 export interface EventArgsAddressSet {
   _name: string
   _newAddress: string
 }
 
 export interface EventArgsTransactionEnqueued {
-  _chainId: ethers.BigNumber
+  _chainId: bigint
   _l1TxOrigin: string
   _target: string
-  _gasLimit: ethers.BigNumber
+  _gasLimit: bigint
   _data: string
-  _queueIndex: ethers.BigNumber
-  _timestamp: ethers.BigNumber
+  _queueIndex: bigint
+  _timestamp: bigint
 }
 
 export interface EventArgsTransactionBatchAppended {
-  _chainId: ethers.BigNumber
-  _batchIndex: ethers.BigNumber
+  _chainId: bigint
+  _batchIndex: bigint
   _batchRoot: string
-  _batchSize: ethers.BigNumber
-  _prevTotalElements: ethers.BigNumber
+  _batchSize: bigint
+  _prevTotalElements: bigint
   _extraData: string
 }
 
 export interface EventArgsStateBatchAppended {
-  _chainId: ethers.BigNumber
-  _batchIndex: ethers.BigNumber
+  _chainId: bigint
+  _batchIndex: bigint
   _batchRoot: string
-  _batchSize: ethers.BigNumber
-  _prevTotalElements: ethers.BigNumber
+  _batchSize: bigint
+  _prevTotalElements: bigint
   _extraData: string
 }
 
 export interface EventArgsSequencerBatchAppended {
-  _chainId: ethers.BigNumber
-  _startingQueueIndex: ethers.BigNumber
-  _numQueueElements: ethers.BigNumber
-  _totalElements: ethers.BigNumber
+  _chainId: bigint
+  _startingQueueIndex: bigint
+  _numQueueElements: bigint
+  _totalElements: bigint
 }
 
 export interface EventArgsVerifierStake {
   _sender: string
-  _chainId: ethers.BigNumber
-  _batchIndex: ethers.BigNumber
-  _blockNumber: ethers.BigNumber
-  _amount: ethers.BigNumber
+  _chainId: bigint
+  _batchIndex: bigint
+  _blockNumber: bigint
+  _amount: bigint
 }
 
 export interface EventArgsAppendBatchElement {
-  _chainId: ethers.BigNumber
-  _batchIndex: ethers.BigNumber
+  _chainId: bigint
+  _batchIndex: bigint
   _shouldStartAtElement: number
   _totalElementsToAppend: number
-  _txBatchSize: ethers.BigNumber
-  _txBatchTime: ethers.BigNumber
+  _txBatchSize: bigint
+  _txBatchTime: bigint
   _root: string
 }
