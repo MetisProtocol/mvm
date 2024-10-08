@@ -8,23 +8,8 @@ use (
 	./go/utils
 	./l2geth
 
-	// for fault dispute game
-	./go/cannon
-	./go/op-preimage
-	./go/op-program
-	./go/op-challenger
-	./go/op-proposer
+	// for blob da
 	./go/op-alt-da
 	./go/op-batcher
-
-	// for cannon testing
-	go/cannon/testdata/example/alloc
-	go/cannon/testdata/example/claim
-)
-
-replace (
-	github.com/ethereum-optimism/optimism/go/op-preimage v0.0.0 => ./go/op-preimage
-	github.com/ethereum-optimism/optimism/go/op-program v0.0.0 => ./go/op-program
-	github.com/ethereum-optimism/optimism/go/cannon v0.0.0 => ./go/cannon
 )
 
