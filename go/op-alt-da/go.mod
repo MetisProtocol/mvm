@@ -2,6 +2,8 @@ module github.com/ethereum-optimism/optimism/go/op-alt-da
 
 go 1.21
 
+replace github.com/ethereum/go-ethereum v1.14.8 => github.com/ethereum-optimism/op-geth v1.101408.0-rc.4.0.20240827042333-110c433a2469
+
 require (
 	github.com/ethereum-optimism/optimism v1.9.1
 	github.com/ethereum/go-ethereum v1.14.8
