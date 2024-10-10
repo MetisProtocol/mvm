@@ -20,6 +20,7 @@ export interface L1DataTransportServiceOptions {
   dangerouslyCatchAllErrors?: boolean
   hostname: string
   l1RpcProvider: string
+  l1BeaconProvider: string
   l2ChainId: number
   l2RpcProvider: string
   metrics?: Metrics
