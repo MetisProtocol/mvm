@@ -1,8 +1,9 @@
 import * as http from 'http'
 import * as https from 'https'
 import { URL } from 'url'
-import { ethers, UnsignedTransaction, BigNumber } from 'ethers'
+import { ethers, toBigInt, Transaction } from 'ethers'
 import { randomUUID } from 'crypto'
+import '@metis.io/core-utils'
 
 export class MpcClient {
   protected url: string
@@ -138,7 +139,7 @@ export class MpcClient {
   ): string {
     let toHex = hex.startsWith('0x') ? hex.substring(2) : hex
     toHex = toHex.replace(/^0+/, '')
-    if (toHex.length == 0 && keepOneZero) {
+    if (!toHex.length && keepOneZero) {
       toHex = '0'
     }
     if (hex.startsWith('0x')) {
@@ -156,21 +157,23 @@ export class MpcClient {
   // call this
   public async signTx(tx: any, mpcId: any): Promise<string> {
     // call mpc to sign tx
-    const unsignedTx: UnsignedTransaction = {
+    const unsignedTx = {
       nonce: tx.nonce,
-      gasPrice: BigNumber.from(tx.gasPrice),
-      gasLimit: BigNumber.from(tx.gasLimit),
+      gasPrice: toBigInt(tx.gasPrice),
+      gasLimit: toBigInt(tx.gasLimit),
       to: tx.to,
-      value: BigNumber.from(tx.value),
+      value: toBigInt(tx.value),
       data: tx.data,
       chainId: tx.chainId,
+      blobs: tx.blobs,
     }
+
     const signId = randomUUID()
     const postData = {
       sign_id: signId,
       mpc_id: mpcId,
       sign_type: 0,
-      sign_data: ethers.utils.serializeTransaction(unsignedTx),
+      sign_data: ethers.Transaction.from(unsignedTx).unsignedSerialized,
       sign_msg: '',
     }
     const signResp = await this.proposeMpcSign(postData)

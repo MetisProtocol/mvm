@@ -155,7 +155,7 @@ export class TransactionBatchSubmitterInbox {
     const tx: PopulatedTransaction = {
       to: this.inboxAddress,
       data: '0x' + batchParams.inputData,
-      value: ethers.utils.parseEther('0'),
+      value: ethers.parseEther('0'),
     }
     // MPC enabled: prepare nonce, gasPrice
     if (mpcUrl) {
@@ -347,7 +347,7 @@ export class TransactionBatchSubmitterInbox {
       try {
         compressedEncoded = await zlibCompressHexString(encodeBlockData)
       } catch (err) {
-        this.logger.error('Zlib compress error', {err})
+        this.logger.error('Zlib compress error', { err })
         throw new Error('Zlib compress encode blocks data error.')
       }
 
@@ -368,7 +368,7 @@ export class TransactionBatchSubmitterInbox {
           compressedEncoded,
           3
         )
-        this.logger.info('storage tx data to minio', {storagedObject})
+        this.logger.info('storage tx data to minio', { storagedObject })
 
         if (!storagedObject) {
           throw new Error(

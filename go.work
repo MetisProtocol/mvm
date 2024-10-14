@@ -7,9 +7,5 @@ use (
 	./go/gas-oracle
 	./go/utils
 	./l2geth
-
-	// for blob da
-	./go/op-alt-da
-	./go/op-batcher
 )
 

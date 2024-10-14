@@ -376,7 +376,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   ): Promise<TransactionReceipt> {
     // Do not submit batch if gas price above threshold
     const gasPriceInGwei = parseInt(
-      ethers.utils.formatUnits(await this.signer.getGasPrice(), 'gwei'),
+      ethers.formatUnits(await this.signer.getGasPrice(), 'gwei'),
       10
     )
     if (gasPriceInGwei > this.gasThresholdInGwei) {

@@ -102,8 +102,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
 
     if (
       typeof this.chainContract !== 'undefined' &&
-      sccAddress === this.chainContract.address &&
-      ctcAddress === this.ctcContract.address
+      sccAddress === (await this.chainContract.getAddress()) &&
+      ctcAddress === (await this.ctcContract.getAddress())
     ) {
       this.logger.debug('Chain contract already initialized', {
         sccAddress,
@@ -280,7 +280,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       const txUnsign: PopulatedTransaction = {
         to: tx.to,
         data: tx.data,
-        value: ethers.utils.parseEther('0'),
+        value: ethers.parseEther('0'),
       }
       const mpcAddress = mpcInfo.mpc_address
       txUnsign.nonce = await this.signer.provider.getTransactionCount(
