@@ -1,15 +1,15 @@
 /* Imports: External */
-import { BigNumber } from 'ethers'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Logger } from '@eth-optimism/common-ts'
+import { toBigInt } from 'ethers'
 
 const INBOX_OK_FILE = 'inbox_ok.json'
 const INBOX_FAIL_FILE = 'inbox_fail.json'
 
 export interface InboxRecordInfo {
-  batchIndex: number | BigNumber
-  blockNumber: number | BigNumber
+  batchIndex: number | bigint
+  blockNumber: number | bigint
   txHash: string
 }
 
@@ -23,11 +23,11 @@ export class InboxStorage {
   }
 
   public async recordFailedTx(
-    batchIndex: number | BigNumber,
+    batchIndex: number | bigint,
     errMsg: string
   ): Promise<boolean> {
     const jsonData = {
-      batchIndex: BigNumber.from(batchIndex).toNumber(),
+      batchIndex: toBigInt(batchIndex),
       errMsg,
     }
     const jsonString = JSON.stringify(jsonData, null, 2)
@@ -46,8 +46,8 @@ export class InboxStorage {
 
   public async recordConfirmedTx(inbox: InboxRecordInfo): Promise<boolean> {
     const jsonData = {
-      batchIndex: BigNumber.from(inbox.batchIndex).toNumber(),
-      number: BigNumber.from(inbox.blockNumber).toNumber(),
+      batchIndex: toBigInt(inbox.batchIndex),
+      number: toBigInt(inbox.blockNumber),
       hash: inbox.txHash,
     }
     const jsonString = JSON.stringify(jsonData, null, 2)

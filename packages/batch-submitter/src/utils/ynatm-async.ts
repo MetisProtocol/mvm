@@ -68,7 +68,9 @@ export class YnatmAsync {
     }
 
     for (;;) {
-      if (curGasPrice > maxGasPrice) break
+      if (curGasPrice > maxGasPrice) {
+        break
+      }
       gasPrices = gasPrices.concat(curGasPrice)
       curGasPrice = gasPriceScalingFunction({
         y: curGasPrice,
@@ -134,8 +136,8 @@ export class YnatmAsync {
 
     const promise = new Promise<any>((resolve, reject) => {
       // List of timeout Ids
-      let timeoutIds = []
-      let failedTxs = []
+      const timeoutIds = []
+      const failedTxs = []
 
       // After waiting (N + 1) * delay seconds, throw an error
       const finalTimeoutId = setTimeout(() => {

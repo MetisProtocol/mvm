@@ -3,11 +3,13 @@ import { Promise as bPromise } from 'bluebird'
 import {
   Signer,
   ethers,
-  providers,
-  BigNumber,
-  PopulatedTransaction,
+  JsonRpcProvider,
+  TransactionReceipt,
+  TransactionRequest,
+  toBigInt,
+  toBeHex,
+  Provider,
 } from 'ethers'
-import { TransactionReceipt } from '@ethersproject/abstract-provider'
 import { Logger } from '@eth-optimism/common-ts'
 import {
   L2Block,
@@ -25,6 +27,8 @@ import {
 import { TransactionSubmitter, MpcClient } from '../utils'
 import { InboxStorage } from '../storage'
 import { TxSubmissionHooks } from '..'
+import { ChannelManager } from '../da/channel-manager'
+import { ChannelConfig } from '../da/types'
 
 export interface BatchToInboxRawTx {
   rawTransaction: string | undefined
@@ -50,23 +54,20 @@ export interface InboxBatchParams {
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
-  private readonly opBatcherProvider: providers.StaticJsonRpcProvider
 
   constructor(
     readonly inboxStorage: InboxStorage,
     readonly inboxAddress: string,
-    readonly l2Provider: providers.StaticJsonRpcProvider,
+    readonly l1Provider: Provider,
+    readonly l2Provider: Provider,
     readonly logger: Logger,
     readonly maxTxSize: number,
     readonly useMinio: boolean,
     readonly minioConfig?: MinioConfig,
-    readonly useBlob?: boolean,
-    opBatcherRPC?: string
+    readonly useBlob?: boolean
   ) {
     if (useMinio && minioConfig) {
       this.minioClient = new MinioClient(minioConfig)
-    } else if (useBlob && opBatcherRPC) {
-      this.opBatcherProvider = new providers.StaticJsonRpcProvider(opBatcherRPC)
     }
   }
 
@@ -152,7 +153,7 @@ export class TransactionBatchSubmitterInbox {
       ) => Promise<boolean>
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
-    const tx: PopulatedTransaction = {
+    const tx: TransactionRequest = {
       to: this.inboxAddress,
       data: '0x' + batchParams.inputData,
       value: ethers.parseEther('0'),
@@ -195,7 +196,7 @@ export class TransactionBatchSubmitterInbox {
         }
       )
     } else {
-      tx.nonce = await signer.getTransactionCount()
+      tx.nonce = await signer.getNonce()
       tx.gasLimit = await signer.provider.estimateGas({
         //estimate gas
         to: tx.to,
@@ -226,7 +227,7 @@ export class TransactionBatchSubmitterInbox {
       saveStatus = await this.inboxStorage.recordConfirmedTx({
         batchIndex,
         blockNumber: receipt.blockNumber,
-        txHash: receipt.transactionHash,
+        txHash: receipt.hash,
       })
     } else {
       saveStatus = await this.inboxStorage.recordFailedTx(
@@ -294,7 +295,7 @@ export class TransactionBatchSubmitterInbox {
     // DA: 0 - L1, 1 - memo, 2 - celestia, 3 - blob
     let da = encodeHex(0, 2)
     // Compress Type: 0 - none, 11 - zlib
-    let compressType = encodeHex(11, 2)
+    const compressType = encodeHex(11, 2)
     const batchIndex = encodeHex(nextBatchIndex, 64)
     const l2Start = encodeHex(l2StartBlock, 64)
     const totalElements = encodeHex(blocks.length, 8)
@@ -325,18 +326,16 @@ export class TransactionBatchSubmitterInbox {
           encodeBlockData += encodeHex(inboxTx.isSequencerTx ? 0 : 1, 2)
           if (inboxTx.isSequencerTx) {
             encodeBlockData += remove0x(
-              BigNumber.from(remove0x(curTx).length / 2).toHexString()
+              toBeHex(toBigInt(remove0x(curTx).length / 2))
             ).padStart(6, '0')
             encodeBlockData += remove0x(curTx)
             encodeBlockData += remove0x(
-              BigNumber.from(remove0x(inboxTx.seqSign).length / 2).toHexString()
+              toBeHex(toBigInt(remove0x(inboxTx.seqSign).length / 2))
             ).padStart(6, '0')
             encodeBlockData += inboxTx.seqSign
           } else {
             // use 0 length
-            encodeBlockData += remove0x(
-              BigNumber.from('0').toHexString()
-            ).padStart(6, '0')
+            encodeBlockData += remove0x(toBeHex(toBigInt('0'))).padStart(6, '0')
             encodeBlockData += remove0x(inboxTx.l1TxOrigin)
             const encodedNonce = encodeHex(inboxTx.queueIndex, 32)
             encodeBlockData += encodedNonce
@@ -378,10 +377,14 @@ export class TransactionBatchSubmitterInbox {
         compressedEncoded = storagedObject
       }
     } else {
-      const txHashes = await this.opBatcherProvider.send(
-        'batcher_submitBlocks',
-        [l2StartBlock, l2StartBlock + blocks.length]
+      const channelManager = new ChannelManager(
+        (): ChannelConfig => {},
+        {},
+        this.l2Provider
       )
+
+      channelManager.addL2Block()
+
       this.logger.info('submitted blocks to op batcher', { txHashes })
       // concat all tx hashes [32B Hash][32B Hash][...],
       // each tx contains a single frame of the submitted block,

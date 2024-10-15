@@ -1,5 +1,5 @@
 /* Imports: External */
-import { BigNumber, ethers } from 'ethers'
+import { ethers, toBeHex, toBigInt } from 'ethers'
 
 /**
  * Removes "0x" from start of a string if it exists.
@@ -49,20 +49,14 @@ export const fromHexString = (inp: Buffer | string): Buffer => {
  */
 export const toHexString = (inp: Buffer | string | number | null): string => {
   if (typeof inp === 'number') {
-    return BigNumber.from(inp).toHexString()
+    return toBeHex(toBigInt(inp))
   } else {
     return '0x' + fromHexString(inp).toString('hex')
   }
 }
 
-export const toRpcHexString = (n: number | bigint | BigNumber): string => {
-  let num: string
-  if (typeof n === 'number' || typeof n === 'bigint') {
-    num = '0x' + n.toString(16)
-  } else {
-    num = n.toHexString()
-  }
-
+export const toRpcHexString = (n: number | bigint): string => {
+  const num = toBeHex(n)
   if (num === '0x0') {
     return num
   } else {
@@ -79,14 +73,14 @@ export const padHexString = (str: string, length: number): string => {
 }
 
 export const encodeHex = (val: any, len: number) =>
-  remove0x(BigNumber.from(val).toHexString()).padStart(len, '0')
+  remove0x(toBeHex(toBigInt(val), len >> 1))
 
 export const hexStringEquals = (stringA: string, stringB: string): boolean => {
-  if (!ethers.utils.isHexString(stringA)) {
+  if (!ethers.isHexString(stringA)) {
     throw new Error(`input is not a hex string: ${stringA}`)
   }
 
-  if (!ethers.utils.isHexString(stringB)) {
+  if (!ethers.isHexString(stringB)) {
     throw new Error(`input is not a hex string: ${stringB}`)
   }
 

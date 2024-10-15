@@ -1,27 +1,24 @@
 /* External Imports */
-import { injectL2Context, Bcfg, MinioConfig } from '@metis.io/core-utils'
+import { Bcfg, injectL2Context, MinioConfig } from '@metis.io/core-utils'
 import * as Sentry from '@sentry/node'
-import { Logger, Metrics, createMetricsServer } from '@eth-optimism/common-ts'
-import { Signer, Wallet } from 'ethers'
-import {
-  StaticJsonRpcProvider,
-  TransactionReceipt,
-} from '@ethersproject/providers'
+import { createMetricsServer, Logger, Metrics } from '@eth-optimism/common-ts'
+import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethers'
+import { StaticJsonRpcProvider } from '@ethersproject/providers'
 import * as dotenv from 'dotenv'
 import Config from 'bcfg'
 
 /* Internal Imports */
 import {
-  TransactionBatchSubmitter,
   AutoFixBatchOptions,
-  StateBatchSubmitter,
   STATE_BATCH_SUBMITTER_LOG_TAG,
+  StateBatchSubmitter,
+  TransactionBatchSubmitter,
   TX_BATCH_SUBMITTER_LOG_TAG,
 } from '..'
 import {
+  ResubmissionConfig,
   TransactionSubmitter,
   YnatmTransactionSubmitter,
-  ResubmissionConfig,
 } from '../utils'
 
 interface RequiredEnvVars {
@@ -166,9 +163,7 @@ export const run = async () => {
   )
 
   const getSequencerSigner = async (): Promise<Signer> => {
-    const l1Provider = new StaticJsonRpcProvider(
-      requiredEnvVars.L1_NODE_WEB3_URL
-    )
+    const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
 
     if (useHardhat) {
       if (!DEBUG_IMPERSONATE_SEQUENCER_ADDRESS) {
@@ -183,9 +178,11 @@ export const run = async () => {
     if (SEQUENCER_PRIVATE_KEY) {
       return new Wallet(SEQUENCER_PRIVATE_KEY, l1Provider)
     } else if (SEQUENCER_MNEMONIC) {
-      return Wallet.fromMnemonic(SEQUENCER_MNEMONIC, SEQUENCER_HD_PATH).connect(
-        l1Provider
-      )
+      return HDNodeWallet.fromPhrase(
+        SEQUENCER_MNEMONIC,
+        null,
+        SEQUENCER_HD_PATH
+      ).connect(l1Provider)
     }
     throw new Error(
       'Must pass one of SEQUENCER_PRIVATE_KEY, MNEMONIC, or SEQUENCER_MNEMONIC'
@@ -193,9 +190,7 @@ export const run = async () => {
   }
 
   const getProposerSigner = async (): Promise<Signer> => {
-    const l1Provider = new StaticJsonRpcProvider(
-      requiredEnvVars.L1_NODE_WEB3_URL
-    )
+    const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
 
     if (useHardhat) {
       if (!DEBUG_IMPERSONATE_PROPOSER_ADDRESS) {
@@ -210,9 +205,11 @@ export const run = async () => {
     if (PROPOSER_PRIVATE_KEY) {
       return new Wallet(PROPOSER_PRIVATE_KEY, l1Provider)
     } else if (PROPOSER_MNEMONIC) {
-      return Wallet.fromMnemonic(PROPOSER_MNEMONIC, PROPOSER_HD_PATH).connect(
-        l1Provider
-      )
+      return HDNodeWallet.fromPhrase(
+        PROPOSER_MNEMONIC,
+        null,
+        PROPOSER_HD_PATH
+      ).connect(l1Provider)
     }
     throw new Error(
       'Must pass one of PROPOSER_PRIVATE_KEY, MNEMONIC, or PROPOSER_MNEMONIC'
@@ -547,13 +544,13 @@ export const run = async () => {
 
   // Loops infinitely!
   const loop = async (
-    func: () => Promise<TransactionReceipt>
+    func: () => Promise<ethers.TransactionReceipt>
   ): Promise<void> => {
     // Clear all pending transactions
     if (clearPendingTxs) {
       try {
-        const pendingTxs = await sequencerSigner.getTransactionCount('pending')
-        const latestTxs = await sequencerSigner.getTransactionCount('latest')
+        const pendingTxs = await sequencerSigner.getNonce('pending')
+        const latestTxs = await sequencerSigner.getNonce('latest')
         if (pendingTxs > latestTxs) {
           logger.info(
             'Detected pending transactions. Clearing all transactions!'

@@ -1,5 +1,5 @@
 /* External Imports */
-import { Contract, ethers, BigNumber } from 'ethers'
+import { ethers, Contract, toBigInt, toBeHex } from 'ethers'
 import {
   TransactionResponse,
   TransactionRequest,
@@ -82,7 +82,7 @@ const appendSequencerBatch = async (
   })
 }
 const encodeHex = (val: any, len: number) =>
-  remove0x(BigNumber.from(val).toHexString()).padStart(len, '0')
+  remove0x(toBeHex(toBigInt(val), len))
 const getEncodedCalldata = async (
   batch: AppendSequencerBatchParams,
   opts?: EncodeSequencerBatchOptions

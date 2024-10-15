@@ -1,13 +1,6 @@
 /* External Imports */
 import { Promise as bPromise } from 'bluebird'
-import {
-  Contract,
-  ethers,
-  Signer,
-  providers,
-  BigNumber,
-  PopulatedTransaction,
-} from 'ethers'
+import { Contract, ethers, Signer, toBigInt, toNumber } from 'ethers'
 import { TransactionReceipt } from '@ethersproject/abstract-provider'
 import { getContractFactory } from '@metis.io/contracts'
 import { L2Block, RollupInfo, Bytes32, remove0x } from '@metis.io/core-utils'
@@ -112,12 +105,14 @@ export class StateBatchSubmitter extends BatchSubmitter {
       return
     }
 
-    this.chainContract = (
-      await getContractFactory('StateCommitmentChain', this.signer)
-    ).attach(sccAddress)
-    this.ctcContract = (
-      await getContractFactory('CanonicalTransactionChain', this.signer)
-    ).attach(ctcAddress)
+    this.chainContract = getContractFactory(
+      'StateCommitmentChain',
+      this.signer
+    ).attach(sccAddress) as Contract
+    this.ctcContract = getContractFactory(
+      'CanonicalTransactionChain',
+      this.signer
+    ).attach(ctcAddress) as Contract
 
     this.logger.info('Connected Optimism contracts', {
       stateCommitmentChain: this.chainContract.address,
@@ -166,12 +161,10 @@ export class StateBatchSubmitter extends BatchSubmitter {
         // set start block from raw data
         // 0x[2: DA type] [2: compress type] [64: batch index] [64: L2 start] [8: total blocks]
         //  > 142 ( 2 + 2 + 2 + 64 + 64 + 8 )
-        const inboxTxStartBlock = BigNumber.from(
+        const inboxTxStartBlock = toNumber(
           '0x' + inboxTx.data.substring(70, 134)
-        ).toNumber()
-        const inboxTxTotal = BigNumber.from(
-          '0x' + inboxTx.data.substring(134, 142)
-        ).toNumber()
+        )
+        const inboxTxTotal = toNumber('0x' + inboxTx.data.substring(134, 142))
         totalElements = inboxTxStartBlock + inboxTxTotal
 
         this.logger.info('Retrieved total elements from BatchInbox', {
@@ -258,7 +251,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     this.logger.debug('Submitting batch.', { calldata })
 
     // Generate the transaction we will repeatedly submit
-    const nonce = await this.signer.getTransactionCount() //mpc address , 2 mpc addresses
+    const nonce = await this.signer.getNonce() //mpc address , 2 mpc addresses
     // state ctc are different signer addresses.
     const tx =
       await this.chainContract.populateTransaction.appendStateBatchByChainId(

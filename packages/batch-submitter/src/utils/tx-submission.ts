@@ -1,9 +1,4 @@
-import { Signer, utils, ethers, PopulatedTransaction } from 'ethers'
-import {
-  TransactionReceipt,
-  TransactionResponse,
-  Provider,
-} from '@ethersproject/abstract-provider'
+import { ethers, Signer } from 'ethers'
 import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'
@@ -16,31 +11,31 @@ export interface ResubmissionConfig {
 }
 
 export type SubmitTransactionFn = (
-  tx: PopulatedTransaction
-) => Promise<TransactionReceipt>
+  tx: ethers.TransactionRequest
+) => Promise<ethers.TransactionReceipt>
 
 export interface TxSubmissionHooks {
-  beforeSendTransaction: (tx: PopulatedTransaction) => void
-  onTransactionResponse: (txResponse: TransactionResponse) => void
+  beforeSendTransaction: (tx: ethers.TransactionRequest) => void
+  onTransactionResponse: (txResponse: ethers.TransactionResponse) => void
 }
 
 const getGasPriceInGwei = async (signer: Signer): Promise<number> => {
   return parseInt(
-    ethers.utils.formatUnits(await signer.getGasPrice(), 'gwei'),
+    ethers.formatUnits((await signer.provider.getFeeData()).gasPrice, 'gwei'),
     10
   )
 }
 
 export const submitTransactionWithYNATM = async (
-  tx: PopulatedTransaction,
+  tx: ethers.TransactionRequest,
   signer: Signer,
   config: ResubmissionConfig,
   numConfirmations: number,
   hooks: TxSubmissionHooks
-): Promise<TransactionReceipt> => {
+): Promise<ethers.TransactionReceipt> => {
   const sendTxAndWaitForReceipt = async (
     gasPrice
-  ): Promise<TransactionReceipt> => {
+  ): Promise<ethers.TransactionReceipt> => {
     const fullTx = {
       ...tx,
       gasPrice,
@@ -63,18 +58,18 @@ export const submitTransactionWithYNATM = async (
 }
 
 export const submitSignedTransactionWithYNATM = async (
-  tx: PopulatedTransaction,
+  tx: ethers.TransactionRequest,
   signFunction: Function,
   signer: Signer,
   config: ResubmissionConfig,
   numConfirmations: number,
   hooks: TxSubmissionHooks
-): Promise<TransactionReceipt> => {
+): Promise<ethers.TransactionReceipt> => {
   const sendTxAndWaitForReceipt = async (
     signedTx
-  ): Promise<TransactionReceipt> => {
+  ): Promise<ethers.TransactionReceipt> => {
     hooks.beforeSendTransaction(tx)
-    const txResponse = await signer.provider.sendTransaction(signedTx)
+    const txResponse = await signer.sendTransaction(signedTx)
     hooks.onTransactionResponse(txResponse)
     return signer.provider.waitForTransaction(txResponse.hash, numConfirmations)
   }
@@ -94,15 +89,15 @@ export const submitSignedTransactionWithYNATM = async (
 
 export interface TransactionSubmitter {
   submitTransaction(
-    tx: PopulatedTransaction,
+    tx: ethers.TransactionRequest,
     hooks?: TxSubmissionHooks
-  ): Promise<TransactionReceipt>
+  ): Promise<ethers.TransactionReceipt>
 
   submitSignedTransaction(
-    tx: PopulatedTransaction,
+    tx: ethers.TransactionRequest,
     signFunction: Function,
     hooks?: TxSubmissionHooks
-  ): Promise<TransactionReceipt>
+  ): Promise<ethers.TransactionReceipt>
 }
 
 export class YnatmTransactionSubmitter implements TransactionSubmitter {
@@ -113,9 +108,9 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
   ) {}
 
   public async submitTransaction(
-    tx: PopulatedTransaction,
+    tx: ethers.TransactionRequest,
     hooks?: TxSubmissionHooks
-  ): Promise<TransactionReceipt> {
+  ): Promise<ethers.TransactionReceipt> {
     if (!hooks) {
       hooks = {
         beforeSendTransaction: () => undefined,
@@ -132,10 +127,10 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
   }
 
   public async submitSignedTransaction(
-    tx: PopulatedTransaction,
+    tx: ethers.TransactionRequest,
     signFunction: Function,
     hooks?: TxSubmissionHooks
-  ): Promise<TransactionReceipt> {
+  ): Promise<ethers.TransactionReceipt> {
     if (!hooks) {
       hooks = {
         beforeSendTransaction: () => undefined,

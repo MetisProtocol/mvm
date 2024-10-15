@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { BigNumber } from 'ethers'
+import { toBigInt } from 'ethers'
 
 interface deviationRanges {
   percentUpperDeviation?: number
@@ -8,12 +8,14 @@ interface deviationRanges {
   absoluteLowerDeviation?: number
 }
 
+const big100 = BigInt(100)
+
 /**
  * Assert that a number lies within a custom defined range of the target.
  */
 export const expectApprox = (
-  actual: BigNumber | number,
-  target: BigNumber | number,
+  actual: bigint | number,
+  target: bigint | number,
   {
     percentUpperDeviation,
     percentLowerDeviation,
@@ -21,8 +23,8 @@ export const expectApprox = (
     absoluteLowerDeviation,
   }: deviationRanges
 ): void => {
-  actual = BigNumber.from(actual)
-  target = BigNumber.from(target)
+  actual = toBigInt(actual)
+  target = toBigInt(target)
 
   // Ensure at least one deviation parameter is defined
   const nonNullDeviations =
@@ -37,35 +39,35 @@ export const expectApprox = (
   }
 
   // Upper bound calculation.
-  let upper: BigNumber
+  let upper: bigint
   // Set the two possible upper bounds if and only if they are defined.
-  const upperPcnt: BigNumber = !percentUpperDeviation
+  const upperPcnt: bigint = !percentUpperDeviation
     ? null
-    : target.mul(100 + percentUpperDeviation).div(100)
-  const upperAbs: BigNumber = !absoluteUpperDeviation
+    : (target * toBigInt(100 + percentUpperDeviation)) / big100
+  const upperAbs: bigint = !absoluteUpperDeviation
     ? null
-    : target.add(absoluteUpperDeviation)
+    : target + toBigInt(absoluteUpperDeviation)
 
   if (upperPcnt && upperAbs) {
     // If both are set, take the lesser of the two upper bounds.
-    upper = upperPcnt.lte(upperAbs) ? upperPcnt : upperAbs
+    upper = upperPcnt <= upperAbs ? upperPcnt : upperAbs
   } else {
     // Else take whichever is not undefined or set to null.
     upper = upperPcnt || upperAbs
   }
 
   // Lower bound calculation.
-  let lower: BigNumber
+  let lower: bigint
   // Set the two possible lower bounds if and only if they are defined.
-  const lowerPcnt: BigNumber = !percentLowerDeviation
+  const lowerPcnt: bigint = !percentLowerDeviation
     ? null
-    : target.mul(100 - percentLowerDeviation).div(100)
-  const lowerAbs: BigNumber = !absoluteLowerDeviation
+    : (target * toBigInt(100 - percentLowerDeviation)) / big100
+  const lowerAbs: bigint = !absoluteLowerDeviation
     ? null
-    : target.sub(absoluteLowerDeviation)
+    : target - toBigInt(absoluteLowerDeviation)
   if (lowerPcnt && lowerAbs) {
     // If both are set, take the greater of the two lower bounds.
-    lower = lowerPcnt.gte(lowerAbs) ? lowerPcnt : lowerAbs
+    lower = lowerPcnt >= lowerAbs ? lowerPcnt : lowerAbs
   } else {
     // Else take whichever is not undefined or set to null.
     lower = lowerPcnt || lowerAbs
@@ -74,13 +76,13 @@ export const expectApprox = (
   // Apply the assertions if they are non-null.
   if (upper) {
     expect(
-      actual.lte(upper),
+      actual <= upper,
       `Actual value (${actual}) is greater than the calculated upper bound of (${upper})`
     ).to.be.true
   }
   if (lower) {
     expect(
-      actual.gte(lower),
+      actual >= lower,
       `Actual value (${actual}) is less than the calculated lower bound of (${lower})`
     ).to.be.true
   }

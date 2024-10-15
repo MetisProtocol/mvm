@@ -1,69 +1,86 @@
 import cloneDeep from 'lodash/cloneDeep'
-import { providers, BigNumber } from 'ethers'
+import {
+  Block,
+  ethers,
+  formatBlock,
+  formatTransactionReceipt,
+  formatTransactionResponse,
+  toBigInt,
+  toNumber,
+} from 'ethers'
+import { L2Block, L2Transaction } from './batches'
 
 /**
  * Helper for adding additional L2 context to transactions
  */
-export const injectL2Context = (l1Provider: providers.JsonRpcProvider) => {
+export const injectL2Context = (l1Provider: ethers.JsonRpcProvider) => {
   const provider = cloneDeep(l1Provider)
 
-  // Pass through the state root
-  const blockFormat = provider.formatter.block.bind(provider.formatter)
-  provider.formatter.block = (block) => {
-    const b = blockFormat(block)
-    b.stateRoot = block.stateRoot
-    return b
-  }
+  provider._wrapBlock = (blockParams, network): L2Block => {
+    const formattedBlock = formatBlock(blockParams)
+    formattedBlock.stateRoot = blockParams.stateRoot
 
-  // Pass through the state root and additional tx data
-  const blockWithTransactions = provider.formatter.blockWithTransactions.bind(
-    provider.formatter
-  )
-  provider.formatter.blockWithTransactions = (block) => {
-    const b = blockWithTransactions(block)
-    b.stateRoot = block.stateRoot
-    for (let i = 0; i < b.transactions.length; i++) {
-      b.transactions[i].l1BlockNumber = block.transactions[i].l1BlockNumber
-      if (b.transactions[i].l1BlockNumber != null) {
-        b.transactions[i].l1BlockNumber = parseInt(
-          b.transactions[i].l1BlockNumber,
-          16
-        )
-      }
-      b.transactions[i].l1TxOrigin = block.transactions[i].l1TxOrigin
-      b.transactions[i].queueOrigin = block.transactions[i].queueOrigin
-      b.transactions[i].rawTransaction = block.transactions[i].rawTransaction
+    const block = new Block(formattedBlock, provider)
+    if (!block.prefetchedTransactions || !block.transactions) {
+      // tx not retrieved
+      return block as L2Block
     }
-    return b
+
+    const anyBlock = block as any
+    anyBlock.l2Transactions = blockParams.transactions
+      .filter((tx) => typeof tx !== 'string')
+      .map((tx) => {
+        const formattedTx = formatTransactionResponse(tx)
+        const txResponse = new ethers.TransactionResponse(formattedTx, provider)
+
+        const anyTx = tx as any
+        const txResponseAny = txResponse as any
+
+        txResponseAny.l1BlockNumber = toNumber(anyTx.l1BlockNumber)
+        txResponseAny.l1TxOrigin = anyTx.l1TxOrigin
+        txResponseAny.queueOrigin = anyTx.queueOrigin
+        txResponseAny.rawTransaction = anyTx.rawTransaction
+        txResponseAny.seqV = toNumber(anyTx.seqV)
+        txResponseAny.seqR = toBigInt(anyTx.seqR)
+        txResponseAny.seqS = toBigInt(anyTx.seqS)
+
+        return txResponseAny as L2Transaction
+      })
+
+    return anyBlock as L2Block
   }
 
-  // Handle additional tx data
-  const formatTxResponse = provider.formatter.transactionResponse.bind(
-    provider.formatter
-  )
-  provider.formatter.transactionResponse = (transaction) => {
-    const tx = formatTxResponse(transaction) as any
-    tx.txType = transaction.txType
-    tx.queueOrigin = transaction.queueOrigin
-    tx.rawTransaction = transaction.rawTransaction
-    tx.l1BlockNumber = transaction.l1BlockNumber
-    if (tx.l1BlockNumber != null) {
-      tx.l1BlockNumber = parseInt(tx.l1BlockNumber, 16)
-    }
-    tx.l1TxOrigin = transaction.l1TxOrigin
-    return tx
+  provider._wrapTransactionResponse = (tx, network) => {
+    const formattedTx = formatTransactionResponse(tx)
+    const txResponse = new ethers.TransactionResponse(formattedTx, provider)
+
+    const anyTx = tx as any
+    const txResponseAny = txResponse as any
+
+    txResponseAny.l1BlockNumber = toNumber(anyTx.l1BlockNumber)
+    txResponseAny.l1TxOrigin = anyTx.l1TxOrigin
+    txResponseAny.queueOrigin = anyTx.queueOrigin
+    txResponseAny.rawTransaction = anyTx.rawTransaction
+    txResponseAny.seqV = toNumber(anyTx.seqV)
+    txResponseAny.seqR = toBigInt(anyTx.seqR)
+    txResponseAny.seqS = toBigInt(anyTx.seqS)
+
+    return txResponseAny as L2Transaction
   }
 
-  const formatReceiptResponse = provider.formatter.receipt.bind(
-    provider.formatter
-  )
-  provider.formatter.receipt = (receipt) => {
-    const r = formatReceiptResponse(receipt)
-    r.l1GasPrice = BigNumber.from(receipt.l1GasPrice)
-    r.l1GasUsed = BigNumber.from(receipt.l1GasUsed)
-    r.l1Fee = BigNumber.from(receipt.l1Fee)
-    r.l1FeeScalar = parseFloat(receipt.l1FeeScalar)
-    return r
+  provider._wrapTransactionReceipt = (receipt, network) => {
+    const formattedReceipt = formatTransactionReceipt(receipt)
+    const txReceipt = new ethers.TransactionReceipt(formattedReceipt, provider)
+
+    const anyReceipt = receipt as any
+    const txReceiptAny = txReceipt as any
+
+    txReceiptAny.l1GasPrice = toBigInt(anyReceipt.l1GasPrice)
+    txReceiptAny.l1GasUsed = toBigInt(anyReceipt.l1GasUsed)
+    txReceiptAny.l1Fee = toBigInt(anyReceipt.l1Fee)
+    txReceiptAny.l1FeeScalar = parseFloat(anyReceipt.l1FeeScalar)
+
+    return txReceipt
   }
 
   return provider

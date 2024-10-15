@@ -33,7 +33,7 @@ import { MissingElementError } from './handlers/errors'
 import { handleEventsVerifierStake } from './handlers/verifier-stake'
 import { handleEventsAppendBatchElement } from './handlers/append-batch-element'
 import { handleEventsSequencerBatchInbox } from './handlers/sequencer-batch-inbox'
-import { v5ToV6ProviderWrapper } from '../../client/provider-wrapper'
+import { v5ToV6ProviderWrapper } from '../../utils/provider-wrapper'
 
 interface L1IngestionMetrics {
   highestSyncedL1Block: Gauge<string>

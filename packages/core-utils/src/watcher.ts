@@ -1,13 +1,12 @@
 /* External Imports */
-import { ethers } from 'ethers'
-import { Provider, TransactionReceipt } from '@ethersproject/abstract-provider'
+import { ethers, AbiCoder } from 'ethers'
 
-const SENT_MESSAGE = ethers.utils.id('SentMessage(bytes)')
-const RELAYED_MESSAGE = ethers.utils.id(`RelayedMessage(bytes32)`)
-const FAILED_RELAYED_MESSAGE = ethers.utils.id(`FailedRelayedMessage(bytes32)`)
+const SENT_MESSAGE = ethers.id('SentMessage(bytes)')
+const RELAYED_MESSAGE = ethers.id(`RelayedMessage(bytes32)`)
+const FAILED_RELAYED_MESSAGE = ethers.id(`FailedRelayedMessage(bytes32)`)
 
 export interface Layer {
-  provider: Provider
+  provider: ethers.Provider
   messengerAddress: string
   blocksToFetch?: number
 }
@@ -51,14 +50,14 @@ export class Watcher {
   public async getL1TransactionReceipt(
     l2ToL1MsgHash: string,
     pollForPending?
-  ): Promise<TransactionReceipt> {
+  ): Promise<ethers.TransactionReceipt> {
     return this.getTransactionReceipt(this.l1, l2ToL1MsgHash, pollForPending)
   }
 
   public async getL2TransactionReceipt(
     l1ToL2MsgHash: string,
     pollForPending?
-  ): Promise<TransactionReceipt> {
+  ): Promise<ethers.TransactionReceipt> {
     return this.getTransactionReceipt(this.l2, l1ToL2MsgHash, pollForPending)
   }
 
@@ -72,13 +71,13 @@ export class Watcher {
     }
 
     const msgHashes = []
-    const sentMessageEventId = ethers.utils.id(
+    const sentMessageEventId = ethers.id(
       'SentMessage(address,address,bytes,uint256,uint256,uint256)'
     )
     const l2CrossDomainMessengerRelayAbi = [
       'function relayMessage(address _target,address _sender,bytes memory _message,uint256 _messageNonce)',
     ]
-    const l2CrossDomainMessengerRelayinterface = new ethers.utils.Interface(
+    const l2CrossDomainMessengerRelayinterface = new ethers.Interface(
       l2CrossDomainMessengerRelayAbi
     )
     for (const log of receipt.logs) {
@@ -87,12 +86,12 @@ export class Watcher {
         log.topics[0] === sentMessageEventId
       ) {
         const [sender, message, messageNonce] =
-          ethers.utils.defaultAbiCoder.decode(
+          AbiCoder.defaultAbiCoder().decode(
             ['address', 'bytes', 'uint256'],
             log.data
           )
 
-        const [target] = ethers.utils.defaultAbiCoder.decode(
+        const [target] = AbiCoder.defaultAbiCoder().decode(
           ['address'],
           log.topics[1]
         )
@@ -104,7 +103,7 @@ export class Watcher {
           )
 
         msgHashes.push(
-          ethers.utils.solidityKeccak256(['bytes'], [encodedMessage])
+          ethers.solidityPackedKeccak256(['bytes'], [encodedMessage])
         )
       }
     }
@@ -115,12 +114,12 @@ export class Watcher {
     layer: Layer,
     msgHash: string,
     pollForPending?
-  ): Promise<TransactionReceipt> {
+  ): Promise<ethers.TransactionReceipt> {
     if (typeof pollForPending !== 'boolean') {
       pollForPending = this.pollForPending
     }
 
-    let matches: ethers.providers.Log[] = []
+    let matches: ethers.Log[] = []
 
     let blocksToFetch = layer.blocksToFetch
     if (typeof blocksToFetch !== 'number') {
@@ -131,12 +130,12 @@ export class Watcher {
     while (matches.length === 0) {
       const blockNumber = await layer.provider.getBlockNumber()
       const startingBlock = Math.max(blockNumber - blocksToFetch, 0)
-      const successFilter: ethers.providers.Filter = {
+      const successFilter: ethers.Filter = {
         address: layer.messengerAddress,
         topics: [RELAYED_MESSAGE],
         fromBlock: startingBlock,
       }
-      const failureFilter: ethers.providers.Filter = {
+      const failureFilter: ethers.Filter = {
         address: layer.messengerAddress,
         topics: [FAILED_RELAYED_MESSAGE],
         fromBlock: startingBlock,
@@ -144,9 +143,7 @@ export class Watcher {
       const successLogs = await layer.provider.getLogs(successFilter)
       const failureLogs = await layer.provider.getLogs(failureFilter)
       const logs = successLogs.concat(failureLogs)
-      matches = logs.filter(
-        (log: ethers.providers.Log) => log.topics[1] === msgHash
-      )
+      matches = logs.filter((log: ethers.Log) => log.topics[1] === msgHash)
 
       // exit loop after first iteration if not polling
       if (!pollForPending) {

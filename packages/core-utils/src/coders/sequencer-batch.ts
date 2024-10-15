@@ -1,5 +1,5 @@
-import { add0x, remove0x, encodeHex } from '../common'
-import { BigNumber, ethers } from 'ethers'
+import { add0x, encodeHex, remove0x } from '../common'
+import { ethers, toBeHex, toBigInt } from 'ethers'
 import { MinioClient } from './minio-client'
 import { MerkleTree } from 'merkletreejs'
 
@@ -44,19 +44,19 @@ export const encodeAppendSequencerBatch = async (
       throw new Error('Unexpected uneven hex string value!')
     }
     const encodedTxDataHeader = remove0x(
-      BigNumber.from(remove0x(cur).length / 2).toHexString()
-    ).padStart(6, '0')
+      toBeHex(toBigInt(remove0x(cur).length / 2), 3)
+    )
     return acc + encodedTxDataHeader + remove0x(cur)
   }, '')
   // encode sequencer signs, append to encodedTransactionData
-  if (b.seqSigns.length > 0) {
+  if (b.seqSigns && b.seqSigns.length > 0) {
     const encodedSeqSignData = b.seqSigns.reduce((acc, cur) => {
       if (cur.length % 2 !== 0) {
         throw new Error('Unexpected uneven hex string value! cur:' + cur)
       }
       const encodedSignDataHeader = remove0x(
-        BigNumber.from(remove0x(cur).length / 2).toHexString()
-      ).padStart(6, '0')
+        toBeHex(toBigInt(remove0x(cur).length / 2), 3)
+      )
       return acc + encodedSignDataHeader + remove0x(cur)
     }, '')
     encodedTransactionData += encodedSeqSignData
@@ -72,7 +72,7 @@ export const encodeAppendSequencerBatch = async (
   if (opts?.useMinio && opts?.minioClient) {
     // generate merkle root
     const hash = (el: Buffer | string): Buffer => {
-      return Buffer.from(ethers.utils.keccak256(el).slice(2), 'hex')
+      return Buffer.from(remove0x(ethers.keccak256(el)), 'hex')
     }
     const fromHexString = (hexString) =>
       new Uint8Array(
@@ -83,12 +83,12 @@ export const encodeAppendSequencerBatch = async (
       const _blockNumber = b.blockNumbers[i]
       const _cur = b.transactions[i]
       const _encodedTxDataHeader = remove0x(
-        BigNumber.from(remove0x(_cur).length / 2).toHexString()
-      ).padStart(6, '0')
+        toBeHex(toBigInt(remove0x(_cur).length / 2), 3)
+      )
       const _encodedTxData = _encodedTxDataHeader + remove0x(_cur)
       leafs.push(
-        ethers.utils.keccak256(
-          ethers.utils.solidityPack(
+        ethers.keccak256(
+          ethers.solidityPacked(
             ['uint256', 'bytes'],
             [_blockNumber, fromHexString(_encodedTxData)]
           )
@@ -256,8 +256,7 @@ export const sequencerBatch = {
   ) => {
     const encodedParams = await encodeAppendSequencerBatch(b, opts)
     return (
-      ethers.utils.id(APPEND_SEQUENCER_BATCH_METHOD_ID).slice(0, 10) +
-      encodedParams
+      ethers.id(APPEND_SEQUENCER_BATCH_METHOD_ID).slice(0, 10) + encodedParams
     )
   },
   decode: async (
@@ -268,7 +267,7 @@ export const sequencerBatch = {
     const functionSelector = b.slice(0, 8)
     if (
       functionSelector !==
-      ethers.utils.id(APPEND_SEQUENCER_BATCH_METHOD_ID).slice(2, 10)
+      ethers.id(APPEND_SEQUENCER_BATCH_METHOD_ID).slice(2, 10)
     ) {
       throw new Error('Incorrect function signature')
     }

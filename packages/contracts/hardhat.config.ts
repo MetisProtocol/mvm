@@ -93,28 +93,28 @@ const config: HardhatUserConfig = {
     },
   },
 
-  typechain: {
-    outDir: 'dist/types',
-    target: 'ethers-v5',
-  },
+  // typechain: {
+  //   outDir: 'dist/types',
+  //   target: 'ethers-v5',
+  // },
   paths: {
     deploy: './deploy',
     deployments: './deployments',
   },
-  namedAccounts: {
-    deployer: {
-      default: 0,
-    },
-  },
-  gasReporter: {
-    enabled: enableGasReport,
-    currency: 'USD',
-    gasPrice: 100,
-    outputFile: process.env.CI ? 'gas-report.txt' : undefined,
-  },
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
-  },
+  // namedAccounts: {
+  //   deployer: {
+  //     default: 0,
+  //   },
+  // },
+  // gasReporter: {
+  //   enabled: enableGasReport,
+  //   currency: 'USD',
+  //   gasPrice: 100,
+  //   outputFile: process.env.CI ? 'gas-report.txt' : undefined,
+  // },
+  // etherscan: {
+  //   apiKey: process.env.ETHERSCAN_API_KEY,
+  // },
 }
 
 if (

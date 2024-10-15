@@ -110,7 +110,7 @@ task('deploy')
           `argument for ${argName} is required but was not provided`
         )
       }
-      if (!ethers.utils.isAddress(args[argName])) {
+      if (!ethers.isAddress(args[argName])) {
         throw new Error(
           `argument for ${argName} is not a valid address: ${args[argName]}`
         )

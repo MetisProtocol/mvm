@@ -1,5 +1,4 @@
 import { expect } from '../setup'
-import { BigNumber } from 'ethers'
 
 /* Imports: Internal */
 import {
@@ -10,6 +9,7 @@ import {
   toHexString,
   padHexString,
 } from '../../src'
+import { toBigInt } from 'ethers'
 
 describe('remove0x', () => {
   it('should return undefined', () => {
@@ -105,17 +105,17 @@ describe('padHexString', () => {
 describe('toRpcHexString', () => {
   it('should parse 0', () => {
     expect(toRpcHexString(0)).to.deep.equal('0x0')
-    expect(toRpcHexString(BigNumber.from(0))).to.deep.equal('0x0')
+    expect(toRpcHexString(toBigInt(0))).to.deep.equal('0x0')
   })
 
   it('should parse non 0', () => {
     const cases = [
       { input: 2, output: '0x2' },
-      { input: BigNumber.from(2), output: '0x2' },
+      { input: toBigInt(2), output: '0x2' },
       { input: 100, output: '0x64' },
-      { input: BigNumber.from(100), output: '0x64' },
+      { input: toBigInt(100), output: '0x64' },
       { input: 300, output: '0x12c' },
-      { input: BigNumber.from(300), output: '0x12c' },
+      { input: toBigInt(300), output: '0x12c' },
     ]
     for (const test of cases) {
       expect(toRpcHexString(test.input)).to.deep.equal(test.output)

@@ -1,7 +1,13 @@
 /* External Imports */
 import { Promise as bPromise } from 'bluebird'
-import { Signer, ethers, Contract, providers, BigNumber } from 'ethers'
-import { TransactionReceipt } from '@ethersproject/abstract-provider'
+import {
+  Signer,
+  ethers,
+  Contract,
+  toNumber,
+  JsonRpcProvider,
+  TransactionReceipt,
+} from 'ethers'
 import {
   getContractInterface,
   getContractFactory,
@@ -64,7 +70,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
 
   constructor(
     signer: Signer,
-    l2Provider: providers.StaticJsonRpcProvider,
+    l1Provider: JsonRpcProvider,
+    l2Provider: JsonRpcProvider,
     minTxSize: number,
     maxTxSize: number,
     maxBatchSize: number,
@@ -96,6 +103,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   ) {
     super(
       signer,
+      l1Provider,
       l2Provider,
       minTxSize,
       maxTxSize,
@@ -125,6 +133,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.inboxSubmitter = new TransactionBatchSubmitterInbox(
       this.inboxStorage,
       this.inboxAddress,
+      this.l1Provider,
       this.l2Provider,
       this.logger,
       this.maxTxSize,
@@ -158,16 +167,16 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     const ctcAddress = addrs.ctcAddress
     const mvmCtcAddress = addrs.mvmCtcAddress
 
-    if (mvmCtcAddress === ethers.constants.AddressZero) {
+    if (mvmCtcAddress === ethers.ZeroAddress) {
       this.logger.error('MVM_CanonicalTransaction contract load failed')
       process.exit(1)
     }
 
     if (
       typeof this.chainContract !== 'undefined' &&
-      ctcAddress === this.chainContract.address &&
+      ctcAddress === (await this.chainContract.getAddress()) &&
       typeof this.mvmCtcContract !== 'undefined' &&
-      mvmCtcAddress === this.mvmCtcContract.address
+      mvmCtcAddress === (await this.mvmCtcContract.getAddress())
     ) {
       this.logger.debug('Chain contract already initialized', {
         ctcAddress,
@@ -177,12 +186,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       return
     }
 
-    const unwrapped_OVM_CanonicalTransactionChain = (
-      await getContractFactory('CanonicalTransactionChain', this.signer)
+    const unwrapped_OVM_CanonicalTransactionChain = getContractFactory(
+      'CanonicalTransactionChain',
+      this.signer
     ).attach(ctcAddress)
 
     this.chainContract = new CanonicalTransactionChainContract(
-      unwrapped_OVM_CanonicalTransactionChain.address,
+      await unwrapped_OVM_CanonicalTransactionChain.getAddress(),
       getContractInterface('CanonicalTransactionChain'),
       this.signer
     )
@@ -190,12 +200,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       address: this.chainContract.address,
     })
 
-    const unwrapped_MVM_CanonicalTransaction = (
-      await getContractFactory('MVM_CanonicalTransaction', this.signer)
+    const unwrapped_MVM_CanonicalTransaction = getContractFactory(
+      'MVM_CanonicalTransaction',
+      this.signer
     ).attach(mvmCtcAddress)
 
     this.mvmCtcContract = new CanonicalTransactionChainContract(
-      unwrapped_MVM_CanonicalTransaction.address,
+      await unwrapped_MVM_CanonicalTransaction.getAddress(),
       getContractInterface('MVM_CanonicalTransaction'),
       this.signer // to be replaced
     )
@@ -249,7 +260,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     })
 
     // batch index start from config
-    const batchIndexStart = BigNumber.from(this.inboxStartIndex).toNumber()
+    const batchIndexStart = toNumber(this.inboxStartIndex)
     // current batch index from CTC contract
     const batchIndexCtcNext = (
       await this.chainContract.getTotalBatchesByChainId(this.l2ChainId)
@@ -263,9 +274,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     // read next batch index from local storage and inbox tx hash
     let batchIndexNext = batchIndexCtcNext
     if (localInboxRecord) {
-      const localBatchIndex = BigNumber.from(
-        localInboxRecord.batchIndex
-      ).toNumber()
+      const localBatchIndex = toNumber(localInboxRecord.batchIndex)
       if (localBatchIndex >= batchIndexNext) {
         batchIndexNext = localBatchIndex + 1
 
@@ -283,12 +292,10 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
           // set start block from raw data
           // 0x[2: DA type] [2: compress type] [64: batch index] [64: L2 start] [8: total blocks]
           //  > 142 ( 2 + 2 + 2 + 64 + 64 + 8 )
-          const inboxTxStartBlock = BigNumber.from(
+          const inboxTxStartBlock = toNumber(
             '0x' + inboxTx.data.substring(70, 134)
-          ).toNumber()
-          const inboxTxTotal = BigNumber.from(
-            '0x' + inboxTx.data.substring(134, 142)
-          ).toNumber()
+          )
+          const inboxTxTotal = toNumber('0x' + inboxTx.data.substring(134, 142))
           startBlock = inboxTxStartBlock + inboxTxTotal
 
           this.logger.info('Retrieved start block number from BatchInbox tx', {
@@ -330,7 +337,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     ) {
       // seqsetContract should ready
       const l2FinalizeBlock = await this.seqsetContract.finalizedBlock()
-      const l2FinalizeBlockNum = BigNumber.from(l2FinalizeBlock).toNumber()
+      const l2FinalizeBlockNum = toNumber(l2FinalizeBlock)
       if (l2FinalizeBlockNum > 0) {
         const l2EpochLength = await this.seqsetContract.epochLength()
         const l2EpochLengthNum = BigNumber.from(l2EpochLength).toNumber()
@@ -376,7 +383,10 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   ): Promise<TransactionReceipt> {
     // Do not submit batch if gas price above threshold
     const gasPriceInGwei = parseInt(
-      ethers.formatUnits(await this.signer.getGasPrice(), 'gwei'),
+      ethers.formatUnits(
+        (await this.signer.provider.getFeeData()).gasPrice,
+        'gwei'
+      ),
       10
     )
     if (gasPriceInGwei > this.gasThresholdInGwei) {
@@ -409,13 +419,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         this.transactionSubmitter,
         this._makeHooks('sendBatchToInbox'),
         (
-          submitTransaction: () => Promise<TransactionReceipt>,
+          submitTransaction: () => Promise<ethers.TransactionReceipt>,
           successMessage: string,
           callback?: (
-            receipt: TransactionReceipt | null,
+            receipt: ethers.TransactionReceipt | null,
             err: any
           ) => Promise<boolean>
-        ): Promise<TransactionReceipt> => {
+        ): Promise<ethers.TransactionReceipt> => {
           return this._submitAndLogTx(
             submitTransaction,
             successMessage,
@@ -547,7 +557,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         from: mpcAddress,
         data: tx.data,
       })
-      tx.value = ethers.utils.parseEther('0')
+      tx.value = ethers.parseEther('0')
       tx.chainId = (await this.signer.provider.getNetwork()).chainId
       // mpc model can use ynatm
       // tx.gasPrice = gasPrice
@@ -946,7 +956,9 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.signer.provider
     )
 
-    const addr = await manager.getAddress('ChainStorageContainer-CTC-batches')
+    const addr = await manager
+      .getFunction('getAddress')
+      .staticCall('ChainStorageContainer-CTC-batches')
 
     const container = new Contract(
       addr,
