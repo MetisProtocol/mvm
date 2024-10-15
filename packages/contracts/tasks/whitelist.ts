@@ -3,7 +3,6 @@
 import { ethers } from 'ethers'
 import { task } from 'hardhat/config'
 import * as types from 'hardhat/internal/core/params/argumentTypes'
-import { LedgerSigner } from '@ethersproject/hardware-wallets'
 import { getContractFactory } from '../src/contract-defs'
 import { predeploys } from '../src/predeploys'
 
@@ -21,7 +20,7 @@ task('whitelist')
   .addOptionalParam(
     'ledgerPath',
     'ledger key derivation path',
-    ethers.utils.defaultPath,
+    ethers.defaultPath,
     types.string
   )
   .addOptionalParam(
@@ -43,7 +42,7 @@ task('whitelist')
     types.string
   )
   .setAction(async (args, hre: any) => {
-    const provider = new ethers.providers.JsonRpcProvider(args.contractsRpcUrl)
+    const provider = new ethers.JsonRpcProvider(args.contractsRpcUrl)
     let signer: ethers.Signer
     if (!args.useLedger) {
       if (!args.contractsDeployerKey) {
@@ -51,7 +50,9 @@ task('whitelist')
       }
       signer = new ethers.Wallet(args.contractsDeployerKey).connect(provider)
     } else {
-      signer = new LedgerSigner(provider, 'default', args.ledgerPath)
+      // FIXME: not sure how to support hardware wallet in ethers v6 for now, need to figure it out later
+      // signer = new LedgerSigner(provider, 'default', args.ledgerPath)
+      throw new Error('Ledger not supported in ethers v6')
     }
 
     const deployerWhitelist = getContractFactory('OVM_DeployerWhitelist')
@@ -60,7 +61,7 @@ task('whitelist')
 
     const addr = await signer.getAddress()
     console.log(`Using signer: ${addr}`)
-    const owner = await deployerWhitelist.owner()
+    const owner = await deployerWhitelist.getFunction('owner').staticCall()
     if (owner === '0x0000000000000000000000000000000000000000') {
       console.log(`Whitelist is disabled. Exiting early.`)
       return
@@ -72,11 +73,9 @@ task('whitelist')
       throw new Error(`Incorrect key. Owner ${owner}, Signer ${addr}`)
     }
 
-    const res = await deployerWhitelist.setWhitelistedDeployer(
-      args.address,
-      true,
-      { gasPrice: args.transactionGasPrice }
-    )
+    const res = await deployerWhitelist
+      .getFunction('setWhitelistedDeployer')
+      .send(args.address, true, { gasPrice: args.transactionGasPrice })
     await res.wait()
     console.log(`Whitelisted ${args.address}`)
   })

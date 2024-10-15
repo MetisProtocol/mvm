@@ -91,13 +91,13 @@ export const makeL2GenesisFile = async (
     },
     OVM_ETH: {
       l2Bridge: predeploys.L2StandardBridge,
-      l1Token: ethers.constants.AddressZero,
+      l1Token: ethers.ZeroAddress,
       _name: 'Ether',
       _symbol: 'WETH',
     },
     MVM_Coinbase: {
       l2Bridge: predeploys.L2StandardBridge,
-      l1Token: ethers.constants.AddressZero,
+      l1Token: ethers.ZeroAddress,
       _name: 'Metis Token',
       _symbol: 'Metis',
     },
@@ -115,7 +115,7 @@ export const makeL2GenesisFile = async (
   const dump = {}
 
   const funding = process.env.EXTRA_DEV_ADDRS?.split(',').filter((v) =>
-    ethers.utils.isAddress(v)
+    ethers.isAddress(v)
   )
 
   if (funding?.length) {
