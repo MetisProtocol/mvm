@@ -4,6 +4,8 @@ import {
   EventArgsAppendBatchElement,
   EventHandlerSet,
 } from '../../../types'
+
+/* Imports: External */
 import { toNumber } from 'ethers'
 
 /* Imports: External */
