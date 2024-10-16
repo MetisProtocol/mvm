@@ -1,6 +1,20 @@
 /* Imports: External */
-import { Block, ethers, keccak256, toBigInt, toNumber, TransactionResponse, } from 'ethers'
-import { fromHexString, MinioClient, MinioConfig, remove0x, toHexString, zlibDecompress, } from '@metis.io/core-utils'
+import {
+  Block,
+  ethers,
+  keccak256,
+  toBigInt,
+  toNumber,
+  TransactionResponse,
+} from 'ethers'
+import {
+  fromHexString,
+  MinioClient,
+  MinioConfig,
+  remove0x,
+  toHexString,
+  zlibDecompress,
+} from '@metis.io/core-utils'
 
 /* Imports: Internal */
 import {
@@ -38,12 +52,12 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       const offset = 2
       // l2 block number - 1, in order to keep same as CTC
       batchSubmissionData.prevTotalElements =
-        toBigInt(calldata.slice(offset + 32, offset + 64)) - toBigInt(1)
+        toBigInt(calldata.subarray(offset + 32, offset + 64)) - toBigInt(1)
       batchSubmissionData.batchIndex = toBigInt(
-        calldata.slice(offset, offset + 32)
+        calldata.subarray(offset, offset + 32)
       )
       batchSubmissionData.batchSize = toBigInt(
-        calldata.slice(offset + 64, offset + 68)
+        calldata.subarray(offset + 64, offset + 68)
       )
       batchSubmissionVerified = true
     }
@@ -80,7 +94,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
     if (calldata.length < 70) {
       throw new Error(
         `Block ${extraData.blockNumber} transaction data of inbox ${extraData.l1TransactionHash} is invalid for decoding: ${extraData.l1TransactionData} , ` +
-        `converted buffer length is < 70.`
+          `converted buffer length is < 70.`
       )
     }
     // DA: 0 - L1, 1 - memo, 2 - celestia, 3 - blob
@@ -412,10 +426,10 @@ const parseSequencerBatchContext = (
   return {
     numSequencedTransactions: toNumber(calldata.slice(offset, offset + 3)),
     numSubsequentQueueTransactions: toNumber(
-      calldata.slice(offset + 3, offset + 6)
+      calldata.subarray(offset + 3, offset + 6)
     ),
-    timestamp: toNumber(calldata.slice(offset + 6, offset + 11)),
-    blockNumber: toNumber(calldata.slice(offset + 11, offset + 16)),
+    timestamp: toNumber(calldata.subarray(offset + 6, offset + 11)),
+    blockNumber: toNumber(calldata.subarray(offset + 11, offset + 16)),
   }
 }
 

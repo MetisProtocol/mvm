@@ -1,11 +1,15 @@
 import { ethers } from 'ethers'
 import { Channel } from './channel'
-import { TxData, L1BlockInfo, ChannelConfig, RollupConfig } from './types'
-import { L2Block } from '@metis.io/core-utils'
+import {
+  BatchToInboxElement,
+  ChannelConfig,
+  RollupConfig,
+  TxData,
+} from './types'
 import { CHANNEL_FULL_ERR } from './consts'
 
 export class ChannelManager {
-  private blocks: L2Block[] = []
+  private blocks: BatchToInboxElement[] = []
   private l1OriginLastClosedChannel: bigint
   private tip: string = ethers.ZeroHash
   private currentChannel: Channel | null = null
@@ -110,7 +114,7 @@ export class ChannelManager {
     })
   }
 
-  addL2Block(block: L2Block): void {
+  addL2Block(block: BatchToInboxElement): void {
     if (this.tip !== ethers.ZeroHash && this.tip !== block.parentHash) {
       throw new Error('ErrReorg')
     }

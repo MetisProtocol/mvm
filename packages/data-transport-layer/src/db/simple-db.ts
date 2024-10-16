@@ -1,6 +1,6 @@
 /* Imports: External */
 import { LevelUp } from 'levelup'
-import { BigNumber } from 'ethers'
+import { toBigInt } from 'ethers'
 
 export class SimpleDB {
   constructor(public db: LevelUp) {}
@@ -117,11 +117,11 @@ export class SimpleDB {
 
   private _makeKey(key: string, index: number): string {
     // prettier-ignore
-    return `${key}:${BigNumber.from(index).toString().padStart(32, '0')}`
+    return `${key}:${toBigInt(index).toString().padStart(32, '0')}`
   }
 
   private _makeUpperBoundKey(key: string): string {
     // prettier-ignore
-    return `${key}:${BigNumber.from(2 ** 32 - 1).toString().padStart(32, '0')}`
+    return `${key}:${toBigInt(2 ** 32 - 1).toString().padStart(32, '0')}`
   }
 }

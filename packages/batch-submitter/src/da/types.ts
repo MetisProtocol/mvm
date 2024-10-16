@@ -137,3 +137,28 @@ export class Writer {
     return new Uint8Array(this.data)
   }
 }
+
+// Move inbox types here to avoid circular dependencies
+export interface BatchToInboxRawTx {
+  rawTransaction: string | undefined
+  seqSign: string | undefined | null
+  isSequencerTx: boolean
+  l1BlockNumber: number | null
+  l1TxOrigin: string | null
+  queueIndex: number | null
+}
+
+export interface BatchToInboxElement {
+  stateRoot: string
+  timestamp: number
+  blockNumber: number
+  hash: string
+  parentHash: string
+  txs: BatchToInboxRawTx[]
+}
+export declare type BatchToInbox = BatchToInboxElement[]
+
+export interface InboxBatchParams {
+  inputData: string
+  batch: BatchToInbox
+}

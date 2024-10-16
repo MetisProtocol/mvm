@@ -3,7 +3,6 @@ import { Bcfg, injectL2Context, MinioConfig } from '@metis.io/core-utils'
 import * as Sentry from '@sentry/node'
 import { createMetricsServer, Logger, Metrics } from '@eth-optimism/common-ts'
 import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethers'
-import { StaticJsonRpcProvider } from '@ethersproject/providers'
 import * as dotenv from 'dotenv'
 import Config from 'bcfg'
 
@@ -163,8 +162,6 @@ export const run = async () => {
   )
 
   const getSequencerSigner = async (): Promise<Signer> => {
-    const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
-
     if (useHardhat) {
       if (!DEBUG_IMPERSONATE_SEQUENCER_ADDRESS) {
         throw new Error('Must pass DEBUG_IMPERSONATE_SEQUENCER_ADDRESS')
@@ -190,8 +187,6 @@ export const run = async () => {
   }
 
   const getProposerSigner = async (): Promise<Signer> => {
-    const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
-
     if (useHardhat) {
       if (!DEBUG_IMPERSONATE_PROPOSER_ADDRESS) {
         throw new Error('Must pass DEBUG_IMPERSONATE_PROPOSER_ADDRESS')
@@ -419,8 +414,10 @@ export const run = async () => {
   const clearPendingTxs = requiredEnvVars.CLEAR_PENDING_TXS
 
   const l2Provider = injectL2Context(
-    new StaticJsonRpcProvider(requiredEnvVars.L2_NODE_WEB3_URL)
+    new JsonRpcProvider(requiredEnvVars.L2_NODE_WEB3_URL)
   )
+
+  const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
 
   const sequencerSigner: Signer = await getSequencerSigner()
   let proposerSigner: Signer = await getProposerSigner()
@@ -473,6 +470,7 @@ export const run = async () => {
   }
   const txBatchSubmitter = new TransactionBatchSubmitter(
     sequencerSigner,
+    l1Provider,
     l2Provider,
     requiredEnvVars.MIN_L1_TX_SIZE,
     requiredEnvVars.MAX_L1_TX_SIZE,
@@ -508,6 +506,7 @@ export const run = async () => {
     )
   const stateBatchSubmitter = new StateBatchSubmitter(
     proposerSigner,
+    l1Provider,
     l2Provider,
     requiredEnvVars.MIN_L1_STATE_SIZE,
     requiredEnvVars.MAX_L1_STATE_SIZE,

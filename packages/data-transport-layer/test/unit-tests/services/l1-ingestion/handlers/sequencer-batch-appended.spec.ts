@@ -1,4 +1,4 @@
-import { BigNumber, ethers } from 'ethers'
+import { ethers, toBigInt } from 'ethers'
 
 /* Imports: Internal */
 import { expect } from '../../../../setup'
@@ -19,28 +19,31 @@ describe('Event Handlers: CanonicalTransactionChain.SequencerBatchAppended', () 
       l1TransactionHash:
         '0x6effe006836b841205ace4d99d7ae1b74ee96aac499a3f358b97fccd32ee9af2',
       gasLimit: '548976',
-      prevTotalElements: BigNumber.from(73677),
-      batchIndex: BigNumber.from(743),
-      batchSize: BigNumber.from(101),
+      prevTotalElements: toBigInt(73677),
+      batchIndex: toBigInt(743),
+      batchSize: toBigInt(101),
       batchRoot:
         '10B99425FB53AD7D40A939205C0F7B35CBB89AB4D67E7AE64BDAC5F1073943B4',
       batchExtraData: '',
     }
 
     it('should error on malformed transaction data', async () => {
-      const input1: [any, SequencerBatchAppendedExtraData, number] = [
+      const input1: [any, SequencerBatchAppendedExtraData, number, any] = [
         {
           args: {
-            _startingQueueIndex: ethers.constants.Zero,
-            _numQueueElements: ethers.constants.Zero,
-            _totalElements: ethers.constants.Zero,
+            _startingQueueIndex: toBigInt(0),
+            _numQueueElements: toBigInt(0),
+            _totalElements: toBigInt(0),
           },
-        },
+        }, // event
         {
           l1TransactionData: '0x00000',
+          blobIndex: 0,
+          blobCount: 0,
           ...exampleExtraData,
-        },
-        0,
+        }, // extraData
+        0, // l2ChainId
+        {}, // options
       ]
 
       expect(() => {

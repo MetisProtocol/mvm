@@ -1,9 +1,13 @@
 /* External Imports */
-import { ethers, Contract, toBigInt, toBeHex } from 'ethers'
 import {
-  TransactionResponse,
+  ethers,
+  Contract,
+  toBigInt,
+  toBeHex,
+  Signer,
   TransactionRequest,
-} from '@ethersproject/abstract-provider'
+  TransactionResponse,
+} from 'ethers'
 import { keccak256 } from 'ethers/lib/utils'
 import {
   //AppendSequencerBatchParams,
@@ -34,9 +38,9 @@ export class CanonicalTransactionChainContract extends Contract {
     appendSequencerBatch: async (
       batch: AppendSequencerBatchParams,
       opts?: EncodeSequencerBatchOptions
-    ): Promise<ethers.PopulatedTransaction> => {
-      const nonce = await this.signer.getTransactionCount() // get mpc address nonce
-      const to = this.address
+    ): Promise<ethers.PreparedTransactionRequest> => {
+      const nonce = await (this.runner as Signer).getNonce() // get mpc address nonce
+      const to = await this.getAddress()
       const data = await getEncodedCalldata(batch, opts)
       // const gasLimit = await this.signer.provider.estimateGas({ //estimate gas
       //   to,
@@ -52,6 +56,7 @@ export class CanonicalTransactionChainContract extends Contract {
       }
     },
   }
+
   public async appendSequencerBatch(
     batch: AppendSequencerBatchParams,
     options?: TransactionRequest,
@@ -75,8 +80,8 @@ const appendSequencerBatch = async (
   options?: TransactionRequest,
   opts?: EncodeSequencerBatchOptions
 ): Promise<TransactionResponse> => {
-  return CanonicalTransactionChain.signer.sendTransaction({
-    to: CanonicalTransactionChain.address,
+  return CanonicalTransactionChain.runner.sendTransaction({
+    to: await CanonicalTransactionChain.getAddress(),
     data: await getEncodedCalldata(batch, opts),
     ...options,
   })

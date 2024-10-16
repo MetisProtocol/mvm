@@ -3,10 +3,10 @@ import { BaseService, Logger, Metrics } from '@eth-optimism/common-ts'
 import express, { Request, Response } from 'express'
 import promBundle from 'express-prom-bundle'
 import cors from 'cors'
-import { JsonRpcProvider } from '@ethersproject/providers'
 import { LevelUp } from 'levelup'
 import * as Sentry from '@sentry/node'
 import * as Tracing from '@sentry/tracing'
+import { toBigInt, toNumber, JsonRpcProvider, Block } from 'ethers'
 
 /* Imports: Internal */
 import { TransportDB, TransportDBMapHolder } from '../../db/transport-db'
@@ -26,12 +26,12 @@ import {
   VerifierStakeResponse,
   AppendBatchElementResponse,
   HighestResponse,
-  SyncStatusResponse, L1BlockRef, L2BlockRef,
+  SyncStatusResponse,
+  L1BlockRef,
+  L2BlockRef,
 } from '../../types'
 import { validators } from '../../utils'
 import { L1DataTransportServiceOptions } from '../main/service'
-import { Block } from '@ethersproject/abstract-provider'
-import { toBigInt, toNumber } from 'ethers'
 
 export interface L1TransportServerOptions
   extends L1DataTransportServiceOptions {
@@ -170,14 +170,14 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
     if (this.state.l1RpcProvider) {
       this.logger.info('HTTP Server L1 RPC Provider initialized', {
-        url: this.state.l1RpcProvider.connection.url,
+        url: this.state.l1RpcProvider._getConnection().url,
       })
     } else {
       this.logger.warn('HTTP Server L1 RPC Provider not initialized')
     }
     if (this.state.l2RpcProvider) {
       this.logger.info('HTTP Server L2 RPC Provider initialized', {
-        url: this.state.l2RpcProvider.connection.url,
+        url: this.state.l2RpcProvider._getConnection().url,
       })
     } else {
       this.logger.warn('HTTP Server L2 RPC Provider not initialized')
@@ -358,7 +358,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         let gasPrice: bigint
 
         if (backend === 'l1') {
-          gasPrice = (await this.state.l1RpcProvider.getGasPrice()).toBigInt()
+          gasPrice = (await this.state.l1RpcProvider.getFeeData()).gasPrice
         } else if (backend === 'l2') {
           const response = await this.state.l2RpcProvider.send(
             'rollup_gasPrices',
@@ -453,9 +453,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       async (req): Promise<EnqueueResponse> => {
         const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
-        const enqueue = await db.getEnqueueByIndex(
-          toNumber(req.params.index)
-        )
+        const enqueue = await db.getEnqueueByIndex(toNumber(req.params.index))
 
         if (enqueue === null) {
           return {
@@ -675,9 +673,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         switch (backend) {
           case 'l1':
-            block = await db.getBlockByIndex(
-              toNumber(req.params.index)
-            )
+            block = await db.getBlockByIndex(toNumber(req.params.index))
             break
           case 'l2':
             block = await db.getUnconfirmedBlockByIndex(
@@ -725,8 +721,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         const blocks = await db.getBlocksByIndexRange(
           toNumber(batch.prevTotalElements),
-          toNumber(batch.prevTotalElements) +
-            toNumber(batch.size)
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -760,8 +755,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         const blocks = await db.getBlocksByIndexRange(
           toNumber(batch.prevTotalElements),
-          toNumber(batch.prevTotalElements) +
-            toNumber(batch.size)
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -820,9 +814,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         switch (backend) {
           case 'l1':
-            stateRoot = await db.getStateRootByIndex(
-              toNumber(req.params.index)
-            )
+            stateRoot = await db.getStateRootByIndex(toNumber(req.params.index))
             break
           case 'l2':
             stateRoot = await db.getUnconfirmedStateRootByIndex(
@@ -866,8 +858,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         const stateRoots = await db.getStateRootsByIndexRange(
           toNumber(batch.prevTotalElements),
-          toNumber(batch.prevTotalElements) +
-            toNumber(batch.size)
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -896,8 +887,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         const stateRoots = await db.getStateRootsByIndexRange(
           toNumber(batch.prevTotalElements),
-          toNumber(batch.prevTotalElements) +
-            toNumber(batch.size)
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -939,8 +929,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           resp.batch = batch
           const stateRoots = await db.getStateRootsByIndexRange(
             toNumber(batch.prevTotalElements),
-            toNumber(batch.prevTotalElements) +
-              toNumber(batch.size)
+            toNumber(batch.prevTotalElements) + toNumber(batch.size)
           )
           const rootsArray: string[] = []
           if (stateRoots && stateRoots.length > 0) {

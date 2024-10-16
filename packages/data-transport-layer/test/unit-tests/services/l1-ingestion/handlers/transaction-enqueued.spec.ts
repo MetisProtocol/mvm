@@ -1,7 +1,7 @@
 import { expect } from '../../../../setup'
 
 /* Imports: External */
-import { ethers, BigNumber } from 'ethers'
+import { ethers, toBigInt, toNumber } from 'ethers'
 
 /* Imports: Internal */
 import { handleEventsTransactionEnqueued } from '../../../../../src/services/l1-ingestion/handlers/transaction-enqueued'
@@ -25,17 +25,18 @@ describe('Event Handlers: CanonicalTransactionChain.TransactionEnqueued', () => 
     // but it's probably better to get wider test coverage first.
 
     it('should have a ctcIndex equal to null', () => {
-      const input1: [any, any, number] = [
+      const input1: [any, any, number, any] = [
         {
           blockNumber: 0,
           args: {
-            _queueIndex: ethers.constants.Zero,
-            _gasLimit: ethers.constants.Zero,
-            _timestamp: ethers.constants.Zero,
+            _queueIndex: toBigInt(0),
+            _gasLimit: toBigInt(0),
+            _timestamp: toBigInt(0),
           },
         },
         null,
         0,
+        {},
       ]
 
       const output1 = handleEventsTransactionEnqueued.parseEvent(...input1)
@@ -51,22 +52,23 @@ describe('Event Handlers: CanonicalTransactionChain.TransactionEnqueued', () => 
         i < Number.MAX_SAFE_INTEGER;
         i += Math.floor(Number.MAX_SAFE_INTEGER / MAX_ITERATIONS)
       ) {
-        const input1: [any, any, number] = [
+        const input1: [any, any, number, any] = [
           {
             blockNumber: i,
             args: {
-              _queueIndex: ethers.constants.Zero,
-              _gasLimit: ethers.constants.Zero,
-              _timestamp: ethers.constants.Zero,
+              _queueIndex: toBigInt(0),
+              _gasLimit: toBigInt(0),
+              _timestamp: toBigInt(0),
             },
           },
           null,
           0,
+          {},
         ]
 
         const output1 = handleEventsTransactionEnqueued.parseEvent(...input1)
 
-        const expected1 = BigNumber.from(i).toNumber()
+        const expected1 = i
 
         expect(output1).to.have.property('blockNumber', expected1)
       }
@@ -78,22 +80,23 @@ describe('Event Handlers: CanonicalTransactionChain.TransactionEnqueued', () => 
         i < Number.MAX_SAFE_INTEGER;
         i += Math.floor(Number.MAX_SAFE_INTEGER / MAX_ITERATIONS)
       ) {
-        const input1: [any, any, number] = [
+        const input1: [any, any, number, any] = [
           {
             blockNumber: 0,
             args: {
-              _queueIndex: BigNumber.from(i),
-              _gasLimit: ethers.constants.Zero,
-              _timestamp: ethers.constants.Zero,
+              _queueIndex: toBigInt(i),
+              _gasLimit: toBigInt(0),
+              _timestamp: toBigInt(0),
             },
           },
           null,
           0,
+          {},
         ]
 
         const output1 = handleEventsTransactionEnqueued.parseEvent(...input1)
 
-        const expected1 = BigNumber.from(i).toNumber()
+        const expected1 = i
 
         expect(output1).to.have.property('index', expected1)
       }
@@ -105,22 +108,23 @@ describe('Event Handlers: CanonicalTransactionChain.TransactionEnqueued', () => 
         i < Number.MAX_SAFE_INTEGER;
         i += Math.floor(Number.MAX_SAFE_INTEGER / MAX_ITERATIONS)
       ) {
-        const input1: [any, any, number] = [
+        const input1: [any, any, number, any] = [
           {
             blockNumber: 0,
             args: {
-              _queueIndex: ethers.constants.Zero,
-              _gasLimit: BigNumber.from(i),
-              _timestamp: ethers.constants.Zero,
+              _queueIndex: toBigInt(0),
+              _gasLimit: toBigInt(i),
+              _timestamp: toBigInt(0),
             },
           },
           null,
           0,
+          {},
         ]
 
         const output1 = handleEventsTransactionEnqueued.parseEvent(...input1)
 
-        const expected1 = BigNumber.from(i).toString()
+        const expected1 = toBigInt(i).toString()
 
         expect(output1).to.have.property('gasLimit', expected1)
       }
@@ -132,22 +136,23 @@ describe('Event Handlers: CanonicalTransactionChain.TransactionEnqueued', () => 
         i < Number.MAX_SAFE_INTEGER;
         i += Math.floor(Number.MAX_SAFE_INTEGER / MAX_ITERATIONS)
       ) {
-        const input1: [any, any, number] = [
+        const input1: [any, any, number, any] = [
           {
             blockNumber: 0,
             args: {
-              _queueIndex: ethers.constants.Zero,
-              _gasLimit: ethers.constants.Zero,
-              _timestamp: BigNumber.from(i),
+              _queueIndex: toBigInt(0),
+              _gasLimit: toBigInt(0),
+              _timestamp: toBigInt(i),
             },
           },
           null,
           0,
+          {},
         ]
 
         const output1 = handleEventsTransactionEnqueued.parseEvent(...input1)
 
-        const expected1 = BigNumber.from(i).toNumber()
+        const expected1 = i
 
         expect(output1).to.have.property('timestamp', expected1)
       }

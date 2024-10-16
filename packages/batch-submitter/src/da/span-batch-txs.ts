@@ -1,4 +1,4 @@
-import { ethers, getBytes, toBeArray, toBigInt, zeroPadValue } from 'ethers'
+import { getBytes, toBeArray, toBigInt, zeroPadValue } from 'ethers'
 import { Writer } from './types'
 import { big0, big1 } from './consts'
 import { newSpanBatchTx } from './span-batch-tx'
@@ -30,11 +30,11 @@ export class SpanBatchTxs {
       const tx = txs[idx]
 
       // process legacy tx
+      const txType = tx.type ?? 0
       if (!tx.type) {
         const protectedBit = tx.chainId ? big1 : big0
         this.protectedBits |= protectedBit << BigInt(this.totalLegacyTxCount)
         this.totalLegacyTxCount++
-        tx.type = 0
       }
 
       if (tx.chainId && BigInt(tx.chainId) !== chainId) {
@@ -44,8 +44,8 @@ export class SpanBatchTxs {
       }
 
       this.txSigs.push({
-        r: tx?.r ? BigInt(tx.r) : BigInt(0),
-        s: tx?.s ? BigInt(tx.s) : BigInt(0),
+        r: tx?.signature.r ? BigInt(tx.signature.r) : BigInt(0),
+        s: tx?.signature.s ? BigInt(tx.signature.s) : BigInt(0),
       })
 
       const contractCreationBit = tx.to ? BigInt(0) : BigInt(1)
@@ -55,13 +55,15 @@ export class SpanBatchTxs {
         this.txTos.push(tx.to)
       }
 
-      const yParityBit = BigInt(this.convertVToYParity(tx?.v ?? 0, tx.type))
+      const yParityBit = BigInt(
+        this.convertVToYParity(tx?.signature.v ?? 0, tx.type)
+      )
       this.yParityBits |= yParityBit << BigInt(idx + offset)
 
       this.txNonces.push(Number(tx.nonce))
       this.txGases.push(Number(tx.gasLimit))
       this.txDatas.push(newSpanBatchTx(tx).marshalBinary())
-      this.txTypes.push(tx.type)
+      this.txTypes.push(txType)
 
       // append metis extra fields
       this.queueOriginBits |=

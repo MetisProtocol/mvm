@@ -1,11 +1,3 @@
-import { createHash } from 'crypto'
-import {
-  Blob as CBlob,
-  blobToKzgCommitment,
-  Bytes48,
-  verifyBlobKzgProof,
-} from 'c-kzg'
-
 const BlobSize = 4096 * 32
 const MaxBlobDataSize = (4 * 31 + 3) * 1024 - 4
 const EncodingVersion = 0

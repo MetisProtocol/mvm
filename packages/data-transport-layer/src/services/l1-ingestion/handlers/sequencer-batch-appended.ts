@@ -1,5 +1,5 @@
 /* Imports: External */
-import { ethers, toBigInt, toNumber } from 'ethers'
+import { ethers, EventLog, toBigInt, toNumber } from 'ethers'
 import { MerkleTree } from 'merkletreejs'
 import { getContractFactory } from '@metis.io/contracts'
 import {
@@ -11,7 +11,6 @@ import {
   MinioConfig,
   remove0x,
 } from '@metis.io/core-utils'
-import { Event } from '@ethersproject/contracts'
 
 /* Imports: Internal */
 import {
@@ -31,10 +30,8 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
   SequencerBatchAppendedParsedEvent
 > = {
   getExtraData: async (event, l1RpcProvider) => {
-    const eventBlock = await l1RpcProvider.getBlockWithTransactions(
-      event.blockNumber
-    )
-    const l1Transaction = eventBlock.transactions.find(
+    const eventBlock = await l1RpcProvider.getBlock(event.blockNumber, true)
+    const l1Transaction = eventBlock.prefetchedTransactions.find(
       (i) => i.hash === event.transactionHash
     )
 
@@ -53,12 +50,12 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         eventBlock.number,
         eventBlock.number
       )
-    ).find((foundEvent: Event) => {
+    ).find((foundEvent: EventLog) => {
       // We might have more than one event in this block, so we specifically want to find a
       // "TransactonBatchAppended" event emitted immediately before the event in question.
       return (
         foundEvent.transactionHash === event.transactionHash &&
-        foundEvent.logIndex === event.logIndex - 1
+        foundEvent.index === event.index - 1
       )
     })
 
@@ -76,11 +73,15 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       l1TransactionData: l1Transaction.data,
       gasLimit: `${SEQUENCER_GAS_LIMIT}`,
 
-      prevTotalElements: batchSubmissionEvent.args._prevTotalElements,
-      batchIndex: batchSubmissionEvent.args._batchIndex,
-      batchSize: batchSubmissionEvent.args._batchSize,
-      batchRoot: batchSubmissionEvent.args._batchRoot,
-      batchExtraData: batchSubmissionEvent.args._extraData,
+      prevTotalElements: event.args._prevTotalElements,
+      batchIndex: event.args._batchIndex,
+      batchSize: event.args._batchSize,
+      batchRoot: event.args._batchRoot,
+      batchExtraData: event.args._extraData,
+
+      // blob related, not used in old sequencer batch
+      blobIndex: 0,
+      blobCount: 0,
     }
   },
   parseEvent: async (event, extraData, l2ChainId, options) => {
@@ -197,7 +198,9 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
               ['uint256', 'bytes'],
               [
                 toNumber(
-                  extraData.prevTotalElements + toBigInt(transactionIndex) + toBigInt(1)
+                  extraData.prevTotalElements +
+                    toBigInt(transactionIndex) +
+                    toBigInt(1)
                 ),
                 parseMerkleLeafFromSequencerBatchTransaction(
                   calldata,
@@ -225,11 +228,15 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         // was submitted to CTC as part of the context. use the timestamp in the context otherwise
         // the batch timestamp will be inconsistent with the main node.
         transactionEntries.push({
-          index: toNumber(extraData.prevTotalElements + toBigInt(transactionIndex)),
+          index: toNumber(
+            extraData.prevTotalElements + toBigInt(transactionIndex)
+          ),
           batchIndex: toNumber(extraData.batchIndex),
           blockNumber: 0,
           timestamp:
-            toNumber(extraData.prevTotalElements + toBigInt(transactionIndex)) <= 2287472
+            toNumber(
+              extraData.prevTotalElements + toBigInt(transactionIndex)
+            ) <= 2287472
               ? 0
               : toNumber(context.timestamp), //timestamp needs to be consistent
           gasLimit: toBigInt(0).toString(),
@@ -374,18 +381,12 @@ const parseSequencerBatchContext = (
   offset: number
 ): SequencerBatchContext => {
   return {
-    numSequencedTransactions: toNumber(
-      calldata.slice(offset, offset + 3)
-    ),
+    numSequencedTransactions: toNumber(calldata.slice(offset, offset + 3)),
     numSubsequentQueueTransactions: toNumber(
       calldata.slice(offset + 3, offset + 6)
     ),
-    timestamp: toNumber(
-      calldata.slice(offset + 6, offset + 11)
-    ),
-    blockNumber: toNumber(
-      calldata.slice(offset + 11, offset + 16)
-    ),
+    timestamp: toNumber(calldata.slice(offset + 6, offset + 11)),
+    blockNumber: toNumber(calldata.slice(offset + 11, offset + 16)),
   }
 }
 
@@ -393,9 +394,7 @@ const parseMerkleLeafFromSequencerBatchTransaction = (
   calldata: Buffer,
   offset: number
 ): Buffer => {
-  const transactionLength = toNumber(
-    calldata.slice(offset, offset + 3)
-  )
+  const transactionLength = toNumber(calldata.slice(offset, offset + 3))
 
   return calldata.slice(offset, offset + 3 + transactionLength)
 }
@@ -404,9 +403,7 @@ const parseSequencerBatchTransaction = (
   calldata: Buffer,
   offset: number
 ): Buffer => {
-  const transactionLength = toNumber(
-    calldata.slice(offset, offset + 3)
-  )
+  const transactionLength = toNumber(calldata.slice(offset, offset + 3))
 
   return calldata.slice(offset + 3, offset + 3 + transactionLength)
 }

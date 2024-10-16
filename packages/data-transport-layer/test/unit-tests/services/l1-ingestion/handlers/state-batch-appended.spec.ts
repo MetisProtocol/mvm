@@ -1,8 +1,7 @@
 import { expect } from '../../../../setup'
 
 /* Imports: External */
-import { BigNumber } from 'ethers'
-import { Block } from '@ethersproject/abstract-provider'
+import { Block, toBigInt, toNumber } from 'ethers'
 
 /* Imports: Internal */
 import { handleEventsStateBatchAppended } from '../../../../../src/services/l1-ingestion/handlers/state-batch-appended'
@@ -19,7 +18,7 @@ describe('Event Handlers: CanonicalTransactionChain.StateBatchAppended', () => {
         data: l1StateBatchData,
       }
       // Source: https://etherscan.io/block/12106615
-      const eventBlock: Block = {
+      const eventBlock = {
         timestamp: 1616680530,
         number: 12106615,
         hash: '0x9c40310e19e943ad38e170329465c4489f6aba5895e9cacdac236be181aea31f',
@@ -27,9 +26,9 @@ describe('Event Handlers: CanonicalTransactionChain.StateBatchAppended', () => {
           '0xc7707a04c287a22ff4e43e5d9316e45ab342dcd405e7e0284eb51ce71a3a29ac',
         miner: '0xea674fdde714fd979de3edf0f56aa9716b898ec8',
         nonce: '0x40e6174f521a7cd8',
-        difficulty: 5990647962682594,
-        gasLimit: BigNumber.from(548976),
-        gasUsed: BigNumber.from(12495850),
+        difficulty: toBigInt(5990647962682594),
+        gasLimit: toBigInt(548976),
+        gasUsed: toBigInt(12495850),
         extraData: '0x65746865726d696e652d6575726f70652d7765737433',
         transactions: [l1Transaction.hash],
       }
@@ -53,15 +52,15 @@ describe('Event Handlers: CanonicalTransactionChain.StateBatchAppended', () => {
   })
 
   describe('parseEvent', () => {
-    it('should have a ctcIndex equal to null', () => {
+    it('should have a ctcIndex equal to null', async () => {
       // Source: https://etherscan.io/tx/0x4ca72484e93cdb50fe1089984db152258c2bbffc2534dcafbfe032b596bd5b49#eventlog
       const event = {
         args: {
-          _batchIndex: BigNumber.from(144),
+          _batchIndex: toBigInt(144),
           _batchRoot:
             'AD2039C6E9A8EE58817252CF16AB720BF3ED20CC4B53184F5B11DE09639AA123',
-          _batchSize: BigNumber.from(522),
-          _prevTotalElements: BigNumber.from(96000),
+          _batchSize: toBigInt(522),
+          _prevTotalElements: toBigInt(96000),
           _extraData:
             '00000000000000000000000000000000000000000000000000000000605C33E2000000000000000000000000FD7D4DE366850C08EE2CBA32D851385A3071EC8D',
         },
@@ -74,34 +73,35 @@ describe('Event Handlers: CanonicalTransactionChain.StateBatchAppended', () => {
         l1TransactionHash:
           '0x4ca72484e93cdb50fe1089984db152258c2bbffc2534dcafbfe032b596bd5b49',
       }
-      const input1: [any, StateBatchAppendedExtraData, number] = [
+      const input1: [any, StateBatchAppendedExtraData, number, any] = [
         event,
         extraData,
         0,
+        {},
       ]
 
-      const output1 = handleEventsStateBatchAppended.parseEvent(...input1)
+      const output1 = await handleEventsStateBatchAppended.parseEvent(...input1)
 
       expect(output1.stateRootEntries.length).to.eq(
-        event.args._batchSize.toNumber()
+        toNumber(event.args._batchSize)
       )
       output1.stateRootEntries.forEach((entry, i) => {
         expect(entry.index).to.eq(
-          event.args._prevTotalElements.add(BigNumber.from(i)).toNumber()
+          toNumber(event.args._prevTotalElements + toBigInt(i))
         )
-        expect(entry.batchIndex).to.eq(event.args._batchIndex.toNumber())
+        expect(entry.batchIndex).to.eq(toNumber(event.args._batchIndex))
         expect(entry.confirmed).to.be.true
       })
 
       const batchEntry = output1.stateRootBatchEntry
-      expect(batchEntry.index).to.eq(event.args._batchIndex.toNumber())
+      expect(batchEntry.index).to.eq(toNumber(event.args._batchIndex))
       expect(batchEntry.blockNumber).to.eq(extraData.blockNumber)
       expect(batchEntry.timestamp).to.eq(extraData.timestamp)
       expect(batchEntry.submitter).to.eq(extraData.submitter)
-      expect(batchEntry.size).to.eq(event.args._batchSize.toNumber())
+      expect(batchEntry.size).to.eq(toNumber(event.args._batchSize))
       expect(batchEntry.root).to.eq(event.args._batchRoot)
       expect(batchEntry.prevTotalElements).to.eq(
-        event.args._prevTotalElements.toNumber()
+        toNumber(event.args._prevTotalElements)
       )
       expect(batchEntry.extraData).to.eq(event.args._extraData)
       expect(batchEntry.l1TransactionHash).to.eq(extraData.l1TransactionHash)

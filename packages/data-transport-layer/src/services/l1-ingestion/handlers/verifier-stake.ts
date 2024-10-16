@@ -4,6 +4,8 @@ import {
   EventHandlerSet,
   VerifierStakeEntry,
 } from '../../../types'
+
+/* Imports: External */
 import { toNumber } from 'ethers'
 
 export const handleEventsVerifierStake: EventHandlerSet<

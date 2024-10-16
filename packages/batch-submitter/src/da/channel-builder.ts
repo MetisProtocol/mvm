@@ -1,6 +1,11 @@
 // channelBuilder.ts
 import { ethers } from 'ethers'
-import { ChannelConfig, Frame, RollupConfig } from './types'
+import {
+  BatchToInboxElement,
+  ChannelConfig,
+  Frame,
+  RollupConfig,
+} from './types'
 import { SpanChannelOut } from './span-channel-out'
 import { L2Block } from '@metis.io/core-utils'
 import { ChannelCompressor } from './channel-compressor'
@@ -39,16 +44,16 @@ export class ChannelBuilder {
     return this.spanChannelOut.outputFrame(this.cfg.maxFrameSize)
   }
 
-  async addBlock(block: L2Block): Promise<void> {
+  async addBlock(block: BatchToInboxElement): Promise<void> {
     if (this.isFull()) {
       throw this.spanChannelOut.fullErr
     }
 
-    if (!block.transactions) {
+    if (!block.txs) {
       throw new Error('Empty block')
     }
 
-    const firstTx = block.transactions[0]
+    const firstTx = block.txs[0]
     const epoch = await this.l1Client.getBlock(firstTx.l1BlockNumber)
 
     this.updateBlockInfo(block, epoch)
@@ -56,8 +61,11 @@ export class ChannelBuilder {
     await this.spanChannelOut.addBlock(this.rollupCfg, block, epoch.hash)
   }
 
-  private updateBlockInfo(block: L2Block, l1Info: ethers.Block): void {
-    const blockNumber = Number(block.number)
+  private updateBlockInfo(
+    block: BatchToInboxElement,
+    l1Info: ethers.Block
+  ): void {
+    const blockNumber = block.blockNumber
     if (blockNumber > this.latestL2) {
       this.latestL2 = blockNumber
     }

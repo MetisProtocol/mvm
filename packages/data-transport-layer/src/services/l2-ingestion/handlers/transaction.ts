@@ -1,6 +1,5 @@
 /* Imports: External */
 import { ethers, toNumber } from 'ethers'
-import { serialize } from '@ethersproject/transactions'
 
 /* Imports: Internal */
 import { TransportDB } from '../../../db/transport-db'
@@ -56,22 +55,20 @@ export const handleSequencerBlock = {
         gasLimit: toNumber(0).toString(),
         target: ethers.ZeroAddress,
         origin: null,
-        data: serialize(
-          {
-            value: transaction.value,
-            gasLimit: transaction.gas,
-            gasPrice: transaction.gasPrice,
-            nonce: transaction.nonce,
-            to: transaction.to,
-            data: transaction.input,
-            chainId,
-          },
-          {
+        data: ethers.Transaction.from({
+          value: transaction.value,
+          gasLimit: transaction.gas,
+          gasPrice: transaction.gasPrice,
+          nonce: transaction.nonce,
+          to: transaction.to,
+          data: transaction.input,
+          chainId,
+          signature: {
             v: toNumber(transaction.v),
             r: padHexString(transaction.r, 32),
             s: padHexString(transaction.s, 32),
-          }
-        ),
+          },
+        }).serialized,
         decoded: decodedTransaction,
         queueIndex: null,
       }

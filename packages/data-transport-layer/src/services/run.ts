@@ -33,6 +33,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
         'dangerously-catch-all-errors',
         false
       ),
+      l1BeaconProvider: config.str('l1-beacon-endpoint'),
       l2RpcProvider: config.str('l2-rpc-endpoint'),
       l2ChainId: config.uint('l2-chain-id'),
       syncFromL1: config.bool('sync-from-l1', true),

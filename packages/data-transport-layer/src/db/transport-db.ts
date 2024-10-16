@@ -1,7 +1,6 @@
 /* Imports: External */
 import { LevelUp } from 'levelup'
 import level from 'level'
-import { BigNumber } from 'ethers'
 // 1088 patch only
 import patch01 from './patch-01'
 /* Imports: Internal */
@@ -17,6 +16,7 @@ import {
   BlockEntry,
 } from '../types/database-types'
 import { SimpleDB } from './simple-db'
+import { toBigInt, toNumber } from 'ethers'
 
 const TRANSPORT_DB_KEYS = {
   ENQUEUE: `enqueue`,
@@ -342,12 +342,8 @@ export class TransportDB {
     return this.db.get<number>(TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK, 0)
   }
 
-  public async putHighestL2BlockNumber(
-    block: number | BigNumber
-  ): Promise<void> {
-    if (
-      BigNumber.from(block).toNumber() <= (await this.getHighestL2BlockNumber())
-    ) {
+  public async putHighestL2BlockNumber(block: number | bigint): Promise<void> {
+    if (toNumber(toBigInt(block)) <= (await this.getHighestL2BlockNumber())) {
       return
     }
 
@@ -355,7 +351,7 @@ export class TransportDB {
       {
         key: TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK,
         index: 0,
-        value: BigNumber.from(block).toNumber(),
+        value: toNumber(toBigInt(block)),
       },
     ])
   }

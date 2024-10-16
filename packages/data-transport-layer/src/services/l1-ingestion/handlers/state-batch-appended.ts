@@ -1,5 +1,6 @@
 /* Imports: External */
 import { getContractFactory } from '@metis.io/contracts'
+import { toNumber } from 'ethers'
 
 /* Imports: Internal */
 import {
@@ -11,7 +12,6 @@ import {
   EventHandlerSet,
 } from '../../../types'
 import { MissingElementError } from './errors'
-import { toBigInt, toNumber } from 'ethers'
 
 export const handleEventsStateBatchAppended: EventHandlerSet<
   EventArgsStateBatchAppended,
@@ -19,10 +19,8 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
   StateBatchAppendedParsedEvent
 > = {
   getExtraData: async (event, l1RpcProvider) => {
-    const eventBlock = await l1RpcProvider.getBlockWithTransactions(
-      event.blockNumber
-    )
-    const l1Transaction = eventBlock.transactions.find(
+    const eventBlock = await l1RpcProvider.getBlock(event.blockNumber, true)
+    const l1Transaction = eventBlock.prefetchedTransactions.find(
       (i) => i.hash === event.transactionHash
     )
 

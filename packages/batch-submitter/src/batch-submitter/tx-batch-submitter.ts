@@ -1,44 +1,44 @@
 /* External Imports */
 import { Promise as bPromise } from 'bluebird'
 import {
-  Signer,
-  ethers,
   Contract,
-  toNumber,
+  ethers,
   JsonRpcProvider,
+  Signer,
+  toNumber,
   TransactionReceipt,
 } from 'ethers'
 import {
-  getContractInterface,
   getContractFactory,
+  getContractInterface,
   getContractInterface as getNewContractInterface,
 } from '@metis.io/contracts'
 
 import {
-  L2Block,
-  RollupInfo,
-  BatchElement,
   Batch,
-  QueueOrigin,
+  BatchElement,
   EncodeSequencerBatchOptions,
+  L2Block,
   MinioClient,
   MinioConfig,
+  QueueOrigin,
   remove0x,
+  RollupInfo,
   toHexString,
 } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
 import {
+  AppendSequencerBatchParams,
+  BatchContext,
   CanonicalTransactionChainContract,
   encodeAppendSequencerBatch,
-  BatchContext,
-  AppendSequencerBatchParams,
 } from '../transaction-chain-contract'
 
-import { BlockRange, BatchSubmitter, TransactionBatchSubmitterInbox } from '.'
-import { TransactionSubmitter, MpcClient, sequencerSetABI } from '../utils'
-import { InboxStorage, InboxRecordInfo } from '../storage'
+import { BatchSubmitter, BlockRange, TransactionBatchSubmitterInbox } from '.'
+import { MpcClient, sequencerSetABI, TransactionSubmitter } from '../utils'
+import { InboxStorage } from '../storage'
 
 export interface AutoFixBatchOptions {
   fixDoublePlayedDeposits: boolean
@@ -1144,7 +1144,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     const batchElement = {
       stateRoot: block.stateRoot,
       timestamp: block.timestamp,
-      blockNumber: block.transactions[0].l1BlockNumber,
+      blockNumber: block.l2Transactions[0].l1BlockNumber,
       isSequencerTx: false,
       rawTransaction: undefined,
       seqSign: null,
@@ -1157,13 +1157,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         )
       }
       batchElement.isSequencerTx = true
-      batchElement.rawTransaction = block.transactions[0].rawTransaction
-      if (!block.transactions[0].seqR) {
+      batchElement.rawTransaction = block.l2Transactions[0].rawTransaction
+      if (!block.l2Transactions[0].seqR) {
         batchElement.seqSign = ''
       } else {
-        let r = remove0x(block.transactions[0].seqR)
-        let s = remove0x(block.transactions[0].seqS)
-        let v = remove0x(block.transactions[0].seqV)
+        let r = remove0x(block.l2Transactions[0].seqR)
+        let s = remove0x(block.l2Transactions[0].seqS)
+        let v = remove0x(block.l2Transactions[0].seqV)
         if (r === '0') {
           r = '00'
         } else {
@@ -1187,15 +1187,12 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
 
   private async _getBlock(blockNumber: number): Promise<L2Block> {
     // const p = this.l2Provider.getBlockWithTransactions(blockNumber)
-    const p = this.l2Provider.send('eth_getBlockByNumber', [
-      this.toRpcHexString(blockNumber),
-      true,
-    ])
-    return p as Promise<L2Block>
+    const p = await this.l2Provider.getBlock(blockNumber, true)
+    return p as L2Block
   }
 
   private _isSequencerTx(block: L2Block): boolean {
-    return block.transactions[0].queueOrigin === QueueOrigin.Sequencer
+    return block.l2Transactions[0].queueOrigin === QueueOrigin.Sequencer
   }
 
   private toRpcHexString(n: number): string {

@@ -1,9 +1,9 @@
 import { EventArgsTransactionEnqueued } from '@metis.io/core-utils'
+import { toNumber } from 'ethers'
 
 /* Imports: Internal */
 import { EnqueueEntry, EventHandlerSet } from '../../../types'
 import { MissingElementError } from './errors'
-import { toNumber } from 'ethers'
 
 export const handleEventsTransactionEnqueued: EventHandlerSet<
   EventArgsTransactionEnqueued,

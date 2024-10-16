@@ -2,14 +2,13 @@
 import { ethers } from 'ethers'
 import { ChannelBuilder } from './channel-builder'
 import {
+  BatchToInboxElement,
   ChannelConfig,
-  RollupConfig,
-  L1BlockInfo,
-  TxData,
   Frame,
+  RollupConfig,
+  TxData,
 } from './types'
 import { Blob } from './blob'
-import { L2Block } from '@metis.io/core-utils'
 
 export class Channel {
   private channelBuilder: ChannelBuilder
@@ -66,7 +65,7 @@ export class Channel {
     return [txData, end]
   }
 
-  async addBlock(block: L2Block): Promise<void> {
+  async addBlock(block: BatchToInboxElement): Promise<void> {
     await this.channelBuilder.addBlock(block)
   }
 

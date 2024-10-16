@@ -118,13 +118,13 @@ export class YnatmAsync {
     rejectImmediatelyOnCondition = this.rejectOnRevert,
   }): Promise<any> => {
     // Make sure its an int
-    minGasPrice = parseInt(minGasPrice)
+    minGasPrice = parseInt(minGasPrice, 10)
 
     // Defaults to 2x minGasPrice
     if (!maxGasPrice) {
       maxGasPrice = 2 * minGasPrice
     } else {
-      maxGasPrice = parseInt(maxGasPrice)
+      maxGasPrice = parseInt(maxGasPrice, 10)
     }
 
     // List of varying gasPrices

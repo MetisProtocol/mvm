@@ -1,7 +1,13 @@
 /* External Imports */
 import { Promise as bPromise } from 'bluebird'
-import { Contract, ethers, Signer, toBigInt, toNumber } from 'ethers'
-import { TransactionReceipt } from '@ethersproject/abstract-provider'
+import {
+  Contract,
+  ethers,
+  Signer,
+  TransactionReceipt,
+  toNumber,
+  ContractTransaction,
+} from 'ethers'
 import { getContractFactory } from '@metis.io/contracts'
 import { L2Block, RollupInfo, Bytes32, remove0x } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
@@ -29,7 +35,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
 
   constructor(
     signer: Signer,
-    l2Provider: providers.StaticJsonRpcProvider,
+    l1Provider: ethers.JsonRpcProvider,
+    l2Provider: ethers.JsonRpcProvider,
     minTxSize: number,
     maxTxSize: number,
     maxBatchSize: number,
@@ -52,6 +59,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
   ) {
     super(
       signer,
+      l1Provider,
       l2Provider,
       minTxSize,
       maxTxSize,
@@ -253,8 +261,9 @@ export class StateBatchSubmitter extends BatchSubmitter {
     // Generate the transaction we will repeatedly submit
     const nonce = await this.signer.getNonce() //mpc address , 2 mpc addresses
     // state ctc are different signer addresses.
-    const tx =
-      await this.chainContract.populateTransaction.appendStateBatchByChainId(
+    const tx = await this.chainContract
+      .getFunction('appendStateBatchByChainId')
+      .populateTransaction(
         this.l2ChainId,
         batch,
         offsetStartsAtIndex,
@@ -270,7 +279,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       if (!mpcInfo || !mpcInfo.mpc_address) {
         throw new Error('MPC 1 info get failed')
       }
-      const txUnsign: PopulatedTransaction = {
+      const txUnsign: ContractTransaction = {
         to: tx.to,
         data: tx.data,
         value: ethers.parseEther('0'),
@@ -350,11 +359,15 @@ export class StateBatchSubmitter extends BatchSubmitter {
         this.logger.debug('Fetching L2BatchElement', {
           blockNo: startBlock + i,
         })
-        const block = (await this.l2Provider.getBlockWithTransactions(
-          startBlock + i
+        const block = (await this.l2Provider.getBlock(
+          startBlock + i,
+          true
         )) as L2Block
-        const blockTx = block.transactions[0]
-        if (blockTx.from === this.fraudSubmissionAddress) {
+        const blockTx = block.prefetchedTransactions[0]
+        if (
+          blockTx.from.toLowerCase() ===
+          this.fraudSubmissionAddress.toLowerCase()
+        ) {
           this.logger.warn('Found transaction from fraud submission address', {
             txHash: blockTx.hash,
             fraudSubmissionAddress: this.fraudSubmissionAddress,
@@ -367,7 +380,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       { concurrency: 100 }
     )
 
-    const proposer = parseInt(this.l2ChainId.toString()) + '_MVM_Proposer'
+    const proposer = this.l2ChainId + '_MVM_Proposer'
     let tx = this.chainContract.interface.encodeFunctionData(
       'appendStateBatchByChainId',
       [this.l2ChainId, batch, startBlock, proposer]

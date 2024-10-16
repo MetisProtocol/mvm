@@ -1,24 +1,20 @@
-import { BaseProvider } from '@ethersproject/providers'
-import { Event } from '@ethersproject/contracts'
-
 import { TransportDB } from '../db/transport-db'
 import {
-  TransactionBatchEntry,
-  TransactionEntry,
+  BlockEntry,
   StateRootBatchEntry,
   StateRootEntry,
-  VerifierStakeEntry,
-  AppendBatchElementEntry,
-  BlockEntry,
+  TransactionBatchEntry,
+  TransactionEntry,
 } from './database-types'
+import { JsonRpcProvider, EventLog, Provider } from 'ethers'
 
-export type TypedEthersEvent<T> = Event & {
+export type TypedEthersEvent<T> = EventLog & {
   args: T
 }
 
 export type GetExtraDataHandler<TEventArgs, TExtraData> = (
   event?: TypedEthersEvent<TEventArgs>,
-  l1RpcProvider?: BaseProvider
+  l1RpcProvider?: Provider
 ) => Promise<TExtraData>
 
 export type ParseEventHandler<TEventArgs, TExtraData, TParsedEvent> = (
@@ -42,7 +38,7 @@ export interface EventHandlerSet<TEventArgs, TExtraData, TParsedEvent> {
 
 export type GetExtraDataHandlerAny<TExtraData> = (
   event?: any,
-  l1RpcProvider?: BaseProvider
+  l1RpcProvider?: Provider
 ) => Promise<TExtraData>
 
 export interface EventHandlerSetAny<TExtraData, TParsedEvent> {

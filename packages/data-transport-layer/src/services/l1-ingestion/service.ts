@@ -1,29 +1,28 @@
 /* Imports: External */
-import { fromHexString, FallbackProvider } from '@metis.io/core-utils'
+import { FallbackProvider, fromHexString } from '@metis.io/core-utils'
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
-import { BaseProvider } from '@ethersproject/providers'
 import { LevelUp } from 'levelup'
-import { Block, ethers, EventLog } from 'ethers'
-import { Gauge, Counter } from 'prom-client'
+import { Block, ethers, EventLog, Provider } from 'ethers'
+import { Counter, Gauge } from 'prom-client'
 
 /* Imports: Internal */
 import {
   TransportDB,
-  TransportDBMapHolder,
   TransportDBMap,
+  TransportDBMapHolder,
 } from '../../db/transport-db'
 import {
+  addressEvent,
+  loadContract,
+  loadOptimismContracts,
   OptimismContracts,
   sleep,
-  loadOptimismContracts,
-  loadContract,
   validators,
-  addressEvent,
 } from '../../utils'
 import {
-  TypedEthersEvent,
   EventHandlerSet,
   EventHandlerSetAny,
+  TypedEthersEvent,
 } from '../../types'
 import { handleEventsTransactionEnqueued } from './handlers/transaction-enqueued'
 import { handleEventsSequencerBatchAppended } from './handlers/sequencer-batch-appended'
@@ -33,7 +32,6 @@ import { MissingElementError } from './handlers/errors'
 import { handleEventsVerifierStake } from './handlers/verifier-stake'
 import { handleEventsAppendBatchElement } from './handlers/append-batch-element'
 import { handleEventsSequencerBatchInbox } from './handlers/sequencer-batch-inbox'
-import { v5ToV6ProviderWrapper } from '../../utils/provider-wrapper'
 
 interface L1IngestionMetrics {
   highestSyncedL1Block: Gauge<string>
@@ -114,7 +112,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     dbs: TransportDBMap
     dbOfL2: TransportDB
     contracts: OptimismContracts
-    l1RpcProvider: BaseProvider
+    l1RpcProvider: Provider
     startingL1BlockNumber: number
     startingL1BatchIndex: number
   } = {} as any
@@ -147,7 +145,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     const Lib_AddressManager = loadContract(
       'Lib_AddressManager',
       this.options.addressManager,
-      v5ToV6ProviderWrapper(this.state.l1RpcProvider)
+      this.state.l1RpcProvider
     )
 
     const code = await this.state.l1RpcProvider.getCode(
@@ -175,7 +173,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     // Would be nice if this weren't necessary, maybe one day.
     // TODO: Probably just assert inside here that all of the contracts have code in them.
     this.state.contracts = await loadOptimismContracts(
-      v5ToV6ProviderWrapper(this.state.l1RpcProvider),
+      this.state.l1RpcProvider,
       this.options.addressManager
     )
 
@@ -464,9 +462,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     handlers: EventHandlerSetAny<any, any>
   ): Promise<void> {
     const blockPromises = []
-    const v6Provider = v5ToV6ProviderWrapper(this.state.l1RpcProvider)
     for (let i = fromL1Block; i <= toL1Block; i++) {
-      blockPromises.push(v6Provider.getBlock(i, true))
+      blockPromises.push(this.state.l1RpcProvider.getBlock(i, true))
     }
 
     // Just making sure that the blocks will come back in increasing order.

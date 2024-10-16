@@ -1,56 +1,39 @@
 /* External Imports */
 import { Promise as bPromise } from 'bluebird'
 import {
-  Signer,
   ethers,
-  JsonRpcProvider,
+  Provider,
+  Signer,
+  toBeHex,
+  toBigInt,
   TransactionReceipt,
   TransactionRequest,
-  toBigInt,
-  toBeHex,
-  Provider,
 } from 'ethers'
 import { Logger } from '@eth-optimism/common-ts'
 import {
+  encodeHex,
   L2Block,
+  L2Transaction,
+  MinioClient,
+  MinioConfig,
   QueueOrigin,
   remove0x,
   toHexString,
-  encodeHex,
-  L2Transaction,
   zlibCompressHexString,
-  MinioClient,
-  MinioConfig,
 } from '@metis.io/core-utils'
 
 /* Internal Imports */
-import { TransactionSubmitter, MpcClient } from '../utils'
+import { MpcClient, TransactionSubmitter } from '../utils'
 import { InboxStorage } from '../storage'
 import { TxSubmissionHooks } from '..'
 import { ChannelManager } from '../da/channel-manager'
-import { ChannelConfig } from '../da/types'
-
-export interface BatchToInboxRawTx {
-  rawTransaction: string | undefined
-  seqSign: string | undefined | null
-  isSequencerTx: boolean
-  l1BlockNumber: number | null
-  l1TxOrigin: string | null
-  queueIndex: number | null
-}
-
-export interface BatchToInboxElement {
-  stateRoot: string
-  timestamp: number
-  blockNumber: number
-  txs: BatchToInboxRawTx[]
-}
-export declare type BatchToInbox = BatchToInboxElement[]
-
-export interface InboxBatchParams {
-  inputData: string
-  batch: BatchToInbox
-}
+import {
+  BatchToInbox,
+  BatchToInboxElement,
+  BatchToInboxRawTx,
+  ChannelConfig,
+  InboxBatchParams,
+} from '../da/types'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
@@ -383,9 +366,28 @@ export class TransactionBatchSubmitterInbox {
         this.l2Provider
       )
 
-      channelManager.addL2Block()
+      blocks.forEach((inboxElement: BatchToInboxElement) => {
+        this.logger.debug(
+          `Adding L2 block ${inboxElement.blockNumber} to channel manager`
+        )
+        channelManager.addL2Block(inboxElement)
+      })
 
-      this.logger.info('submitted blocks to op batcher', { txHashes })
+      const latestL1Block = await this.l1Provider.getBlockNumber()
+
+      this.logger.info('submitted blob txs...')
+      for (
+        const [txData, end] = await channelManager.txData(
+          toBigInt(latestL1Block)
+        );
+        !end;
+
+      ) {
+        // submit txData to L1
+        this.logger.info(`submitting blob tx: ${txData.id}...`)
+        this.l1Provider.sendTransaction()
+      }
+
       // concat all tx hashes [32B Hash][32B Hash][...],
       // each tx contains a single frame of the submitted block,
       // when decoding, split the string by 64 to get the tx hashes array,
@@ -415,9 +417,11 @@ export class TransactionBatchSubmitterInbox {
       stateRoot: block.stateRoot,
       timestamp: block.timestamp,
       blockNumber: block.number,
+      hash: block.hash,
+      parentHash: block.parentHash,
       txs: [],
     }
-    block.transactions.forEach((l2Tx: L2Transaction) => {
+    block.l2Transactions.forEach((l2Tx: L2Transaction) => {
       const batchElementTx: BatchToInboxRawTx = {
         rawTransaction: l2Tx.rawTransaction,
         isSequencerTx: this._isSequencerTx(l2Tx),
@@ -430,9 +434,9 @@ export class TransactionBatchSubmitterInbox {
         if (!l2Tx.seqR) {
           batchElementTx.seqSign = ''
         } else {
-          let r = remove0x(block.transactions[0].seqR)
-          let s = remove0x(block.transactions[0].seqS)
-          let v = remove0x(block.transactions[0].seqV)
+          let r = remove0x(block.l2Transactions[0].seqR)
+          let s = remove0x(block.l2Transactions[0].seqS)
+          let v = remove0x(block.l2Transactions[0].seqV)
           if (r === '0') {
             r = '00'
           } else {
@@ -460,11 +464,8 @@ export class TransactionBatchSubmitterInbox {
   }
 
   private async _getBlock(blockNumber: number): Promise<L2Block> {
-    const p = this.l2Provider.send('eth_getBlockByNumber', [
-      this.toRpcHexString(blockNumber),
-      true,
-    ])
-    return p as Promise<L2Block>
+    const p = await this.l2Provider.getBlock(blockNumber, true)
+    return p as L2Block
   }
 
   private _isSequencerTx(tx: L2Transaction): boolean {

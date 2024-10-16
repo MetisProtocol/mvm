@@ -4,13 +4,13 @@ import RLP from 'rlp'
 import { ChannelCompressor } from './channel-compressor'
 import { SpanBatch } from './span-batch'
 import { SingularBatch } from './singular-batch'
-import { Frame, RollupConfig } from './types'
+import { BatchToInboxElement, Frame, RollupConfig } from './types'
 import {
   CHANNEL_FULL_ERR,
   FRAME_OVERHEAD_SIZE,
   MAX_RLP_BYTES_PER_CHANNEL,
 } from './consts'
-import { L2Block } from '@metis.io/core-utils'
+import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
 
 export class SpanChannelOut {
   private _id: Uint8Array
@@ -86,21 +86,35 @@ export class SpanChannelOut {
     this.rlpIndex = (this.rlpIndex + 1) % 2
   }
 
-  async addBlock(rollupCfg: RollupConfig, block: L2Block, epochHash: string) {
+  async addBlock(
+    rollupCfg: RollupConfig,
+    block: BatchToInboxElement,
+    epochHash: string
+  ) {
     if (this.closed) {
       throw new Error('Channel out already closed')
     }
 
-    if (!block.transactions) {
+    if (!block.txs) {
       throw new Error('Block has no transactions')
     }
 
-    const opaqueTxs = []
-    for (const tx of block.transactions) {
-      opaqueTxs.push(tx)
+    const opaqueTxs: L2Transaction[] = []
+    for (const tx of block.txs) {
+      const l2Tx = ethers.Transaction.from(tx.rawTransaction) as any
+      l2Tx.l1BlockNumber = tx.l1BlockNumber
+      l2Tx.l1TxOrigin = tx.l1TxOrigin
+      l2Tx.queueOrigin = tx.isSequencerTx
+        ? QueueOrigin.Sequencer
+        : QueueOrigin.L1ToL2
+      l2Tx.rawTransaction = tx.rawTransaction
+      l2Tx.seqR = tx.seqSign.slice(0, 64)
+      l2Tx.seqS = tx.seqSign.slice(64, 128)
+      l2Tx.seqV = tx.seqSign.slice(128, 130)
+      opaqueTxs.push(l2Tx as L2Transaction)
     }
 
-    const epochNum = block.transactions[0].l1BlockNumber
+    const epochNum = block.txs[0].l1BlockNumber
 
     const singularBatch: SingularBatch = new SingularBatch(
       block.parentHash,
@@ -201,10 +215,6 @@ export class SpanChannelOut {
       return this.compressor.len()
     }
     return 0
-  }
-
-  flush(): void {
-    // No-op for SpanChannelOut
   }
 
   private checkFull(): void {
