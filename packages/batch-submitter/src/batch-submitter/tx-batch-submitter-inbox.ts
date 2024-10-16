@@ -33,7 +33,11 @@ import {
   BatchToInboxRawTx,
   ChannelConfig,
   InboxBatchParams,
+  TxData,
 } from '../da/types'
+import { CompressionAlgo } from '../da/channel-compressor'
+import { SpanBatchType } from '@eth-optimism/data-transport-layer/src/da/blob/channel'
+import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE, TX_GAS } from '../da/consts'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
@@ -136,12 +140,13 @@ export class TransactionBatchSubmitterInbox {
       ) => Promise<boolean>
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
+    // MPC enabled: prepare nonce, gasPrice
     const tx: TransactionRequest = {
       to: this.inboxAddress,
       data: '0x' + batchParams.inputData,
       value: ethers.parseEther('0'),
     }
-    // MPC enabled: prepare nonce, gasPrice
+
     if (mpcUrl) {
       this.logger.info('submitter with mpc', { url: mpcUrl })
       const mpcClient = new MpcClient(mpcUrl)
@@ -150,16 +155,78 @@ export class TransactionBatchSubmitterInbox {
         throw new Error('MPC info get failed')
       }
       const mpcAddress = mpcInfo.mpc_address
+      const chainId = (await signer.provider.getNetwork()).chainId
+
+      // tx.gasPrice = gasPrice
+      if (batchParams.blobTxData && batchParams.blobTxData.length) {
+        // if using blob, we need to submit the blob txs first
+        const blobTxData = batchParams.blobTxData
+        for (const txData of blobTxData) {
+          const blobs = txData.blobs
+          const latestBlock = await this.l1Provider.getBlock('latest')
+          const maxFeePerBlobGas = calcBlobFee(latestBlock.excessBlobGas)
+          this.logger.info('submitting blob tx', {
+            blobCount: blobs.length,
+            maxFeePerBlobGas,
+          })
+          const feeData = await this.l1Provider.getFeeData()
+
+          const blobTx: ethers.TransactionRequest = {
+            to: this.inboxAddress,
+            // since we are using blob tx, call data will be empty,
+            // so the gas limit is just default tx gas
+            gasLimit: TX_GAS,
+            chainId,
+            nonce: await signer.provider.getTransactionCount(mpcAddress),
+            blobs,
+            blobVersionedHashes: blobs.map((blob) => blob.versionedHash),
+            maxFeePerBlobGas,
+            // use eip1559
+            maxFeePerGas: feeData.maxFeePerGas,
+            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+          }
+
+          // mpc model can use ynatm
+          const mpcSignTx = (): Promise<TransactionReceipt> => {
+            return transactionSubmitter.submitSignedTransaction(
+              blobTx,
+              async () => {
+                const signedTx = await mpcClient.signTx(blobTx, mpcInfo.mpc_id)
+                return signedTx
+              },
+              hooks
+            )
+          }
+
+          const blobTxReceipt = await submitAndLogTx(
+            mpcSignTx,
+            'Submitted blob tx with MPC!',
+            (
+              receipt: TransactionReceipt | null,
+              err: any
+            ): Promise<boolean> => {
+              return this._setBatchInboxRecord(receipt, err, nextBatchIndex)
+            }
+          )
+
+          if (!blobTxReceipt || blobTxReceipt.status !== 1) {
+            throw new Error('Blob tx submission failed')
+          }
+
+          // append tx hashes to the tx data
+          tx.data += remove0x(blobTxReceipt.hash)
+        }
+      }
+
       tx.nonce = await signer.provider.getTransactionCount(mpcAddress)
       tx.gasLimit = await signer.provider.estimateGas({
         to: tx.to,
         from: mpcAddress,
         data: tx.data,
       })
-      tx.chainId = (await signer.provider.getNetwork()).chainId
-      // mpc model can use ynatm
-      // tx.gasPrice = gasPrice
+      tx.chainId = chainId
 
+      // mpc model can use ynatm
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return transactionSubmitter.submitSignedTransaction(
           tx,
@@ -171,6 +238,7 @@ export class TransactionBatchSubmitterInbox {
           hooks
         )
       }
+
       return submitAndLogTx(
         submitSignedTransaction,
         'Submitted batch to inbox with MPC!',
@@ -278,13 +346,14 @@ export class TransactionBatchSubmitterInbox {
     // DA: 0 - L1, 1 - memo, 2 - celestia, 3 - blob
     let da = encodeHex(0, 2)
     // Compress Type: 0 - none, 11 - zlib
-    const compressType = encodeHex(11, 2)
+    let compressType = encodeHex(11, 2)
     const batchIndex = encodeHex(nextBatchIndex, 64)
     const l2Start = encodeHex(l2StartBlock, 64)
     const totalElements = encodeHex(blocks.length, 8)
 
     let compressedEncoded = ''
     let encoded = ''
+    const blobTxData: TxData[] = []
 
     if (!this.useBlob) {
       let encodeBlockData = ''
@@ -361,8 +430,29 @@ export class TransactionBatchSubmitterInbox {
       }
     } else {
       const channelManager = new ChannelManager(
-        (): ChannelConfig => {},
-        {},
+        {
+          // since we are using blob here, so max frame size is the blob size
+          maxFrameSize: MAX_BLOB_SIZE,
+          // default to 4, this is the maximum number of blobs that a blob tx can carry
+          targetFrames: MAX_BLOB_NUM_PER_TX,
+          // default to unlimited
+          maxBlocksPerSpanBatch: 0,
+          // op's default is 1, if using blob, must be less than 6
+          targetNumFrames: 1,
+          // op's default is 0.6, value must between 0 and 1
+          targetCompressorFactor: 0.6,
+          // default to brotli after fjord
+          compressionAlgo: CompressionAlgo.Brotli,
+          // default to span batch after fjord
+          batchType: SpanBatchType,
+          // use blob txs
+          useBlobs: true,
+        },
+        {
+          l1ChainID: BigInt(0),
+          l2ChainID: BigInt(0),
+          batchInboxAddress: '',
+        },
         this.l2Provider
       )
 
@@ -375,7 +465,6 @@ export class TransactionBatchSubmitterInbox {
 
       const latestL1Block = await this.l1Provider.getBlockNumber()
 
-      this.logger.info('submitted blob txs...')
       for (
         const [txData, end] = await channelManager.txData(
           toBigInt(latestL1Block)
@@ -383,18 +472,18 @@ export class TransactionBatchSubmitterInbox {
         !end;
 
       ) {
-        // submit txData to L1
-        this.logger.info(`submitting blob tx: ${txData.id}...`)
-        this.l1Provider.sendTransaction()
+        blobTxData.push(txData)
       }
 
+      compressType = encodeHex(0, 2) // overwrite the compress type to not compressed
+      da = encodeHex(3, 2) // overwrite da type to blob
+
+      // for compressedEncoded, since we haven't sent the blob txs, so we need to leave it empty.
+      // after we get the tx hashes, we will append the hashes to the compressedEncoded.
       // concat all tx hashes [32B Hash][32B Hash][...],
       // each tx contains a single frame of the submitted block,
       // when decoding, split the string by 64 to get the tx hashes array,
       // and use the tx hashes to get corresponding blobs from L1
-      compressedEncoded = txHashes.join('')
-      compressType = encodeHex(0, 2) // overwrite the compress type to not compressed
-      da = encodeHex(3, 2) // overwrite da type to blob
     }
     // other da should here else
 
@@ -402,6 +491,7 @@ export class TransactionBatchSubmitterInbox {
     return {
       inputData: encoded,
       batch: blocks,
+      blobTxData,
     }
   }
 

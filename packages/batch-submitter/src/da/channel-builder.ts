@@ -20,14 +20,13 @@ export class ChannelBuilder {
 
   constructor(
     private cfg: ChannelConfig,
-    private rollupCfg: RollupConfig,
+    rollupCfg: RollupConfig,
     private l1Client: ethers.Provider
   ) {
     this.spanChannelOut = new SpanChannelOut(
       rollupCfg.l2ChainID,
       cfg.targetNumFrames,
       new ChannelCompressor(),
-      rollupCfg,
       { maxBlocksPerSpanBatch: 0 } // default to 0 - no maximum
     )
     this.latestL1Origin = 0
@@ -58,7 +57,7 @@ export class ChannelBuilder {
 
     this.updateBlockInfo(block, epoch)
 
-    await this.spanChannelOut.addBlock(this.rollupCfg, block, epoch.hash)
+    await this.spanChannelOut.addBlock(block, epoch.hash)
   }
 
   private updateBlockInfo(

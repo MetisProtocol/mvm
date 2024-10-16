@@ -3,23 +3,9 @@ import { BytesLike, ethers, getBytes } from 'ethers'
 import { Blob } from './blob'
 
 export interface RollupConfig {
-  genesis: Genesis
-  blockTime: number
-  maxSequencerDrift: number
-  seqWindowSize: number
-  channelTimeout: number
   l1ChainID: bigint
   l2ChainID: bigint
   batchInboxAddress: string
-  depositContractAddress: string
-  l1SystemConfigAddress: string
-}
-
-export interface Genesis {
-  l1: BlockID
-  l2: BlockID
-  l2Time: number
-  systemConfig: SystemConfig
 }
 
 export interface BlockID {
@@ -35,11 +21,8 @@ export interface SystemConfig {
 }
 
 export interface ChannelConfig {
-  seqWindowSize: number
-  channelTimeout: number
-  maxChannelDuration: number
-  subSafetyMargin: number
   maxFrameSize: number
+  targetFrames: number
   maxBlocksPerSpanBatch: number
   targetNumFrames: number
   targetCompressorFactor: number
@@ -161,4 +144,5 @@ export declare type BatchToInbox = BatchToInboxElement[]
 export interface InboxBatchParams {
   inputData: string
   batch: BatchToInbox
+  blobTxData: TxData[]
 }

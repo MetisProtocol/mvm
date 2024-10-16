@@ -17,7 +17,7 @@ export class ChannelManager {
   private txChannels: Map<string, Channel> = new Map()
 
   constructor(
-    private cfgProvider: { getChannelConfig: () => ChannelConfig },
+    private cfg: ChannelConfig,
     private rollupCfg: RollupConfig,
     private l1Client: ethers.Provider
   ) {}
@@ -60,7 +60,7 @@ export class ChannelManager {
       return
     }
 
-    const cfg = this.cfgProvider.getChannelConfig()
+    const cfg = this.cfg
     const newChannel = new Channel(cfg, this.rollupCfg, this.l1Client)
 
     this.currentChannel = newChannel

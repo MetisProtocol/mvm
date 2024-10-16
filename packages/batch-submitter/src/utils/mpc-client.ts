@@ -1,9 +1,10 @@
 import * as http from 'http'
 import * as https from 'https'
 import { URL } from 'url'
-import { ethers, toBigInt, Transaction } from 'ethers'
+import { ethers, toBigInt, Transaction, TransactionRequest } from 'ethers'
 import { randomUUID } from 'crypto'
 import '@metis.io/core-utils'
+import * as kzg from 'c-kzg'
 
 export class MpcClient {
   protected url: string
@@ -158,14 +159,24 @@ export class MpcClient {
   public async signTx(tx: any, mpcId: any): Promise<string> {
     // call mpc to sign tx
     const unsignedTx = {
+      type: tx.type || null,
       nonce: tx.nonce,
-      gasPrice: toBigInt(tx.gasPrice),
+      gasPrice: tx.gasPrice ? toBigInt(tx.gasPrice) : null,
       gasLimit: toBigInt(tx.gasLimit),
       to: tx.to,
       value: toBigInt(tx.value),
       data: tx.data,
       chainId: tx.chainId,
-      blobs: tx.blobs,
+      maxFeePerBlobGas: tx.maxFeePerBlobGas
+        ? toBigInt(tx.maxFeePerBlobGas)
+        : null,
+      maxFeePerGas: tx.maxFeePerGas ? toBigInt(tx.maxFeePerGas) : null,
+      maxPriorityFeePerGas: tx.maxPriorityFeePerGas
+        ? toBigInt(tx.maxPriorityFeePerGas)
+        : null,
+      blobs: tx.blobs || null,
+      blobVersionedHashes: tx.blobVersionedHashes || null,
+      kzg: !!tx.blobVersionedHashes ? kzg : null,
     }
 
     const signId = randomUUID()

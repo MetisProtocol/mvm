@@ -3,6 +3,7 @@ import {
   Blob as CBlob,
   blobToKzgCommitment,
   Bytes48,
+  computeBlobKzgProof,
   verifyBlobKzgProof,
 } from 'c-kzg'
 import { ethers } from 'ethers'
@@ -35,11 +36,15 @@ const hexStringToUint8Array = (hexString: string): Uint8Array => {
 
 export class Blob {
   public readonly data: Uint8Array = new Uint8Array(BlobSize)
+  public readonly commitment: Bytes48 = new Uint8Array(48)
+  public readonly proof: Bytes48 = new Uint8Array(48)
+  public versionedHash: string = ''
 
   static kzgToVersionedHash(commitment: Bytes48): string {
     const hasher = createHash('sha256')
     hasher.update(commitment)
-    return hasher.digest('hex')
+    // versioned hash = [1 byte version][31 byte hash]
+    return '0x01' + hasher.digest('hex').substring(1)
   }
 
   static verifyBlobProof(
@@ -132,6 +137,10 @@ export class Blob {
         `Expected to fit data but failed, read offset: ${readOffset}, data length: ${data.length}`
       )
     }
+
+    this.commitment.set(blobToKzgCommitment(this.data as CBlob))
+    this.proof.set(computeBlobKzgProof(this.data as CBlob, this.commitment))
+    this.versionedHash = Blob.kzgToVersionedHash(this.commitment)
 
     return this
   }

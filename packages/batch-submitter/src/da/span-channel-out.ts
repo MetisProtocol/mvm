@@ -29,7 +29,6 @@ export class SpanChannelOut {
     chainId: bigint,
     private target: number,
     private compressor: ChannelCompressor,
-    private rollupCfg: RollupConfig,
     opts?: { maxBlocksPerSpanBatch?: number }
   ) {
     this._id = randomBytes(16)
@@ -86,11 +85,7 @@ export class SpanChannelOut {
     this.rlpIndex = (this.rlpIndex + 1) % 2
   }
 
-  async addBlock(
-    rollupCfg: RollupConfig,
-    block: BatchToInboxElement,
-    epochHash: string
-  ) {
+  async addBlock(block: BatchToInboxElement, epochHash: string) {
     if (this.closed) {
       throw new Error('Channel out already closed')
     }

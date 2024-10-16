@@ -32,9 +32,22 @@ export class Channel {
   }
 
   nextTxData(): [TxData, boolean] {
-    const [frame, end] = this.channelBuilder.nextFrame()
+    let end = false
+    const frames: Frame[] = []
+    for (let i = 0; i < this.cfg.targetFrames; i++) {
+      const [frame, frameEnd] = this.channelBuilder.nextFrame()
+      if (frame) {
+        frames.push(frame)
+      }
+      if (frameEnd) {
+        // no more frames, we're done here,
+        // notify upper layer there is no more tx data
+        end = true
+        break
+      }
+    }
     const txData: TxData = {
-      frames: [frame],
+      frames,
       asBlob: this.cfg.useBlobs,
 
       get id(): string {
@@ -45,13 +58,13 @@ export class Channel {
             Buffer.from(id).toString('hex')
           const frameIdHex = chIDStringer(f.id)
           if (frameIdHex === curChID) {
-            sb += `+${frame.frameNumber}`
+            sb += `+${f.frameNumber}`
           } else {
             if (curChID !== '') {
               sb += '|'
             }
             curChID = frameIdHex
-            sb += `${chIDStringer(frame.id)}:${frame.frameNumber}`
+            sb += `${chIDStringer(f.id)}:${f.frameNumber}`
           }
         })
         return sb
