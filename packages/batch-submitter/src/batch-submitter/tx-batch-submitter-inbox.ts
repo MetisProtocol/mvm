@@ -147,29 +147,52 @@ export class TransactionBatchSubmitterInbox {
       value: ethers.parseEther('0'),
     }
 
+    // mpc url specified, use mpc to sign tx
     if (mpcUrl) {
       this.logger.info('submitter with mpc', { url: mpcUrl })
       const mpcClient = new MpcClient(mpcUrl)
-      const mpcInfo = await mpcClient.getLatestMpc()
-      if (!mpcInfo || !mpcInfo.mpc_address) {
-        throw new Error('MPC info get failed')
-      }
-      const mpcAddress = mpcInfo.mpc_address
       const chainId = (await signer.provider.getNetwork()).chainId
 
-      // tx.gasPrice = gasPrice
+      // use blob txs if batch params contains blob tx data
       if (batchParams.blobTxData && batchParams.blobTxData.length) {
-        // if using blob, we need to submit the blob txs first
+        // if using blob, we need to submit the blob txs before the inbox tx
         const blobTxData = batchParams.blobTxData
+        // submit the blob txs in order, to simplify the process,
+        // use serialized operations for now
+        // TODO: use paralleled submission
         for (const txData of blobTxData) {
           const blobs = txData.blobs
-          const latestBlock = await this.l1Provider.getBlock('latest')
+          if (!blobs || !blobs.length) {
+            throw new Error('Invalid blob tx data, empty blobs')
+          }
+
+          // retrieve mpc info
+          const currentMpcInfo = await mpcClient.getLatestMpc()
+          if (!currentMpcInfo || !currentMpcInfo.mpc_address) {
+            throw new Error('MPC info get failed')
+          }
+          const latestMpcAddress = currentMpcInfo.mpc_address
+
+          // async fetch required info
+          const [latestBlockPromise, feeDataPromise, mpcNoncePromise] = [
+            this.l1Provider.getBlock('latest'),
+            this.l1Provider.getFeeData(),
+            signer.provider.getTransactionCount(latestMpcAddress),
+          ]
+          const [latestBlock, feeData, mpcNonce] = await Promise.all([
+            latestBlockPromise,
+            feeDataPromise,
+            mpcNoncePromise,
+          ])
+
           const maxFeePerBlobGas = calcBlobFee(latestBlock.excessBlobGas)
           this.logger.info('submitting blob tx', {
             blobCount: blobs.length,
             maxFeePerBlobGas,
+            latestMpcAddress,
+            feeData,
+            mpcNonce,
           })
-          const feeData = await this.l1Provider.getFeeData()
 
           const blobTx: ethers.TransactionRequest = {
             to: this.inboxAddress,
@@ -177,7 +200,7 @@ export class TransactionBatchSubmitterInbox {
             // so the gas limit is just default tx gas
             gasLimit: TX_GAS,
             chainId,
-            nonce: await signer.provider.getTransactionCount(mpcAddress),
+            nonce: mpcNonce,
             blobs,
             blobVersionedHashes: blobs.map((blob) => blob.versionedHash),
             maxFeePerBlobGas,
@@ -191,7 +214,10 @@ export class TransactionBatchSubmitterInbox {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
               async () => {
-                const signedTx = await mpcClient.signTx(blobTx, mpcInfo.mpc_id)
+                const signedTx = await mpcClient.signTx(
+                  blobTx,
+                  currentMpcInfo.mpc_id
+                )
                 return signedTx
               },
               hooks
@@ -213,10 +239,16 @@ export class TransactionBatchSubmitterInbox {
             throw new Error('Blob tx submission failed')
           }
 
-          // append tx hashes to the tx data
+          // append tx hashes to the tx data to the end
           tx.data += remove0x(blobTxReceipt.hash)
         }
       }
+
+      const mpcInfo = await mpcClient.getLatestMpc()
+      if (!mpcInfo || !mpcInfo.mpc_address) {
+        throw new Error('MPC info get failed')
+      }
+      const mpcAddress = mpcInfo.mpc_address
 
       tx.nonce = await signer.provider.getTransactionCount(mpcAddress)
       tx.gasLimit = await signer.provider.estimateGas({
@@ -433,7 +465,7 @@ export class TransactionBatchSubmitterInbox {
         {
           // since we are using blob here, so max frame size is the blob size
           maxFrameSize: MAX_BLOB_SIZE,
-          // default to 4, this is the maximum number of blobs that a blob tx can carry
+          // default to 6, this is the maximum number of blobs that a blob tx can carry
           targetFrames: MAX_BLOB_NUM_PER_TX,
           // default to unlimited
           maxBlocksPerSpanBatch: 0,
