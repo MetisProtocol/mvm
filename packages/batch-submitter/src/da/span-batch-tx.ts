@@ -1,8 +1,7 @@
-import { ethers, toBigInt } from 'ethers'
+import { AccessList } from 'ethers'
 import { Writer } from './types'
 import RLP from 'rlp'
 import { L2Transaction } from '@metis.io/core-utils'
-import { AccessList } from '@ethersproject/transactions'
 
 interface SpanBatchTxData {
   txType(): number
@@ -40,8 +39,8 @@ class SpanBatchLegacyTxData implements SpanBatchTxData {
   data: string
 
   constructor(tx: L2Transaction) {
-    this.value = tx.value.toBigInt()
-    this.gasPrice = tx.gasPrice!.toBigInt()
+    this.value = tx.value
+    this.gasPrice = tx.gasPrice
     this.data = tx.data
   }
 
@@ -61,8 +60,8 @@ class SpanBatchAccessListTxData implements SpanBatchTxData {
   accessList: AccessList
 
   constructor(tx: L2Transaction) {
-    this.value = tx.value.toBigInt()
-    this.gasPrice = tx.gasPrice!.toBigInt()
+    this.value = tx.value
+    this.gasPrice = tx.gasPrice
     this.data = tx.data
     this.accessList = tx.accessList!
   }
@@ -89,9 +88,9 @@ class SpanBatchDynamicFeeTxData implements SpanBatchTxData {
   accessList: AccessList
 
   constructor(tx: L2Transaction) {
-    this.value = tx.value.toBigInt()
-    this.maxPriorityFeePerGas = tx.maxPriorityFeePerGas!.toBigInt()
-    this.maxFeePerGas = tx.maxFeePerGas!.toBigInt()
+    this.value = tx.value
+    this.maxPriorityFeePerGas = tx.maxPriorityFeePerGas
+    this.maxFeePerGas = tx.maxFeePerGas
     this.data = tx.data
     this.accessList = tx.accessList!
   }

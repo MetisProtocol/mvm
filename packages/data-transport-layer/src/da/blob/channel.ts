@@ -2,8 +2,7 @@ import { PassThrough, Readable } from 'stream'
 import * as zlib from 'zlib'
 import { Frame } from './frame'
 import * as RLP from 'rlp'
-import { ethers, toBigInt } from 'ethers'
-import { big0, big1 } from './consts'
+import { ethers, toBigInt, toNumber } from 'ethers'
 
 // Constants and Enums
 const ZlibCM8 = 8
@@ -66,11 +65,6 @@ export class BatchData {
     await this.decodeTyped(decodedData)
   }
 
-  async unmarshalBinary(data: Buffer): Promise<void> {
-    const decodedData = RLP.decode(data)
-    await this.decodeTyped(decodedData)
-  }
-
   private async decodeTyped(
     decodedData: Uint8Array | RLP.NestedUint8Array
   ): Promise<void> {
@@ -120,7 +114,7 @@ export class SpanBatchElement {
   transactions: Buffer[]
 
   constructor() {
-    this.epochNum = big0
+    this.epochNum = 0n
     this.timestamp = 0
     this.transactions = []
   }
@@ -143,9 +137,9 @@ export class SpanBatch implements InnerBatchData, Batch {
     this.parentCheck = Buffer.alloc(20)
     this.l1OriginCheck = Buffer.alloc(20)
     this.genesisTimestamp = 0
-    this.chainId = big0
+    this.chainId = 0n
     this.batches = []
-    this.originBits = big0
+    this.originBits = 0n
     this.blockTxCounts = []
     this.sbtxs = new SpanBatchTxs()
   }
@@ -208,7 +202,7 @@ class BufferReader {
   decodeSpanBatchBits(count: number): bigint {
     const byteLength = Math.ceil(count / 8)
     const bitsBuffer = this.readBytes(byteLength)
-    let bits = big0
+    let bits = 0n
     for (const bit of bitsBuffer) {
       bits = (bits << toBigInt(8)) | BigInt(bit)
     }
@@ -218,7 +212,7 @@ class BufferReader {
 
 // SpanBatchSignature interface
 interface SpanBatchSignature {
-  v: bigint
+  v: number
   r: bigint
   s: bigint
 }
@@ -244,8 +238,8 @@ class SpanBatchLegacyTxData implements SpanBatchTxData {
   data: Buffer
 
   constructor(
-    value: bigint = big0,
-    gasPrice: bigint = big0,
+    value: bigint = 0n,
+    gasPrice: bigint = 0n,
     data: Buffer = Buffer.alloc(0)
   ) {
     this.value = value
@@ -278,8 +272,8 @@ class SpanBatchAccessListTxData implements SpanBatchTxData {
   accessList: any[]
 
   constructor(
-    value: bigint = big0,
-    gasPrice: bigint = big0,
+    value: bigint = 0n,
+    gasPrice: bigint = 0n,
     data: Buffer = Buffer.alloc(0),
     accessList: any[] = []
   ) {
@@ -316,9 +310,9 @@ class SpanBatchDynamicFeeTxData implements SpanBatchTxData {
   accessList: any[]
 
   constructor(
-    value: bigint = big0,
-    gasTipCap: bigint = big0,
-    gasFeeCap: bigint = big0,
+    value: bigint = 0n,
+    gasTipCap: bigint = 0n,
+    gasFeeCap: bigint = 0n,
     data: Buffer = Buffer.alloc(0),
     accessList: any[] = []
   ) {
@@ -404,7 +398,7 @@ class SpanBatchTx {
     gasLimit: number,
     to: string | null,
     chainID: bigint,
-    v: bigint,
+    v: number,
     r: bigint,
     s: bigint
   ): Promise<ethers.Transaction> {
@@ -421,7 +415,7 @@ class SpanBatchTx {
       data: ethers.hexlify(this.inner.data),
       chainId: Number(chainID),
       signature: {
-        v: ethers.toBigInt(v),
+        v,
         r: ethers.toBeHex(ethers.toBeHex(r), 32),
         s: ethers.toBeHex(ethers.toBeHex(s), 32),
       },
@@ -445,18 +439,29 @@ class SpanBatchTxs {
   txTypes: number[]
   totalLegacyTxCount: number
 
+  // metis extra fields
+  queueOriginBits: bigint // bitmap to save queue origins, 0 for sequencer, 1 for enqueue
+  l1TxOrigins: string[] // l1 tx origins, only used for enqueue tx
+  txSeqSigs: SpanBatchSignature[]
+  seqYParityBits: bigint
+
   constructor() {
     this.totalBlockTxCount = 0
-    this.contractCreationBits = big0
-    this.yParityBits = big0
+    this.contractCreationBits = 0n
+    this.yParityBits = 0n
     this.txSigs = []
     this.txNonces = []
     this.txGases = []
     this.txTos = []
     this.txDatas = []
-    this.protectedBits = big0
+    this.protectedBits = 0n
     this.txTypes = []
     this.totalLegacyTxCount = 0
+
+    this.queueOriginBits = 0n
+    this.l1TxOrigins = []
+    this.txSeqSigs = []
+    this.seqYParityBits = 0n
   }
 
   async decode(reader: BufferReader, blockTxCounts: number[]): Promise<void> {
@@ -477,7 +482,7 @@ class SpanBatchTxs {
       const s = reader.readBytes(32)
 
       this.txSigs.push({
-        v: big0, // Will be recovered later
+        v: 0, // Will be recovered later
         r: BigInt('0x' + r.toString('hex')),
         s: BigInt('0x' + s.toString('hex')),
       })
@@ -521,6 +526,34 @@ class SpanBatchTxs {
 
     // Decode protectedBits
     this.protectedBits = reader.decodeSpanBatchBits(this.totalLegacyTxCount)
+
+    // Decode queueOriginBits
+    this.queueOriginBits = reader.decodeSpanBatchBits(this.totalBlockTxCount)
+
+    // Decode seqYParityBits
+    this.seqYParityBits = reader.decodeSpanBatchBits(this.totalBlockTxCount)
+
+    // Decode txSeqSigs
+    this.txSeqSigs = []
+    for (let i = 0; i < this.totalBlockTxCount; i++) {
+      const r = reader.readBytes(32)
+      const s = reader.readBytes(32)
+
+      this.txSeqSigs.push({
+        v: this.getBit(this.yParityBits, i),
+        r: BigInt('0x' + r.toString('hex')),
+        s: BigInt('0x' + s.toString('hex')),
+      })
+    }
+
+    // Decode l1TxOrigins
+    const enqueueTxCounts = this.countBits(
+      this.queueOriginBits,
+      this.totalBlockTxCount
+    )
+    for (let i = 0; i < enqueueTxCounts; i++) {
+      this.l1TxOrigins.push(reader.readBytes(20).toString('hex'))
+    }
   }
 
   async recoverV(chainID: bigint): Promise<void> {
@@ -545,12 +578,12 @@ class SpanBatchTxs {
         // EIP-2718 transactions
         v = BigInt(yParityBit)
       }
-      this.txSigs[idx].v = v
+      this.txSigs[idx].v = toNumber(v)
     }
   }
 
   getBit(bits: bigint, position: number): number {
-    return ethers.toNumber((bits >> ethers.toBigInt(position)) & big1)
+    return ethers.toNumber((bits >> ethers.toBigInt(position)) & 1n)
   }
 
   countBits(bits: bigint, totalBits: number): number {
@@ -574,7 +607,7 @@ class SpanBatchTxs {
       const bit = this.getBit(this.contractCreationBits, idx)
       if (bit === 0) {
         if (this.txTos.length <= toIdx) {
-          throw new Error('Insufficient \'to\' addresses')
+          throw new Error("Insufficient 'to' addresses")
         }
         to = '0x' + this.txTos[toIdx].toString('hex')
         toIdx++
@@ -632,7 +665,7 @@ class SpanBatchTxs {
 // payload := block_count ++ origin_bits ++ block_tx_counts ++ txs
 // txs := contract_creation_bits ++ y_parity_bits ++ tx_sigs ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits
 export class RawSpanBatch implements InnerBatchData, Batch {
-  relTimestamp: number
+  l1Timestamp: number
   l1OriginNum: number
   parentCheck: Buffer
   l1OriginCheck: Buffer
@@ -643,18 +676,18 @@ export class RawSpanBatch implements InnerBatchData, Batch {
   txs: SpanBatchTxs
 
   constructor() {
-    this.relTimestamp = 0
+    this.l1Timestamp = 0
     this.l1OriginNum = 0
     this.parentCheck = Buffer.alloc(20)
     this.l1OriginCheck = Buffer.alloc(20)
     this.blockCount = 0
-    this.originBits = big0
+    this.originBits = 0n
     this.blockTxCounts = []
     this.txs = new SpanBatchTxs()
   }
 
   get timestamp(): number {
-    return this.relTimestamp
+    return this.l1Timestamp
   }
 
   get batchType(): number {
@@ -674,7 +707,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
 
     const reader = new BufferReader(buffer)
     // Decode relTimestamp
-    this.relTimestamp = reader.readUvarint()
+    this.l1Timestamp = reader.readUvarint()
     // Decode l1OriginNum
     this.l1OriginNum = reader.readUvarint()
     // Decode parentCheck
@@ -755,7 +788,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
   }
 
   private getBit(bits: bigint, position: number): number {
-    return Number((bits >> BigInt(position)) & big1)
+    return Number((bits >> BigInt(position)) & 1n)
   }
 }
 
@@ -934,7 +967,7 @@ export const batchReader = (
         }
         const remainingBuffer = decompressedBuffer.subarray(offset)
         try {
-          const {data: decodedData, remainder} = RLP.decode(
+          const { data: decodedData, remainder } = RLP.decode(
             remainingBuffer,
             true
           )

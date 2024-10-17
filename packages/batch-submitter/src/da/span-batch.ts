@@ -1,4 +1,3 @@
-// span-batch.ts
 import { BytesLike, getBytes } from 'ethers'
 import { SpanBatchTxs } from './span-batch-txs'
 import { SingularBatch } from './singular-batch'
