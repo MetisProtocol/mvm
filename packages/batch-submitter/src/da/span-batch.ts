@@ -1,4 +1,4 @@
-import { BytesLike, getBytes } from 'ethers'
+import { getBytes } from 'ethers'
 import { SpanBatchTxs } from './span-batch-txs'
 import { SingularBatch } from './singular-batch'
 import { encodeSpanBatchBits } from './utils'
@@ -14,14 +14,15 @@ export class SpanBatch {
     public parentCheck: Uint8Array,
     public l1OriginCheck: Uint8Array,
     public chainID: bigint,
-    public batches: SpanBatchElement[]
+    public batches: SpanBatchElement[],
+    private startBlock: number
   ) {
     this.originBits = BigInt(0)
     this.blockTxCounts = []
     this.sbtxs = new SpanBatchTxs()
   }
 
-  get batchType(): number {
+  static batchType(): number {
     return 1 // SpanBatchType
   }
 
@@ -35,6 +36,11 @@ export class SpanBatch {
       this.peek(0).timestamp > singularBatch.timestamp
     ) {
       throw new Error('span batch is not ordered')
+    }
+
+    if (this.batches.length === 0) {
+      // record the start block number of the first singular batch
+      this.startBlock = singularBatch.blockNumber
     }
 
     this.batches.push(this.singularBatchToElement(singularBatch))
@@ -69,6 +75,7 @@ export class SpanBatch {
     return new RawSpanBatch(
       spanStart.timestamp,
       spanEnd.epochNum,
+      this.startBlock,
       this.parentCheck,
       this.l1OriginCheck,
       this.batches.length,
@@ -103,6 +110,7 @@ export class RawSpanBatch {
   constructor(
     public l1Timestamp: number, // for here we use referenced l1 timestamp instead of the relative time
     public l1OriginNum: number,
+    public startBlock: number,
     public parentCheck: Uint8Array,
     public l1OriginCheck: Uint8Array,
     public blockCount: number,
@@ -121,6 +129,7 @@ export class RawSpanBatch {
   private encodePrefix(writer: Writer): void {
     writer.writeVarInt(this.l1Timestamp)
     writer.writeVarInt(this.l1OriginNum)
+    writer.writeVarInt(this.startBlock)
     writer.writeBytes(this.parentCheck)
     writer.writeBytes(this.l1OriginCheck)
   }

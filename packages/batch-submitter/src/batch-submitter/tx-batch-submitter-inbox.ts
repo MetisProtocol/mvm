@@ -36,8 +36,9 @@ import {
   TxData,
 } from '../da/types'
 import { CompressionAlgo } from '../da/channel-compressor'
-import { SpanBatchType } from '@eth-optimism/data-transport-layer/src/da/blob/channel'
 import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE, TX_GAS } from '../da/consts'
+import { calcBlobFee } from '../da/eip4844'
+import { SpanBatch } from '../da/span-batch'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
@@ -476,7 +477,7 @@ export class TransactionBatchSubmitterInbox {
           // default to brotli after fjord
           compressionAlgo: CompressionAlgo.Brotli,
           // default to span batch after fjord
-          batchType: SpanBatchType,
+          batchType: SpanBatch.batchType(),
           // use blob txs
           useBlobs: true,
         },

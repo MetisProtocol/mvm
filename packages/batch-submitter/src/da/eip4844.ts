@@ -6,12 +6,12 @@ const minBlobGasPrice = BlobTxMinBlobGasprice
 const blobGaspriceUpdateFraction = BlobTxBlobGaspriceUpdateFraction
 
 // CalcBlobFee calculates the blobfee from the header's excess blob gas field.
-const calcBlobFee = (excessBlobGas: bigint): bigint =>
+export const calcBlobFee = (excessBlobGas: bigint): bigint =>
   fakeExponential(minBlobGasPrice, excessBlobGas, blobGaspriceUpdateFraction)
 
 // fakeExponential approximates factor * e ** (numerator / denominator) using
 // Taylor expansion.
-const fakeExponential = (
+export const fakeExponential = (
   factor: bigint,
   numerator: bigint,
   denominator: bigint

@@ -1,16 +1,11 @@
 /* Imports: External */
-import {
-  Block,
-  ethers,
-  keccak256,
-  toBigInt,
-  toNumber,
-  TransactionResponse,
-} from 'ethers'
+import { Block, ethers, toBigInt, toNumber, TransactionResponse } from 'ethers'
 import {
   fromHexString,
+  L2Transaction,
   MinioClient,
   MinioConfig,
+  QueueOrigin,
   remove0x,
   toHexString,
   zlibDecompress,
@@ -29,6 +24,7 @@ import {
 import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
 import { MissingElementError } from './errors'
 import { fetchBatches } from '../../../da/blob'
+import { batchReader, Channel, RawSpanBatch } from '../../../da/blob/channel'
 
 const l2ToL1ChainId = {
   1088: 1, // for metis andromeda
@@ -103,7 +99,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
     const da = toNumber(calldata.subarray(0, 1))
     const compressType = toNumber(calldata.subarray(1, 2))
     let contextData = calldata.subarray(70)
-    let channels = []
+    let channels: Channel[] = []
     // da first
     if (da === 1) {
       const storageObject = remove0x(toHexString(contextData))
@@ -302,57 +298,46 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
         blockEntries,
       }
     } else {
-      const l2RpcProvider = new ethers.JsonRpcProvider(options.l2RpcProvider)
-
       // TODO: async parse the channels
       for (const channel of channels) {
-        for (let i = 0; i < channel.batches.length; i++) {
-          const batch = channel.batches[i]
-          if (batch.transactions.length === 0) {
-            console.log(`Channel ${channel.id} batch ${i} is empty, skipping`)
-            continue
-          }
+        const readBatch = await batchReader(channel.reader())
+        const batchData = await readBatch()
+        // since currently we can only handle span batch,
+        // so we can just skip the singular batch
+        const rawSpanBatch = batchData.inner as RawSpanBatch
+        const spanBatch = await rawSpanBatch.derive(toBigInt(options.l2ChainId))
 
-          // since we do not have a stable block time, so here we need to use
-          // the timestamp of the first transaction in the batch
-          const firstTxHash = keccak256('0x' + batch.transactions[0])
-          const firstTxReceipt = await l2RpcProvider.getTransactionReceipt(
-            firstTxHash
-          )
-
-          if (!firstTxReceipt) {
-            throw new Error(
-              `Tx or receipt of ${batch.transactions[0]} not found`
-            )
-          }
-
-          const block = await l2RpcProvider.getBlock(firstTxReceipt.blockNumber)
-          if (!block) {
-            throw new Error(`Block ${firstTxReceipt.blockNumber} not found`)
-          }
-
+        for (let i = 0; i < spanBatch.batches.length; i++) {
+          const batch = spanBatch.batches[i]
+          const l2BlockNumber = spanBatch.l2StartBlock + i
           blockEntries.push({
-            index: block.number,
+            index: l2BlockNumber,
             batchIndex: Number(extraData.batchIndex),
             timestamp: batch.timestamp,
-            transactions: batch.transactions.map((tx: string) => {
+            transactions: batch.transactions.map((tx: L2Transaction) => {
               // decode raw tx
-              const parsedTx = ethers.Transaction.from(`0x${tx}`)
               return {
-                index: block.number,
+                index: l2BlockNumber,
                 batchIndex: Number(extraData.batchIndex),
                 blockNumber: ethers.toNumber(batch.epochNum),
                 timestamp: batch.timestamp,
-                gasLimit: parsedTx.gasLimit.toString(10),
+                gasLimit: tx.gasLimit.toString(10),
                 target: ethers.ZeroAddress,
-                origin: null,
-                data: parsedTx.data,
-                queueOrigin: 'l1',
-                value: parsedTx.value.toString(10),
-                queueIndex: null,
-                decoded: parsedTx,
+                origin: tx.queueOrigin,
+                data: tx.data,
+                queueOrigin:
+                  tx.queueOrigin === QueueOrigin.Sequencer ? 'sequencer' : 'l1',
+                value: tx.value.toString(10),
+                queueIndex: tx.nonce,
+                decoded: decodeSequencerBatchTransaction(
+                  Buffer.from(remove0x(tx.rawTransaction), 'hex'),
+                  l2ChainId
+                ),
                 confirmed: true,
-                seqSign: '0x0,0x0,0x0', // TODO: do we need seq sign here?
+                seqSign:
+                  tx.queueOrigin === QueueOrigin.Sequencer
+                    ? `0x${tx.seqR},0x${tx.seqS},0x${tx.seqV}`
+                    : '0x0,0x0,0x0',
               }
             }),
             confirmed: true,

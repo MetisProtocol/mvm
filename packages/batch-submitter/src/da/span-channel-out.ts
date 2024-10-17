@@ -112,6 +112,7 @@ export class SpanChannelOut {
     const epochNum = block.txs[0].l1BlockNumber
 
     const singularBatch: SingularBatch = new SingularBatch(
+      block.blockNumber,
       block.parentHash,
       epochNum,
       epochHash,

@@ -2,6 +2,7 @@ import { L2Transaction } from '@metis.io/core-utils'
 
 export class SingularBatch {
   constructor(
+    public blockNumber: number,
     public parentHash: string,
     public epochNum: number,
     public epochHash: string,
@@ -9,7 +10,7 @@ export class SingularBatch {
     public transactions: L2Transaction[]
   ) {}
 
-  get batchType(): number {
+  static batchType(): number {
     return 0 // SingularBatchType
   }
 

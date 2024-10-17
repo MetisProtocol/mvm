@@ -2,7 +2,8 @@ import { PassThrough, Readable } from 'stream'
 import * as zlib from 'zlib'
 import { Frame } from './frame'
 import * as RLP from 'rlp'
-import { ethers, toBigInt, toNumber } from 'ethers'
+import { ethers, toBeHex, toBigInt, toNumber } from 'ethers'
+import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
 
 // Constants and Enums
 const ZlibCM8 = 8
@@ -111,7 +112,7 @@ export class BatchData {
 export class SpanBatchElement {
   epochNum: bigint
   timestamp: number
-  transactions: Buffer[]
+  transactions: L2Transaction[]
 
   constructor() {
     this.epochNum = 0n
@@ -124,9 +125,9 @@ export class SpanBatchElement {
 export class SpanBatch implements InnerBatchData, Batch {
   parentCheck: Buffer
   l1OriginCheck: Buffer
-  genesisTimestamp: number
   chainId: bigint
   batches: SpanBatchElement[]
+  l2StartBlock: number
 
   // Caching fields
   originBits: bigint
@@ -136,8 +137,8 @@ export class SpanBatch implements InnerBatchData, Batch {
   constructor() {
     this.parentCheck = Buffer.alloc(20)
     this.l1OriginCheck = Buffer.alloc(20)
-    this.genesisTimestamp = 0
     this.chainId = 0n
+    this.l2StartBlock = 0
     this.batches = []
     this.originBits = 0n
     this.blockTxCounts = []
@@ -211,14 +212,14 @@ class BufferReader {
 }
 
 // SpanBatchSignature interface
-interface SpanBatchSignature {
+export interface SpanBatchSignature {
   v: number
   r: bigint
   s: bigint
 }
 
 // SpanBatchTxData interface
-interface SpanBatchTxData {
+export interface SpanBatchTxData {
   value: bigint
   gasPrice?: bigint
   gasTipCap?: bigint
@@ -232,7 +233,7 @@ interface SpanBatchTxData {
 }
 
 // SpanBatchLegacyTxData class
-class SpanBatchLegacyTxData implements SpanBatchTxData {
+export class SpanBatchLegacyTxData implements SpanBatchTxData {
   value: bigint
   gasPrice: bigint
   data: Buffer
@@ -265,7 +266,7 @@ class SpanBatchLegacyTxData implements SpanBatchTxData {
 }
 
 // SpanBatchAccessListTxData class
-class SpanBatchAccessListTxData implements SpanBatchTxData {
+export class SpanBatchAccessListTxData implements SpanBatchTxData {
   value: bigint
   gasPrice: bigint
   data: Buffer
@@ -302,7 +303,7 @@ class SpanBatchAccessListTxData implements SpanBatchTxData {
 }
 
 // SpanBatchDynamicFeeTxData class
-class SpanBatchDynamicFeeTxData implements SpanBatchTxData {
+export class SpanBatchDynamicFeeTxData implements SpanBatchTxData {
   value: bigint
   gasTipCap: bigint
   gasFeeCap: bigint
@@ -344,15 +345,27 @@ class SpanBatchDynamicFeeTxData implements SpanBatchTxData {
   }
 }
 
-// SpanBatchTx class
-class SpanBatchTx {
-  inner: SpanBatchTxData
+export interface L2TransactionMeta {
+  l1BlockNumber: number
+  l1Timestamp: number
+  l1TxOrigin: string
+  queueOrigin: string
+  seqV: string | undefined | null
+  seqR: string | undefined | null
+  seqS: string | undefined | null
+}
 
-  constructor(inner?: SpanBatchTxData) {
+// SpanBatchTx class
+export class SpanBatchTx {
+  inner: SpanBatchTxData
+  txMeta: L2TransactionMeta
+
+  constructor(inner?: SpanBatchTxData, txMeta?: L2TransactionMeta) {
     if (!inner) {
       throw new Error('inner data not set')
     }
 
+    this.txMeta = txMeta
     this.inner = inner
   }
 
@@ -361,7 +374,7 @@ class SpanBatchTx {
   }
 
   // UnmarshalBinary decodes the canonical encoding of transactions
-  static unmarshalBinary(data: Buffer): SpanBatchTx {
+  static unmarshalBinary(data: Buffer, txMeta: L2TransactionMeta): SpanBatchTx {
     if (data.length === 0) {
       throw new Error('Transaction data is empty')
     }
@@ -373,7 +386,7 @@ class SpanBatchTx {
       const decoded = RLP.decode(data) as any[]
       const txData = new SpanBatchLegacyTxData()
       txData.fromRLPArray(decoded)
-      return new SpanBatchTx(txData)
+      return new SpanBatchTx(txData, txMeta)
     } else {
       // EIP2718 typed transaction
       const txType = data[0]
@@ -388,12 +401,12 @@ class SpanBatchTx {
         throw new Error(`Unsupported transaction type: ${txType}`)
       }
       txData.fromRLPArray(decoded)
-      return new SpanBatchTx(txData)
+      return new SpanBatchTx(txData, txMeta)
     }
   }
 
   // convertToFullTx converts SpanBatchTx to ethers.Transaction
-  async convertToFullTx(
+  convertToFullTx(
     nonce: number,
     gasLimit: number,
     to: string | null,
@@ -401,8 +414,8 @@ class SpanBatchTx {
     v: number,
     r: bigint,
     s: bigint
-  ): Promise<ethers.Transaction> {
-    return ethers.Transaction.from({
+  ): L2Transaction {
+    const tx = ethers.Transaction.from({
       type: this.txType,
       nonce,
       gasLimit,
@@ -420,11 +433,22 @@ class SpanBatchTx {
         s: ethers.toBeHex(ethers.toBeHex(s), 32),
       },
     })
+
+    const txAny = tx as any
+    txAny.l1BlockNumber = this.txMeta.l1BlockNumber
+    txAny.l1TxOrigin = this.txMeta.l1TxOrigin
+    txAny.queueOrigin = this.txMeta.queueOrigin
+    txAny.rawTransaction = tx.serialized
+    txAny.seqR = this.txMeta.seqR
+    txAny.seqS = this.txMeta.seqS
+    txAny.seqV = this.txMeta.seqV
+
+    return txAny as L2Transaction
   }
 }
 
 // SpanBatchTxs class
-class SpanBatchTxs {
+export class SpanBatchTxs {
   totalBlockTxCount: number
   contractCreationBits: bigint
   yParityBits: bigint
@@ -445,6 +469,9 @@ class SpanBatchTxs {
   txSeqSigs: SpanBatchSignature[]
   seqYParityBits: bigint
 
+  l1BlockNumber: number
+  l1Timestamp: number
+
   constructor() {
     this.totalBlockTxCount = 0
     this.contractCreationBits = 0n
@@ -462,9 +489,17 @@ class SpanBatchTxs {
     this.l1TxOrigins = []
     this.txSeqSigs = []
     this.seqYParityBits = 0n
+
+    this.l1BlockNumber = 0
+    this.l1Timestamp = 0
   }
 
-  async decode(reader: BufferReader, blockTxCounts: number[]): Promise<void> {
+  async decode(
+    reader: BufferReader,
+    blockTxCounts: number[],
+    l1BlockNumber: number,
+    l1Timestamp: number
+  ): Promise<void> {
     this.totalBlockTxCount = blockTxCounts.reduce((a, b) => a + b, 0)
 
     // Decode contractCreationBits
@@ -554,6 +589,9 @@ class SpanBatchTxs {
     for (let i = 0; i < enqueueTxCounts; i++) {
       this.l1TxOrigins.push(reader.readBytes(20).toString('hex'))
     }
+
+    this.l1BlockNumber = l1BlockNumber
+    this.l1Timestamp = l1Timestamp
   }
 
   async recoverV(chainID: bigint): Promise<void> {
@@ -596,11 +634,22 @@ class SpanBatchTxs {
     return count
   }
 
-  async fullTxs(chainID: bigint): Promise<Buffer[]> {
-    const txs: Buffer[] = []
+  async fullTxs(chainID: bigint): Promise<L2Transaction[]> {
+    const txs: L2Transaction[] = []
     let toIdx = 0
     for (let idx = 0; idx < this.totalBlockTxCount; idx++) {
-      const stx = SpanBatchTx.unmarshalBinary(this.txDatas[idx])
+      const stx = SpanBatchTx.unmarshalBinary(this.txDatas[idx], {
+        l1BlockNumber: this.l1BlockNumber,
+        l1Timestamp: this.l1Timestamp,
+        l1TxOrigin: this.l1TxOrigins[idx],
+        queueOrigin:
+          this.getBit(this.queueOriginBits, idx) === 0
+            ? QueueOrigin.Sequencer
+            : QueueOrigin.L1ToL2,
+        seqV: this.getBit(this.seqYParityBits, idx).toString(16),
+        seqR: this.txSeqSigs[idx].r.toString(16),
+        seqS: this.txSeqSigs[idx].s.toString(16),
+      })
       const nonce = this.txNonces[idx]
       const gas = this.txGases[idx]
       let to: string | null = null
@@ -615,9 +664,8 @@ class SpanBatchTxs {
       const v = this.txSigs[idx].v
       const r = this.txSigs[idx].r
       const s = this.txSigs[idx].s
-      const tx = await stx.convertToFullTx(nonce, gas, to, chainID, v, r, s)
-      const serializedTx = tx.serialized
-      txs.push(Buffer.from(serializedTx.substring(2), 'hex'))
+      const tx = stx.convertToFullTx(nonce, gas, to, chainID, v, r, s)
+      txs.push(tx)
     }
     return txs
   }
@@ -661,12 +709,13 @@ class SpanBatchTxs {
 //
 // SpanBatchType := 1
 // spanBatch := SpanBatchType ++ prefix ++ payload
-// prefix := rel_timestamp ++ l1_origin_num ++ parent_check ++ l1_origin_check
+// prefix := l1_timestamp ++ l1_origin_num ++ parent_check ++ l1_origin_check
 // payload := block_count ++ origin_bits ++ block_tx_counts ++ txs
-// txs := contract_creation_bits ++ y_parity_bits ++ tx_sigs ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits
+// txs := contract_creation_bits ++ y_parity_bits ++ tx_sigs ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits ++ queue_origin_bits ++ seq_y_parity_bits ++ tx_seq_sigs ++ l1_tx_origins
 export class RawSpanBatch implements InnerBatchData, Batch {
   l1Timestamp: number
   l1OriginNum: number
+  l2StartBlock: number
   parentCheck: Buffer
   l1OriginCheck: Buffer
 
@@ -678,6 +727,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
   constructor() {
     this.l1Timestamp = 0
     this.l1OriginNum = 0
+    this.l2StartBlock = 0
     this.parentCheck = Buffer.alloc(20)
     this.l1OriginCheck = Buffer.alloc(20)
     this.blockCount = 0
@@ -706,10 +756,12 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     }
 
     const reader = new BufferReader(buffer)
-    // Decode relTimestamp
+    // Decode l1Timestamp
     this.l1Timestamp = reader.readUvarint()
     // Decode l1OriginNum
     this.l1OriginNum = reader.readUvarint()
+    // Decode l2StartBlock
+    this.l2StartBlock = reader.readUvarint()
     // Decode parentCheck
     this.parentCheck = reader.readBytes(20)
     // Decode l1OriginCheck
@@ -735,11 +787,16 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     }
     // Decode txs
     this.txs = new SpanBatchTxs()
-    await this.txs.decode(reader, this.blockTxCounts)
+    await this.txs.decode(
+      reader,
+      this.blockTxCounts,
+      this.l1OriginNum,
+      this.l1Timestamp
+    )
   }
 
   // Implement the derive method
-  async derive(blockTimestamp: number, chainId: bigint): Promise<SpanBatch> {
+  async derive(chainId: bigint): Promise<SpanBatch> {
     if (this.blockCount === 0) {
       throw new Error('Empty span batch')
     }
@@ -763,7 +820,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     const spanBatch = new SpanBatch()
     spanBatch.parentCheck = this.parentCheck
     spanBatch.l1OriginCheck = this.l1OriginCheck
-    spanBatch.genesisTimestamp = 0
+    spanBatch.l2StartBlock = this.l2StartBlock
     spanBatch.chainId = chainId
     spanBatch.originBits = this.originBits
     spanBatch.blockTxCounts = this.blockTxCounts
@@ -775,7 +832,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
 
       // FIXME: since currently there is no determined block time and span batch genesis time,
       //        so just use block timestamp for now
-      batch.timestamp = blockTimestamp // genesisTimestamp + this.relTimestamp + blockTime * i
+      batch.timestamp = this.l1Timestamp // genesisTimestamp + this.relTimestamp + blockTime * i
       batch.epochNum = BigInt(blockOriginNums[i])
       batch.transactions = []
       for (let j = 0; j < this.blockTxCounts[i]; j++) {
