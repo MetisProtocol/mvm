@@ -32,7 +32,6 @@ import { Logger, Metrics } from '@eth-optimism/common-ts'
 import {
   AppendSequencerBatchParams,
   BatchContext,
-  CanonicalTransactionChainContract,
   encodeAppendSequencerBatch,
 } from '../transaction-chain-contract'
 
@@ -47,8 +46,8 @@ export interface AutoFixBatchOptions {
 }
 
 export class TransactionBatchSubmitter extends BatchSubmitter {
-  protected chainContract: CanonicalTransactionChainContract
-  protected mvmCtcContract: CanonicalTransactionChainContract
+  protected chainContract: Contract
+  protected mvmCtcContract: Contract
   protected seqsetContract: Contract
   protected l2ChainId: number
   protected syncing: boolean
@@ -191,13 +190,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.signer
     ).attach(ctcAddress)
 
-    this.chainContract = new CanonicalTransactionChainContract(
+    this.chainContract = new Contract(
       await unwrapped_OVM_CanonicalTransactionChain.getAddress(),
       getContractInterface('CanonicalTransactionChain'),
       this.signer
     )
     this.logger.info('Initialized new CTC', {
-      address: this.chainContract.address,
+      address: await this.chainContract.getAddress(),
     })
 
     const unwrapped_MVM_CanonicalTransaction = getContractFactory(
@@ -205,13 +204,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.signer
     ).attach(mvmCtcAddress)
 
-    this.mvmCtcContract = new CanonicalTransactionChainContract(
+    this.mvmCtcContract = new Contract(
       await unwrapped_MVM_CanonicalTransaction.getAddress(),
       getContractInterface('MVM_CanonicalTransaction'),
       this.signer // to be replaced
     )
     this.logger.info('Initialized new mvmCTC', {
-      address: this.mvmCtcContract.address,
+      address: await this.mvmCtcContract.getAddress(),
     })
 
     if (this.seqsetValidHeight > 0 && this.seqsetContractAddress) {
@@ -532,15 +531,16 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     //     this.encodeSequencerBatchOptions
     //   )
     // unsigned tx
-    const tx = this.useMinio
-      ? await this.mvmCtcContract.customPopulateTransaction.appendSequencerBatch(
-          batchParams,
-          this.encodeSequencerBatchOptions
-        )
-      : await this.chainContract.customPopulateTransaction.appendSequencerBatch(
-          batchParams,
-          this.encodeSequencerBatchOptions
-        )
+    const tx: ethers.TransactionRequest = {
+      to: this.useMinio
+        ? await this.mvmCtcContract.getAddress()
+        : await this.chainContract.getAddress(),
+      data: await encodeAppendSequencerBatch(
+        batchParams,
+        this.encodeSequencerBatchOptions
+      ),
+      nonce: await this.signer.getNonce(),
+    }
 
     // MPC enabled: prepare nonce, gasPrice
     if (this.mpcUrl) {
