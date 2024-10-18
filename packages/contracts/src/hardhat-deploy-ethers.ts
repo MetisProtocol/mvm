@@ -1,12 +1,14 @@
 /* Imports: External */
-import { Contract, ethers, Provider, Signer } from 'ethers'
+import { Contract, ethers } from 'ethers'
+import { Provider } from '@ethersproject/abstract-provider'
+import { Signer } from '@ethersproject/abstract-signer'
 import { sleep } from '@metis.io/core-utils'
 export const hexStringEquals = (stringA: string, stringB: string): boolean => {
-  if (!ethers.isHexString(stringA)) {
+  if (!ethers.utils.isHexString(stringA)) {
     throw new Error(`input is not a hex string: ${stringA}`)
   }
 
-  if (!ethers.isHexString(stringB)) {
+  if (!ethers.utils.isHexString(stringB)) {
     throw new Error(`input is not a hex string: ${stringB}`)
   }
 
@@ -47,9 +49,7 @@ export const registerAddress = async ({
     }
   )
 
-  const currentAddress = await Lib_AddressManager.getFunction(
-    'getAddress'
-  ).staticCall(name)
+  const currentAddress = await Lib_AddressManager.getAddress(name)
   if (address === currentAddress) {
     console.log(
       `✓ Not registering address for ${name} because it's already been correctly registered`
@@ -61,10 +61,7 @@ export const registerAddress = async ({
 
   console.log(`Waiting for registration to reflect on-chain...`)
   await waitUntilTrue(async () => {
-    return hexStringEquals(
-      await Lib_AddressManager.getFunction('getAddress').staticCall(name),
-      address
-    )
+    return hexStringEquals(await Lib_AddressManager.getAddress(name), address)
   })
 
   console.log(`✓ Registered address for ${name}`)
@@ -107,7 +104,7 @@ export const deployAndRegister = async ({
         abi = factory.interface
       }
       await postDeployAction(
-        await getAdvancedContract({
+        getAdvancedContract({
           hre,
           contract: new Contract(result.address, abi, signer),
         })
@@ -125,10 +122,10 @@ export const deployAndRegister = async ({
 // Returns a version of the contract object which modifies all of the input contract's methods to:
 // 1. Waits for a confirmed receipt with more than deployConfig.numDeployConfirmations confirmations.
 // 2. Include simple resubmission logic, ONLY for Kovan, which appears to drop transactions.
-export const getAdvancedContract = async (opts: {
+export const getAdvancedContract = (opts: {
   hre: any
   contract: Contract
-}): Promise<Contract> => {
+}): Contract => {
   // Temporarily override Object.defineProperty to bypass ether's object protection.
   const def = Object.defineProperty
   Object.defineProperty = (obj, propName, prop) => {
@@ -137,9 +134,9 @@ export const getAdvancedContract = async (opts: {
   }
 
   const contract = new Contract(
-    await opts.contract.getAddress(),
+    opts.contract.address,
     opts.contract.interface,
-    opts.contract.runner
+    opts.contract.signer || opts.contract.provider
   )
 
   // Now reset Object.defineProperty
@@ -165,9 +162,7 @@ export const getAdvancedContract = async (opts: {
       let timeout = 0
       while (true) {
         await sleep(1000)
-        const receipt = await (
-          contract.runner as Provider
-        ).getTransactionReceipt(tx.hash)
+        const receipt = await contract.provider.getTransactionReceipt(tx.hash)
         if (receipt === null) {
           timeout++
           if (timeout > maxTimeout && opts.hre.network.name === 'kovan') {

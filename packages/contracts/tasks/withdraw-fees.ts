@@ -3,6 +3,7 @@
 import { ethers } from 'ethers'
 import { task } from 'hardhat/config'
 import * as types from 'hardhat/internal/core/params/argumentTypes'
+import { LedgerSigner } from '@ethersproject/hardware-wallets'
 import { getContractFactory } from '../src/contract-defs'
 import { predeploys } from '../src/predeploys'
 
@@ -19,7 +20,7 @@ task('withdraw-fees')
   .addOptionalParam(
     'ledgerPath',
     'ledger key derivation path',
-    ethers.defaultPath,
+    ethers.utils.defaultPath,
     types.string
   )
   .addOptionalParam(
@@ -35,7 +36,7 @@ task('withdraw-fees')
     types.string
   )
   .setAction(async (args, hre: any) => {
-    const provider = new ethers.JsonRpcProvider(args.contractsRpcUrl)
+    const provider = new ethers.providers.JsonRpcProvider(args.contractsRpcUrl)
     let signer: ethers.Signer
     if (!args.useLedger) {
       if (!args.contractsDeployerKey) {
@@ -43,9 +44,7 @@ task('withdraw-fees')
       }
       signer = new ethers.Wallet(args.contractsDeployerKey).connect(provider)
     } else {
-      // FIXME: not sure how to support hardware wallet in ethers v6 for now, need to figure it out later
-      // signer = new LedgerSigner(provider, 'default', args.ledgerPath)
-      throw new Error('Ledger not supported in ethers v6')
+      signer = new LedgerSigner(provider, 'default', args.ledgerPath)
     }
     if (args.dryRun) {
       console.log('Performing dry run of fee withdrawal...')
@@ -57,23 +56,23 @@ task('withdraw-fees')
 
     const signerAddress = await signer.getAddress()
     const signerBalance = await provider.getBalance(signerAddress)
-    const signerBalanceInETH = ethers.formatEther(signerBalance)
+    const signerBalanceInETH = ethers.utils.formatEther(signerBalance)
     console.log(
       `Using L2 signer ${signerAddress} with a balance of ${signerBalanceInETH} ETH`
     )
-    const l1FeeWallet = await l2FeeVault.getFunction('l1FeeWallet').staticCall()
-    const amount = await provider.getBalance(await l2FeeVault.getAddress())
-    const amountInETH = ethers.formatEther(amount)
+    const l1FeeWallet = await l2FeeVault.l1FeeWallet()
+    const amount = await provider.getBalance(l2FeeVault.address)
+    const amountInETH = ethers.utils.formatEther(amount)
     console.log(
       `${
         args.dryRun ? '[DRY RUN] ' : ''
       }Withdrawing ${amountInETH} ETH to the L1 address: ${l1FeeWallet}`
     )
     if (args.dryRun) {
-      await l2FeeVault.getFunction('withdraw').estimateGas()
+      await l2FeeVault.estimateGas.withdraw()
       return
     } else {
-      const withdrawTx = await l2FeeVault.getFunction('withdraw').send()
+      const withdrawTx = await l2FeeVault.withdraw()
       console.log(
         `Withdrawal complete: https://optimistic.etherscan.io/tx/${withdrawTx.hash}`
       )

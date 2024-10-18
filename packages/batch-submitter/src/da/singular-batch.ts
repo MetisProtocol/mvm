@@ -1,4 +1,4 @@
-import { L2Transaction } from '@metis.io/core-utils'
+import { L2Transaction } from '@localtest911/core-utils'
 
 export class SingularBatch {
   constructor(

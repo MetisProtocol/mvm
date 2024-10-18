@@ -22,7 +22,7 @@ import {
   sleep,
   toHexString,
   zlibCompressHexString,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 
 /* Internal Imports */
 import { MpcClient, TransactionSubmitter } from '../utils'

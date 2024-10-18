@@ -22,7 +22,7 @@ task('set-l2-gasprice')
     types.string
   )
   .setAction(async (args, hre: any, runSuper) => {
-    const provider = new ethers.JsonRpcProvider(args.contractsRpcUrl)
+    const provider = new ethers.providers.JsonRpcProvider(args.contractsRpcUrl)
     const signer = new ethers.Wallet(args.contractsDeployerKey).connect(
       provider
     )
@@ -37,19 +37,20 @@ task('set-l2-gasprice')
 
     const addr = await signer.getAddress()
     console.log(`Using signer ${addr}`)
-    const owner = await GasPriceOracle.owner()
+    const owner = await GasPriceOracle.callStatic.owner()
     if (owner !== addr) {
       throw new Error(`Incorrect key. Owner ${owner}, Signer ${addr}`)
     }
 
-    const gasPrice = await GasPriceOracle.gasPrice()
+    const gasPrice = await GasPriceOracle.callStatic.gasPrice()
     console.log(`Gas Price is currently ${gasPrice.toString()}`)
     console.log(`Setting Gas Price to ${args.l2GasPrice}`)
 
-    const tx = await GasPriceOracle.connect(signer)
-      .getFunction('setGasPrice')
-      .send(args.l2GasPrice, { gasPrice: args.transactionGasPrice })
+    const tx = await GasPriceOracle.connect(signer).setGasPrice(
+      args.l2GasPrice,
+      { gasPrice: args.transactionGasPrice }
+    )
 
     const receipt = await tx.wait()
-    console.log(`Success - ${tx.hash}`)
+    console.log(`Success - ${receipt.transactionHash}`)
   })

@@ -21,7 +21,7 @@ import {
   remove0x,
   RollupInfo,
   toHexString,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */

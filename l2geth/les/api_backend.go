@@ -378,3 +378,11 @@ func (b *LesApiBackend) SetPreRespan(ctx context.Context, oldAddress common.Addr
 func (b *LesApiBackend) FinalizedBlockNumber() (uint64, error) {
 	return b.CurrentBlock().NumberU64(), nil
 }
+
+func (b *LesApiBackend) SyncStatus() (*types.SyncStatus, error) {
+	return nil, nil
+}
+
+func (b *LesApiBackend) L1OriginOfL2(l2block uint64) (*types.L1BlockRef, error) {
+	return nil, nil
+}

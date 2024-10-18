@@ -1,4 +1,5 @@
-import { Signer, Provider, Contract } from 'ethers'
+import { Signer, Contract } from 'ethers'
+import { Provider } from '@ethersproject/abstract-provider'
 import { getContractArtifact } from './contract-artifacts'
 import { getDeployedContractArtifact } from './contract-deployed-artifacts'
 import { predeploys } from './predeploys'
@@ -29,13 +30,12 @@ const checkSignerType = (signerOrProvider: Signer | Provider) => {
   if (!signerOrProvider) {
     throw Error('signerOrProvider argument is undefined')
   }
-  // FIXME: This check is not working in ethers v6
-  // if (
-  //   !Provider.isProvider(signerOrProvider) &&
-  //   !Signer.isSigner(signerOrProvider)
-  // ) {
-  //   throw Error('signerOrProvider argument is the wrong type')
-  // }
+  if (
+    !Provider.isProvider(signerOrProvider) &&
+    !Signer.isSigner(signerOrProvider)
+  ) {
+    throw Error('signerOrProvider argument is the wrong type')
+  }
 }
 
 /**

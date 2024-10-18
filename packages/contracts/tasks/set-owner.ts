@@ -1,5 +1,6 @@
 /* Imports: External */
 import { ethers } from 'ethers'
+import { LedgerSigner } from '@ethersproject/hardware-wallets'
 import { task } from 'hardhat/config'
 import * as types from 'hardhat/internal/core/params/argumentTypes'
 
@@ -18,7 +19,7 @@ task('set-owner')
   .addOptionalParam(
     'ledgerPath',
     'ledger key derivation path',
-    ethers.defaultPath,
+    ethers.utils.defaultPath,
     types.string
   )
   .addOptionalParam(
@@ -40,15 +41,12 @@ task('set-owner')
     types.string
   )
   .setAction(async (args, hre: any, runSuper) => {
-    const provider = new ethers.JsonRpcProvider(args.contractsRpcUrl)
+    const provider = new ethers.providers.JsonRpcProvider(args.contractsRpcUrl)
     let signer: ethers.Signer
     if (!args.useLedger) {
       signer = new ethers.Wallet(args.contractsDeployerKey).connect(provider)
     } else {
-      // TODO: not sure how to support hardware wallet in ethers v6 for now,
-      //       need to figure it out later
-      // signer = new LedgerSigner(provider, 'default', args.ledgerPath)
-      throw new Error('Ledger not supported in ethers v6')
+      signer = new LedgerSigner(provider, 'default', args.ledgerPath)
     }
 
     const Ownable = getContractFactory('Ownable')
@@ -57,7 +55,7 @@ task('set-owner')
 
     const addr = await signer.getAddress()
     console.log(`Using signer ${addr}`)
-    const owner = await Ownable.getFunction('owner').staticCall()
+    const owner = await Ownable.callStatic.owner()
     if (owner !== addr) {
       throw new Error(`Incorrect key. Owner ${owner}, Signer ${addr}`)
     }
@@ -65,12 +63,10 @@ task('set-owner')
     console.log(`Owner is currently ${owner.toString()}`)
     console.log(`Setting owner to ${args.owner}`)
 
-    const tx = await Ownable.connect(signer)
-      .getFunction('transferOwnership')
-      .send(args.owner, {
-        gasPrice: args.transactionGasPrice,
-      })
+    const tx = await Ownable.connect(signer).transferOwnership(args.owner, {
+      gasPrice: args.transactionGasPrice,
+    })
 
     const receipt = await tx.wait()
-    console.log(`Success - ${tx.hash}`)
+    console.log(`Success - ${receipt.transactionHash}`)
   })

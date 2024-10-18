@@ -68,12 +68,6 @@ const config = {
         },
       },
       {
-        version: '0.8.15',
-        settings: {
-          optimizer: { enabled: true, runs: 10_000 },
-        },
-      },
-      {
         version: '0.5.17', // Required for WETH9
         settings: {
           optimizer: { enabled: true, runs: 10_000 },
@@ -100,20 +94,20 @@ const config = {
     deploy: './deploy',
     deployments: './deployments',
   },
-  // namedAccounts: {
-  //   deployer: {
-  //     default: 0,
-  //   },
-  // },
-  // gasReporter: {
-  //   enabled: enableGasReport,
-  //   currency: 'USD',
-  //   gasPrice: 100,
-  //   outputFile: process.env.CI ? 'gas-report.txt' : undefined,
-  // },
-  // etherscan: {
-  //   apiKey: process.env.ETHERSCAN_API_KEY,
-  // },
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+  },
+  gasReporter: {
+    enabled: enableGasReport,
+    currency: 'USD',
+    gasPrice: 100,
+    outputFile: process.env.CI ? 'gas-report.txt' : undefined,
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
 }
 
 if (
