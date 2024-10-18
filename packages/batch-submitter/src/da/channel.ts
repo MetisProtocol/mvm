@@ -1,5 +1,5 @@
 // channel.ts
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv6'
 import { ChannelBuilder } from './channel-builder'
 import {
   BatchToInboxElement,

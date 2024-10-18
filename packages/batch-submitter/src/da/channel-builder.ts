@@ -1,5 +1,5 @@
 // channelBuilder.ts
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv6'
 import {
   BatchToInboxElement,
   ChannelConfig,
@@ -7,7 +7,7 @@ import {
   RollupConfig,
 } from './types'
 import { SpanChannelOut } from './span-channel-out'
-import { L2Block } from '@metis.io/core-utils'
+import { L2Block } from '@localtest911/core-utils'
 import { ChannelCompressor } from './channel-compressor'
 
 export class ChannelBuilder {

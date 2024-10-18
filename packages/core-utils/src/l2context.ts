@@ -7,7 +7,7 @@ import {
   formatTransactionResponse,
   toBigInt,
   toNumber,
-} from 'ethers'
+} from 'ethersv6'
 import { L2Block, L2Transaction } from './batches'
 
 /**

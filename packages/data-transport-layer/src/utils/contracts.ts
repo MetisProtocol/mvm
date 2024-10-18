@@ -1,13 +1,13 @@
 /* Imports: External */
-import { Contract, Signer, Provider, ethers } from 'ethers'
-import { getContractInterface } from '@metis.io/contracts'
+import { Contract, Signer, Provider, ethers } from 'ethersv6'
+import { getContractDefinition } from '@metis.io/contracts'
 
 export const loadContract = (
   name: string,
   address: string,
   provider: Provider
 ): Contract => {
-  return new Contract(address, getContractInterface(name) as any, provider)
+  return new Contract(address, getContractDefinition(name).abi, provider)
 }
 
 export const loadProxyFromManager = async (

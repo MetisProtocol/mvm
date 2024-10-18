@@ -1,10 +1,6 @@
 /* External Imports */
-import { providers, BigNumber } from 'ethers'
-import {
-  BlockWithTransactions,
-  TransactionResponse,
-} from '@ethersproject/abstract-provider'
-import { L2Transaction, L2Block, RollupInfo } from '@metis.io/core-utils'
+import { TransactionResponse, Block, JsonRpcProvider, toNumber } from 'ethers'
+import { L2Transaction, L2Block, RollupInfo } from '@localtest911/core-utils'
 
 /**
  * Unformatted Transaction & Blocks. This exists because Geth currently
@@ -19,12 +15,12 @@ interface UnformattedL2Transaction extends TransactionResponse {
   rawTransaction: string
 }
 
-interface UnformattedL2Block extends BlockWithTransactions {
+interface UnformattedL2Block extends Block {
   stateRoot: string
-  transactions: [UnformattedL2Transaction]
+  l2Transactions: UnformattedL2Transaction[]
 }
 
-export class MockchainProvider extends providers.JsonRpcProvider {
+export class MockchainProvider extends JsonRpcProvider {
   public mockBlockNumber: number = 1
   public numBlocksToReturn: number = 2
   public mockBlocks: L2Block[] = []
@@ -80,7 +76,7 @@ export class MockchainProvider extends providers.JsonRpcProvider {
         if (params.length === 0) {
           throw new Error(`Invalid params for ${endpoint}`)
         }
-        const blockNumber = BigNumber.from((params as any)[0]).toNumber()
+        const blockNumber = toNumber((params as any)[0])
         return this.mockBlocks[blockNumber]
       default:
         throw new Error('Unsupported endpoint!')
@@ -99,14 +95,13 @@ export class MockchainProvider extends providers.JsonRpcProvider {
     end: number = this.mockBlocks.length
   ) {
     for (let i = start; i < end; i++) {
-      this.mockBlocks[i].timestamp = timestamp
-        ? timestamp
-        : this.mockBlocks[i].timestamp
-      this.mockBlocks[i].transactions[0] = {
-        ...this.mockBlocks[i].transactions[0],
+      const mockBlock = this.mockBlocks[i] as any
+      mockBlock.timestamp = timestamp ? timestamp : this.mockBlocks[i].timestamp
+      mockBlock.prefetchedTransactions[0] = {
+        ...mockBlock.transactions[0],
         ...tx,
       }
-      this.mockBlocks[i].stateRoot = stateRoot
+      mockBlock.stateRoot = stateRoot
     }
   }
 
@@ -116,33 +111,33 @@ export class MockchainProvider extends providers.JsonRpcProvider {
 
   public chainId(): number {
     // We know that mockBlocks will always have at least 1 value
-    return this.mockBlocks[1].transactions[0].chainId
+    return toNumber(this.mockBlocks[1].prefetchedTransactions[0].chainId)
   }
 
   private _toL2Block(block: UnformattedL2Block): L2Block {
-    const txType: number = parseInt(block.transactions[0].signatureHashType, 10)
+    const txType: number = block.prefetchedTransactions[0].type
     const l1BlockNumber: number = parseInt(
-      block.transactions[0].l1BlockNumber,
+      block.l2Transactions[0].l1BlockNumber,
       10
     )
-    const queueOrigin: string = block.transactions[0].queueOrigin
-    const l1TxOrigin: string = block.transactions[0].l1MessageSender
-    const l2Transaction: L2Transaction = {
-      ...block.transactions[0],
-      // Rename the incorrectly named fields
-      l1TxOrigin,
-      queueOrigin,
-      l1BlockNumber,
-    }
+    const queueOrigin: string = block.l2Transactions[0].queueOrigin
+    const l1TxOrigin: string = block.l2Transactions[0].l1MessageSender
+    const prefecthedTx = block.prefetchedTransactions[0]
+    const l2Transaction = prefecthedTx as any
+    l2Transaction.l1BlockNumber = l1BlockNumber
+    l2Transaction.queueOrigin = queueOrigin
+    l2Transaction.l1TxOrigin = l1TxOrigin
+    l2Transaction.rawTransaction = block.l2Transactions[0].rawTransaction
+
     // Add an interface here to fix the type casing into L2Block during Object.assign
     interface PartialL2Block {
-      transactions: [L2Transaction]
+      l2Transactions: [L2Transaction]
     }
     const partialBlock: PartialL2Block = {
-      transactions: [l2Transaction],
+      l2Transactions: [l2Transaction as L2Transaction],
     }
-    const l2Block: L2Block = { ...block, ...partialBlock }
-    return l2Block
+    const l2Block = { ...block, ...partialBlock }
+    return l2Block as unknown as L2Block
   }
 }
 

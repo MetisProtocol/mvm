@@ -1,7 +1,7 @@
 import { expect } from '../setup'
 import { MpcClient } from '../../src/utils/index'
 import { randomUUID, sign } from 'crypto'
-import { utils, ethers, UnsignedTransaction } from 'ethers'
+import { ethers, TransactionRequest } from 'ethers'
 
 describe('MpcClient Test', async () => {
   let mpcClient: MpcClient
@@ -24,7 +24,7 @@ describe('MpcClient Test', async () => {
     // console.log('old and new hex', hex, decodeHex)
     expect(decodeHex).to.equal(hex)
 
-    const transaction = ethers.utils.parseTransaction(hex)
+    const transaction = ethers.Transaction.from(hex)
 
     console.log('Nonce:', transaction.nonce)
     console.log('Gas Price:', transaction.gasPrice.toString())
@@ -32,9 +32,9 @@ describe('MpcClient Test', async () => {
     console.log('To:', transaction.to)
     console.log('Value:', transaction.value.toString())
     console.log('Data:', transaction.data)
-    console.log('V:', transaction.v)
-    console.log('R:', transaction.r)
-    console.log('S:', transaction.s)
+    console.log('V:', transaction.signature.v)
+    console.log('R:', transaction.signature.r)
+    console.log('S:', transaction.signature.s)
   })
 
   it.skip('should get mpc info', async () => {
@@ -48,12 +48,12 @@ describe('MpcClient Test', async () => {
   it.skip('should post data', async () => {
     // make a tx,
     const nonce: number = 3
-    const transaction: UnsignedTransaction = {
+    const transaction = {
       nonce,
-      gasPrice: ethers.utils.parseUnits('30', 'gwei'),
-      gasLimit: ethers.utils.parseUnits('300000', 'wei'),
+      gasPrice: ethers.parseUnits('30', 'gwei'),
+      gasLimit: ethers.parseUnits('300000', 'wei'),
       to: '0x9257d9d478fb71B98Cc2d1866B1A8C504a8B64C7',
-      value: ethers.utils.parseEther('0'),
+      value: ethers.parseEther('0'),
       data: '0xa8cda37b0000000000000000000000000000000000000000000000000000000000000257000000008f00000600000500000000000000000000000000000000000001000000006347af480000766be1000001000000006347b49d0000766c3b000002000000006347be750000766ce0000002000000006347bf2a0000766cec00183d103692b0000268aabb2eb63eb08e4bae179d57e135888dd2e619a7681b5f585d9df6e4410b9aef14',
       chainId: 17000,
     }
@@ -75,7 +75,7 @@ describe('MpcClient Test', async () => {
     // }
 
     try {
-      const jsonTx = ethers.utils.serializeTransaction(transaction)
+      const jsonTx = ethers.Transaction.from(transaction).unsignedSerialized
       // const transactionHash = ethers.utils.keccak256(
       //   ethers.utils.defaultAbiCoder.encode(
       //     ['address', 'uint256', 'uint256', 'uint256', 'uint256', 'bytes'],

@@ -1,5 +1,5 @@
 // span-channel-out.ts
-import { ethers, randomBytes } from 'ethers'
+import { ethers, randomBytes } from 'ethersv6'
 import RLP from 'rlp'
 import { ChannelCompressor } from './channel-compressor'
 import { SpanBatch } from './span-batch'
@@ -10,7 +10,7 @@ import {
   FRAME_OVERHEAD_SIZE,
   MAX_RLP_BYTES_PER_CHANNEL,
 } from './consts'
-import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
+import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
 
 export class SpanChannelOut {
   private _id: Uint8Array
@@ -42,7 +42,8 @@ export class SpanChannelOut {
       new Uint8Array(20),
       new Uint8Array(20),
       chainId,
-      []
+      [],
+      0
     )
     this.maxBlocksPerSpanBatch = opts?.maxBlocksPerSpanBatch ?? 0
     this.sealedRLPBytes = 0
@@ -69,7 +70,8 @@ export class SpanChannelOut {
       this.spanBatch.parentCheck,
       this.spanBatch.l1OriginCheck,
       this.spanBatch.chainID,
-      []
+      [],
+      0
     )
   }
 

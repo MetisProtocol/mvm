@@ -7,12 +7,8 @@ import {
   Signer,
   toNumber,
   TransactionReceipt,
-} from 'ethers'
-import {
-  getContractFactory,
-  getContractInterface,
-  getContractInterface as getNewContractInterface,
-} from '@metis.io/contracts'
+} from 'ethersv6'
+import { getContractDefinition } from '@metis.io/contracts'
 
 import {
   Batch,
@@ -25,7 +21,7 @@ import {
   remove0x,
   RollupInfo,
   toHexString,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
@@ -185,28 +181,30 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       return
     }
 
-    const unwrapped_OVM_CanonicalTransactionChain = getContractFactory(
-      'CanonicalTransactionChain',
+    const unwrapped_OVM_CanonicalTransactionChain = new Contract(
+      ctcAddress,
+      getContractDefinition('CanonicalTransactionChain').abi,
       this.signer
-    ).attach(ctcAddress)
+    )
 
     this.chainContract = new Contract(
       await unwrapped_OVM_CanonicalTransactionChain.getAddress(),
-      getContractInterface('CanonicalTransactionChain'),
+      getContractDefinition('CanonicalTransactionChain').abi,
       this.signer
     )
     this.logger.info('Initialized new CTC', {
       address: await this.chainContract.getAddress(),
     })
 
-    const unwrapped_MVM_CanonicalTransaction = getContractFactory(
-      'MVM_CanonicalTransaction',
+    const unwrapped_MVM_CanonicalTransaction = new Contract(
+      mvmCtcAddress,
+      getContractDefinition('MVM_CanonicalTransaction').abi,
       this.signer
-    ).attach(mvmCtcAddress)
+    )
 
     this.mvmCtcContract = new Contract(
       await unwrapped_MVM_CanonicalTransaction.getAddress(),
-      getContractInterface('MVM_CanonicalTransaction'),
+      getContractDefinition('MVM_CanonicalTransaction').abi,
       this.signer // to be replaced
     )
     this.logger.info('Initialized new mvmCTC', {
@@ -952,7 +950,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   }> {
     const manager = new Contract(
       this.addressManagerAddress,
-      getNewContractInterface('Lib_AddressManager'),
+      getContractDefinition('Lib_AddressManager').abi,
       this.signer.provider
     )
 
@@ -962,7 +960,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
 
     const container = new Contract(
       addr,
-      getNewContractInterface('IChainStorageContainer'),
+      getContractDefinition('IChainStorageContainer').abi,
       this.signer.provider
     )
 

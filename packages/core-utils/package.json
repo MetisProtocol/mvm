@@ -1,6 +1,6 @@
 {
-  "name": "@metis.io/core-utils",
-  "version": "0.6.2",
+  "name": "@localtest911/core-utils",
+  "version": "0.7.2",
   "main": "dist/index",
   "files": [
     "dist/*"
@@ -10,7 +10,6 @@
   "license": "MIT",
   "scripts": {
     "all": "yarn clean && yarn build && yarn test && yarn lint:fix && yarn lint",
-    "postinstall": "patch-package",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist/ ./tsconfig.build.tsbuildinfo",
     "lint": "yarn lint:fix && yarn lint:check",
@@ -52,7 +51,7 @@
   "dependencies": {
     "@metis.io/minio": "^7.0.28",
     "chai": "^4.3.4",
-    "ethers": "6.13.4",
+    "ethersv6": "npm:ethers@~6.13.4",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.2.32"
   }

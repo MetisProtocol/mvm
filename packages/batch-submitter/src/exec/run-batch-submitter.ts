@@ -1,8 +1,8 @@
 /* External Imports */
-import { Bcfg, injectL2Context, MinioConfig } from '@metis.io/core-utils'
+import { Bcfg, injectL2Context, MinioConfig } from '@localtest911/core-utils'
 import * as Sentry from '@sentry/node'
 import { createMetricsServer, Logger, Metrics } from '@eth-optimism/common-ts'
-import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethers'
+import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethersv6'
 import * as dotenv from 'dotenv'
 import Config from 'bcfg'
 

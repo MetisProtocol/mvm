@@ -1,5 +1,11 @@
 /* Imports: External */
-import { Block, ethers, toBigInt, toNumber, TransactionResponse } from 'ethers'
+import {
+  Block,
+  ethers,
+  toBigInt,
+  toNumber,
+  TransactionResponse,
+} from 'ethersv6'
 import {
   fromHexString,
   L2Transaction,
@@ -9,7 +15,7 @@ import {
   remove0x,
   toHexString,
   zlibDecompress,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 
 /* Imports: Internal */
 import {

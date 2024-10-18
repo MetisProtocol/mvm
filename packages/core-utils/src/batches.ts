@@ -1,5 +1,5 @@
 /* External Imports */
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv6'
 
 export interface RollupInfo {
   mode: 'sequencer' | 'verifier'

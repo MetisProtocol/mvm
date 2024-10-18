@@ -7,9 +7,14 @@ import {
   TransactionReceipt,
   toNumber,
   ContractTransaction,
-} from 'ethers'
-import { getContractFactory } from '@metis.io/contracts'
-import { L2Block, RollupInfo, Bytes32, remove0x } from '@metis.io/core-utils'
+} from 'ethersv6'
+import { getContractDefinition } from '@metis.io/contracts'
+import {
+  L2Block,
+  RollupInfo,
+  Bytes32,
+  remove0x,
+} from '@localtest911/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
@@ -113,14 +118,17 @@ export class StateBatchSubmitter extends BatchSubmitter {
       return
     }
 
-    this.chainContract = getContractFactory(
-      'StateCommitmentChain',
+    this.chainContract = new Contract(
+      sccAddress,
+      getContractDefinition('StateCommitmentChain').abi,
       this.signer
-    ).attach(sccAddress) as Contract
-    this.ctcContract = getContractFactory(
-      'CanonicalTransactionChain',
+    )
+
+    this.ctcContract = new Contract(
+      ctcAddress,
+      getContractDefinition('CanonicalTransactionChain').abi,
       this.signer
-    ).attach(ctcAddress) as Contract
+    )
 
     this.logger.info('Connected Optimism contracts', {
       stateCommitmentChain: this.chainContract.address,

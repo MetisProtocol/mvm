@@ -1,4 +1,4 @@
-import { fromHexString } from '@metis.io/core-utils'
+import { fromHexString } from '@localtest911/core-utils'
 import * as url from 'url'
 
 export const validators = {

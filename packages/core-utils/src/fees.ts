@@ -3,7 +3,7 @@
  */
 
 import { remove0x } from './common'
-import { toBigInt } from 'ethers'
+import { toBigInt } from 'ethersv6'
 
 const txDataZeroGas = 4
 const txDataNonZeroGasEIP2028 = 16

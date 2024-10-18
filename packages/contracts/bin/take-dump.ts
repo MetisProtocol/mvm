@@ -4,13 +4,19 @@ import * as path from 'path'
 import * as mkdirp from 'mkdirp'
 
 const ensure = (value, key) => {
-  if (typeof value === 'undefined' || value === null || Number.isNaN(value)) {
+  if (
+    typeof value === 'undefined' ||
+    value === null ||
+    value === 'null' ||
+    Number.isNaN(value)
+  ) {
     throw new Error(`${key} is undefined, null or NaN`)
   }
 }
 
 /* Internal Imports */
 import { makeL2GenesisFile } from '../src/make-genesis'
+import { ethers } from 'ethers'
 ;(async () => {
   const outdir = path.resolve(__dirname, '../dist/dumps')
   const outfile = path.join(outdir, 'state-dump.latest.json')
@@ -57,16 +63,16 @@ import { makeL2GenesisFile } from '../src/make-genesis'
   // The block signer address, added to the block extradata for clique consensus
   const blockSignerAddress = env.BLOCK_SIGNER_ADDRESS
   // The L1 standard bridge address for cross domain messaging
-  const l1StandardBridgeAddress = env.L1_STANDARD_BRIDGE_ADDRESS
+  const l1StandardBridgeAddress = ethers.constants.AddressZero // env.L1_STANDARD_BRIDGE_ADDRESS
   // The L1 fee wallet address, used to restrict the account that fees on L2 can
   // be withdrawn to on L1
   const l1FeeWalletAddress = env.L1_FEE_WALLET_ADDRESS
   // The L1 cross domain messenger address, used for cross domain messaging
-  const l1CrossDomainMessengerAddress = env.L1_CROSS_DOMAIN_MESSENGER_ADDRESS
+  const l1CrossDomainMessengerAddress = ethers.constants.AddressZero // env.L1_CROSS_DOMAIN_MESSENGER_ADDRESS
 
   const l1MetisAddress = env.METIS_ADDRESS
 
-  const l1MetisManagerAddress = env.L1_METIS_MANAGER_ADDRESS
+  const l1MetisManagerAddress = ethers.constants.AddressZero // env.L1_METIS_MANAGER_ADDRESS
   const gasPriceOracleMinErc20BridgeCost = parseInt(
     env.MIN_L1_ERC20_BRIDGE_COST,
     10

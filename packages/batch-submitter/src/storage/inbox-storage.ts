@@ -2,7 +2,7 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Logger } from '@eth-optimism/common-ts'
-import { toBigInt } from 'ethers'
+import { toBigInt } from 'ethersv6'
 
 const INBOX_OK_FILE = 'inbox_ok.json'
 const INBOX_FAIL_FILE = 'inbox_fail.json'

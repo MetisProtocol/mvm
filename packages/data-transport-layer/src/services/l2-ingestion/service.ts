@@ -5,7 +5,7 @@ import axios from 'axios'
 import bfj from 'bfj'
 import { Gauge } from 'prom-client'
 import path from 'path'
-import { toNumber, JsonRpcProvider } from 'ethers'
+import { toNumber, JsonRpcProvider } from 'ethersv6'
 
 /* Imports: Internal */
 import {

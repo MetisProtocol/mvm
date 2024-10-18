@@ -1,4 +1,4 @@
-import { ethers, toBigInt } from 'ethers'
+import { ethers, toBigInt } from 'ethersv6'
 
 /* Imports: Internal */
 import { expect } from '../../../../setup'

@@ -1,7 +1,7 @@
 /* Imports: External */
-import { ethers, EventLog, toBigInt, toNumber } from 'ethers'
+import { Contract, ethers, EventLog, toBigInt, toNumber } from 'ethersv6'
 import { MerkleTree } from 'merkletreejs'
-import { getContractFactory } from '@metis.io/contracts'
+import { getContractDefinition } from '@metis.io/contracts'
 import {
   fromHexString,
   toHexString,
@@ -10,7 +10,7 @@ import {
   MinioClient,
   MinioConfig,
   remove0x,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 
 /* Imports: Internal */
 import {
@@ -38,11 +38,11 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     // TODO: We need to update our events so that we actually have enough information to parse this
     // batch without having to pull out this extra event. For the meantime, we need to find this
     // "TransactonBatchAppended" event to get the rest of the data.
-    const CanonicalTransactionChain = getContractFactory(
-      'CanonicalTransactionChain'
+    const CanonicalTransactionChain = new Contract(
+      event.address,
+      getContractDefinition('CanonicalTransactionChain').abi,
+      l1RpcProvider
     )
-      .attach(event.address)
-      .connect(l1RpcProvider)
 
     const batchSubmissionEvent = (
       await CanonicalTransactionChain.queryFilter(

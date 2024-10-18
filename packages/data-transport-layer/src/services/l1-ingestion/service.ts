@@ -1,8 +1,8 @@
 /* Imports: External */
-import { FallbackProvider, fromHexString } from '@metis.io/core-utils'
+import { FallbackProvider, fromHexString } from '@localtest911/core-utils'
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
 import { LevelUp } from 'levelup'
-import { Block, ethers, EventLog, Provider } from 'ethers'
+import { Block, ethers, EventLog, Provider } from 'ethersv6'
 import { Counter, Gauge } from 'prom-client'
 
 /* Imports: Internal */

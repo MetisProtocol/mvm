@@ -1,5 +1,5 @@
 /* Imports: External */
-import { ethers, toBigInt, toNumber } from 'ethers'
+import { ethers, toBigInt, toNumber } from 'ethersv6'
 
 export const parseSignatureVParam = (
   v: number | bigint,

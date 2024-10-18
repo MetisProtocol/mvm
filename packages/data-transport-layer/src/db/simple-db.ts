@@ -1,6 +1,6 @@
 /* Imports: External */
 import { LevelUp } from 'levelup'
-import { toBigInt } from 'ethers'
+import { toBigInt } from 'ethersv6'
 
 export class SimpleDB {
   constructor(public db: LevelUp) {}

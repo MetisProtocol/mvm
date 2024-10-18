@@ -1,9 +1,8 @@
 import { expect } from '../setup'
 
 /* External Imports */
-import { ethers } from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
-import { Signer, ContractFactory, Contract, BigNumber } from 'ethers'
+import { Signer, ContractFactory, Contract, ethers } from 'ethers'
 import ganache from 'ganache-core'
 import sinon from 'sinon'
 import { Web3Provider } from '@ethersproject/providers'
@@ -22,7 +21,6 @@ import {
   FORCE_INCLUSION_PERIOD_SECONDS,
 } from '../helpers'
 import {
-  CanonicalTransactionChainContract,
   TransactionBatchSubmitter as RealTransactionBatchSubmitter,
   StateBatchSubmitter,
   TX_BATCH_SUBMITTER_LOG_TAG,
@@ -32,7 +30,12 @@ import {
   ResubmissionConfig,
 } from '../../src'
 
-import { QueueOrigin, Batch, Signature, remove0x } from '@metis.io/core-utils'
+import {
+  QueueOrigin,
+  Batch,
+  Signature,
+  remove0x,
+} from '@localtest911/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 const DUMMY_ADDRESS = '0x' + '00'.repeat(20)

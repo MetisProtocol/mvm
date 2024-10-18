@@ -16,7 +16,7 @@ import {
   BlockEntry,
 } from '../types/database-types'
 import { SimpleDB } from './simple-db'
-import { toBigInt, toNumber } from 'ethers'
+import { toBigInt, toNumber } from 'ethersv6'
 
 const TRANSPORT_DB_KEYS = {
   ENQUEUE: `enqueue`,

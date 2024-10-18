@@ -6,7 +6,7 @@ import cors from 'cors'
 import { LevelUp } from 'levelup'
 import * as Sentry from '@sentry/node'
 import * as Tracing from '@sentry/tracing'
-import { toBigInt, toNumber, JsonRpcProvider, Block } from 'ethers'
+import { toBigInt, toNumber, JsonRpcProvider, Block } from 'ethersv6'
 
 /* Imports: Internal */
 import { TransportDB, TransportDBMapHolder } from '../../db/transport-db'

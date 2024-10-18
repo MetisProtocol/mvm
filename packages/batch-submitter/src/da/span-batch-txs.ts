@@ -1,27 +1,27 @@
-import { getBytes, toBeArray, toBigInt, zeroPadValue } from 'ethers'
+import { getBytes, toBeArray, toBigInt, zeroPadValue } from 'ethersv6'
 import { Writer } from './types'
 import { newSpanBatchTx } from './span-batch-tx'
 import { encodeSpanBatchBits } from './utils'
-import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
+import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
 
 export class SpanBatchTxs {
   private totalBlockTxCount: number = 0
-  private contractCreationBits: bigint = 0n
-  private yParityBits: bigint = 0n
+  private contractCreationBits: bigint = BigInt(0)
+  private yParityBits: bigint = BigInt(0)
   private txSigs: SpanBatchSignature[] = []
   private txNonces: number[] = []
   private txGases: number[] = []
   private txTos: string[] = []
   private txDatas: Uint8Array[] = []
-  private protectedBits: bigint = 0n
+  private protectedBits: bigint = BigInt(0)
   private txTypes: number[] = []
   private totalLegacyTxCount: number = 0
 
   // metis extra fields
-  private queueOriginBits: bigint = 0n // bitmap to save queue origins, 0 for sequencer, 1 for enqueue
+  private queueOriginBits: bigint = BigInt(0) // bitmap to save queue origins, 0 for sequencer, 1 for enqueue
   private l1TxOrigins: string[] = [] // l1 tx origins, only used for enqueue tx
   private txSeqSigs: SpanBatchSequencerSignature[] = []
-  private seqYParityBits: bigint = 0n
+  private seqYParityBits: bigint = BigInt(0)
 
   async addTxs(txs: L2Transaction[], chainId: bigint): Promise<void> {
     const offset = this.totalBlockTxCount
@@ -31,7 +31,7 @@ export class SpanBatchTxs {
       // process legacy tx
       const txType = tx.type ?? 0
       if (!tx.type) {
-        const protectedBit = tx.chainId ? 1n : 0n
+        const protectedBit = tx.chainId ? BigInt(1) : BigInt(0)
         this.protectedBits |= protectedBit << BigInt(this.totalLegacyTxCount)
         this.totalLegacyTxCount++
       }
@@ -43,11 +43,11 @@ export class SpanBatchTxs {
       }
 
       this.txSigs.push({
-        r: tx?.signature.r ? BigInt(tx.signature.r) : 0n,
-        s: tx?.signature.s ? BigInt(tx.signature.s) : 0n,
+        r: tx?.signature.r ? BigInt(tx.signature.r) : BigInt(0),
+        s: tx?.signature.s ? BigInt(tx.signature.s) : BigInt(0),
       })
 
-      const contractCreationBit = tx.to ? 0n : 1n
+      const contractCreationBit = tx.to ? BigInt(0) : BigInt(1)
       this.contractCreationBits |= contractCreationBit << BigInt(idx + offset)
 
       if (tx.to) {
@@ -71,8 +71,8 @@ export class SpanBatchTxs {
         this.l1TxOrigins.push(tx.l1TxOrigin)
       }
       this.txSeqSigs.push({
-        r: tx.seqR ? toBigInt(tx.seqR) : 0n,
-        s: tx.seqS ? toBigInt(tx.seqS) : 0n,
+        r: tx.seqR ? toBigInt(tx.seqR) : BigInt(0),
+        s: tx.seqS ? toBigInt(tx.seqS) : BigInt(0),
       })
       const seqYParityBit = toBigInt(tx.seqV)
       this.seqYParityBits |= seqYParityBit << BigInt(idx + offset)

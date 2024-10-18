@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv6'
 import { Frame, parseFrames } from './frame'
 import { L1BeaconClient } from './l1-beacon-client'
 import {
@@ -23,9 +23,7 @@ interface FetchBatchesConfig {
 }
 
 // fetch l2 batches from l1 chain
-export const fetchBatches = async (
-  fetchConf: FetchBatchesConfig,
-) => {
+export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
   console.log('Fetching batches with config:', fetchConf)
 
   const l1RpcProvider = new ethers.JsonRpcProvider(fetchConf.l1Rpc)
@@ -223,7 +221,6 @@ export const fetchBatches = async (
           if (batchData.batchType === SpanBatchType) {
             const spanBatch = batchData.inner as RawSpanBatch
             batchData.inner = await spanBatch.derive(
-              txMetadata.blockTime,
               ethers.toBigInt(fetchConf.l2ChainId)
             )
           }

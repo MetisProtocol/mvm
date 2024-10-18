@@ -1,4 +1,4 @@
-import { ethers, Signer } from 'ethers'
+import { ethers, Signer } from 'ethersv6'
 import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'

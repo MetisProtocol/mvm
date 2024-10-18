@@ -1,7 +1,7 @@
 import { expect } from '../../../../setup'
 
 /* Imports: External */
-import { ethers, toBigInt, toNumber } from 'ethers'
+import { ethers, toBigInt, toNumber } from 'ethersv6'
 
 /* Imports: Internal */
 import { handleEventsTransactionEnqueued } from '../../../../../src/services/l1-ingestion/handlers/transaction-enqueued'

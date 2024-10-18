@@ -1,5 +1,5 @@
 /* External Imports */
-import { ethers, AbiCoder } from 'ethers'
+import { ethers, AbiCoder } from 'ethersv6'
 
 const SENT_MESSAGE = ethers.id('SentMessage(bytes)')
 const RELAYED_MESSAGE = ethers.id(`RelayedMessage(bytes32)`)

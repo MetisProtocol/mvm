@@ -13,9 +13,9 @@ export const getContractDefinition = (name: string): any => {
   return artifact
 }
 
-export const getContractInterface = (name: string): ethers.Interface => {
+export const getContractInterface = (name: string): ethers.utils.Interface => {
   const definition = getContractDefinition(name)
-  return new ethers.Interface(definition.abi)
+  return new ethers.utils.Interface(definition.abi)
 }
 
 export const getContractFactory = (
@@ -34,7 +34,7 @@ export const getContractFactory = (
 export const loadContract = (
   name: string,
   address: string,
-  provider: ethers.JsonRpcProvider
+  provider: ethers.providers.JsonRpcProvider
 ): ethers.Contract => {
   return new ethers.Contract(
     address,
@@ -47,13 +47,11 @@ export const loadContractFromManager = async (args: {
   name: string
   proxy?: string
   Lib_AddressManager: ethers.Contract
-  provider: ethers.JsonRpcProvider
+  provider: ethers.providers.JsonRpcProvider
 }): Promise<ethers.Contract> => {
   const { name, proxy, Lib_AddressManager, provider } = args
-  const address = await Lib_AddressManager.getFunction('getAddress').staticCall(
-    proxy ? proxy : name
-  )
-  if (address === ethers.ZeroAddress) {
+  const address = await Lib_AddressManager.getAddress(proxy ? proxy : name)
+  if (address === ethers.constants.AddressZero) {
     throw new Error(
       `Lib_AddressManager does not have a record for a contract named: ${name}`
     )

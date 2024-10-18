@@ -1,7 +1,7 @@
 import { expect } from '../../../../setup'
 
 /* Imports: External */
-import { Block, toBigInt, toNumber } from 'ethers'
+import { Block, toBigInt, toNumber } from 'ethersv6'
 
 /* Imports: Internal */
 import { handleEventsStateBatchAppended } from '../../../../../src/services/l1-ingestion/handlers/state-batch-appended'

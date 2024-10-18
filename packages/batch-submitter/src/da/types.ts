@@ -1,5 +1,5 @@
 // types.ts
-import { BytesLike, ethers, getBytes } from 'ethers'
+import { BytesLike, ethers, getBytes } from 'ethersv6'
 import { Blob } from './blob'
 
 export interface RollupConfig {

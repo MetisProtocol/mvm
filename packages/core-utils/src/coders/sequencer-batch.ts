@@ -1,5 +1,5 @@
 import { add0x, encodeHex, remove0x } from '../common'
-import { ethers, toBeHex, toBigInt } from 'ethers'
+import { ethers, toBeHex, toBigInt } from 'ethersv6'
 import { MinioClient } from './minio-client'
 import { MerkleTree } from 'merkletreejs'
 

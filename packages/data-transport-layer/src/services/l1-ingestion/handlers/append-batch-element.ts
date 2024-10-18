@@ -6,7 +6,7 @@ import {
 } from '../../../types'
 
 /* Imports: External */
-import { toNumber } from 'ethers'
+import { toNumber } from 'ethersv6'
 
 export const handleEventsAppendBatchElement: EventHandlerSet<
   EventArgsAppendBatchElement,

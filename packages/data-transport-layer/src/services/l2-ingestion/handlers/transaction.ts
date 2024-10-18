@@ -1,5 +1,5 @@
 /* Imports: External */
-import { ethers, toNumber } from 'ethers'
+import { ethers, toNumber } from 'ethersv6'
 
 /* Imports: Internal */
 import { TransportDB } from '../../../db/transport-db'

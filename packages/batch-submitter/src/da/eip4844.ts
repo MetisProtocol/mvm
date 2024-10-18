@@ -1,6 +1,6 @@
 // Constants
-const BlobTxMinBlobGasprice = 1n
-const BlobTxBlobGaspriceUpdateFraction = 3338477n
+const BlobTxMinBlobGasprice = BigInt(1)
+const BlobTxBlobGaspriceUpdateFraction = BigInt(3338477)
 
 const minBlobGasPrice = BlobTxMinBlobGasprice
 const blobGaspriceUpdateFraction = BlobTxBlobGaspriceUpdateFraction
@@ -16,10 +16,10 @@ export const fakeExponential = (
   numerator: bigint,
   denominator: bigint
 ): bigint => {
-  let output = 0n
+  let output = BigInt(0)
   let accum = factor * denominator
 
-  for (let i = 1n; accum > 0n; i++) {
+  for (let i = BigInt(1); accum > BigInt(0); i++) {
     output += accum
 
     accum = (accum * numerator) / denominator / i

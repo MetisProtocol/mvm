@@ -1,7 +1,7 @@
-import { AccessList } from 'ethers'
+import { AccessList } from 'ethersv6'
 import { Writer } from './types'
 import RLP from 'rlp'
-import { L2Transaction } from '@metis.io/core-utils'
+import { L2Transaction } from '@localtest911/core-utils'
 
 interface SpanBatchTxData {
   txType(): number

@@ -6,7 +6,7 @@ import {
   TransactionBatchEntry,
   TransactionEntry,
 } from './database-types'
-import { JsonRpcProvider, EventLog, Provider } from 'ethers'
+import { EventLog, Provider } from 'ethersv6'
 
 export type TypedEthersEvent<T> = EventLog & {
   args: T

@@ -1,9 +1,9 @@
 import * as http from 'http'
 import * as https from 'https'
 import { URL } from 'url'
-import { ethers, toBigInt, Transaction, TransactionRequest } from 'ethers'
+import { ethers, toBigInt } from 'ethersv6'
 import { randomUUID } from 'crypto'
-import '@metis.io/core-utils'
+import '@localtest911/core-utils'
 import * as kzg from 'c-kzg'
 
 export class MpcClient {

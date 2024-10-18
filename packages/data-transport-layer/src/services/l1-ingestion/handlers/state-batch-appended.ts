@@ -1,6 +1,6 @@
 /* Imports: External */
-import { getContractFactory } from '@metis.io/contracts'
-import { toNumber } from 'ethers'
+import { getContractDefinition } from '@metis.io/contracts'
+import { Contract, Interface, toNumber } from 'ethersv6'
 
 /* Imports: Internal */
 import {
@@ -33,9 +33,9 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
     }
   },
   parseEvent: async (event, extraData) => {
-    const stateRoots = getContractFactory(
-      'StateCommitmentChain'
-    ).interface.decodeFunctionData(
+    const stateRoots = new Interface(
+      getContractDefinition('StateCommitmentChain').abi
+    ).decodeFunctionData(
       'appendStateBatchByChainId',
       extraData.l1TransactionData
     )[1]

@@ -1,27 +1,18 @@
 /* External Imports */
 import {
-  ethers,
   Contract,
-  toBigInt,
   toBeHex,
-  Signer,
+  toBigInt,
   TransactionRequest,
   TransactionResponse,
-  BaseContractMethod,
-  FunctionFragment,
-  ContractTransaction,
-  ContractTransactionResponse,
-  Result,
-  ContractMethodArgs,
-} from 'ethers'
+} from 'ethersv6'
 import { keccak256 } from 'ethers/lib/utils'
 import {
-  //AppendSequencerBatchParams,
   BatchContext,
   encodeAppendSequencerBatch,
-  remove0x,
   EncodeSequencerBatchOptions,
-} from '@metis.io/core-utils'
+  remove0x,
+} from '@localtest911/core-utils'
 import { Promise } from 'bluebird'
 
 interface AppendSequencerBatchParams {

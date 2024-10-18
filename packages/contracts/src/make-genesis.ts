@@ -91,13 +91,13 @@ export const makeL2GenesisFile = async (
     },
     OVM_ETH: {
       l2Bridge: predeploys.L2StandardBridge,
-      l1Token: ethers.ZeroAddress,
+      l1Token: ethers.constants.AddressZero,
       _name: 'Ether',
       _symbol: 'WETH',
     },
     MVM_Coinbase: {
       l2Bridge: predeploys.L2StandardBridge,
-      l1Token: ethers.ZeroAddress,
+      l1Token: ethers.constants.AddressZero,
       _name: 'Metis Token',
       _symbol: 'Metis',
     },
@@ -115,12 +115,12 @@ export const makeL2GenesisFile = async (
   const dump = {}
 
   const funding = process.env.EXTRA_DEV_ADDRS?.split(',').filter((v) =>
-    ethers.isAddress(v)
+    ethers.utils.isAddress(v)
   )
 
   if (funding?.length) {
     console.log('Add balance to genesis address')
-    console.log('ENSURE TAHT YOU ARE USING DEV MODE!!')
+    console.log('ENSURE THAT YOU ARE USING DEV MODE!!')
     console.log(funding)
     const amount = BigInt(1e18) * BigInt(1e6)
     variables['MVM_Coinbase']['_balances'] = funding.reduce((prev, cur) => {

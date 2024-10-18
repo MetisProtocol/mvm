@@ -1,5 +1,5 @@
 /* Imports: External */
-import { ethers, toBeHex, toBigInt } from 'ethers'
+import { ethers, toBeHex, toBigInt } from 'ethersv6'
 
 /**
  * Removes "0x" from start of a string if it exists.

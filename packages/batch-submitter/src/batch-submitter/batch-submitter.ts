@@ -1,7 +1,7 @@
 /* External Imports */
-import { Contract, ethers, JsonRpcProvider, toNumber } from 'ethers'
+import { Contract, ethers, JsonRpcProvider, toNumber } from 'ethersv6'
 import { Counter, Gauge, Histogram } from 'prom-client'
-import { RollupInfo, sleep } from '@metis.io/core-utils'
+import { RollupInfo, sleep } from '@localtest911/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 import { getContractFactory } from 'old-contracts'
 /* Internal Imports */

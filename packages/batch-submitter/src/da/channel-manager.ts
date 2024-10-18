@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv6'
 import { Channel } from './channel'
 import {
   BatchToInboxElement,

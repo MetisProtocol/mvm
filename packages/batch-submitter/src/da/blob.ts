@@ -6,7 +6,7 @@ import {
   computeBlobKzgProof,
   verifyBlobKzgProof,
 } from 'c-kzg'
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv6'
 
 const BlobSize = 4096 * 32
 const MaxBlobDataSize = (4 * 31 + 3) * 1024 - 4

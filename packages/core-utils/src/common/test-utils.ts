@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { toBigInt } from 'ethers'
+import { toBigInt } from 'ethersv6'
 
 interface deviationRanges {
   percentUpperDeviation?: number

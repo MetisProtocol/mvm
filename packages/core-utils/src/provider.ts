@@ -2,7 +2,7 @@
  * Provider Utilities
  */
 
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv6'
 
 // Copied from @ethersproject/providers since it is not
 // currently exported

@@ -1,5 +1,5 @@
 import { Writer } from './types'
-import { toBeArray, zeroPadValue } from 'ethers'
+import { toBeArray, zeroPadValue } from 'ethersv6'
 
 export const encodeSpanBatchBits = (
   writer: Writer,

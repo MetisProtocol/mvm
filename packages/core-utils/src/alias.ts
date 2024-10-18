@@ -1,4 +1,4 @@
-import { ethers, toBeHex, toBigInt } from 'ethers'
+import { ethers, toBeHex, toBigInt } from 'ethersv6'
 
 export const L1_TO_L2_ALIAS_OFFSET =
   '0x1111000000000000000000000000000000001111'

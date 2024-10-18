@@ -2,8 +2,8 @@ import { PassThrough, Readable } from 'stream'
 import * as zlib from 'zlib'
 import { Frame } from './frame'
 import * as RLP from 'rlp'
-import { ethers, toBeHex, toBigInt, toNumber } from 'ethers'
-import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
+import { ethers, toBigInt, toNumber } from 'ethersv6'
+import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
 
 // Constants and Enums
 const ZlibCM8 = 8
@@ -115,7 +115,7 @@ export class SpanBatchElement {
   transactions: L2Transaction[]
 
   constructor() {
-    this.epochNum = 0n
+    this.epochNum = BigInt(0)
     this.timestamp = 0
     this.transactions = []
   }
@@ -137,10 +137,10 @@ export class SpanBatch implements InnerBatchData, Batch {
   constructor() {
     this.parentCheck = Buffer.alloc(20)
     this.l1OriginCheck = Buffer.alloc(20)
-    this.chainId = 0n
+    this.chainId = BigInt(0)
     this.l2StartBlock = 0
     this.batches = []
-    this.originBits = 0n
+    this.originBits = BigInt(0)
     this.blockTxCounts = []
     this.sbtxs = new SpanBatchTxs()
   }
@@ -203,7 +203,7 @@ class BufferReader {
   decodeSpanBatchBits(count: number): bigint {
     const byteLength = Math.ceil(count / 8)
     const bitsBuffer = this.readBytes(byteLength)
-    let bits = 0n
+    let bits = BigInt(0)
     for (const bit of bitsBuffer) {
       bits = (bits << toBigInt(8)) | BigInt(bit)
     }
@@ -239,8 +239,8 @@ export class SpanBatchLegacyTxData implements SpanBatchTxData {
   data: Buffer
 
   constructor(
-    value: bigint = 0n,
-    gasPrice: bigint = 0n,
+    value: bigint = BigInt(0),
+    gasPrice: bigint = BigInt(0),
     data: Buffer = Buffer.alloc(0)
   ) {
     this.value = value
@@ -273,8 +273,8 @@ export class SpanBatchAccessListTxData implements SpanBatchTxData {
   accessList: any[]
 
   constructor(
-    value: bigint = 0n,
-    gasPrice: bigint = 0n,
+    value: bigint = BigInt(0),
+    gasPrice: bigint = BigInt(0),
     data: Buffer = Buffer.alloc(0),
     accessList: any[] = []
   ) {
@@ -311,9 +311,9 @@ export class SpanBatchDynamicFeeTxData implements SpanBatchTxData {
   accessList: any[]
 
   constructor(
-    value: bigint = 0n,
-    gasTipCap: bigint = 0n,
-    gasFeeCap: bigint = 0n,
+    value: bigint = BigInt(0),
+    gasTipCap: bigint = BigInt(0),
+    gasFeeCap: bigint = BigInt(0),
     data: Buffer = Buffer.alloc(0),
     accessList: any[] = []
   ) {
@@ -474,21 +474,21 @@ export class SpanBatchTxs {
 
   constructor() {
     this.totalBlockTxCount = 0
-    this.contractCreationBits = 0n
-    this.yParityBits = 0n
+    this.contractCreationBits = BigInt(0)
+    this.yParityBits = BigInt(0)
     this.txSigs = []
     this.txNonces = []
     this.txGases = []
     this.txTos = []
     this.txDatas = []
-    this.protectedBits = 0n
+    this.protectedBits = BigInt(0)
     this.txTypes = []
     this.totalLegacyTxCount = 0
 
-    this.queueOriginBits = 0n
+    this.queueOriginBits = BigInt(0)
     this.l1TxOrigins = []
     this.txSeqSigs = []
-    this.seqYParityBits = 0n
+    this.seqYParityBits = BigInt(0)
 
     this.l1BlockNumber = 0
     this.l1Timestamp = 0
@@ -621,7 +621,7 @@ export class SpanBatchTxs {
   }
 
   getBit(bits: bigint, position: number): number {
-    return ethers.toNumber((bits >> ethers.toBigInt(position)) & 1n)
+    return ethers.toNumber((bits >> ethers.toBigInt(position)) & BigInt(1))
   }
 
   countBits(bits: bigint, totalBits: number): number {
@@ -731,7 +731,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     this.parentCheck = Buffer.alloc(20)
     this.l1OriginCheck = Buffer.alloc(20)
     this.blockCount = 0
-    this.originBits = 0n
+    this.originBits = BigInt(0)
     this.blockTxCounts = []
     this.txs = new SpanBatchTxs()
   }
@@ -845,7 +845,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
   }
 
   private getBit(bits: bigint, position: number): number {
-    return Number((bits >> BigInt(position)) & 1n)
+    return Number((bits >> BigInt(position)) & BigInt(1))
   }
 }
 

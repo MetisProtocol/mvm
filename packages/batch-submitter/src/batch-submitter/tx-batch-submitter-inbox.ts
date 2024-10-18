@@ -8,7 +8,7 @@ import {
   toBigInt,
   TransactionReceipt,
   TransactionRequest,
-} from 'ethers'
+} from 'ethersv6'
 import { Logger } from '@eth-optimism/common-ts'
 import {
   encodeHex,
@@ -20,7 +20,7 @@ import {
   remove0x,
   toHexString,
   zlibCompressHexString,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 
 /* Internal Imports */
 import { MpcClient, TransactionSubmitter } from '../utils'

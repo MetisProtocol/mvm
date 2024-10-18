@@ -6,6 +6,7 @@ WORKDIR /optimism
 
 # Install depenendencies
 COPY *.json yarn.lock ./
+COPY patches ./patches
 COPY packages/core-utils/package.json ./packages/core-utils/package.json
 COPY packages/common-ts/package.json ./packages/common-ts/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
@@ -15,7 +16,7 @@ COPY packages/message-relayer/package.json ./packages/message-relayer/package.js
 COPY packages/replica-healthcheck/package.json ./packages/replica-healthcheck/package.json
 COPY packages/regenesis-surgery/package.json ./packages/regenesis-surgery/package.json
 COPY integration-tests/package.json ./integration-tests/package.json
-RUN yarn install --frozen-lockfile
+RUN yarn install
 # Build projects
 COPY ./packages ./packages
 COPY ./integration-tests ./integration-tests
@@ -86,7 +87,7 @@ COPY --chmod=775 ./ops/scripts/dtl.sh .
 VOLUME [ "/data" ]
 ENTRYPOINT ["./dtl.sh"]
 
-FROM node:16-alpine as message-relayer
+FROM node:18-alpine as message-relayer
 RUN apk add --no-cache curl bash jq ca-certificates
 
 WORKDIR /opt/optimism

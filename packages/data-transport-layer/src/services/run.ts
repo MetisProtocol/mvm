@@ -1,6 +1,6 @@
 /* Imports: External */
 import * as dotenv from 'dotenv'
-import { Bcfg } from '@metis.io/core-utils'
+import { Bcfg } from '@localtest911/core-utils'
 import Config from 'bcfg'
 
 /* Imports: Internal */
