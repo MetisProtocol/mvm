@@ -66,7 +66,7 @@ const main = async () => {
     ovmProposerAddress: config.ovmProposerAddress,
     ovmRelayerAddress: config.ovmRelayerAddress,
     ovmAddressManagerOwner: deployer.address,
-    numDeployConfirmations: 0,
+    numDeployConfirmations: 1,
     noCompile: process.env.NO_COMPILE ? true : false,
     mvmMetisAddress: config.mvmMetisAddress,
     mvmMetisManager: deployer.address,
