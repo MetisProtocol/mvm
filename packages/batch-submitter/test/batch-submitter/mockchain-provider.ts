@@ -109,9 +109,9 @@ export class MockchainProvider extends JsonRpcProvider {
     return this.mockBlocks[blockNumber]
   }
 
-  public chainId(): number {
+  public async chainId(): Promise<number> {
     // We know that mockBlocks will always have at least 1 value
-    return toNumber(this.mockBlocks[1].prefetchedTransactions[0].chainId)
+    return toNumber((await this.mockBlocks[1].getTransaction(0)).chainId)
   }
 
   private _toL2Block(block: UnformattedL2Block): L2Block {

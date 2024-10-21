@@ -371,7 +371,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
           startBlock + i,
           true
         )) as L2Block
-        const blockTx = block.prefetchedTransactions[0]
+        const blockTx = await block.getTransaction(0)
         if (
           blockTx.from.toLowerCase() ===
           this.fraudSubmissionAddress.toLowerCase()

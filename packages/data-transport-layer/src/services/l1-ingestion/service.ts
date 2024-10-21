@@ -2,7 +2,7 @@
 import { FallbackProvider, fromHexString } from '@localtest911/core-utils'
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
 import { LevelUp } from 'levelup'
-import { Block, ethers, EventLog, Provider } from 'ethersv6'
+import { Block, ethers, EventLog, Provider, toNumber } from 'ethersv6'
 import { Counter, Gauge } from 'prom-client'
 
 /* Imports: Internal */
@@ -214,7 +214,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         await this.state.contracts.CanonicalTransactionChain.getTotalBatchesByChainId(
           this.options.l2ChainId
         )
-      this.state.startingL1BatchIndex = startingL1BatchIndex
+      this.state.startingL1BatchIndex = toNumber(startingL1BatchIndex)
       await this.state.db.setStartingL1BatchIndex(
         this.state.startingL1BatchIndex
       )
@@ -478,7 +478,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // we need to keep tracking the blob data index in a block in order to get the correct one for
       // our batch tx
       let blobIndex = 0
-      for (const tx of block.prefetchedTransactions) {
+      const txsPromises = block.transactions.map((txHash) =>
+        this.state.l1RpcProvider.getTransaction(txHash)
+      )
+      const txs = await Promise.all(txsPromises)
+      for (const tx of txs) {
         if (
           tx.to &&
           tx.to.toLowerCase() ===
@@ -516,7 +520,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           }
         }
 
-        blobIndex += tx.blobVersionedHashes.length
+        blobIndex += tx.blobVersionedHashes ? tx.blobVersionedHashes.length : 0
       }
     }
     const extraDatas: any[] = []

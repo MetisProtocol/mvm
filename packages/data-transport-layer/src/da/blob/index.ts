@@ -44,15 +44,20 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
       // TODO: We might be able to cache this somewhere, no need to retrieve this every time.
       //       But due to potential chain reorgs, just retrieve the data everytime for now.
       //       Might need to think of a better solution in the future.
-      const block = await l1RpcProvider.getBlock(receipt.blockNumber)
+      const block = await l1RpcProvider.getBlock(receipt.blockNumber, true)
       if (!block) {
         throw new Error(`Block ${receipt.blockNumber} not found`)
       }
 
+      const blockTxPromises = block.transactions.map((tx) =>
+        block.getTransaction(tx)
+      )
+      const txs = await Promise.all(blockTxPromises)
+
       // Even we got the hash of the blob tx, we still need to traverse through the blocks
       // since we need to count the blob index in the block
       let blobIndex = 0
-      for (const tx of block.prefetchedTransactions) {
+      for (const tx of txs) {
         if (!tx) {
           console.log(`Skipping empty transaction in block: ${block.number}`)
           continue
