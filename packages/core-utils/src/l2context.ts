@@ -1,12 +1,15 @@
 import cloneDeep from 'lodash/cloneDeep'
 import {
   Block,
+  BlockParams,
   ethers,
-  formatBlock,
-  formatTransactionReceipt,
-  formatTransactionResponse,
+  JsonRpcProvider,
+  Network,
   toBigInt,
   toNumber,
+  TransactionReceipt,
+  TransactionReceiptParams,
+  TransactionResponse,
   TransactionResponseParams,
 } from 'ethersv6'
 import { L2Block, L2Transaction } from './batches'
@@ -14,13 +17,12 @@ import { L2Block, L2Transaction } from './batches'
 /**
  * Helper for adding additional L2 context to transactions
  */
-export const injectL2Context = (l1Provider: ethers.JsonRpcProvider) => {
-  const provider = cloneDeep(l1Provider)
 
-  const toL2Transaction = (tx: TransactionResponseParams) => {
-    const formattedTx = formatTransactionResponse(tx)
-    const txResponse = new ethers.TransactionResponse(formattedTx, provider)
-
+export class L2Provider extends JsonRpcProvider {
+  toL2Transaction(
+    tx: TransactionResponseParams,
+    txResponse: TransactionResponse
+  ): L2Transaction {
     const anyTx = tx as any
     const txResponseAny = txResponse as any
 
@@ -28,56 +30,50 @@ export const injectL2Context = (l1Provider: ethers.JsonRpcProvider) => {
     txResponseAny.l1TxOrigin = anyTx.l1TxOrigin
     txResponseAny.queueOrigin = anyTx.queueOrigin
     txResponseAny.rawTransaction = anyTx.rawTransaction
-    txResponseAny.seqV = toNumber(anyTx.seqV)
-    txResponseAny.seqR = toBigInt(anyTx.seqR)
-    txResponseAny.seqS = toBigInt(anyTx.seqS)
+    txResponseAny.seqV = toNumber(anyTx.seqV || 0)
+    txResponseAny.seqR = toBigInt(anyTx.seqR || 0)
+    txResponseAny.seqS = toBigInt(anyTx.seqS || 0)
 
     return txResponseAny as L2Transaction
   }
 
-  provider._wrapBlock = (blockParams, network): L2Block => {
-    const formattedBlock = formatBlock(blockParams)
-    formattedBlock.stateRoot = blockParams.stateRoot
-
-    const block = new Block(formattedBlock, provider)
-    if (!block.transactions) {
-      // tx not retrieved
-      return block as L2Block
-    }
-
-    const anyBlock = block as any
-
-    anyBlock.l2Transactions = blockParams.transactions.map((tx) => {
+  _wrapBlock(value: BlockParams, network: Network): L2Block {
+    const originalTxs = value.transactions
+    const block = super._wrapBlock(value, network)
+    const blockAny = block as any
+    blockAny.l2Transactions = originalTxs.map((tx, index) => {
       if (typeof tx === 'string') {
-        return block
-          .getTransaction(tx)
-          .then((txResponseParam) => toL2Transaction(txResponseParam))
-      } else {
-        return Promise.resolve(toL2Transaction(tx))
+        return this.getTransaction(tx)
       }
+      return Promise.resolve(
+        this.toL2Transaction(tx, block.prefetchedTransactions[index])
+      )
     })
 
-    return anyBlock as L2Block
+    return blockAny as L2Block
   }
 
-  provider._wrapTransactionResponse = (tx, network) => {
-    return toL2Transaction(tx)
+  _wrapTransactionResponse(
+    tx: TransactionResponseParams,
+    network: Network
+  ): TransactionResponse {
+    return this.toL2Transaction(tx, super._wrapTransactionResponse(tx, network))
   }
 
-  provider._wrapTransactionReceipt = (receipt, network) => {
-    const formattedReceipt = formatTransactionReceipt(receipt)
-    const txReceipt = new ethers.TransactionReceipt(formattedReceipt, provider)
+  _wrapTransactionReceipt(
+    receipt: TransactionReceiptParams,
+    network: Network
+  ): TransactionReceipt {
+    const txReceipt = super._wrapTransactionReceipt(receipt, network)
 
     const anyReceipt = receipt as any
     const txReceiptAny = txReceipt as any
 
-    txReceiptAny.l1GasPrice = toBigInt(anyReceipt.l1GasPrice)
-    txReceiptAny.l1GasUsed = toBigInt(anyReceipt.l1GasUsed)
-    txReceiptAny.l1Fee = toBigInt(anyReceipt.l1Fee)
-    txReceiptAny.l1FeeScalar = parseFloat(anyReceipt.l1FeeScalar)
+    txReceiptAny.l1GasPrice = toBigInt(anyReceipt.l1GasPrice || 0)
+    txReceiptAny.l1GasUsed = toBigInt(anyReceipt.l1GasUsed || 0)
+    txReceiptAny.l1Fee = toBigInt(anyReceipt.l1Fee || 0)
+    txReceiptAny.l1FeeScalar = parseFloat(anyReceipt.l1FeeScalar || 0)
 
-    return txReceipt
+    return txReceiptAny as TransactionReceipt
   }
-
-  return provider
 }

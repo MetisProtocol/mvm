@@ -1,5 +1,5 @@
 /* External Imports */
-import { Bcfg, injectL2Context, MinioConfig } from '@localtest911/core-utils'
+import { Bcfg, L2Provider, MinioConfig } from '@localtest911/core-utils'
 import * as Sentry from '@sentry/node'
 import { createMetricsServer, Logger, Metrics } from '@eth-optimism/common-ts'
 import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethersv6'
@@ -413,10 +413,7 @@ export const run = async () => {
 
   const clearPendingTxs = requiredEnvVars.CLEAR_PENDING_TXS
 
-  const l2Provider = injectL2Context(
-    new JsonRpcProvider(requiredEnvVars.L2_NODE_WEB3_URL)
-  )
-
+  const l2Provider = new L2Provider(requiredEnvVars.L2_NODE_WEB3_URL)
   const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
 
   const sequencerSigner: Signer = await getSequencerSigner()

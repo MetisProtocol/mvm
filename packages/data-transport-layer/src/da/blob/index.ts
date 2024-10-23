@@ -49,10 +49,7 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
         throw new Error(`Block ${receipt.blockNumber} not found`)
       }
 
-      const blockTxPromises = block.transactions.map((tx) =>
-        block.getTransaction(tx)
-      )
-      const txs = await Promise.all(blockTxPromises)
+      const txs = block.prefetchedTransactions
 
       // Even we got the hash of the blob tx, we still need to traverse through the blocks
       // since we need to count the blob index in the block

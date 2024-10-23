@@ -6,6 +6,7 @@ import { Logger, Metrics } from '@eth-optimism/common-ts'
 import { getContractFactory } from 'old-contracts'
 /* Internal Imports */
 import { TxSubmissionHooks } from '..'
+import { getContractDefinition } from '@metis.io/contracts'
 
 export interface BlockRange {
   start: number
@@ -142,7 +143,7 @@ export abstract class BatchSubmitter {
   }
 
   protected async _getL2ChainId(): Promise<number> {
-    return this.l2Provider.send('eth_chainId', [])
+    return toNumber(await this.l2Provider.send('eth_chainId', []))
   }
 
   protected async _getChainAddresses(): Promise<{
@@ -150,16 +151,17 @@ export abstract class BatchSubmitter {
     sccAddress: string
     mvmCtcAddress: string
   }> {
-    const addressManager = (
-      await getContractFactory('Lib_AddressManager', this.signer)
-    ).attach(this.addressManagerAddress)
-    const sccAddress = await addressManager.getAddress('StateCommitmentChain')
-    const ctcAddress = await addressManager.getAddress(
-      'CanonicalTransactionChain'
+    const addressManager = new Contract(
+      this.addressManagerAddress,
+      getContractDefinition('Lib_AddressManager').abi,
+      this.signer
     )
-    const mvmCtcAddress = await addressManager.getAddress(
-      'Proxy__MVM_CanonicalTransaction'
-    )
+
+    const getAddress = addressManager.getFunction('getAddress').staticCall
+
+    const sccAddress = await getAddress('StateCommitmentChain')
+    const ctcAddress = await getAddress('CanonicalTransactionChain')
+    const mvmCtcAddress = await getAddress('Proxy__MVM_CanonicalTransaction')
     return {
       ctcAddress,
       sccAddress,

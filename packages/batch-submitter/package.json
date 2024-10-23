@@ -9,7 +9,7 @@
     "dist/index"
   ],
   "scripts": {
-    "start": "node ./exec/run-batch-submitter.js",
+    "start": "node --enable-source-maps ./exec/run-batch-submitter.js",
     "build": "tsc -p ./tsconfig.build.json",
     "clean": "rimraf cache/ dist/ ./tsconfig.build.tsbuildinfo",
     "lint": "yarn lint:fix && yarn lint:check",
@@ -37,7 +37,7 @@
   "dependencies": {
     "@eth-optimism/common-ts": "0.1.5",
     "@metis.io/contracts": "^1.2.*",
-    "@localtest911/core-utils": "~0.7.1",
+    "@localtest911/core-utils": "file://Users/jack/Projects/go/src/github.com/MetisProtocol/mvm/packages/core-utils",
     "@eth-optimism/ynatm": "^0.2.2",
     "@sentry/node": "^6.3.1",
     "bcfg": "^0.1.6",

@@ -20,8 +20,8 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
 > = {
   getExtraData: async (event, l1RpcProvider) => {
     const eventBlock = await l1RpcProvider.getBlock(event.blockNumber, true)
-    const l1Transaction = await eventBlock.getTransaction(
-      eventBlock.transactions.find((i) => i === event.transactionHash)
+    const l1Transaction = await eventBlock.prefetchedTransactions.find(
+      (i) => i.hash === event.transactionHash
     )
 
     return {

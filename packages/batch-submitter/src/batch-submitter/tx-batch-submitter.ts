@@ -249,9 +249,9 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     )
 
     let startBlock =
-      (
+      toNumber(
         await this.chainContract.getTotalElementsByChainId(this.l2ChainId)
-      ).toNumber() + this.blockOffset
+      ) + this.blockOffset
     this.logger.info('Retrieved start block number from CTC', {
       startBlock,
     })
@@ -259,9 +259,9 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     // batch index start from config
     const batchIndexStart = toNumber(this.inboxStartIndex)
     // current batch index from CTC contract
-    const batchIndexCtcNext = (
+    const batchIndexCtcNext = toNumber(
       await this.chainContract.getTotalBatchesByChainId(this.l2ChainId)
-    ).toNumber()
+    )
     const localInboxRecord = await this.inboxStorage.getLatestConfirmedTx()
     const useBatchInbox =
       this.inboxAddress &&

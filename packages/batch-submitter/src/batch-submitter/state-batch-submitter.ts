@@ -145,18 +145,18 @@ export class StateBatchSubmitter extends BatchSubmitter {
   public async _getBatchStartAndEnd(): Promise<BlockRange> {
     this.logger.info('Getting batch start and end for state batch submitter...')
     const startBlock: number =
-      (
+      toNumber(
         await this.chainContract.getTotalElementsByChainId(this.l2ChainId)
-      ).toNumber() + this.blockOffset
+      ) + this.blockOffset
     this.logger.info('Retrieved start block number from SCC', {
       startBlock,
     })
 
     // We will submit state roots for txs which have been in the tx chain for a while.
     let totalElements: number =
-      (
+      toNumber(
         await this.ctcContract.getTotalElementsByChainId(this.l2ChainId)
-      ).toNumber() + this.blockOffset
+      ) + this.blockOffset
     const useBatchInbox =
       this.inboxAddress &&
       this.inboxAddress.length === 42 &&

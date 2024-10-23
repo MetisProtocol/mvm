@@ -544,7 +544,8 @@ export class TransactionBatchSubmitterInbox {
       parentHash: block.parentHash,
       txs: [],
     }
-    block.l2Transactions.forEach((l2Tx: L2Transaction) => {
+
+    ;(await block.l2Transactions).forEach((l2Tx: L2Transaction) => {
       const batchElementTx: BatchToInboxRawTx = {
         rawTransaction: l2Tx.rawTransaction,
         isSequencerTx: this._isSequencerTx(l2Tx),
