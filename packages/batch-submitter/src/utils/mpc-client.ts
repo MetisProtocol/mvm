@@ -164,7 +164,7 @@ export class MpcClient {
       gasPrice: tx.gasPrice ? toBigInt(tx.gasPrice) : null,
       gasLimit: toBigInt(tx.gasLimit),
       to: tx.to,
-      value: toBigInt(tx.value),
+      value: tx.value ? toBigInt(tx.value) : toBigInt(0),
       data: tx.data,
       chainId: tx.chainId,
       maxFeePerBlobGas: tx.maxFeePerBlobGas

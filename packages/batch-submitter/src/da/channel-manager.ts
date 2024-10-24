@@ -104,6 +104,7 @@ export class ChannelManager {
     }
 
     this.blocks = this.blocks.slice(blocksAdded)
+    this.currentChannel.close()
 
     console.debug('Added blocks to channel', {
       blocks_added: blocksAdded,
@@ -125,7 +126,7 @@ export class ChannelManager {
 
   private nextTxData(channel: Channel | null): [TxData, boolean] {
     if (!channel || !channel.hasTxData()) {
-      throw new Error('No more data')
+      return [null, true]
     }
     const [tx, end] = channel.nextTxData()
     this.txChannels.set(tx.id, channel)

@@ -74,7 +74,7 @@ export class SpanBatchTxs {
         r: tx.seqR ? toBigInt(tx.seqR) : BigInt(0),
         s: tx.seqS ? toBigInt(tx.seqS) : BigInt(0),
       })
-      const seqYParityBit = toBigInt(tx.seqV)
+      const seqYParityBit = tx.seqV ? toBigInt(tx.seqV) : BigInt(0)
       this.seqYParityBits |= seqYParityBit << BigInt(idx + offset)
     }
 

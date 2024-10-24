@@ -44,7 +44,7 @@ export class Blob {
     const hasher = createHash('sha256')
     hasher.update(commitment)
     // versioned hash = [1 byte version][31 byte hash]
-    return '0x01' + hasher.digest('hex').substring(1)
+    return '0x01' + hasher.digest('hex').substring(2)
   }
 
   static verifyBlobProof(

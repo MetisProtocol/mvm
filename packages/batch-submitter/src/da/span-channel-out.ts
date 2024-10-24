@@ -4,7 +4,7 @@ import RLP from 'rlp'
 import { ChannelCompressor } from './channel-compressor'
 import { SpanBatch } from './span-batch'
 import { SingularBatch } from './singular-batch'
-import { BatchToInboxElement, Frame, RollupConfig } from './types'
+import { BatchToInboxElement, Frame } from './types'
 import {
   CHANNEL_FULL_ERR,
   FRAME_OVERHEAD_SIZE,
@@ -15,7 +15,7 @@ import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
 export class SpanChannelOut {
   private _id: Uint8Array
   private frame: number
-  private rlp: [Uint8Array, Uint8Array]
+  private rlp: Uint8Array
   private rlpIndex: number
   private lastCompressedRLPSize: number
 
@@ -33,7 +33,7 @@ export class SpanChannelOut {
   ) {
     this._id = randomBytes(16)
     this.frame = 0
-    this.rlp = [new Uint8Array(0), new Uint8Array(0)]
+    this.rlp = new Uint8Array(0)
     this.rlpIndex = 0
     this.lastCompressedRLPSize = 0
     this.closed = false
@@ -58,7 +58,7 @@ export class SpanChannelOut {
     this.full = null
     this.frame = 0
     this.sealedRLPBytes = 0
-    this.rlp = [new Uint8Array(0), new Uint8Array(0)]
+    this.rlp = new Uint8Array(0)
     this.lastCompressedRLPSize = 0
     this.compressor.reset()
     this.resetSpanBatch()
@@ -73,18 +73,6 @@ export class SpanChannelOut {
       [],
       0
     )
-  }
-
-  private activeRLP(): Uint8Array {
-    return this.rlp[this.rlpIndex]
-  }
-
-  private inactiveRLP(): Uint8Array {
-    return this.rlp[(this.rlpIndex + 1) % 2]
-  }
-
-  private swapRLP(): void {
-    this.rlpIndex = (this.rlpIndex + 1) % 2
   }
 
   async addBlock(block: BatchToInboxElement, epochHash: string) {
@@ -138,27 +126,18 @@ export class SpanChannelOut {
     await this.spanBatch.appendSingularBatch(batch)
     const rawSpanBatch = this.spanBatch.toRawSpanBatch()
 
-    this.swapRLP()
-    const active = this.activeRLP()
     const encoded = rawSpanBatch.encode()
-    if (encoded.length > active.length) {
-      this.rlp[this.rlpIndex] = new Uint8Array(encoded.length)
-    }
-    this.rlp[this.rlpIndex].set(encoded)
+    this.rlp = new Uint8Array([...this.rlp, ...encoded])
 
-    if (this.rlp[this.rlpIndex].length > MAX_RLP_BYTES_PER_CHANNEL) {
+    if (this.rlp.length > MAX_RLP_BYTES_PER_CHANNEL) {
       throw new Error(
-        `ErrTooManyRLPBytes: could not take ${
-          this.rlp[this.rlpIndex].length
-        } bytes as replacement of channel of ${
-          this.inactiveRLP().length
-        } bytes, max is ${MAX_RLP_BYTES_PER_CHANNEL}`
+        `ErrTooManyRLPBytes: could not take ${this.rlp.length} bytes, max is ${MAX_RLP_BYTES_PER_CHANNEL}`
       )
     }
 
-    const rlpGrowth =
-      this.rlp[this.rlpIndex].length - this.lastCompressedRLPSize
+    const rlpGrowth = this.rlp.length - this.lastCompressedRLPSize
     if (this.compressor.len() + rlpGrowth < this.target) {
+      console.log('not reaching target', rlpGrowth, this.compressor.len())
       return
     }
 
@@ -173,7 +152,6 @@ export class SpanChannelOut {
         return
       }
 
-      this.swapRLP()
       await this.compress()
       throw this.full
     }
@@ -186,18 +164,12 @@ export class SpanChannelOut {
     ) {
       return
     }
-    const active = this.activeRLP()
-    const inactive = this.inactiveRLP()
-    if (inactive.length > active.length) {
-      throw new Error('Inactive RLP unexpectedly larger')
-    }
-    this.sealedRLPBytes = active.length
-    inactive.set(active)
+    this.sealedRLPBytes = this.rlp.length
     this.resetSpanBatch()
   }
 
   private async compress(): Promise<void> {
-    const rlpBatches = RLP.encode(this.activeRLP())
+    const rlpBatches = RLP.encode(this.rlp)
     this.compressor.reset()
     await this.compressor.write(rlpBatches)
     this.lastCompressedRLPSize = rlpBatches.length
@@ -205,7 +177,7 @@ export class SpanChannelOut {
   }
 
   inputBytes(): number {
-    return this.activeRLP().length
+    return this.rlp.length
   }
 
   readyBytes(): number {

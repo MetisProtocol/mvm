@@ -94,7 +94,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     batchInboxStoragePath: string,
     seqsetValidHeight: number,
     seqsetContractAddress: string,
-    seqsetUpgradeOnly: number
+    seqsetUpgradeOnly: number,
+    useBlob: boolean
   ) {
     super(
       signer,
@@ -133,7 +134,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.logger,
       this.maxTxSize,
       useMinio,
-      minioConfig
+      minioConfig,
+      useBlob
     )
     this.seqsetValidHeight = seqsetValidHeight
     this.seqsetContractAddress = seqsetContractAddress
@@ -1184,9 +1186,10 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   }
 
   private async _getBlock(blockNumber: number): Promise<L2Block> {
-    // const p = this.l2Provider.getBlockWithTransactions(blockNumber)
     const p = await this.l2Provider.getBlock(blockNumber, true)
-    return p as L2Block
+    const l2BLock = p as L2Block
+    await Promise.all(l2BLock.l2TransactionPromises)
+    return l2BLock
   }
 
   private _isSequencerTx(block: L2Block): boolean {

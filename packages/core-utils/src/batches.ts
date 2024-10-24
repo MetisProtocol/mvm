@@ -34,7 +34,8 @@ export interface L2Transaction extends ethers.TransactionResponse {
 }
 
 export interface L2Block extends ethers.Block {
-  l2Transactions: Promise<L2Transaction[]>
+  l2Transactions: L2Transaction[]
+  l2TransactionPromises: Promise<L2Transaction>[]
 }
 
 /**

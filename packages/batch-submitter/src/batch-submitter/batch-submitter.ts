@@ -3,7 +3,6 @@ import { Contract, ethers, JsonRpcProvider, toNumber } from 'ethersv6'
 import { Counter, Gauge, Histogram } from 'prom-client'
 import { RollupInfo, sleep } from '@localtest911/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
-import { getContractFactory } from 'old-contracts'
 /* Internal Imports */
 import { TxSubmissionHooks } from '..'
 import { getContractDefinition } from '@metis.io/contracts'

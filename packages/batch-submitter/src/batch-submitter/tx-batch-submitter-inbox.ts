@@ -6,6 +6,7 @@ import {
   Signer,
   toBeHex,
   toBigInt,
+  toNumber,
   TransactionReceipt,
   TransactionRequest,
 } from 'ethersv6'
@@ -31,7 +32,6 @@ import {
   BatchToInbox,
   BatchToInboxElement,
   BatchToInboxRawTx,
-  ChannelConfig,
   InboxBatchParams,
   TxData,
 } from '../da/types'
@@ -42,6 +42,8 @@ import { SpanBatch } from '../da/span-batch'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
+  private l1ChainId: bigint
+  private l2ChainId: bigint
 
   constructor(
     readonly inboxStorage: InboxStorage,
@@ -189,7 +191,7 @@ export class TransactionBatchSubmitterInbox {
           const maxFeePerBlobGas = calcBlobFee(latestBlock.excessBlobGas)
           this.logger.info('submitting blob tx', {
             blobCount: blobs.length,
-            maxFeePerBlobGas,
+            maxFeePerBlobGas: toNumber(maxFeePerBlobGas),
             latestMpcAddress,
             feeData,
             mpcNonce,
@@ -462,6 +464,13 @@ export class TransactionBatchSubmitterInbox {
         compressedEncoded = storagedObject
       }
     } else {
+      if (!this.l1ChainId) {
+        this.l1ChainId = (await this.l1Provider.getNetwork()).chainId
+      }
+      if (!this.l2ChainId) {
+        this.l2ChainId = (await this.l2Provider.getNetwork()).chainId
+      }
+
       const channelManager = new ChannelManager(
         {
           // since we are using blob here, so max frame size is the blob size
@@ -482,11 +491,11 @@ export class TransactionBatchSubmitterInbox {
           useBlobs: true,
         },
         {
-          l1ChainID: BigInt(0),
-          l2ChainID: BigInt(0),
-          batchInboxAddress: '',
+          l1ChainID: this.l1ChainId,
+          l2ChainID: this.l2ChainId,
+          batchInboxAddress: this.inboxAddress,
         },
-        this.l2Provider
+        this.l1Provider
       )
 
       blocks.forEach((inboxElement: BatchToInboxElement) => {
@@ -498,14 +507,17 @@ export class TransactionBatchSubmitterInbox {
 
       const latestL1Block = await this.l1Provider.getBlockNumber()
 
-      for (
+      while (true) {
         const [txData, end] = await channelManager.txData(
           toBigInt(latestL1Block)
-        );
-        !end;
-
-      ) {
-        blobTxData.push(txData)
+        )
+        if (txData) {
+          blobTxData.push(txData)
+        }
+        if (end) {
+          console.log('no more tx data')
+          break
+        }
       }
 
       compressType = encodeHex(0, 2) // overwrite the compress type to not compressed
@@ -545,7 +557,7 @@ export class TransactionBatchSubmitterInbox {
       txs: [],
     }
 
-    ;(await block.l2Transactions).forEach((l2Tx: L2Transaction) => {
+    block.l2Transactions.forEach((l2Tx: L2Transaction) => {
       const batchElementTx: BatchToInboxRawTx = {
         rawTransaction: l2Tx.rawTransaction,
         isSequencerTx: this._isSequencerTx(l2Tx),
@@ -589,7 +601,9 @@ export class TransactionBatchSubmitterInbox {
 
   private async _getBlock(blockNumber: number): Promise<L2Block> {
     const p = await this.l2Provider.getBlock(blockNumber, true)
-    return p as L2Block
+    const l2BLock = p as L2Block
+    await Promise.all(l2BLock.l2TransactionPromises)
+    return l2BLock
   }
 
   private _isSequencerTx(tx: L2Transaction): boolean {

@@ -1,8 +1,8 @@
 // compressor.ts
 
 import * as zlib from 'zlib'
-import { promisify } from 'util'
-import { FRAME_OVERHEAD_SIZE, MAX_BLOB_SIZE } from './consts'
+import { MAX_BLOB_SIZE } from './consts'
+import { maxDataSize } from './utils'
 
 export enum CompressionAlgo {
   Zlib = 'zlib',
@@ -21,6 +21,8 @@ export class ChannelCompressor {
   private inputBytes: number = 0
   private stream: zlib.BrotliCompress | zlib.Deflate
   private readonly algo: CompressionAlgo
+  private compressed: Buffer
+  private readOffset = 0
 
   constructor(
     private config: CompressorConfig = {
@@ -47,28 +49,44 @@ export class ChannelCompressor {
                 zlib.constants.BROTLI_MAX_QUALITY,
             },
           })
+    this.compressed = Buffer.alloc(0)
     if (this.algo === CompressionAlgo.Brotli) {
-      this.stream.write(Buffer.from([CHANNEL_VERSION_BROTLI]))
+      this.compressed = Buffer.concat([
+        this.compressed,
+        Buffer.from([CHANNEL_VERSION_BROTLI]),
+      ])
     }
   }
 
-  async write(data: Uint8Array): Promise<number> {
-    if (this.fullErr()) {
-      throw new Error('Compressor is full')
-    }
+  write(data: Uint8Array): Promise<number> {
+    return new Promise((resolve, reject) => {
+      if (this.fullErr()) {
+        reject('Compressor is full')
+        return
+      }
 
-    this.inputBytes += data.length
-    this.stream.write(data)
-
-    return data.length
+      this.inputBytes += data.length
+      this.stream.on('data', (chunk: Buffer) => {
+        this.compressed = Buffer.concat([this.compressed, chunk])
+      })
+      this.stream.on('end', () => {
+        resolve(data.length)
+      })
+      this.stream.write(data)
+      this.stream.end()
+    })
   }
 
   read(p: Uint8Array): number {
-    const out = this.stream.read(p.length)
-    if (!out) {
+    const out = this.compressed.subarray(
+      this.readOffset,
+      this.readOffset + p.length
+    )
+    if (!out || !out.length) {
       return 0
     }
     out.copy(p)
+    this.readOffset += out.length
     return out.length
   }
 
@@ -78,7 +96,7 @@ export class ChannelCompressor {
   }
 
   len(): number {
-    return this.stream.readableLength
+    return this.compressed.length
   }
 
   fullErr(): Error | null {
@@ -101,12 +119,4 @@ export class ChannelCompressor {
   getCompressed(): Buffer {
     return this.stream.read() || Buffer.alloc(0)
   }
-}
-
-const maxDataSize = (frames: number, maxFrameSize: number) => {
-  if (maxFrameSize < FRAME_OVERHEAD_SIZE) {
-    throw new Error('Frame size too small')
-  }
-
-  return frames * (maxFrameSize - FRAME_OVERHEAD_SIZE)
 }

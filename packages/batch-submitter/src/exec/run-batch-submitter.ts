@@ -5,6 +5,7 @@ import { createMetricsServer, Logger, Metrics } from '@eth-optimism/common-ts'
 import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethersv6'
 import * as dotenv from 'dotenv'
 import Config from 'bcfg'
+import { loadTrustedSetup } from 'c-kzg'
 
 /* Internal Imports */
 import {
@@ -269,6 +270,12 @@ export const run = async () => {
     env.VALIDATE_TX_BATCH ? env.VALIDATE_TX_BATCH === 'true' : false
   )
 
+  // Blob DA
+  const USE_BLOB = config.bool(
+    'use-blob',
+    env.USE_BLOB ? env.USE_BLOB === 'true' : false
+  )
+
   // Auto fix batch options -- TODO: Remove this very hacky config
   const AUTO_FIX_BATCH_OPTIONS_CONF = config.str(
     'auto-fix-batch-conf',
@@ -432,6 +439,12 @@ export const run = async () => {
     addressManagerAddress: requiredEnvVars.ADDRESS_MANAGER_ADDRESS,
   })
 
+  if (USE_BLOB) {
+    logger.info('Blob DA enabled, initializing KZG trusted setup...')
+    // initialize KZG trusted setup, required for blob DA
+    loadTrustedSetup(0)
+  }
+
   const resubmissionConfig: ResubmissionConfig = {
     resubmissionTimeout: requiredEnvVars.RESUBMISSION_TIMEOUT * 1_000,
     minGasPriceInGwei: MIN_GAS_PRICE_IN_GWEI,
@@ -492,7 +505,8 @@ export const run = async () => {
     requiredEnvVars.BATCH_INBOX_STORAGE_PATH,
     requiredEnvVars.SEQSET_VALID_HEIGHT,
     requiredEnvVars.SEQSET_CONTRACT,
-    SEQSET_UPGRADE_ONLY
+    SEQSET_UPGRADE_ONLY,
+    USE_BLOB
   )
 
   const stateBatchTxSubmitter: TransactionSubmitter =

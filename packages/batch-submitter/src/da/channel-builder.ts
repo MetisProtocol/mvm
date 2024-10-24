@@ -9,6 +9,8 @@ import {
 import { SpanChannelOut } from './span-channel-out'
 import { L2Block } from '@localtest911/core-utils'
 import { ChannelCompressor } from './channel-compressor'
+import { maxDataSize } from './utils'
+import { MAX_BLOB_SIZE } from './consts'
 
 export class ChannelBuilder {
   public spanChannelOut: SpanChannelOut
@@ -25,7 +27,7 @@ export class ChannelBuilder {
   ) {
     this.spanChannelOut = new SpanChannelOut(
       rollupCfg.l2ChainID,
-      cfg.targetNumFrames,
+      5000, // maxDataSize(cfg.targetNumFrames, MAX_BLOB_SIZE) / 0.6,
       new ChannelCompressor(),
       { maxBlocksPerSpanBatch: 0 } // default to 0 - no maximum
     )

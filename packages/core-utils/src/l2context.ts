@@ -37,17 +37,25 @@ export class L2Provider extends JsonRpcProvider {
     return txResponseAny as L2Transaction
   }
 
-  _wrapBlock(value: BlockParams, network: Network): L2Block {
+  _wrapBlock(value: BlockParams, network: Network) {
     const originalTxs = value.transactions
     const block = super._wrapBlock(value, network)
     const blockAny = block as any
-    blockAny.l2Transactions = originalTxs.map((tx, index) => {
+    blockAny.l2Transactions = new Array<L2Transaction>(
+      block.transactions ? block.transactions.length : 0
+    )
+    blockAny.l2TransactionPromises = originalTxs.map(async (tx, index) => {
+      let txResponse: TransactionResponse
       if (typeof tx === 'string') {
-        return this.getTransaction(tx)
+        txResponse = await this.getTransaction(tx)
+      } else {
+        txResponse = this.toL2Transaction(
+          tx,
+          block.prefetchedTransactions[index]
+        )
       }
-      return Promise.resolve(
-        this.toL2Transaction(tx, block.prefetchedTransactions[index])
-      )
+      blockAny.l2Transactions[index] = txResponse as L2Transaction
+      return txResponse
     })
 
     return blockAny as L2Block
