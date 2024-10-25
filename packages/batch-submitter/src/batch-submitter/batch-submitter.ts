@@ -211,14 +211,19 @@ export abstract class BatchSubmitter {
 
   protected _makeHooks(txName: string): TxSubmissionHooks {
     return {
-      beforeSendTransaction: (tx: ethers.TransactionRequest) => {
+      beforeSendTransaction: async (tx: ethers.TransactionRequest) => {
         this.logger.info(`Submitting ${txName} transaction`, {
-          gasPrice: tx.gasPrice,
-          maxFeePerGas: tx.maxFeePerGas,
-          maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
-          gasLimit: tx.gasLimit,
-          nonce: tx.nonce,
-          contractAddr: this.chainContract.address,
+          gasPrice: tx.gasPrice ? toNumber(tx.gasPrice) : 0,
+          maxFeePerGas: tx.maxFeePerGas ? toNumber(tx.maxFeePerGas) : 0,
+          maxPriorityFeePerGas: tx.maxPriorityFeePerGas
+            ? toNumber(tx.maxPriorityFeePerGas)
+            : 0,
+          maxFeePerBlobGas: tx.maxFeePerBlobGas
+            ? toNumber(tx.maxFeePerBlobGas)
+            : 0,
+          gasLimit: toNumber(tx.gasLimit),
+          nonce: toNumber(tx.nonce),
+          contractAddr: tx.to,
         })
       },
       onTransactionResponse: (txResponse: ethers.TransactionResponse) => {

@@ -5,6 +5,7 @@ import { ethers, toBigInt } from 'ethersv6'
 import { randomUUID } from 'crypto'
 import '@localtest911/core-utils'
 import * as kzg from 'c-kzg'
+import { remove0x } from '@localtest911/core-utils'
 
 export class MpcClient {
   protected url: string
@@ -159,7 +160,7 @@ export class MpcClient {
   public async signTx(tx: any, mpcId: any): Promise<string> {
     // call mpc to sign tx
     const unsignedTx = {
-      type: tx.type || null,
+      type: tx.type ? tx.type : null,
       nonce: tx.nonce,
       gasPrice: tx.gasPrice ? toBigInt(tx.gasPrice) : null,
       gasLimit: toBigInt(tx.gasLimit),

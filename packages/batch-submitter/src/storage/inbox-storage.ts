@@ -2,7 +2,7 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Logger } from '@eth-optimism/common-ts'
-import { toBigInt } from 'ethersv6'
+import { toBigInt, toNumber } from 'ethersv6'
 
 const INBOX_OK_FILE = 'inbox_ok.json'
 const INBOX_FAIL_FILE = 'inbox_fail.json'
@@ -46,8 +46,8 @@ export class InboxStorage {
 
   public async recordConfirmedTx(inbox: InboxRecordInfo): Promise<boolean> {
     const jsonData = {
-      batchIndex: toBigInt(inbox.batchIndex),
-      number: toBigInt(inbox.blockNumber),
+      batchIndex: toNumber(inbox.batchIndex),
+      number: toNumber(inbox.blockNumber),
       hash: inbox.txHash,
     }
     const jsonString = JSON.stringify(jsonData, null, 2)

@@ -69,7 +69,7 @@ export const submitSignedTransactionWithYNATM = async (
     signedTx
   ): Promise<ethers.TransactionReceipt> => {
     hooks.beforeSendTransaction(tx)
-    const txResponse = await signer.sendTransaction(signedTx)
+    const txResponse = await signer.provider.broadcastTransaction(signedTx)
     hooks.onTransactionResponse(txResponse)
     return signer.provider.waitForTransaction(txResponse.hash, numConfirmations)
   }

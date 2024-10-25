@@ -198,6 +198,7 @@ export class TransactionBatchSubmitterInbox {
           })
 
           const blobTx: ethers.TransactionRequest = {
+            type: 3, // 3 for blob tx type
             to: this.inboxAddress,
             // since we are using blob tx, call data will be empty,
             // so the gas limit is just default tx gas
@@ -221,7 +222,12 @@ export class TransactionBatchSubmitterInbox {
                   blobTx,
                   currentMpcInfo.mpc_id
                 )
-                return signedTx
+                // need to append the blob sidecar to the signed tx
+                const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
+                signedTxUnmarshaled.blobs = blobTx.blobs
+                signedTxUnmarshaled.kzg = blobTx.kzg
+                // repack the tx
+                return signedTxUnmarshaled.serialized
               },
               hooks
             )

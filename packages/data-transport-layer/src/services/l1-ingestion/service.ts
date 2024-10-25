@@ -166,7 +166,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       )
     } catch (err) {
       throw new Error(
-        `Seems like your AddressManager is busted: ${Lib_AddressManager.address}`
+        `Seems like your AddressManager is busted: ${Lib_AddressManager.address}, ${err}`
       )
     }
 
