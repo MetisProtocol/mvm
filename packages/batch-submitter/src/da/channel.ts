@@ -14,6 +14,7 @@ export class Channel {
   private channelBuilder: ChannelBuilder
   private pendingTransactions: Map<string, TxData> = new Map()
   private confirmedTransactions: Map<string, number> = new Map()
+  private failedTransactions: Map<string, TxData> = new Map()
 
   constructor(
     private cfg: ChannelConfig,
@@ -118,8 +119,8 @@ export class Channel {
     return this.channelBuilder.oldestL2
   }
 
-  close(): void {
-    this.channelBuilder.spanChannelOut.close()
+  async close(): Promise<void> {
+    await this.channelBuilder.spanChannelOut.close()
   }
 
   noneSubmitted(): boolean {
@@ -133,7 +134,7 @@ export class Channel {
     const txData = this.pendingTransactions.get(id)
     if (txData) {
       this.pendingTransactions.delete(id)
-      this.channelBuilder
+      this.failedTransactions.set(id, txData)
     }
   }
 

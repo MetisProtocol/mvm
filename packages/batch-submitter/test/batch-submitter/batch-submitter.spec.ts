@@ -2,10 +2,9 @@ import { expect } from '../setup'
 
 /* External Imports */
 import '@nomiclabs/hardhat-ethers'
-import { Signer, ContractFactory, Contract, ethers } from 'ethers'
+import { Signer, ContractFactory, Contract, ethers } from 'ethersv6'
 import ganache from 'ganache-core'
 import sinon from 'sinon'
-import { Web3Provider } from '@ethersproject/providers'
 
 import scc from '@metis.io/contracts/artifacts/contracts/L1/rollup/StateCommitmentChain.sol/StateCommitmentChain.json'
 import { getContractInterface, predeploys } from '@eth-optimism/contracts'
@@ -82,7 +81,7 @@ describe('BatchSubmitter', () => {
   let signer: Signer
   let sequencer: Signer
   before(async () => {
-    ;[signer, sequencer] = await ethers.getSigners()
+    ;[signer, sequencer] = await ethers.getS
   })
 
   let AddressManager: Contract
@@ -454,6 +453,7 @@ describe('BatchSubmitter', () => {
       )
       stateBatchSubmitter = new StateBatchSubmitter(
         sequencer,
+        l1Provider,
         l2Provider as any,
         MIN_TX_SIZE,
         MAX_TX_SIZE,
@@ -468,7 +468,12 @@ describe('BatchSubmitter', () => {
         1,
         new Logger({ name: STATE_BATCH_SUBMITTER_LOG_TAG }),
         testMetrics,
-        '0x' + '01'.repeat(20) // placeholder for fraudSubmissionAddress
+        '0x' + '01'.repeat(20) // placeholder for fraudSubmissionAddress,
+        '',
+        '',
+          '',
+          0,
+          0
       )
     })
 

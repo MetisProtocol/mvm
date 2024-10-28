@@ -217,9 +217,6 @@ export class SpanChannelOut {
     }
 
     const f = this.createEmptyFrame(frameSize)
-
-    this.compressor.read(f.data)
-
     this.frame += 1
     return [f, f.isLast]
   }
@@ -230,7 +227,7 @@ export class SpanChannelOut {
     return {
       id: this.id,
       frameNumber: this.frame,
-      data: new Uint8Array(dataSize),
+      data: this.compressor.read(dataSize),
       isLast: this.closed && dataSize >= readyBytes,
     }
   }

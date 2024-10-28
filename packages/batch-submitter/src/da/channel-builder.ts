@@ -27,7 +27,7 @@ export class ChannelBuilder {
   ) {
     this.spanChannelOut = new SpanChannelOut(
       rollupCfg.l2ChainID,
-      5000, // maxDataSize(cfg.targetNumFrames, MAX_BLOB_SIZE) / 0.6,
+      maxDataSize(cfg.targetNumFrames, MAX_BLOB_SIZE) / 0.6, // hardcode 0.6 for now, adjust later
       new ChannelCompressor(),
       { maxBlocksPerSpanBatch: 0 } // default to 0 - no maximum
     )

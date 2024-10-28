@@ -1,7 +1,7 @@
 import { expect } from '../setup'
 import { MpcClient } from '../../src/utils/index'
 import { randomUUID, sign } from 'crypto'
-import { ethers, TransactionRequest } from 'ethers'
+import { ethers, TransactionRequest } from 'ethersv6'
 
 describe('MpcClient Test', async () => {
   let mpcClient: MpcClient

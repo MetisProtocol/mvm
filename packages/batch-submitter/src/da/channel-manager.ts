@@ -14,7 +14,6 @@ export class ChannelManager {
   private tip: string = ethers.ZeroHash
   private currentChannel: Channel | null = null
   private channelQueue: Channel[] = []
-  private txChannels: Map<string, Channel> = new Map()
 
   constructor(
     private cfg: ChannelConfig,
@@ -28,7 +27,6 @@ export class ChannelManager {
     this.tip = ethers.ZeroHash
     this.currentChannel = null
     this.channelQueue = []
-    this.txChannels.clear()
   }
 
   async txData(l1Head: bigint): Promise<[TxData, boolean]> {
@@ -92,11 +90,15 @@ export class ChannelManager {
 
         blocksAdded += 1
 
-        if (this.currentChannel!.isFull()) {
+        if (this.currentChannel.isFull()) {
+          // close the channel when it's full
+          await this.currentChannel.close()
           break
         }
       } catch (err) {
         if (err === CHANNEL_FULL_ERR) {
+          // close the channel when it's full
+          await this.currentChannel.close()
           break
         }
         throw err
@@ -104,7 +106,6 @@ export class ChannelManager {
     }
 
     this.blocks = this.blocks.slice(blocksAdded)
-    this.currentChannel.close()
 
     console.debug('Added blocks to channel', {
       blocks_added: blocksAdded,
@@ -128,8 +129,7 @@ export class ChannelManager {
     if (!channel || !channel.hasTxData()) {
       return [null, true]
     }
-    const [tx, end] = channel.nextTxData()
-    this.txChannels.set(tx.id, channel)
-    return [tx, end]
+
+    return channel.nextTxData()
   }
 }

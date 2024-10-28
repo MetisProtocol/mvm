@@ -22,7 +22,6 @@ export class ChannelCompressor {
   private stream: zlib.BrotliCompress | zlib.Deflate
   private readonly algo: CompressionAlgo
   private compressed: Buffer
-  private readOffset = 0
 
   constructor(
     private config: CompressorConfig = {
@@ -77,17 +76,13 @@ export class ChannelCompressor {
     })
   }
 
-  read(p: Uint8Array): number {
-    const out = this.compressed.subarray(
-      this.readOffset,
-      this.readOffset + p.length
-    )
+  read(size?: number): Uint8Array | null {
+    const out = size ? this.compressed.subarray(0, size) : this.compressed
+    this.compressed = this.compressed.subarray(out.length)
     if (!out || !out.length) {
-      return 0
+      return null
     }
-    out.copy(p)
-    this.readOffset += out.length
-    return out.length
+    return out
   }
 
   reset(): void {
@@ -114,9 +109,5 @@ export class ChannelCompressor {
 
   private inputTargetReached(): boolean {
     return this.inputBytes >= this.inputThreshold()
-  }
-
-  getCompressed(): Buffer {
-    return this.stream.read() || Buffer.alloc(0)
   }
 }
