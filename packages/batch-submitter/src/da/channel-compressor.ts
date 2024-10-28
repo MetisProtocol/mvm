@@ -72,6 +72,13 @@ export class ChannelCompressor {
         this.compressed = Buffer.concat([this.compressed, chunk])
       })
       this.stream.on('end', () => {
+        console.log(`Input bytes length: ${this.inputBytes}`)
+        console.log(`Compressed bytes length: ${this.compressed.length}`)
+        console.log(
+          `Compression rate: ${
+            (1 - this.compressed.length / this.inputBytes) * 100
+          }%`
+        )
         resolve(data.length)
       })
       this.stream.write(data)
