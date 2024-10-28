@@ -119,8 +119,10 @@ export class RawSpanBatch {
     public txs: SpanBatchTxs
   ) {}
 
-  encode(): Uint8Array {
+  async encode(): Promise<Uint8Array> {
     const writer = new Writer()
+    // append batch type at the beginning
+    writer.writeUint8(SpanBatch.batchType())
     this.encodePrefix(writer)
     this.encodePayload(writer)
     return writer.getData()

@@ -1,4 +1,4 @@
-import { ethers } from 'ethersv6'
+import { ethers, hexlify } from 'ethersv6'
 import { Channel } from './channel'
 import {
   BatchToInboxElement,
@@ -84,7 +84,7 @@ export class ChannelManager {
       try {
         await this.currentChannel!.addBlock(block)
         console.debug('Added block to channel', {
-          id: this.currentChannel!.id(),
+          id: hexlify(this.currentChannel!.id()),
           block: block.hash,
         })
 

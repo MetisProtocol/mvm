@@ -72,7 +72,7 @@ export class Channel {
       },
 
       get blobs(): Blob[] {
-        return this.frames.map((f: Frame) => new Blob().fromData(f.data))
+        return this.frames.map((f: Frame) => new Blob().fromFrame(f))
       },
     }
     this.pendingTransactions.set(txData.id, txData)

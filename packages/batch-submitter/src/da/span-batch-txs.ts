@@ -1,4 +1,4 @@
-import { getBytes, toBeArray, toBigInt, zeroPadValue } from 'ethersv6'
+import { getBytes, toBeArray, toBigInt, toNumber, zeroPadValue } from 'ethersv6'
 import { Writer } from './types'
 import { newSpanBatchTx } from './span-batch-tx'
 import { encodeSpanBatchBits } from './utils'
@@ -68,13 +68,19 @@ export class SpanBatchTxs {
       this.queueOriginBits |=
         BigInt(tx.queueOrigin === QueueOrigin.Sequencer) << BigInt(idx + offset)
       if (tx.queueOrigin !== QueueOrigin.Sequencer) {
+        console.log(`enqueue tx ${tx.hash}`)
         this.l1TxOrigins.push(tx.l1TxOrigin)
       }
       this.txSeqSigs.push({
         r: tx.seqR ? toBigInt(tx.seqR) : BigInt(0),
         s: tx.seqS ? toBigInt(tx.seqS) : BigInt(0),
       })
-      const seqYParityBit = tx.seqV ? toBigInt(tx.seqV) : BigInt(0)
+      const seqYParityBit = toBigInt(
+        this.convertVToYParity(
+          tx.seqV ? toNumber(tx.seqV) : toNumber(0),
+          tx.type
+        )
+      )
       this.seqYParityBits |= seqYParityBit << BigInt(idx + offset)
     }
 

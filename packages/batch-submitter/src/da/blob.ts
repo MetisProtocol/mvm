@@ -6,7 +6,7 @@ import {
   computeBlobKzgProof,
   verifyBlobKzgProof,
 } from 'c-kzg'
-import { ethers } from 'ethersv6'
+import { Frame } from './types'
 
 const BlobSize = 4096 * 32
 const MaxBlobDataSize = (4 * 31 + 3) * 1024 - 4
@@ -55,7 +55,36 @@ export class Blob {
     return verifyBlobKzgProof(blob.data as CBlob, commitment, proof)
   }
 
-  fromData(data: Uint8Array): Blob {
+  marshalFrame(frame: Frame): Uint8Array {
+    const buffer = new ArrayBuffer(16 + 2 + 4 + frame.data.length + 1)
+    const view = new DataView(buffer)
+    let offset = 0
+
+    // Write id (16 bytes)
+    new Uint8Array(buffer, offset, 16).set(frame.id)
+    offset += 16
+
+    // Write frameNumber (2 bytes, big-endian)
+    view.setUint16(offset, frame.frameNumber, false)
+    offset += 2
+
+    // Write data length (4 bytes, big-endian)
+    view.setUint32(offset, frame.data.length, false)
+    offset += 4
+
+    // Write data
+    new Uint8Array(buffer, offset, frame.data.length).set(frame.data)
+    offset += frame.data.length
+
+    // Write isLast (1 byte)
+    view.setUint8(offset, frame.isLast ? 1 : 0)
+
+    return new Uint8Array(buffer)
+  }
+
+  fromFrame(frame: Frame): Blob {
+    // set first byte as derivation version 0
+    const data = Buffer.concat([Buffer.from([0x0]), this.marshalFrame(frame)])
     if (data.length > MaxBlobDataSize) {
       throw new Error(`Input too large: len=${data.length}`)
     }
@@ -79,7 +108,10 @@ export class Blob {
         return
       }
       const n = Math.min(31, data.length - readOffset)
-      buf31.set(data.slice(readOffset, readOffset + n))
+      buf31.set(data.subarray(readOffset, readOffset + n))
+      if (n < 31) {
+        buf31.set(zero31.subarray(0, 31 - n), n)
+      }
       readOffset += n
     }
 
@@ -108,7 +140,15 @@ export class Blob {
         buf31[1] = (ilen >> 16) & 0xff
         buf31[2] = (ilen >> 8) & 0xff
         buf31[3] = ilen & 0xff
-        read31()
+        const dataToCopy = data.subarray(0, 27)
+        buf31.set(dataToCopy, 4)
+        if (dataToCopy.length < 27) {
+          buf31.set(
+            zero31.subarray(0, 27 - dataToCopy.length),
+            4 + dataToCopy.length
+          )
+        }
+        readOffset += dataToCopy.length
       } else {
         read31()
       }
@@ -153,10 +193,6 @@ export class Blob {
     return `${Buffer.from(this.data.slice(0, 3)).toString(
       'hex'
     )}..${Buffer.from(this.data.slice(BlobSize - 3)).toString('hex')}`
-  }
-
-  async computeKZGCommitment(): Promise<Bytes48> {
-    return blobToKzgCommitment(this.data as CBlob)
   }
 
   clear(): void {

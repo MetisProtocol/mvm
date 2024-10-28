@@ -7,10 +7,9 @@ import {
   RollupConfig,
 } from './types'
 import { SpanChannelOut } from './span-channel-out'
-import { L2Block } from '@localtest911/core-utils'
+import { L2Block, sleep } from '@localtest911/core-utils'
 import { ChannelCompressor } from './channel-compressor'
-import { maxDataSize } from './utils'
-import { MAX_BLOB_SIZE } from './consts'
+import { CHANNEL_FULL_ERR } from './consts'
 
 export class ChannelBuilder {
   public spanChannelOut: SpanChannelOut
@@ -27,7 +26,7 @@ export class ChannelBuilder {
   ) {
     this.spanChannelOut = new SpanChannelOut(
       rollupCfg.l2ChainID,
-      maxDataSize(cfg.targetNumFrames, MAX_BLOB_SIZE) / 0.6, // hardcode 0.6 for now, adjust later
+      5000, // maxDataSize(cfg.targetNumFrames, MAX_BLOB_SIZE) / 0.6, // hardcode 0.6 for now, adjust later
       new ChannelCompressor(),
       { maxBlocksPerSpanBatch: 0 } // default to 0 - no maximum
     )
@@ -55,17 +54,37 @@ export class ChannelBuilder {
     }
 
     const firstTx = block.txs[0]
-    const epoch = await this.l1Client.getBlock(firstTx.l1BlockNumber)
 
-    this.updateBlockInfo(block, epoch)
-
-    await this.spanChannelOut.addBlock(block, epoch.hash)
+    let retry = 3
+    let lastErr: Error | null
+    while (retry--) {
+      try {
+        const epoch = await this.l1Client.getBlock(firstTx.l1BlockNumber)
+        this.updateBlockInfo(block, epoch.number)
+        const startTime = Date.now()
+        await this.spanChannelOut.addBlock(block, epoch.hash)
+        const endTime = Date.now()
+        console.log(
+          `Adding block ${block.blockNumber} took ${endTime - startTime} ms`
+        )
+        return
+      } catch (err) {
+        if (err === CHANNEL_FULL_ERR) {
+          return
+        }
+        lastErr = err
+        console.error(
+          `Failed to add block to span channel, remain retry time: ${retry}`
+        )
+        await sleep(3000)
+      }
+    }
+    if (retry === 0) {
+      throw lastErr
+    }
   }
 
-  private updateBlockInfo(
-    block: BatchToInboxElement,
-    l1Info: ethers.Block
-  ): void {
+  private updateBlockInfo(block: BatchToInboxElement, l1Number: number): void {
     const blockNumber = block.blockNumber
     if (blockNumber > this.latestL2) {
       this.latestL2 = blockNumber
@@ -74,11 +93,11 @@ export class ChannelBuilder {
       this.oldestL2 = blockNumber
     }
 
-    if (l1Info.number > this.latestL1Origin) {
-      this.latestL1Origin = l1Info.number
+    if (l1Number > this.latestL1Origin) {
+      this.latestL1Origin = l1Number
     }
-    if (this.oldestL1Origin === 0 || l1Info.number < this.oldestL1Origin) {
-      this.oldestL1Origin = l1Info.number
+    if (this.oldestL1Origin === 0 || l1Number < this.oldestL1Origin) {
+      this.oldestL1Origin = l1Number
     }
   }
 

@@ -2,7 +2,7 @@ import { PassThrough, Readable } from 'stream'
 import * as zlib from 'zlib'
 import { Frame } from './frame'
 import * as RLP from 'rlp'
-import { ethers, toBigInt, toNumber } from 'ethersv6'
+import { ethers, hexlify, toBigInt, toNumber } from 'ethersv6'
 import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
 
 // Constants and Enums
@@ -884,7 +884,7 @@ export class Channel {
   }
 
   addFrame(frame: Frame): void {
-    const frameId = Buffer.from(frame.id).toString('hex')
+    const frameId = hexlify(frame.id)
     if (frameId !== this.id) {
       throw new Error(
         `frame id does not match channel id. Expected ${this.id}, got ${frameId}`
