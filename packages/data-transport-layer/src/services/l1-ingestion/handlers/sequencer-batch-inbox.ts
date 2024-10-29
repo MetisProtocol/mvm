@@ -85,7 +85,9 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       batchExtraData: '',
 
       blobIndex: event.blobIndex,
-      blobCount: l1Transaction.blobVersionedHashes.length,
+      blobCount: l1Transaction.blobVersionedHashes
+        ? l1Transaction.blobVersionedHashes.length
+        : 0,
     }
   },
   parseEvent: async (event, extraData, l2ChainId, options) => {

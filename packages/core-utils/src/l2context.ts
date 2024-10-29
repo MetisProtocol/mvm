@@ -5,6 +5,7 @@ import {
   ethers,
   JsonRpcProvider,
   Network,
+  toBeHex,
   toBigInt,
   toNumber,
   TransactionReceipt,
@@ -30,9 +31,9 @@ export class L2Provider extends JsonRpcProvider {
     txResponseAny.l1TxOrigin = anyTx.l1TxOrigin
     txResponseAny.queueOrigin = anyTx.queueOrigin
     txResponseAny.rawTransaction = anyTx.rawTransaction
-    txResponseAny.seqV = toNumber(anyTx.seqV || 0)
-    txResponseAny.seqR = toBigInt(anyTx.seqR || 0)
-    txResponseAny.seqS = toBigInt(anyTx.seqS || 0)
+    txResponseAny.seqV = anyTx.seqV ? toBeHex(toNumber(anyTx.seqV)) : null
+    txResponseAny.seqR = anyTx.seqR ? toBeHex(toBigInt(anyTx.seqR)) : null
+    txResponseAny.seqS = anyTx.seqS ? toBeHex(toBigInt(anyTx.seqS)) : null
 
     return txResponseAny as L2Transaction
   }

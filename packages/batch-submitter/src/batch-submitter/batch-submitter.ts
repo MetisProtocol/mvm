@@ -221,7 +221,7 @@ export abstract class BatchSubmitter {
           maxFeePerBlobGas: tx.maxFeePerBlobGas
             ? toNumber(tx.maxFeePerBlobGas)
             : 0,
-          gasLimit: toNumber(tx.gasLimit),
+          gasLimit: tx.gasLimit ? toNumber(tx.gasLimit) : null,
           nonce: toNumber(tx.nonce),
           contractAddr: tx.to,
         })

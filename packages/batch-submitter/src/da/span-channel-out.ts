@@ -142,11 +142,11 @@ export class SpanChannelOut {
       )
     }
 
-    const rlpGrowth = this.rlp.length - this.lastCompressedRLPSize
-    if (this.compressor.len() + rlpGrowth < this.target) {
-      console.log('not reaching target', rlpGrowth, this.compressor.len())
-      return
-    }
+    // const rlpGrowth = this.rlp.length - this.lastCompressedRLPSize
+    // if (this.compressor.len() + rlpGrowth < this.target) {
+    //   console.log('not reaching target', rlpGrowth, this.compressor.len())
+    //   return
+    // }
     const endTime = Date.now()
     console.log('Preparing compression took', endTime - startTime, 'ms')
 
@@ -174,7 +174,7 @@ export class SpanChannelOut {
       return
     }
     this.sealedRLPBytes = this.rlp.length
-    this.resetSpanBatch()
+    // this.resetSpanBatch()
   }
 
   private async compress(): Promise<void> {

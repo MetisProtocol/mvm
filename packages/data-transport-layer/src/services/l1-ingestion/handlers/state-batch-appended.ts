@@ -20,9 +20,15 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
 > = {
   getExtraData: async (event, l1RpcProvider) => {
     const eventBlock = await l1RpcProvider.getBlock(event.blockNumber, true)
-    const l1Transaction = await eventBlock.prefetchedTransactions.find(
-      (i) => i.hash === event.transactionHash
+    const l1TransactionHash = await eventBlock.transactions.find(
+      (i) => i === event.transactionHash
     )
+
+    if (!l1TransactionHash) {
+      throw new Error(`Could not find L1 transaction: ${event.transactionHash}`)
+    }
+
+    const l1Transaction = await l1RpcProvider.getTransaction(l1TransactionHash)
 
     return {
       timestamp: eventBlock.timestamp,

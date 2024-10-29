@@ -339,14 +339,14 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       const l2FinalizeBlockNum = toNumber(l2FinalizeBlock)
       if (l2FinalizeBlockNum > 0) {
         const l2EpochLength = await this.seqsetContract.epochLength()
-        const l2EpochLengthNum = BigNumber.from(l2EpochLength).toNumber()
+        const l2EpochLengthNum = toNumber(l2EpochLength)
         const l2RespanIncrement = 100
         // set safe confirmations as 1 epoch length plus 3 respan increments
-        const l2SafeConfirmtions = l2EpochLengthNum + 3 * l2RespanIncrement + 1
+        const l2SafeConfirmations = l2EpochLengthNum + 3 * l2RespanIncrement + 1
         endBlock = Math.min(
           endBlock,
           l2FinalizeBlockNum,
-          Math.max(l2HeighestBlock - l2SafeConfirmtions, 0)
+          Math.max(l2HeighestBlock - l2SafeConfirmations, 0)
         )
       }
     }
@@ -535,10 +535,12 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       to: this.useMinio
         ? await this.mvmCtcContract.getAddress()
         : await this.chainContract.getAddress(),
-      data: await encodeAppendSequencerBatch(
-        batchParams,
-        this.encodeSequencerBatchOptions
-      ),
+      data:
+        '0x' +
+        (await encodeAppendSequencerBatch(
+          batchParams,
+          this.encodeSequencerBatchOptions
+        )),
       nonce: await this.signer.getNonce(),
     }
 
@@ -613,7 +615,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     )
 
     // fix max batch size with env and mvmCtc
-    const mvmMaxBatchSize = await this.mvmCtcContract.getTxBatchSize()
+    const mvmMaxBatchSize = toNumber(await this.mvmCtcContract.getTxBatchSize())
     const fixedMaxTxSize = Math.min(this.maxTxSize, mvmMaxBatchSize)
 
     // Fix our batches if we are configured to. This will not

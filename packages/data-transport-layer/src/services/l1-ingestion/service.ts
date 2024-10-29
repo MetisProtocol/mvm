@@ -218,6 +218,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       await this.state.db.setStartingL1BatchIndex(
         this.state.startingL1BatchIndex
       )
+    } else {
+      this.state.startingL1BatchIndex = startingL1BatchIndex
     }
 
     // Store the total number of submitted transactions so the server can tell clients if we're
@@ -253,7 +255,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
         const latestBatch = await this.state.dbOfL2.getLatestTransactionBatch()
         const highestSyncedL1BatchIndex =
-          latestBatch === null ? -1 : latestBatch.index
+          latestBatch === null ? 0 : latestBatch.index
 
         this.logger.info('Synchronizing events from Layer 1 (Ethereum)', {
           usingL2ChainId: this.options.l2ChainId,
@@ -275,7 +277,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           inboxBatchStart > 0
         const useBatchInbox =
           hasInboxConfig &&
-          highestSyncedL1BatchIndex > 0 &&
+          // highestSyncedL1BatchIndex > 0 &&
           inboxBatchStart <= highestSyncedL1BatchIndex + 1 &&
           this.state.startingL1BatchIndex <= highestSyncedL1BatchIndex + 1
 
@@ -491,6 +493,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             this.options.batchInboxSender.toLowerCase() &&
           tx.data.length >= 140
         ) {
+          this.logger.info('found inbox batch', {
+            txHash: tx.hash,
+            blockNumber: block.number,
+          })
           // check receipt status, 0 fail
           const receipt = await this.state.l1RpcProvider.getTransactionReceipt(
             tx.hash
@@ -516,6 +522,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           } catch (err) {
             this.logger.warn('Verify inbox batch failed:', {
               tx,
+              err,
             })
           }
         }
@@ -642,7 +649,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             this.state.l1RpcProvider
           )
           // filter chainId
-          const chainId = event.args._chainId.toNumber()
+          const chainId = toNumber(event.args._chainId)
           const parsedEvent = await handlers.parseEvent(
             event,
             extraData,

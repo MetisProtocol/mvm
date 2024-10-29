@@ -91,19 +91,18 @@ export class ChannelManager {
         blocksAdded += 1
 
         if (this.currentChannel.isFull()) {
-          // close the channel when it's full
-          await this.currentChannel.close()
           break
         }
       } catch (err) {
         if (err === CHANNEL_FULL_ERR) {
-          // close the channel when it's full
-          await this.currentChannel.close()
           break
         }
         throw err
       }
     }
+
+    // when process blocks got called, we will close the channel anyway
+    await this.currentChannel.close()
 
     this.blocks = this.blocks.slice(blocksAdded)
 
