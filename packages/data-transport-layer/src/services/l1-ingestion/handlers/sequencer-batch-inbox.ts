@@ -174,12 +174,24 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       contextData = await zlibDecompress(contextData)
     }
 
+    const transactionBatchEntry: TransactionBatchEntry = {
+      index: Number(extraData.batchIndex),
+      root: extraData.batchRoot,
+      size: Number(extraData.batchSize),
+      prevTotalElements: Number(extraData.prevTotalElements),
+      extraData: extraData.batchExtraData,
+      blockNumber: extraData.blockNumber,
+      timestamp: extraData.timestamp,
+      submitter: extraData.submitter,
+      l1TransactionHash: extraData.l1TransactionHash,
+    }
+
     // when using blob data, the context data is not in the old Metis format,
     // it is chunked by optimism frames, so we need to parse it differently
     if (da !== 3) {
       let offset = 0
       let blockIndex = 0
-      const l2Start = toNumber(calldata.slice(2 + 32, 2 + 64))
+      const l2Start = toNumber(calldata.subarray(2 + 32, 2 + 64))
       let pointerEnd = false
       while (!pointerEnd) {
         const txCount = toNumber(contextData.subarray(offset, offset + 3))
@@ -289,18 +301,6 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
         }
       }
 
-      const transactionBatchEntry: TransactionBatchEntry = {
-        index: Number(extraData.batchIndex),
-        root: extraData.batchRoot,
-        size: Number(extraData.batchSize),
-        prevTotalElements: Number(extraData.prevTotalElements),
-        extraData: extraData.batchExtraData,
-        blockNumber: extraData.blockNumber,
-        timestamp: extraData.timestamp,
-        submitter: extraData.submitter,
-        l1TransactionHash: extraData.l1TransactionHash,
-      }
-
       return {
         transactionBatchEntry,
         blockEntries,
@@ -351,6 +351,11 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
             confirmed: true,
           })
         }
+      }
+
+      return {
+        transactionBatchEntry,
+        blockEntries,
       }
     }
   },
