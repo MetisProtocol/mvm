@@ -219,7 +219,7 @@ export class TransactionBatchSubmitterInbox {
           type: 3, // 3 for blob tx type
           to: this.inboxAddress,
           // since we are using blob tx, call data will be empty,
-          // so the gas limit is just default tx gas
+          // so the gas limit is just the default tx gas
           gasLimit: TX_GAS,
           chainId,
           nonce,

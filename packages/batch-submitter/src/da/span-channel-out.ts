@@ -133,8 +133,7 @@ export class SpanChannelOut {
     await this.spanBatch.appendSingularBatch(batch)
     const rawSpanBatch = this.spanBatch.toRawSpanBatch()
 
-    const encoded = await rawSpanBatch.encode()
-    this.rlp = new Uint8Array([...this.rlp, ...encoded])
+    this.rlp = await rawSpanBatch.encode()
 
     if (this.rlp.length > MAX_RLP_BYTES_PER_CHANNEL) {
       throw new Error(
