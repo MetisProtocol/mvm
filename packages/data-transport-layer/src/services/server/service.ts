@@ -270,8 +270,9 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       inboxAddress.length === 42 &&
       inboxAddress.startsWith('0x') &&
       inboxSender &&
-      inboxSender.length === 42 &&
-      inboxSender.startsWith('0x') &&
+      inboxSender.length > 0 &&
+      inboxSender.filter((s) => s && s.length === 42 && s.startsWith('0x'))
+        .length === inboxSender.length &&
       inboxBatchStart > 0 &&
       batchIndex > 0 &&
       inboxBatchStart <= batchIndex
