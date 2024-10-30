@@ -50,6 +50,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   private autoFixBatchOptions: AutoFixBatchOptions
   private validateBatch: boolean
   private transactionSubmitter: TransactionSubmitter
+  private blobTransactionSubmitter: TransactionSubmitter
   private gasThresholdInGwei: number
   private useMinio: boolean
   private minioConfig: MinioConfig
@@ -65,6 +66,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
 
   constructor(
     signer: Signer,
+    blobSigner: Signer,
     l1Provider: JsonRpcProvider,
     l2Provider: JsonRpcProvider,
     minTxSize: number,
@@ -77,6 +79,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     minBalanceEther: number,
     gasThresholdInGwei: number,
     transactionSubmitter: TransactionSubmitter,
+    blobTransactionSubmitter: TransactionSubmitter,
     blockOffset: number,
     validateBatch: boolean,
     logger: Logger,
@@ -99,6 +102,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   ) {
     super(
       signer,
+      blobSigner,
       l1Provider,
       l2Provider,
       minTxSize,
@@ -119,6 +123,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.autoFixBatchOptions = autoFixBatchOptions
     this.gasThresholdInGwei = gasThresholdInGwei
     this.transactionSubmitter = transactionSubmitter
+    this.blobTransactionSubmitter = blobTransactionSubmitter
     this.useMinio = useMinio
     this.minioConfig = minioConfig
     this.mpcUrl = mpcUrl
@@ -411,11 +416,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         nextBatchIndex,
         this.metrics,
         this.signer,
+        this.blobSigner,
         this.mpcUrl,
         (sizeInBytes: number): boolean => {
           return this._shouldSubmitBatch(sizeInBytes)
         },
         this.transactionSubmitter,
+        this.blobTransactionSubmitter,
         this._makeHooks('sendBatchToInbox'),
         (
           submitTransaction: () => Promise<ethers.TransactionReceipt>,

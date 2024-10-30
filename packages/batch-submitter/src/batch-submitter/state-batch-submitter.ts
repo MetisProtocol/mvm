@@ -64,6 +64,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
   ) {
     super(
       signer,
+      null, // state batcher does not need blob signer
       l1Provider,
       l2Provider,
       minTxSize,

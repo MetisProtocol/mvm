@@ -1,4 +1,4 @@
-import { ethers, Signer } from 'ethersv6'
+import { ethers, Signer, toBigInt, toNumber } from 'ethersv6'
 import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'
@@ -36,10 +36,28 @@ export const submitTransactionWithYNATM = async (
   const sendTxAndWaitForReceipt = async (
     gasPrice
   ): Promise<ethers.TransactionReceipt> => {
-    const fullTx = {
-      ...tx,
-      gasPrice,
+    const isEIP1559 = !!tx.maxFeePerGas || !!tx.maxPriorityFeePerGas
+    let fullTx: any
+    if (isEIP1559) {
+      // to be compatible with EIP-1559, we need to set the gasPrice to the maxPriorityFeePerGas
+      const fee = await signer.provider.getFeeData()
+      const feeScalingFactor = gasPrice
+        ? gasPrice /
+          (toNumber(tx.maxFeePerGas) + toNumber(tx.maxPriorityFeePerGas))
+        : 1
+      fullTx = {
+        ...tx,
+        maxFeePerGas: fee.maxFeePerGas, // set base fee to latest
+        maxPriorityFeePerGas:
+          fee.maxPriorityFeePerGas * toBigInt(feeScalingFactor), // update priority fee with the scaling factor
+      }
+    } else {
+      fullTx = {
+        ...tx,
+        gasPrice,
+      }
     }
+
     hooks.beforeSendTransaction(fullTx)
     const txResponse = await signer.sendTransaction(fullTx)
     hooks.onTransactionResponse(txResponse)
@@ -47,14 +65,19 @@ export const submitTransactionWithYNATM = async (
   }
 
   const minGasPrice = await getGasPriceInGwei(signer)
-  const receipt = await ynatm.send({
-    sendTransactionFunction: sendTxAndWaitForReceipt,
-    minGasPrice: ynatm.toGwei(minGasPrice),
-    maxGasPrice: ynatm.toGwei(config.maxGasPriceInGwei),
-    gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
-    delay: config.resubmissionTimeout,
-  })
-  return receipt
+  try {
+    const receipt = await ynatm.send({
+      sendTransactionFunction: sendTxAndWaitForReceipt,
+      minGasPrice: ynatm.toGwei(minGasPrice),
+      maxGasPrice: ynatm.toGwei(config.maxGasPriceInGwei),
+      gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
+      delay: config.resubmissionTimeout,
+    })
+    return receipt
+  } catch (err) {
+    console.error('Error submitting transaction:', err)
+    throw err
+  }
 }
 
 export const submitSignedTransactionWithYNATM = async (

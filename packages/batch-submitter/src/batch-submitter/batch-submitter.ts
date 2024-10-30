@@ -35,6 +35,7 @@ export abstract class BatchSubmitter {
 
   constructor(
     readonly signer: ethers.Signer,
+    readonly blobSigner: ethers.Signer,
     readonly l1Provider: JsonRpcProvider,
     readonly l2Provider: JsonRpcProvider,
     readonly minTxSize: number,

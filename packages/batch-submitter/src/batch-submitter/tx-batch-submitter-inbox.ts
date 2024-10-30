@@ -67,9 +67,11 @@ export class TransactionBatchSubmitterInbox {
     nextBatchIndex: number,
     metrics: any,
     signer: Signer,
+    blobSigner: Signer,
     mpcUrl: string,
     shouldSubmitBatch: (sizeInBytes: number) => boolean,
     transactionSubmitter: TransactionSubmitter,
+    blobTransactionSubmitter: TransactionSubmitter,
     hooks: TxSubmissionHooks,
     submitAndLogTx: (
       submitTransaction: () => Promise<TransactionReceipt>,
@@ -116,8 +118,10 @@ export class TransactionBatchSubmitterInbox {
       nextBatchIndex,
       batchParams,
       signer,
+      blobSigner,
       mpcUrl,
       transactionSubmitter,
+      blobTransactionSubmitter,
       hooks,
       submitAndLogTx
     )
@@ -131,8 +135,12 @@ export class TransactionBatchSubmitterInbox {
     nextBatchIndex: number,
     batchParams: InboxBatchParams,
     signer: Signer,
+    // need the second signer for blob txs, since blob txs are in a separate tx pool,
+    // in EIP4844, ethereum does not allow one account sending txs to multiple pools at the same time
+    blobSigner: Signer,
     mpcUrl: string,
     transactionSubmitter: TransactionSubmitter,
+    blobTransactionSubmitter: TransactionSubmitter,
     hooks: TxSubmissionHooks,
     submitAndLogTx: (
       submitTransaction: () => Promise<TransactionReceipt>,
@@ -174,26 +182,28 @@ export class TransactionBatchSubmitterInbox {
         let mpcId: string
         if (mpcUrl) {
           // retrieve mpc info
-          const currentMpcInfo = await mpcClient.getLatestMpc()
+          // blob tx need to use mpc type 3 (specific for blob tx) to sign,
+          // just need to avoid collision with other tx types
+          const currentMpcInfo = await mpcClient.getLatestMpc('3')
           if (!currentMpcInfo || !currentMpcInfo.mpc_address) {
             throw new Error('MPC info get failed')
           }
           signerAddress = currentMpcInfo.mpc_address
           mpcId = currentMpcInfo.mpc_id
         } else {
-          signerAddress = await signer.getAddress()
+          signerAddress = await blobSigner.getAddress()
         }
 
         // async fetch required info
-        const [latestBlockPromise, feeDataPromise, mpcNoncePromise] = [
+        const [latestBlockPromise, feeDataPromise, noncePromise] = [
           this.l1Provider.getBlock('latest'),
           this.l1Provider.getFeeData(),
           signer.provider.getTransactionCount(signerAddress),
         ]
-        const [latestBlock, feeData, mpcNonce] = await Promise.all([
+        const [latestBlock, feeData, nonce] = await Promise.all([
           latestBlockPromise,
           feeDataPromise,
-          mpcNoncePromise,
+          noncePromise,
         ])
 
         const maxFeePerBlobGas = calcBlobFee(latestBlock.excessBlobGas)
@@ -202,7 +212,7 @@ export class TransactionBatchSubmitterInbox {
           maxFeePerBlobGas: toNumber(maxFeePerBlobGas),
           signerAddress,
           feeData,
-          mpcNonce,
+          nonce,
         })
 
         const blobTx: ethers.TransactionRequest = {
@@ -212,7 +222,7 @@ export class TransactionBatchSubmitterInbox {
           // so the gas limit is just default tx gas
           gasLimit: TX_GAS,
           chainId,
-          nonce: mpcNonce,
+          nonce,
           blobs,
           blobVersionedHashes: blobs.map((blob) => blob.versionedHash),
           maxFeePerBlobGas,
@@ -222,9 +232,9 @@ export class TransactionBatchSubmitterInbox {
         }
 
         // mpc model can use ynatm
-        let signTx: () => Promise<TransactionReceipt>
+        let submitTx: () => Promise<TransactionReceipt>
         if (mpcUrl) {
-          signTx = (): Promise<TransactionReceipt> => {
+          submitTx = (): Promise<TransactionReceipt> => {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
               async () => {
@@ -240,13 +250,18 @@ export class TransactionBatchSubmitterInbox {
             )
           }
         } else {
-          signTx = (): Promise<TransactionReceipt> => {
-            return transactionSubmitter.submitTransaction(blobTx, hooks)
+          submitTx = (): Promise<TransactionReceipt> => {
+            try {
+              return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
+            } catch (err) {
+              this.logger.error('blob tx submission failed', { err })
+              throw new Error('Blob tx submission failed')
+            }
           }
         }
 
         const blobTxReceipt = await submitAndLogTx(
-          signTx,
+          submitTx,
           `Submitted blob tx with ${mpcUrl ? 'mpc' : 'local'} signer!`,
           (receipt: TransactionReceipt | null, err: any): Promise<boolean> => {
             return this._setBatchInboxRecord(receipt, err, nextBatchIndex)

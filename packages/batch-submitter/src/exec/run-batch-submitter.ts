@@ -157,10 +157,57 @@ export const run = async () => {
     'debug-impersonate-sequencer-address',
     env.DEBUG_IMPERSONATE_SEQUENCER_ADDRESS
   )
+  const DEBUG_IMPERSONATE_BLOB_ADDRESS = config.str(
+    'debug-impersonate-blob-address',
+    env.DEBUG_IMPERSONATE_BLOB_ADDRESS
+  )
   const DEBUG_IMPERSONATE_PROPOSER_ADDRESS = config.str(
     'debug-impersonate-proposer-address',
     env.DEBUG_IMPERSONATE_PROPOSER_ADDRESS
   )
+
+  const getBlobSigner = async (): Promise<Signer> => {
+    if (useHardhat && USE_BLOB) {
+      if (!DEBUG_IMPERSONATE_BLOB_ADDRESS) {
+        throw new Error('Must pass DEBUG_IMPERSONATE_BLOB_ADDRESS')
+      }
+      await l1Provider.send('hardhat_impersonateAccount', [
+        DEBUG_IMPERSONATE_SEQUENCER_ADDRESS,
+      ])
+      return l1Provider.getSigner(DEBUG_IMPERSONATE_BLOB_ADDRESS)
+    }
+
+    if (BLOB_PRIVATE_KEY) {
+      if (
+        BLOB_PRIVATE_KEY === SEQUENCER_PRIVATE_KEY ||
+        BLOB_PRIVATE_KEY === PROPOSER_PRIVATE_KEY
+      ) {
+        throw new Error(
+          'Blob private key must be different from sequencer and proposer private keys'
+        )
+      }
+
+      return new Wallet(BLOB_PRIVATE_KEY, l1Provider)
+    } else if (BLOB_MNEMONIC) {
+      if (
+        (BLOB_MNEMONIC === SEQUENCER_MNEMONIC &&
+          BLOB_HD_PATH === SEQUENCER_HD_PATH) ||
+        (BLOB_MNEMONIC === PROPOSER_MNEMONIC &&
+          BLOB_HD_PATH === PROPOSER_HD_PATH)
+      ) {
+        throw new Error(
+          'Blob mnemonic and hd path must be different from sequencer and proposer'
+        )
+      }
+
+      return HDNodeWallet.fromPhrase(BLOB_MNEMONIC, null, BLOB_HD_PATH).connect(
+        l1Provider
+      )
+    }
+    throw new Error(
+      'Must pass one of BLOB_PRIVATE_KEY, MNEMONIC, or BLOB_MNEMONIC'
+    )
+  }
 
   const getSequencerSigner = async (): Promise<Signer> => {
     if (useHardhat) {
@@ -243,6 +290,8 @@ export const run = async () => {
     'sequencer-private-key',
     env.SEQUENCER_PRIVATE_KEY
   )
+  // dedicated private key for signing blob txs
+  const BLOB_PRIVATE_KEY = config.str('blob-private-key', env.BLOB_PRIVATE_KEY)
   // Kept for backwards compatibility
   const PROPOSER_PRIVATE_KEY = config.str(
     'proposer-private-key',
@@ -252,6 +301,10 @@ export const run = async () => {
     'sequencer-mnemonic',
     env.SEQUENCER_MNEMONIC || env.MNEMONIC
   )
+  const BLOB_MNEMONIC = config.str(
+    'blob-mnemonic',
+    env.BLOB_MNEMONIC || env.MNEMONIC
+  )
   const PROPOSER_MNEMONIC = config.str(
     'proposer-mnemonic',
     env.PROPOSER_MNEMONIC || env.MNEMONIC
@@ -259,6 +312,10 @@ export const run = async () => {
   const SEQUENCER_HD_PATH = config.str(
     'sequencer-hd-path',
     env.SEQUENCER_HD_PATH || env.HD_PATH
+  )
+  const BLOB_HD_PATH = config.str(
+    'blob-hd-path',
+    env.BLOB_HD_PATH || env.HD_PATH
   )
   const PROPOSER_HD_PATH = config.str(
     'proposer-hd-path',
@@ -427,6 +484,10 @@ export const run = async () => {
   const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
 
   const sequencerSigner: Signer = await getSequencerSigner()
+  let blobSigner: Signer
+  if (USE_BLOB) {
+    blobSigner = await getBlobSigner()
+  }
   let proposerSigner: Signer = await getProposerSigner()
 
   const sequencerAddress = await sequencerSigner.getAddress()
@@ -460,6 +521,13 @@ export const run = async () => {
       resubmissionConfig,
       requiredEnvVars.NUM_CONFIRMATIONS
     )
+  const blobTxSubmitter: TransactionSubmitter = USE_BLOB
+    ? new YnatmTransactionSubmitter(
+        blobSigner,
+        resubmissionConfig,
+        requiredEnvVars.NUM_CONFIRMATIONS
+      )
+    : null
   let minioConfig: MinioConfig = null
   if (
     requiredEnvVars.MINIO_ENABLED &&
@@ -483,6 +551,7 @@ export const run = async () => {
   }
   const txBatchSubmitter = new TransactionBatchSubmitter(
     sequencerSigner,
+    blobSigner,
     l1Provider,
     l2Provider,
     requiredEnvVars.MIN_L1_TX_SIZE,
@@ -495,6 +564,7 @@ export const run = async () => {
     requiredEnvVars.SAFE_MINIMUM_ETHER_BALANCE,
     GAS_THRESHOLD_IN_GWEI,
     txBatchTxSubmitter,
+    blobTxSubmitter,
     BLOCK_OFFSET,
     VALIDATE_TX_BATCH,
     logger.child({ name: TX_BATCH_SUBMITTER_LOG_TAG }),
