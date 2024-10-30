@@ -63,7 +63,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
       trustedIndexer: config.str('trusted-indexer'),
       deSeqBlock: config.uint('deseqblock', 0),
       batchInboxAddress: config.str('batch-inbox-address'),
-      batchInboxSender: config.str('batch-inbox-sender'),
+      batchInboxSender: config.str('batch-inbox-sender').split(','), // allow multiple senders, needed for blob da
       batchInboxStartIndex: config.uint('batch-inbox-start-index', 0),
       batchInboxL1Height: config.uint('batch-inbox-l1-height', 0),
     })

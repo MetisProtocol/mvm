@@ -272,8 +272,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           inboxAddress.length === 42 &&
           inboxAddress.startsWith('0x') &&
           inboxSender &&
-          inboxSender.length === 42 &&
-          inboxSender.startsWith('0x') &&
+          inboxSender.length > 0 &&
+          inboxSender.filter((s) => s && s.length === 42 && s.startsWith('0x'))
+            .length === inboxSender.length &&
           inboxBatchStart > 0
         const useBatchInbox =
           hasInboxConfig &&
@@ -489,8 +490,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           tx.to &&
           tx.to.toLowerCase() ===
             this.options.batchInboxAddress.toLowerCase() &&
-          tx.from.toLowerCase() ===
-            this.options.batchInboxSender.toLowerCase() &&
+          this.options.batchInboxSender.findIndex(
+            (s) => s.toLowerCase() === tx.from.toLowerCase()
+          ) >= 0 &&
           tx.data.length >= 140
         ) {
           this.logger.info('found inbox batch', {
