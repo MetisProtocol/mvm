@@ -150,78 +150,85 @@ export class TransactionBatchSubmitterInbox {
       value: ethers.parseEther('0'),
     }
 
-    // mpc url specified, use mpc to sign tx
-    if (mpcUrl) {
-      this.logger.info('submitter with mpc', { url: mpcUrl })
-      const mpcClient = new MpcClient(mpcUrl)
+    // use blob txs if batch params contains blob tx data
+    const sendBlobTx = batchParams.blobTxData && batchParams.blobTxData.length
+    if (sendBlobTx) {
+      let mpcClient: MpcClient
+      if (mpcUrl) {
+        mpcClient = new MpcClient(mpcUrl)
+      }
+
       const chainId = (await signer.provider.getNetwork()).chainId
+      // if using blob, we need to submit the blob txs before the inbox tx
+      const blobTxData = batchParams.blobTxData
+      // submit the blob txs in order, to simplify the process,
+      // use serialized operations for now
+      // TODO: use paralleled submission
+      for (const txData of blobTxData) {
+        const blobs = txData.blobs
+        if (!blobs || !blobs.length) {
+          throw new Error('Invalid blob tx data, empty blobs')
+        }
 
-      // use blob txs if batch params contains blob tx data
-      if (batchParams.blobTxData && batchParams.blobTxData.length) {
-        // if using blob, we need to submit the blob txs before the inbox tx
-        const blobTxData = batchParams.blobTxData
-        // submit the blob txs in order, to simplify the process,
-        // use serialized operations for now
-        // TODO: use paralleled submission
-        for (const txData of blobTxData) {
-          const blobs = txData.blobs
-          if (!blobs || !blobs.length) {
-            throw new Error('Invalid blob tx data, empty blobs')
-          }
-
+        let signerAddress: string
+        let mpcId: string
+        if (mpcUrl) {
           // retrieve mpc info
           const currentMpcInfo = await mpcClient.getLatestMpc()
           if (!currentMpcInfo || !currentMpcInfo.mpc_address) {
             throw new Error('MPC info get failed')
           }
-          const latestMpcAddress = currentMpcInfo.mpc_address
+          signerAddress = currentMpcInfo.mpc_address
+          mpcId = currentMpcInfo.mpc_id
+        } else {
+          signerAddress = await signer.getAddress()
+        }
 
-          // async fetch required info
-          const [latestBlockPromise, feeDataPromise, mpcNoncePromise] = [
-            this.l1Provider.getBlock('latest'),
-            this.l1Provider.getFeeData(),
-            signer.provider.getTransactionCount(latestMpcAddress),
-          ]
-          const [latestBlock, feeData, mpcNonce] = await Promise.all([
-            latestBlockPromise,
-            feeDataPromise,
-            mpcNoncePromise,
-          ])
+        // async fetch required info
+        const [latestBlockPromise, feeDataPromise, mpcNoncePromise] = [
+          this.l1Provider.getBlock('latest'),
+          this.l1Provider.getFeeData(),
+          signer.provider.getTransactionCount(signerAddress),
+        ]
+        const [latestBlock, feeData, mpcNonce] = await Promise.all([
+          latestBlockPromise,
+          feeDataPromise,
+          mpcNoncePromise,
+        ])
 
-          const maxFeePerBlobGas = calcBlobFee(latestBlock.excessBlobGas)
-          this.logger.info('submitting blob tx', {
-            blobCount: blobs.length,
-            maxFeePerBlobGas: toNumber(maxFeePerBlobGas),
-            latestMpcAddress,
-            feeData,
-            mpcNonce,
-          })
+        const maxFeePerBlobGas = calcBlobFee(latestBlock.excessBlobGas)
+        this.logger.info('submitting blob tx', {
+          blobCount: blobs.length,
+          maxFeePerBlobGas: toNumber(maxFeePerBlobGas),
+          signerAddress,
+          feeData,
+          mpcNonce,
+        })
 
-          const blobTx: ethers.TransactionRequest = {
-            type: 3, // 3 for blob tx type
-            to: this.inboxAddress,
-            // since we are using blob tx, call data will be empty,
-            // so the gas limit is just default tx gas
-            gasLimit: TX_GAS,
-            chainId,
-            nonce: mpcNonce,
-            blobs,
-            blobVersionedHashes: blobs.map((blob) => blob.versionedHash),
-            maxFeePerBlobGas,
-            // use eip1559
-            maxFeePerGas: feeData.maxFeePerGas,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-          }
+        const blobTx: ethers.TransactionRequest = {
+          type: 3, // 3 for blob tx type
+          to: this.inboxAddress,
+          // since we are using blob tx, call data will be empty,
+          // so the gas limit is just default tx gas
+          gasLimit: TX_GAS,
+          chainId,
+          nonce: mpcNonce,
+          blobs,
+          blobVersionedHashes: blobs.map((blob) => blob.versionedHash),
+          maxFeePerBlobGas,
+          // use eip1559
+          maxFeePerGas: feeData.maxFeePerGas,
+          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+        }
 
-          // mpc model can use ynatm
-          const mpcSignTx = (): Promise<TransactionReceipt> => {
+        // mpc model can use ynatm
+        let signTx: () => Promise<TransactionReceipt>
+        if (mpcUrl) {
+          signTx = (): Promise<TransactionReceipt> => {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
               async () => {
-                const signedTx = await mpcClient.signTx(
-                  blobTx,
-                  currentMpcInfo.mpc_id
-                )
+                const signedTx = await mpcClient.signTx(blobTx, mpcId)
                 // need to append the blob sidecar to the signed tx
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
                 signedTxUnmarshaled.blobs = blobTx.blobs
@@ -232,26 +239,34 @@ export class TransactionBatchSubmitterInbox {
               hooks
             )
           }
-
-          const blobTxReceipt = await submitAndLogTx(
-            mpcSignTx,
-            'Submitted blob tx with MPC!',
-            (
-              receipt: TransactionReceipt | null,
-              err: any
-            ): Promise<boolean> => {
-              return this._setBatchInboxRecord(receipt, err, nextBatchIndex)
-            }
-          )
-
-          if (!blobTxReceipt || blobTxReceipt.status !== 1) {
-            throw new Error('Blob tx submission failed')
+        } else {
+          signTx = (): Promise<TransactionReceipt> => {
+            return transactionSubmitter.submitTransaction(blobTx, hooks)
           }
-
-          // append tx hashes to the tx data to the end
-          tx.data += remove0x(blobTxReceipt.hash)
         }
+
+        const blobTxReceipt = await submitAndLogTx(
+          signTx,
+          `Submitted blob tx with ${mpcUrl ? 'mpc' : 'local'} signer!`,
+          (receipt: TransactionReceipt | null, err: any): Promise<boolean> => {
+            return this._setBatchInboxRecord(receipt, err, nextBatchIndex)
+          }
+        )
+
+        if (!blobTxReceipt || blobTxReceipt.status !== 1) {
+          throw new Error('Blob tx submission failed')
+        }
+
+        // append tx hashes to the tx data to the end
+        tx.data += remove0x(blobTxReceipt.hash)
       }
+    }
+
+    // mpc url specified, use mpc to sign tx
+    if (mpcUrl) {
+      this.logger.info('submitter with mpc', { url: mpcUrl })
+      const mpcClient = new MpcClient(mpcUrl)
+      const chainId = (await signer.provider.getNetwork()).chainId
 
       const mpcInfo = await mpcClient.getLatestMpc()
       if (!mpcInfo || !mpcInfo.mpc_address) {
