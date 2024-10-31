@@ -9,6 +9,7 @@ import {
   TxData,
 } from './types'
 import { Blob } from './blob'
+import { Logger } from '@eth-optimism/common-ts'
 
 export class Channel {
   private channelBuilder: ChannelBuilder
@@ -17,11 +18,17 @@ export class Channel {
   private failedTransactions: Map<string, TxData> = new Map()
 
   constructor(
+    private logger: Logger,
     private cfg: ChannelConfig,
     rollupCfg: RollupConfig,
     l1Client: ethers.Provider
   ) {
-    this.channelBuilder = new ChannelBuilder(cfg, rollupCfg, l1Client)
+    this.channelBuilder = new ChannelBuilder(
+      this.logger,
+      cfg,
+      rollupCfg,
+      l1Client
+    )
   }
 
   id(): Uint8Array {
@@ -37,6 +44,9 @@ export class Channel {
     const frames: Frame[] = []
     for (let i = 0; i < this.cfg.targetFrames; i++) {
       const [frame, frameEnd] = this.channelBuilder.nextFrame()
+      this.logger.debug('generated frame', {
+        length: frame.data.length,
+      })
       if (frame) {
         frames.push(frame)
       }
@@ -44,6 +54,7 @@ export class Channel {
         // no more frames, we're done here,
         // notify upper layer there is no more tx data
         end = true
+        this.logger.debug('no more frames')
         break
       }
     }

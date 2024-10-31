@@ -3,6 +3,7 @@
 import * as zlib from 'zlib'
 import { MAX_BLOB_SIZE } from './consts'
 import { maxDataSize } from './utils'
+import { Logger } from '@eth-optimism/common-ts'
 
 export enum CompressionAlgo {
   Zlib = 'zlib',
@@ -24,6 +25,7 @@ export class ChannelCompressor {
   private compressed: Buffer
 
   constructor(
+    private logger: Logger,
     private config: CompressorConfig = {
       targetOutputSize: maxDataSize(1, MAX_BLOB_SIZE - 1), // default op value
       approxComprRatio: 0.6, // default op value
@@ -60,6 +62,7 @@ export class ChannelCompressor {
   write(data: Uint8Array): Promise<number> {
     return new Promise((resolve, reject) => {
       if (this.fullErr()) {
+        this.logger.error('Channel compressor is full')
         reject('Compressor is full')
         return
       }
@@ -69,13 +72,6 @@ export class ChannelCompressor {
         this.compressed = Buffer.concat([this.compressed, chunk])
       })
       this.stream.on('end', () => {
-        console.log(`Input bytes length: ${this.inputBytes}`)
-        console.log(`Compressed bytes length: ${this.compressed.length}`)
-        console.log(
-          `Compression rate: ${
-            (1 - this.compressed.length / this.inputBytes) * 100
-          }%`
-        )
         resolve(data.length)
       })
       this.stream.write(data)

@@ -66,21 +66,20 @@ export class SpanBatchTxs {
 
       // append metis extra fields
       this.queueOriginBits |=
-        BigInt(tx.queueOrigin === QueueOrigin.Sequencer) << BigInt(idx + offset)
-      if (tx.queueOrigin !== QueueOrigin.Sequencer) {
-        console.log(`enqueue tx ${tx.hash}`)
+        BigInt(tx.queueOrigin === QueueOrigin.L1ToL2) << BigInt(idx + offset)
+      if (tx.queueOrigin === QueueOrigin.L1ToL2) {
         this.l1TxOrigins.push(tx.l1TxOrigin)
       }
+
       this.txSeqSigs.push({
         r: tx.seqR ? toBigInt(tx.seqR) : BigInt(0),
         s: tx.seqS ? toBigInt(tx.seqS) : BigInt(0),
       })
-      const seqYParityBit = toBigInt(
-        this.convertVToYParity(
-          tx.seqV ? toNumber(tx.seqV) : toNumber(0),
-          tx.type
-        )
-      )
+
+      const seqYParityBit = tx.seqV
+        ? toBigInt(this.convertVToYParity(toNumber(tx.seqV), tx.type))
+        : BigInt(0)
+
       this.seqYParityBits |= seqYParityBit << BigInt(idx + offset)
     }
 

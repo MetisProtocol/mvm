@@ -11,6 +11,7 @@ import { L2Block, sleep } from '@localtest911/core-utils'
 import { ChannelCompressor } from './channel-compressor'
 import { CHANNEL_FULL_ERR, MAX_BLOB_SIZE } from './consts'
 import { maxDataSize } from './utils'
+import { Logger } from '@eth-optimism/common-ts'
 
 export class ChannelBuilder {
   public spanChannelOut: SpanChannelOut
@@ -21,14 +22,16 @@ export class ChannelBuilder {
   public oldestL2: number
 
   constructor(
+    private logger: Logger,
     private cfg: ChannelConfig,
     rollupCfg: RollupConfig,
     private l1Client: ethers.Provider
   ) {
     this.spanChannelOut = new SpanChannelOut(
+      this.logger,
       rollupCfg.l2ChainID,
       maxDataSize(cfg.targetNumFrames, MAX_BLOB_SIZE) / 0.6, // hardcode 0.6 for now, adjust later
-      new ChannelCompressor(),
+      new ChannelCompressor(this.logger),
       { maxBlocksPerSpanBatch: 0 } // default to 0 - no maximum
     )
     this.latestL1Origin = 0
@@ -56,32 +59,25 @@ export class ChannelBuilder {
 
     const firstTx = block.txs[0]
 
-    let retry = 3
-    let lastErr: Error | null
-    while (retry--) {
-      try {
-        const epoch = await this.l1Client.getBlock(firstTx.l1BlockNumber)
-        this.updateBlockInfo(block, epoch.number)
-        const startTime = Date.now()
-        await this.spanChannelOut.addBlock(block, epoch.hash)
-        const endTime = Date.now()
-        console.log(
-          `Adding block ${block.blockNumber} took ${endTime - startTime} ms`
-        )
+    try {
+      const epoch = await this.l1Client.getBlock(firstTx.l1BlockNumber)
+      this.updateBlockInfo(block, epoch.number)
+      const startTime = Date.now()
+      await this.spanChannelOut.addBlock(block, epoch.hash)
+      const endTime = Date.now()
+      this.logger.info(
+        `Adding block ${block.blockNumber} took ${endTime - startTime} ms`
+      )
+      return
+    } catch (err) {
+      if (err === CHANNEL_FULL_ERR) {
+        this.logger.info('Channel full, stop adding new blocks')
         return
-      } catch (err) {
-        if (err === CHANNEL_FULL_ERR) {
-          return
-        }
-        lastErr = err
-        console.error(
-          `Failed to add block to span channel, remain retry time: ${retry}`
-        )
-        await sleep(3000)
       }
-    }
-    if (retry === 0) {
-      throw lastErr
+      this.logger.error(`Failed to add block to span channel`, {
+        err,
+      })
+      throw err
     }
   }
 

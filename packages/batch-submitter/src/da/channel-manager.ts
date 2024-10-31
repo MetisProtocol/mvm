@@ -7,15 +7,16 @@ import {
   TxData,
 } from './types'
 import { CHANNEL_FULL_ERR } from './consts'
+import { Logger } from '@eth-optimism/common-ts'
 
 export class ChannelManager {
   private blocks: BatchToInboxElement[] = []
   private l1OriginLastClosedChannel: bigint
   private tip: string = ethers.ZeroHash
   private currentChannel: Channel | null = null
-  private channelQueue: Channel[] = []
 
   constructor(
+    private logger: Logger,
     private cfg: ChannelConfig,
     private rollupCfg: RollupConfig,
     private l1Client: ethers.Provider
@@ -26,21 +27,19 @@ export class ChannelManager {
     this.l1OriginLastClosedChannel = l1OriginLastClosedChannel
     this.tip = ethers.ZeroHash
     this.currentChannel = null
-    this.channelQueue = []
   }
 
   async txData(l1Head: bigint): Promise<[TxData, boolean]> {
-    const firstWithTxData = this.channelQueue.find((ch) => ch.hasTxData())
-    const dataPending = firstWithTxData && firstWithTxData.hasTxData()
+    const dataPending = this.currentChannel && this.currentChannel.hasTxData()
 
-    console.log('Requested tx data', {
+    this.logger.info('Requested tx data', {
       l1Head,
       txDataPending: dataPending,
       blocksPending: this.blocks.length,
     })
 
     if (dataPending) {
-      return this.nextTxData(firstWithTxData)
+      return this.nextTxData(this.currentChannel)
     }
 
     if (this.blocks.length === 0) {
@@ -59,13 +58,17 @@ export class ChannelManager {
     }
 
     const cfg = this.cfg
-    const newChannel = new Channel(cfg, this.rollupCfg, this.l1Client)
+    const newChannel = new Channel(
+      this.logger,
+      cfg,
+      this.rollupCfg,
+      this.l1Client
+    )
 
     this.currentChannel = newChannel
-    this.channelQueue.push(newChannel)
 
-    console.info('Created channel', {
-      id: newChannel.id(),
+    this.logger.info('Created channel', {
+      id: hexlify(newChannel.id()),
       l1Head,
       l1OriginLastClosedChannel: this.l1OriginLastClosedChannel,
       blocks_pending: this.blocks.length,
@@ -83,7 +86,7 @@ export class ChannelManager {
     for (const block of this.blocks) {
       try {
         await this.currentChannel!.addBlock(block)
-        console.debug('Added block to channel', {
+        this.logger.debug('Added block to channel', {
           id: hexlify(this.currentChannel!.id()),
           block: block.hash,
         })
@@ -106,7 +109,7 @@ export class ChannelManager {
 
     this.blocks = this.blocks.slice(blocksAdded)
 
-    console.debug('Added blocks to channel', {
+    this.logger.debug('Added blocks to channel', {
       blocks_added: blocksAdded,
       blocks_pending: this.blocks.length,
       channel_full: this.currentChannel!.isFull(),

@@ -518,6 +518,7 @@ export class TransactionBatchSubmitterInbox {
       }
 
       const channelManager = new ChannelManager(
+        this.logger,
         {
           // since we are using blob here, so max frame size is the blob size
           maxFrameSize: MAX_BLOB_SIZE,

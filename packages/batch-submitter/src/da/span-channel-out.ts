@@ -11,12 +11,12 @@ import {
   MAX_RLP_BYTES_PER_CHANNEL,
 } from './consts'
 import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
+import { Logger } from '@eth-optimism/common-ts'
 
 export class SpanChannelOut {
   private _id: Uint8Array
   private frame: number
   private rlp: Uint8Array
-  private lastCompressedRLPSize: number
 
   private closed: boolean
   private full: Error | null
@@ -25,6 +25,7 @@ export class SpanChannelOut {
   private sealedRLPBytes: number
 
   constructor(
+    private logger: Logger,
     chainId: bigint,
     private target: number,
     private compressor: ChannelCompressor,
@@ -33,7 +34,6 @@ export class SpanChannelOut {
     this._id = randomBytes(16)
     this.frame = 0
     this.rlp = new Uint8Array(0)
-    this.lastCompressedRLPSize = 0
     this.closed = false
     this.full = null
     this.spanBatch = new SpanBatch(
@@ -51,30 +51,7 @@ export class SpanChannelOut {
     return this._id
   }
 
-  reset(): void {
-    this.closed = false
-    this.full = null
-    this.frame = 0
-    this.sealedRLPBytes = 0
-    this.rlp = new Uint8Array(0)
-    this.lastCompressedRLPSize = 0
-    this.compressor.reset()
-    this.resetSpanBatch()
-    this._id = randomBytes(16)
-  }
-
-  private resetSpanBatch(): void {
-    this.spanBatch = new SpanBatch(
-      this.spanBatch.parentCheck,
-      this.spanBatch.l1OriginCheck,
-      this.spanBatch.chainID,
-      [],
-      0
-    )
-  }
-
   async addBlock(block: BatchToInboxElement, epochHash: string) {
-    const startTime = Date.now()
     if (this.closed) {
       throw new Error('Channel out already closed')
     }
@@ -111,14 +88,10 @@ export class SpanChannelOut {
       opaqueTxs
     )
 
-    const endTime = Date.now()
-    console.log(`Preparing transaction took ${endTime - startTime} ms`)
-
     await this.addSingularBatch(singularBatch)
   }
 
   async addSingularBatch(batch: SingularBatch): Promise<void> {
-    const startTime = Date.now()
     if (this.closed) {
       throw new Error('Channel out already closed')
     }
@@ -131,10 +104,10 @@ export class SpanChannelOut {
     await this.spanBatch.appendSingularBatch(batch)
     const rawSpanBatch = this.spanBatch.toRawSpanBatch()
 
-    const encoded = await rawSpanBatch.encode()
-    this.rlp = new Uint8Array([...this.rlp, ...encoded])
+    this.rlp = await rawSpanBatch.encode()
 
     if (this.rlp.length > MAX_RLP_BYTES_PER_CHANNEL) {
+      this.logger.error(`Channel is too large: ${this.rlp.length}`)
       throw new Error(
         `ErrTooManyRLPBytes: could not take ${this.rlp.length} bytes, max is ${MAX_RLP_BYTES_PER_CHANNEL}`
       )
@@ -142,13 +115,11 @@ export class SpanChannelOut {
 
     // const rlpGrowth = this.rlp.length - this.lastCompressedRLPSize
     // if (this.compressor.len() + rlpGrowth < this.target) {
-    //   console.log('not reaching target', rlpGrowth, this.compressor.len())
+    //   this.logger.info('not reaching target', rlpGrowth, this.compressor.len())
     //   return
     // }
-    const endTime = Date.now()
-    console.log('Preparing compression took', endTime - startTime, 'ms')
 
-    await this.compress()
+    await this.compress(this.rlp)
 
     if (this.full) {
       if (this.sealedRLPBytes === 0 && this.spanBatch.batches.length === 1) {
@@ -159,7 +130,7 @@ export class SpanChannelOut {
         return
       }
 
-      console.log('channel is full')
+      this.logger.info('channel is full')
       throw this.full
     }
   }
@@ -172,18 +143,23 @@ export class SpanChannelOut {
       return
     }
     this.sealedRLPBytes = this.rlp.length
-    this.resetSpanBatch()
   }
 
-  private async compress(): Promise<void> {
+  private async compress(data: Uint8Array): Promise<void> {
     const startTime = Date.now()
-    const rlpBatches = RLP.encode(this.rlp)
+    const rlpBatches = RLP.encode(data)
     this.compressor.reset()
     await this.compressor.write(rlpBatches)
-    this.lastCompressedRLPSize = rlpBatches.length
     this.checkFull()
     const endTime = Date.now()
-    console.log('Compressing took', endTime - startTime, 'ms')
+    this.logger.info(`Compress done`, {
+      spend: `${endTime - startTime}ms`,
+      inputLength: rlpBatches.length,
+      compressedLength: this.compressor.len(),
+      compressionRate: `${
+        (1 - this.compressor.len() / rlpBatches.length) * 100
+      }%`,
+    })
   }
 
   inputBytes(): number {
@@ -218,7 +194,7 @@ export class SpanChannelOut {
     if (this.full) {
       return
     }
-    await this.compress()
+    await this.compress(this.rlp)
   }
 
   outputFrame(frameSize: number): [Frame, boolean] {
@@ -234,7 +210,7 @@ export class SpanChannelOut {
   private createEmptyFrame(maxSize: number): Frame {
     const readyBytes = this.readyBytes()
     const dataSize = Math.min(readyBytes, maxSize - FRAME_OVERHEAD_SIZE)
-    console.log('Creating frame', dataSize, readyBytes, maxSize)
+    this.logger.info('Creating frame', { dataSize, readyBytes, maxSize })
     return {
       id: this.id,
       frameNumber: this.frame,
