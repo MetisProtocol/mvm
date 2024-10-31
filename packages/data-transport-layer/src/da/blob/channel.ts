@@ -884,7 +884,7 @@ export class Channel {
   }
 
   addFrame(frame: Frame): void {
-    const frameId = hexlify(frame.id)
+    const frameId = Buffer.from(frame.id).toString('hex')
     if (frameId !== this.id) {
       throw new Error(
         `frame id does not match channel id. Expected ${this.id}, got ${frameId}`
@@ -1023,21 +1023,17 @@ export const batchReader = (
           return null
         }
         const remainingBuffer = decompressedBuffer.subarray(offset)
-        try {
-          const { data: decodedData, remainder } = RLP.decode(
-            remainingBuffer,
-            true
-          )
-          const consumedLength = remainingBuffer.length - remainder.length
-          offset += consumedLength
+        const { data: decodedData, remainder } = RLP.decode(
+          remainingBuffer,
+          true
+        )
+        const consumedLength = remainingBuffer.length - remainder.length
+        offset += consumedLength
 
-          const batchData = new BatchData()
-          await batchData.fromDecodedData(decodedData)
-          batchData.comprAlgo = comprAlgo
-          return batchData
-        } catch (err) {
-          throw err
-        }
+        const batchData = new BatchData()
+        await batchData.fromDecodedData(decodedData)
+        batchData.comprAlgo = comprAlgo
+        return batchData
       }
 
       resolve(readBatch)

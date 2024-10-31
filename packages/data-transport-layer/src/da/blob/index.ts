@@ -1,4 +1,4 @@
-import { ethers } from 'ethersv6'
+import { ethers, hexlify } from 'ethersv6'
 import { Frame, parseFrames } from './frame'
 import { L1BeaconClient } from './l1-beacon-client'
 import {
@@ -147,6 +147,7 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
       }
     } catch (err) {
       console.error(`Something goes wrong here when fetching batches:`, err)
+      throw err
     }
   }
 
@@ -188,7 +189,7 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
       console.log(`Processing channel: ${channelId}`)
       const channel = channelMap[channelId]
 
-      if (!channel.isReady()) {
+      if (!channel || !channel.isReady()) {
         console.warn(`Channel ${channelId} is not ready.`)
         continue
       }

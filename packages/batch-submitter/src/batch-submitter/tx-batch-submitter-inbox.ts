@@ -263,8 +263,18 @@ export class TransactionBatchSubmitterInbox {
         const blobTxReceipt = await submitAndLogTx(
           submitTx,
           `Submitted blob tx with ${mpcUrl ? 'mpc' : 'local'} signer!`,
-          (receipt: TransactionReceipt | null, err: any): Promise<boolean> => {
-            return this._setBatchInboxRecord(receipt, err, nextBatchIndex)
+          async (
+            receipt: TransactionReceipt | null,
+            err: any
+          ): Promise<boolean> => {
+            this.logger.info('blob tx submission result', {
+              success: receipt.status > 0,
+              blockNumber: receipt.blockNumber,
+              txIndex: receipt.index,
+              txHash: receipt.hash,
+              err,
+            })
+            return true
           }
         )
 

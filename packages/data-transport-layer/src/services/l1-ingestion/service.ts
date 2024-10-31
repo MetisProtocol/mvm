@@ -255,6 +255,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
         const latestBatch = await this.state.dbOfL2.getLatestTransactionBatch()
         const highestSyncedL1BatchIndex =
+          // FIXME: comment out this to bypass the previous upgrade checks
+          // latestBatch === null ? -1 : latestBatch.index
           latestBatch === null ? 0 : latestBatch.index
 
         this.logger.info('Synchronizing events from Layer 1 (Ethereum)', {
@@ -272,12 +274,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           inboxAddress.length === 42 &&
           inboxAddress.startsWith('0x') &&
           inboxSender &&
-          inboxSender.length > 0 &&
-          inboxSender.filter((s) => s && s.length === 42 && s.startsWith('0x'))
-            .length === inboxSender.length &&
+          inboxSender.length === 42 &&
+          inboxSender.startsWith('0x') &&
           inboxBatchStart > 0
         const useBatchInbox =
           hasInboxConfig &&
+          // FIXME: comment out this to bypass the previous upgrade checks
           // highestSyncedL1BatchIndex > 0 &&
           inboxBatchStart <= highestSyncedL1BatchIndex + 1 &&
           this.state.startingL1BatchIndex <= highestSyncedL1BatchIndex + 1
@@ -490,14 +492,14 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           tx.to &&
           tx.to.toLowerCase() ===
             this.options.batchInboxAddress.toLowerCase() &&
-          this.options.batchInboxSender.findIndex(
-            (s) => s.toLowerCase() === tx.from.toLowerCase()
-          ) >= 0 &&
+          tx.from.toLowerCase() ===
+            this.options.batchInboxSender.toLowerCase() &&
           tx.data.length >= 140
         ) {
           this.logger.info('found inbox batch', {
-            txHash: tx.hash,
             blockNumber: block.number,
+            txIndex: tx.index,
+            txHash: tx.hash,
           })
           // check receipt status, 0 fail
           const receipt = await this.state.l1RpcProvider.getTransactionReceipt(
@@ -542,19 +544,31 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     if (extraDatas.length > 0) {
       const tick = Date.now()
       for (const extraData of extraDatas) {
-        const parsedEvent = await handlers.parseEvent(
-          null,
-          extraData,
-          this.options.l2ChainId,
-          this.options
-        )
-        this.logger.info('Storing Inbox Batch:', {
-          chainId: this.options.l2ChainId,
-        })
-        this.logger.debug('Storing Inbox Batch Data:', {
-          parsedEvent,
-        })
-        await handlers.storeEvent(parsedEvent, this.state.dbOfL2, this.options)
+        try {
+          const parsedEvent = await handlers.parseEvent(
+            null,
+            extraData,
+            this.options.l2ChainId,
+            this.options
+          )
+          this.logger.info('Storing Inbox Batch:', {
+            chainId: this.options.l2ChainId,
+          })
+          this.logger.debug('Storing Inbox Batch Data:', {
+            parsedEvent,
+          })
+          await handlers.storeEvent(
+            parsedEvent,
+            this.state.dbOfL2,
+            this.options
+          )
+        } catch (e) {
+          this.logger.error('Failed to store inbox batch:', {
+            error: e,
+            extraData,
+          })
+        }
+
         // await this.state.db.setHighestSyncedL1BatchIndex(extraData.batchIndex)
       }
 

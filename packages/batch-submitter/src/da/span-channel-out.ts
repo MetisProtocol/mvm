@@ -16,7 +16,6 @@ export class SpanChannelOut {
   private _id: Uint8Array
   private frame: number
   private rlp: Uint8Array
-  private rlpIndex: number
   private lastCompressedRLPSize: number
 
   private closed: boolean
@@ -34,7 +33,6 @@ export class SpanChannelOut {
     this._id = randomBytes(16)
     this.frame = 0
     this.rlp = new Uint8Array(0)
-    this.rlpIndex = 0
     this.lastCompressedRLPSize = 0
     this.closed = false
     this.full = null
@@ -133,7 +131,8 @@ export class SpanChannelOut {
     await this.spanBatch.appendSingularBatch(batch)
     const rawSpanBatch = this.spanBatch.toRawSpanBatch()
 
-    this.rlp = await rawSpanBatch.encode()
+    const encoded = await rawSpanBatch.encode()
+    this.rlp = new Uint8Array([...this.rlp, ...encoded])
 
     if (this.rlp.length > MAX_RLP_BYTES_PER_CHANNEL) {
       throw new Error(
@@ -173,7 +172,7 @@ export class SpanChannelOut {
       return
     }
     this.sealedRLPBytes = this.rlp.length
-    // this.resetSpanBatch()
+    this.resetSpanBatch()
   }
 
   private async compress(): Promise<void> {

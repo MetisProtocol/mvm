@@ -52,7 +52,8 @@ export interface L1DataTransportServiceOptions {
 
   deSeqBlock: number
   batchInboxAddress: string
-  batchInboxSender: string[]
+  batchInboxSender: string
+  batchInboxBlobSender: string
   batchInboxStartIndex: number
   batchInboxL1Height: number
 }

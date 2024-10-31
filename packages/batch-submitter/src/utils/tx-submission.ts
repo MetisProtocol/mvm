@@ -38,9 +38,9 @@ export const submitTransactionWithYNATM = async (
   ): Promise<ethers.TransactionReceipt> => {
     const isEIP1559 = !!tx.maxFeePerGas || !!tx.maxPriorityFeePerGas
     let fullTx: any
+    const fee = await signer.provider.getFeeData()
     if (isEIP1559) {
       // to be compatible with EIP-1559, we need to set the gasPrice to the maxPriorityFeePerGas
-      const fee = await signer.provider.getFeeData()
       const feeScalingFactor = gasPrice
         ? gasPrice /
           (toNumber(tx.maxFeePerGas) + toNumber(tx.maxPriorityFeePerGas))
@@ -54,14 +54,24 @@ export const submitTransactionWithYNATM = async (
     } else {
       fullTx = {
         ...tx,
-        gasPrice,
+        // in some cases (mostly local testing env) gas price is lower than 1 gwei,
+        // so we need to replace it to the current gas price
+        gasPrice: gasPrice || fee.gasPrice,
       }
     }
 
     hooks.beforeSendTransaction(fullTx)
-    const txResponse = await signer.sendTransaction(fullTx)
-    hooks.onTransactionResponse(txResponse)
-    return signer.provider.waitForTransaction(txResponse.hash, numConfirmations)
+    try {
+      const txResponse = await signer.sendTransaction(fullTx)
+      hooks.onTransactionResponse(txResponse)
+      return signer.provider.waitForTransaction(
+        txResponse.hash,
+        numConfirmations
+      )
+    } catch (err) {
+      console.error('Error sending transaction:', err)
+      throw err
+    }
   }
 
   const minGasPrice = await getGasPriceInGwei(signer)

@@ -107,7 +107,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
     const da = toNumber(calldata.subarray(0, 1))
     const compressType = toNumber(calldata.subarray(1, 2))
     let contextData = calldata.subarray(70)
-    let channels: Channel[] = []
+    let channels = []
     // da first
     if (da === 1) {
       const storageObject = remove0x(toHexString(contextData))
@@ -162,7 +162,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
           blobTxHashes,
           chainId: l1ChainId,
           batchInbox: options.batchInboxAddress,
-          batchSenders: [options.batchInboxSender],
+          batchSenders: [options.batchInboxBlobSender.toLowerCase()],
           concurrentRequests: 0,
           l1Rpc: options.l1PrcProvider,
           l1Beacon: options.l1BeaconProvider,
@@ -308,48 +308,49 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
     } else {
       // TODO: async parse the channels
       for (const channel of channels) {
-        const readBatch = await batchReader(channel.reader())
-        const batchData = await readBatch()
         // since currently we can only handle span batch,
         // so we can just skip the singular batch
-        const rawSpanBatch = batchData.inner as RawSpanBatch
-        const spanBatch = await rawSpanBatch.derive(toBigInt(options.l2ChainId))
-
-        for (let i = 0; i < spanBatch.batches.length; i++) {
-          const batch = spanBatch.batches[i]
+        for (let i = 0; i < channel.batches.length; i++) {
+          const spanBatch = channel.batches[i]
           const l2BlockNumber = spanBatch.l2StartBlock + i
-          blockEntries.push({
-            index: l2BlockNumber,
-            batchIndex: Number(extraData.batchIndex),
-            timestamp: batch.timestamp,
-            transactions: batch.transactions.map((tx: L2Transaction) => {
-              // decode raw tx
-              return {
-                index: l2BlockNumber,
-                batchIndex: Number(extraData.batchIndex),
-                blockNumber: ethers.toNumber(batch.epochNum),
-                timestamp: batch.timestamp,
-                gasLimit: tx.gasLimit.toString(10),
-                target: ethers.ZeroAddress,
-                origin: tx.queueOrigin,
-                data: tx.data,
-                queueOrigin:
-                  tx.queueOrigin === QueueOrigin.Sequencer ? 'sequencer' : 'l1',
-                value: tx.value.toString(10),
-                queueIndex: tx.nonce,
-                decoded: decodeSequencerBatchTransaction(
-                  Buffer.from(remove0x(tx.rawTransaction), 'hex'),
-                  l2ChainId
-                ),
-                confirmed: true,
-                seqSign:
-                  tx.queueOrigin === QueueOrigin.Sequencer
-                    ? `0x${tx.seqR},0x${tx.seqS},0x${tx.seqV}`
-                    : '0x0,0x0,0x0',
-              }
-            }),
-            confirmed: true,
-          })
+          for (const batchElement of spanBatch.batches) {
+            blockEntries.push({
+              index: l2BlockNumber,
+              batchIndex: Number(extraData.batchIndex),
+              timestamp: spanBatch.timestamp,
+              transactions: batchElement.transactions.map(
+                (tx: L2Transaction) => {
+                  // decode raw tx
+                  return {
+                    index: l2BlockNumber,
+                    batchIndex: Number(extraData.batchIndex),
+                    blockNumber: ethers.toNumber(batchElement.epochNum),
+                    timestamp: batchElement.timestamp,
+                    gasLimit: tx.gasLimit.toString(10),
+                    target: ethers.ZeroAddress,
+                    origin: tx.queueOrigin,
+                    data: tx.data,
+                    queueOrigin:
+                      tx.queueOrigin === QueueOrigin.Sequencer
+                        ? 'sequencer'
+                        : 'l1',
+                    value: tx.value.toString(10),
+                    queueIndex: tx.nonce,
+                    decoded: decodeSequencerBatchTransaction(
+                      Buffer.from(remove0x(tx.rawTransaction), 'hex'),
+                      l2ChainId
+                    ),
+                    confirmed: true,
+                    seqSign:
+                      tx.queueOrigin === QueueOrigin.Sequencer
+                        ? `0x${tx.seqR},0x${tx.seqS},0x${tx.seqV}`
+                        : '0x0,0x0,0x0',
+                  }
+                }
+              ),
+              confirmed: true,
+            })
+          }
         }
       }
 
