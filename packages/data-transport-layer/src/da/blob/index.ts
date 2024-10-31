@@ -1,4 +1,4 @@
-import { ethers, hexlify } from 'ethersv6'
+import { ethers } from 'ethersv6'
 import { Frame, parseFrames } from './frame'
 import { L1BeaconClient } from './l1-beacon-client'
 import {

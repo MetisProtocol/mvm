@@ -30,7 +30,6 @@ import {
 import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
 import { MissingElementError } from './errors'
 import { fetchBatches } from '../../../da/blob'
-import { batchReader, Channel, RawSpanBatch } from '../../../da/blob/channel'
 
 const l2ToL1ChainId = {
   1088: 1, // for metis andromeda
