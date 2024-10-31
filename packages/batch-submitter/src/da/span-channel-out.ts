@@ -70,9 +70,9 @@ export class SpanChannelOut {
         : QueueOrigin.L1ToL2
       l2Tx.rawTransaction = tx.rawTransaction
       if (tx.seqSign) {
-        l2Tx.seqR = tx.seqSign.slice(0, 64)
-        l2Tx.seqS = tx.seqSign.slice(64, 128)
-        l2Tx.seqV = tx.seqSign.slice(128, 130)
+        l2Tx.seqR = '0x' + tx.seqSign.slice(0, 64)
+        l2Tx.seqS = '0x' + tx.seqSign.slice(64, 128)
+        l2Tx.seqV = '0x' + tx.seqSign.slice(128, 130)
       }
       opaqueTxs.push(l2Tx as L2Transaction)
     }
