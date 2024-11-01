@@ -229,7 +229,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
             batchIndex: Number(extraData.batchIndex),
             blockNumber: l1BlockNumber,
             timestamp: blockTimestamp,
-            gasLimit: Number(0).toString(),
+            gasLimit: '0',
             target: ethers.ZeroAddress,
             origin: null,
             data: '0x',
@@ -328,11 +328,11 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                   return {
                     index: l2BlockNumber,
                     batchIndex: Number(extraData.batchIndex),
-                    blockNumber: ethers.toNumber(batchElement.epochNum),
+                    blockNumber: l2BlockNumber,
                     timestamp: batchElement.timestamp,
                     gasLimit: tx.gasLimit.toString(10),
                     target: ethers.ZeroAddress,
-                    origin: tx.queueOrigin,
+                    origin: tx.l1TxOrigin,
                     data: tx.data,
                     queueOrigin:
                       tx.queueOrigin === QueueOrigin.Sequencer
