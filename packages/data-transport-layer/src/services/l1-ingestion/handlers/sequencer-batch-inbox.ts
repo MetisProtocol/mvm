@@ -2,6 +2,7 @@
 import {
   Block,
   ethers,
+  toBeHex,
   toBigInt,
   toNumber,
   TransactionResponse,
@@ -338,7 +339,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                       tx.queueOrigin === QueueOrigin.Sequencer
                         ? 'sequencer'
                         : 'l1',
-                    value: tx.value.toString(10),
+                    value: toBeHex(tx.value),
                     queueIndex: tx.nonce,
                     decoded: decodeSequencerBatchTransaction(
                       Buffer.from(remove0x(tx.rawTransaction), 'hex'),
@@ -446,7 +447,7 @@ const decodeSequencerBatchTransaction = (
     nonce: decodedTx.nonce.toString(),
     gasPrice: decodedTx.gasPrice.toString(),
     gasLimit: decodedTx.gasLimit.toString(),
-    value: decodedTx.value.toString(),
+    value: toBeHex(decodedTx.value),
     target: decodedTx.to ? toHexString(decodedTx.to) : null,
     data: toHexString(decodedTx.data),
     sig: {
