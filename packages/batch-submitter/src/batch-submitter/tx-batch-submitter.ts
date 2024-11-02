@@ -332,10 +332,16 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       const l2FinalizeBlock = await this.seqsetContract.finalizedBlock()
       const l2FinalizeBlockNum = BigNumber.from(l2FinalizeBlock).toNumber()
       if (l2FinalizeBlockNum > 0) {
+        const l2EpochLength = await this.seqsetContract.epochLength()
+        const l2EpochLengthNum = BigNumber.from(l2EpochLength).toNumber()
+        let l2SafeConfirmtions = 2 * l2EpochLengthNum + 1
+        if (l2EpochLengthNum < 200) {
+          l2SafeConfirmtions = 200
+        }
         endBlock = Math.min(
           endBlock,
           l2FinalizeBlockNum,
-          Math.max(l2HeighestBlock - 200, 0)
+          Math.max(l2HeighestBlock - l2SafeConfirmtions, 0)
         )
       }
     }
