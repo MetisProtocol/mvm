@@ -110,10 +110,6 @@ type Backend interface {
 
 	// Metis-specific API
 	FinalizedBlockNumber() (uint64, error)
-
-	// OP compatible API
-	SyncStatus() (*types.SyncStatus, error)
-	L1OriginOfL2(l2block uint64) (*types.L1BlockRef, error)
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {
@@ -151,10 +147,6 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Namespace: "mvm",
 			Version:   "1.0",
 			Service:   NewPublicMvmAPI(apiBackend),
-		}, {
-			Namespace: "optimism",
-			Version:   "1.0",
-			Service:   NewPublicOptimismAPI(apiBackend, NewPublicBlockChainAPI(apiBackend)),
 		}, {
 			Namespace: "txpool",
 			Version:   "1.0",
