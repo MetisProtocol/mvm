@@ -21,6 +21,7 @@
     "start:local": "ts-node ./src/services/run.ts | pino-pretty",
     "test": "hardhat --config test/config/hardhat.config.ts test",
     "test:coverage": "nyc hardhat --config test/config/hardhat.config.ts test && nyc merge .nyc_output coverage.json",
+    "test:blob": "ts-mocha test/unit-tests/da/blob.spec.ts --timeout 320000 --show-stack-traces",
     "build": "tsc -p tsconfig.build.json",
     "pre-commit": "lint-staged"
   },

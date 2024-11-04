@@ -19,6 +19,7 @@
     "lint:check": "eslint .",
     "test": "hardhat test --show-stack-traces",
     "test:mpc": "ts-mocha test/batch-submitter/mpc-client.spec.ts --timeout 320000 --show-stack-traces",
+    "test:blob": "ts-mocha test/batch-submitter/blob-da.spec.ts --timeout 320000 --show-stack-traces",
     "test:coverage": "nyc hardhat test && nyc merge .nyc_output coverage.json"
   },
   "keywords": [
