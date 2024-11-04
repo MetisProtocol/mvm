@@ -106,6 +106,14 @@ export interface SpanBatchElement {
   transactions: L2Transaction[]
 }
 
+// Batch format
+//
+// SpanBatchType := 1
+// spanBatch := SpanBatchType ++ prefix ++ payload
+// prefix := rel_timestamp ++ l1_origin_num ++ parent_check ++ l1_origin_check
+// payload := block_count ++ origin_bits ++ block_tx_counts ++ txs
+// txs := contract_creation_bits ++ y_parity_bits(v) ++ tx_sigs(r & s) ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits
+//        ++ queue_origin_bits ++ seq_y_parity_bits(v) ++ tx_seq_sigs(r & s) ++ l1_tx_origins
 export class RawSpanBatch {
   constructor(
     public l1Timestamp: number, // for here we use referenced l1 timestamp instead of the relative time

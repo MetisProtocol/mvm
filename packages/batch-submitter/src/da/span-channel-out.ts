@@ -142,8 +142,10 @@ export class SpanChannelOut {
 
   private async compress(data: Uint8Array): Promise<void> {
     const startTime = Date.now()
+    // rlp encode the data first
     const rlpBatches = RLP.encode(data)
     this.compressor.reset()
+    // write the rlp encoded data to the compressor
     await this.compressor.write(rlpBatches)
     this.checkFull()
     const endTime = Date.now()

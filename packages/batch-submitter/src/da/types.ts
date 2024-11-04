@@ -33,6 +33,15 @@ export interface ChannelConfig {
 
 export type ChannelId = Uint8Array
 
+// Data Format
+//
+// frame = channel_id ++ frame_number ++ frame_data_length ++ frame_data ++ is_last
+//
+// channel_id        = bytes16
+// frame_number      = uint16
+// frame_data_length = uint32
+// frame_data        = bytes
+// is_last           = bool
 export interface Frame {
   id: ChannelId
   frameNumber: number
