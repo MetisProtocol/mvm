@@ -1,5 +1,5 @@
 {
-  "name": "@localtest911/batch-submitter",
+  "name": "@eth-optimism/batch-submitter",
   "version": "0.4.0",
   "private": true,
   "description": "[Optimism] Batch submission for sequencer & aggregators",
@@ -38,7 +38,7 @@
   "dependencies": {
     "@eth-optimism/common-ts": "0.1.5",
     "@metis.io/contracts": "^1.2.*",
-    "@localtest911/core-utils": "file://Users/jack/Projects/go/src/github.com/MetisProtocol/mvm/packages/core-utils",
+    "@localtest911/core-utils": "~0.7.3",
     "@eth-optimism/ynatm": "^0.2.2",
     "@sentry/node": "^6.3.1",
     "bcfg": "^0.1.6",

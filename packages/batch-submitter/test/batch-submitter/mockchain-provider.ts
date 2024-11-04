@@ -1,5 +1,5 @@
 /* External Imports */
-import { TransactionResponse, Block, JsonRpcProvider, toNumber } from 'ethers'
+import { TransactionResponse, Block, JsonRpcProvider, toNumber } from 'ethersv6'
 import { L2Transaction, L2Block, RollupInfo } from '@localtest911/core-utils'
 
 /**

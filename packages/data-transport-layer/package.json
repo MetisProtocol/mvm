@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@localtest911/data-transport-layer",
+  "name": "@eth-optimism/data-transport-layer",
   "version": "0.5.0",
   "description": "Service for shuttling data from L1 into L2",
   "main": "dist/index",
@@ -29,7 +29,7 @@
     "@eth-optimism/common-ts": "0.1.5",
     "@eth-optimism/contracts": "^0.4.13",
     "@metis.io/contracts": "^1.2.3",
-    "@localtest911/core-utils": "~0.7.1",
+    "@localtest911/core-utils": "~0.7.3",
     "@sentry/node": "^6.3.1",
     "@sentry/tracing": "^6.3.1",
     "@types/express": "^4.17.12",

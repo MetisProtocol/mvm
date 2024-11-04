@@ -1,6 +1,6 @@
 {
   "name": "@localtest911/core-utils",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "main": "dist/index",
   "files": [
     "dist/*"

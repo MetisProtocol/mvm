@@ -1,8 +1,7 @@
 import { expect } from '../setup'
 
 /* External Imports */
-import '@nomiclabs/hardhat-ethers'
-import { Signer, ContractFactory, Contract, ethers } from 'ethersv6'
+import { Contract, ethers, ContractFactory, Signer, BigNumber } from 'ethers'
 import ganache from 'ganache-core'
 import sinon from 'sinon'
 
@@ -81,7 +80,7 @@ describe('BatchSubmitter', () => {
   let signer: Signer
   let sequencer: Signer
   before(async () => {
-    ;[signer, sequencer] = await ethers.getS
+    ;[signer, sequencer] = await ethers.getSigners()
   })
 
   let AddressManager: Contract
@@ -150,7 +149,7 @@ describe('BatchSubmitter', () => {
       Factory__OVM_StateCommitmentChain.connect(signer)
   })
 
-  let OVM_CanonicalTransactionChain: CanonicalTransactionChainContract
+  let OVM_CanonicalTransactionChain: Contract
   let OVM_StateCommitmentChain: Contract
   let l2Provider: MockchainProvider
   beforeEach(async () => {
@@ -160,11 +159,11 @@ describe('BatchSubmitter', () => {
         FORCE_INCLUSION_PERIOD_SECONDS
       )
 
-    await unwrapped_OVM_CanonicalTransactionChain.init()
+    await unwrapped_OVM_CanonicalTransactionChain.getFunction('init')()
 
     await AddressManager.setAddress(
       'OVM_CanonicalTransactionChain',
-      unwrapped_OVM_CanonicalTransactionChain.address
+      await unwrapped_OVM_CanonicalTransactionChain.getAddress()
     )
 
     await AddressManager.setAddress(
@@ -172,7 +171,7 @@ describe('BatchSubmitter', () => {
       unwrapped_OVM_CanonicalTransactionChain.address
     )
 
-    OVM_CanonicalTransactionChain = new CanonicalTransactionChainContract(
+    OVM_CanonicalTransactionChain = new Contract(
       unwrapped_OVM_CanonicalTransactionChain.address,
       getContractInterface('CanonicalTransactionChain'),
       sequencer
@@ -221,7 +220,7 @@ describe('BatchSubmitter', () => {
       gasRetryIncrement: GAS_RETRY_INCREMENT,
     }
     const txBatchTxSubmitter = new YnatmTransactionSubmitter(
-      sequencer,
+      sequencer as any,
       resubmissionConfig,
       1
     )
@@ -468,12 +467,12 @@ describe('BatchSubmitter', () => {
         1,
         new Logger({ name: STATE_BATCH_SUBMITTER_LOG_TAG }),
         testMetrics,
-        '0x' + '01'.repeat(20) // placeholder for fraudSubmissionAddress,
+        '0x' + '01'.repeat(20), // placeholder for fraudSubmissionAddress,
         '',
         '',
-          '',
-          0,
-          0
+        '',
+        0,
+        0
       )
     })
 
