@@ -14,26 +14,6 @@ const EncodingVersion = 0
 const VersionOffset = 1
 const Rounds = 1024
 
-const hexStringToUint8Array = (hexString: string): Uint8Array => {
-  hexString = hexString.replace(/^0x/, '').replace(/\s/g, '')
-
-  if (hexString.length % 2 !== 0) {
-    throw new Error('Invalid hex string')
-  }
-
-  const arrayBuffer = new Uint8Array(hexString.length / 2)
-
-  for (let i = 0; i < hexString.length; i += 2) {
-    const byteValue = parseInt(hexString.substring(i, i + 2), 16)
-    if (isNaN(byteValue)) {
-      throw new Error('Invalid hex string')
-    }
-    arrayBuffer[i / 2] = byteValue
-  }
-
-  return arrayBuffer
-}
-
 export class Blob {
   public readonly data: Uint8Array = new Uint8Array(BlobSize)
   public readonly commitment: Bytes48 = new Uint8Array(48)

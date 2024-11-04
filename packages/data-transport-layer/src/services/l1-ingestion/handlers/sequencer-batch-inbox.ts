@@ -174,6 +174,12 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
           l2ChainId: options.l2ChainId,
         })
       )
+
+      for (const channel of channels) {
+        if (channel.invalidBatches || channel.invalidFrames) {
+          throw new Error(`Invalid batches found: ${channel.id}`)
+        }
+      }
     }
     if (compressType === 11) {
       contextData = await zlibDecompress(contextData)
@@ -191,8 +197,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       l1TransactionHash: extraData.l1TransactionHash,
     }
 
-    // when using blob data, the context data is not in the old Metis format,
-    // it is chunked by optimism frames, so we need to parse it differently
+    // parse the context data in old DA format
     if (da !== 3) {
       let offset = 0
       let blockIndex = 0
@@ -311,6 +316,8 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
         blockEntries,
       }
     } else {
+      // when using blob data, the context data is not in the old Metis format,
+      // it is chunked by optimism frames, so we need to parse it differently
       // TODO: async parse the channels
       for (const channel of channels) {
         // since currently we can only handle span batch,

@@ -113,12 +113,7 @@ export class SpanChannelOut {
       )
     }
 
-    // const rlpGrowth = this.rlp.length - this.lastCompressedRLPSize
-    // if (this.compressor.len() + rlpGrowth < this.target) {
-    //   this.logger.info('not reaching target', rlpGrowth, this.compressor.len())
-    //   return
-    // }
-
+    // TODO: might need to optimize this, no need to compress the data everytime.
     await this.compress(this.rlp)
 
     if (this.full) {

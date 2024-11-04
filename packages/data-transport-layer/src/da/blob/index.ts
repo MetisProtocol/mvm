@@ -24,140 +24,126 @@ interface FetchBatchesConfig {
 
 // fetch l2 batches from l1 chain
 export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
-  console.log('Fetching batches with config:', fetchConf)
-
   const l1RpcProvider = new ethers.JsonRpcProvider(fetchConf.l1Rpc)
   const l1BeaconProvider = new L1BeaconClient(fetchConf.l1Beacon)
+  try {
+    await l1BeaconProvider.checkVersion()
+  } catch (e) {
+    throw new Error('Failed to ping beacon chain, connection error')
+  }
 
   // TODO: fetch batches concurrently
   const txsMetadata = []
   const channelsMetadata = []
   for (const blobTxHash of fetchConf.blobTxHashes) {
-    console.warn(`Fetching blob tx: ${blobTxHash}`)
-    try {
-      // fetch tx and receipt from el
-      const receipt = await l1RpcProvider.getTransactionReceipt(blobTxHash)
-      if (!receipt) {
-        throw new Error(`Tx or receipt of ${blobTxHash} not found`)
+    // fetch tx and receipt from el
+    const receipt = await l1RpcProvider.getTransactionReceipt(blobTxHash)
+    if (!receipt) {
+      throw new Error(`Tx or receipt of ${blobTxHash} not found`)
+    }
+
+    // TODO: We might be able to cache this somewhere, no need to retrieve this every time.
+    //       But due to potential chain reorgs, just retrieve the data everytime for now.
+    //       Might need to think of a better solution in the future.
+    const block = await l1RpcProvider.getBlock(receipt.blockNumber, true)
+    if (!block) {
+      throw new Error(`Block ${receipt.blockNumber} not found`)
+    }
+
+    const txs = block.prefetchedTransactions
+
+    // Even we got the hash of the blob tx, we still need to traverse through the blocks
+    // since we need to count the blob index in the block
+    let blobIndex = 0
+    for (const tx of txs) {
+      if (!tx) {
+        continue
       }
 
-      // TODO: We might be able to cache this somewhere, no need to retrieve this every time.
-      //       But due to potential chain reorgs, just retrieve the data everytime for now.
-      //       Might need to think of a better solution in the future.
-      const block = await l1RpcProvider.getBlock(receipt.blockNumber, true)
-      if (!block) {
-        throw new Error(`Block ${receipt.blockNumber} not found`)
-      }
-
-      const txs = block.prefetchedTransactions
-
-      // Even we got the hash of the blob tx, we still need to traverse through the blocks
-      // since we need to count the blob index in the block
-      let blobIndex = 0
-      for (const tx of txs) {
-        if (!tx) {
-          console.log(`Skipping empty transaction in block: ${block.number}`)
+      // only process the blob tx hash recorded in the commitment
+      if (blobTxHash.toLowerCase() === tx.hash.toLowerCase()) {
+        const sender = tx.from
+        if (!fetchConf.batchSenders.includes(sender.toLowerCase())) {
           continue
         }
 
-        // only process the blob tx hash recorded in the commitment
-        if (blobTxHash.toLowerCase() === tx.hash.toLowerCase()) {
-          console.log(`Processing transaction: ${tx.hash}`)
-          const sender = tx.from
-          if (!fetchConf.batchSenders.includes(sender.toLowerCase())) {
-            console.warn(
-              `Invalid sender (${sender}) for transaction: ${tx.hash}`
-            )
+        const datas: Uint8Array[] = []
+        if (tx.type !== BlobTxType) {
+          // We are not processing old transactions those are using call data,
+          // this should not happen.
+          throw new Error(
+            `Found inbox transaction ${tx.hash} that is not using blob, ignore`
+          )
+        } else {
+          if (!tx.blobVersionedHashes) {
+            // no blob in this blob tx, ignore
             continue
           }
 
-          const datas: Uint8Array[] = []
-          if (tx.type !== BlobTxType) {
-            // We are not processing old transactions those are using call data,
-            // this should not happen.
-            throw new Error(
-              `Found inbox transaction ${tx.hash} that is not using blob, ignore`
-            )
-          } else {
-            if (!tx.blobVersionedHashes) {
-              console.warn(
-                `Transaction ${tx.hash} is a batch but has no blob hashes`
-              )
-              continue
-            }
+          // get blob hashes and indices
+          const hashes = tx.blobVersionedHashes.map((hash, index) => ({
+            index: blobIndex + index,
+            hash,
+          }))
+          blobIndex += hashes.length
 
-            // get blob hashes and indices
-            const hashes = tx.blobVersionedHashes.map((hash, index) => ({
-              index: blobIndex + index,
-              hash,
-            }))
-            blobIndex += hashes.length
+          // fetch blob data from beacon chain
+          const blobs = await l1BeaconProvider.getBlobs(
+            block.timestamp,
+            hashes.map((h) => h.index)
+          )
 
-            console.log(`Fetching blobs for transaction: ${tx.hash}`)
-
-            // fetch blob data from beacon chain
-            const blobs = await l1BeaconProvider.getBlobs(
-              block.timestamp,
-              hashes.map((h) => h.index)
-            )
-
-            for (const blob of blobs) {
-              datas.push(blob.data)
-            }
+          for (const blob of blobs) {
+            datas.push(blob.data)
           }
-
-          console.log(`Parsing frames for transaction: ${tx.hash}`)
-          let frames: Frame[] = []
-          for (const data of datas) {
-            try {
-              // parse the frames from the blob data
-              const parsedFrames = parseFrames(data, block.number)
-              frames = frames.concat(parsedFrames)
-            } catch (err) {
-              console.error(
-                `Failed to parse frames for transaction ${tx.hash}:`,
-                err
-              )
-            }
-          }
-
-          const txMetadata = {
-            txIndex: tx.index,
-            inboxAddr: tx.to,
-            blockNumber: block.number,
-            blockHash: block.hash,
-            blockTime: block.timestamp,
-            chainId: fetchConf.chainId,
-            sender,
-            validSender: true,
-            tx,
-            frames: frames.map((frame) => ({
-              id: Buffer.from(frame.id).toString('hex'),
-              data: frame.data,
-              isLast: frame.isLast,
-              frameNumber: frame.frameNumber,
-              inclusionBlock: frame.inclusionBlock,
-            })),
-          }
-
-          txsMetadata.push(txMetadata)
-        } else {
-          blobIndex += tx.blobVersionedHashes?.length || 0
         }
+
+        let frames: Frame[] = []
+        for (const data of datas) {
+          try {
+            // parse the frames from the blob data
+            const parsedFrames = parseFrames(data, block.number)
+            frames = frames.concat(parsedFrames)
+          } catch (err) {
+            // invalid frame data in the blob, stop and throw error
+            throw new Error(`Failed to parse frames: ${err}`)
+          }
+        }
+
+        const txMetadata = {
+          txIndex: tx.index,
+          inboxAddr: tx.to,
+          blockNumber: block.number,
+          blockHash: block.hash,
+          blockTime: block.timestamp,
+          chainId: fetchConf.chainId,
+          sender,
+          validSender: true,
+          tx,
+          frames: frames.map((frame) => ({
+            id: Buffer.from(frame.id).toString('hex'),
+            data: frame.data,
+            isLast: frame.isLast,
+            frameNumber: frame.frameNumber,
+            inclusionBlock: frame.inclusionBlock,
+          })),
+        }
+
+        txsMetadata.push(txMetadata)
+      } else {
+        blobIndex += tx.blobVersionedHashes?.length || 0
       }
-    } catch (err) {
-      console.error(`Something goes wrong here when fetching batches:`, err)
-      throw err
     }
   }
 
   const channelMap: { [channelId: string]: Channel } = {}
+  const frameDataValidity: { [channelId: string]: boolean } = {}
 
   // process downloaded tx metadata
   for (const txMetadata of txsMetadata) {
-    console.log(`Processing tx metadata of ${txMetadata.tx.hash}`)
     const framesData = txMetadata.frames
 
+    const invalidFrames = false
     for (const frameData of framesData) {
       const frame: Frame = {
         id: Buffer.from(frameData.id, 'hex'),
@@ -169,30 +155,28 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
       const channelId = frameData.id
 
       if (!channelMap[channelId]) {
-        console.log(`Creating new channel for ID: ${channelId}`)
         channelMap[channelId] = new Channel(channelId, frame.inclusionBlock)
       }
 
+      // add frames to channel
       try {
         channelMap[channelId].addFrame(frame)
-      } catch (err) {
-        console.error(`Failed to add frame to channel ${channelId}:`, err)
+        frameDataValidity[channelId] = true
+      } catch (e) {
+        frameDataValidity[channelId] = false
       }
     }
 
+    if (invalidFrames) {
+      continue
+    }
     for (const channelId in channelMap) {
       if (!channelMap.hasOwnProperty(channelId)) {
         // ignore object prototype properties
         continue
       }
 
-      console.log(`Processing channel: ${channelId}`)
       const channel = channelMap[channelId]
-
-      if (!channel || !channel.isReady()) {
-        console.warn(`Channel ${channelId} is not ready.`)
-        continue
-      }
 
       // Collect frames metadata
       const framesMetadata = Array.from(channel.inputs.values()).map(
@@ -206,6 +190,25 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
           }
         }
       )
+
+      // short circuit if frame data is invalid
+      if (!frameDataValidity[channelId]) {
+        channelsMetadata.push({
+          id: channelId,
+          isReady: channel.isReady(),
+          invalidFrames: true,
+          invalidBatches: false,
+          frames: framesMetadata,
+          batches: [],
+          batchTypes: [],
+          comprAlgos: [],
+        })
+        continue
+      }
+
+      if (!channel || !channel.isReady()) {
+        continue
+      }
 
       // Read batches from channel
       const reader = channel.reader()
@@ -234,7 +237,7 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
           }
         }
       } catch (err) {
-        console.error(`Error reading batches for channel ${channelId}:`, err)
+        // mark batches as invalid
         invalidBatches = true
       }
 

@@ -562,7 +562,7 @@ export class TransactionBatchSubmitterInbox {
           blobTxData.push(txData)
         }
         if (end) {
-          console.log('no more tx data')
+          this.logger.debug('No more tx data', { blobCount: blobTxData.length })
           break
         }
       }

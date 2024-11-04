@@ -98,10 +98,6 @@ export class Channel {
     return this.channelBuilder.isFull()
   }
 
-  fullError(): Error | null {
-    return this.channelBuilder.spanChannelOut.fullErr()
-  }
-
   inputBytes(): number {
     return this.channelBuilder.spanChannelOut.inputBytes()
   }
