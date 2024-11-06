@@ -483,6 +483,13 @@ export const run = async () => {
   const l2Provider = new L2Provider(requiredEnvVars.L2_NODE_WEB3_URL)
   const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
 
+  if (requiredEnvVars.MINIO_ENABLED && USE_BLOB) {
+    logger.error(
+      'Cannot use both Memo and Blob as DA, you can only choose one from them'
+    )
+    process.exit(1)
+  }
+
   const sequencerSigner: Signer = await getSequencerSigner()
   let blobSigner: Signer
   if (USE_BLOB) {
