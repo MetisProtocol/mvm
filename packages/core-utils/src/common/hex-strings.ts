@@ -73,7 +73,7 @@ export const padHexString = (str: string, length: number): string => {
 }
 
 export const encodeHex = (val: any, len: number) =>
-  remove0x(toBeHex(toBigInt(val), len >> 1))
+  toBigInt(val).toString(16).padStart(len, '0')
 
 export const hexStringEquals = (stringA: string, stringB: string): boolean => {
   if (!ethers.isHexString(stringA)) {
