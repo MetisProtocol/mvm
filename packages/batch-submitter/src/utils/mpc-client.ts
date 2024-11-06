@@ -1,11 +1,10 @@
 import * as http from 'http'
 import * as https from 'https'
 import { URL } from 'url'
-import { ethers, toBigInt } from 'ethersv6'
+import { ethers, toBigInt, toNumber } from 'ethersv6'
 import { randomUUID } from 'crypto'
 import '@localtest911/core-utils'
 import * as kzg from 'c-kzg'
-import { remove0x } from '@localtest911/core-utils'
 
 export class MpcClient {
   protected url: string
@@ -158,26 +157,69 @@ export class MpcClient {
 
   // call this
   public async signTx(tx: any, mpcId: any): Promise<string> {
+    // check tx
+    if (!tx.gasLimit) {
+      throw new Error('tx gasLimit is required')
+    }
+    if (tx.nonce === undefined || tx.nonce === null) {
+      throw new Error('tx nonce is required')
+    }
     // call mpc to sign tx
-    const unsignedTx = {
-      type: tx.type ? tx.type : null,
-      nonce: tx.nonce,
-      gasPrice: tx.gasPrice ? toBigInt(tx.gasPrice) : null,
-      gasLimit: toBigInt(tx.gasLimit),
+    const unsignedTx: any = {
+      data: tx.data,
+      nonce: toNumber(tx.nonce),
       to: tx.to,
       value: tx.value ? toBigInt(tx.value) : toBigInt(0),
-      data: tx.data,
+      gasLimit: toBigInt(tx.gasLimit),
       chainId: tx.chainId,
-      maxFeePerBlobGas: tx.maxFeePerBlobGas
-        ? toBigInt(tx.maxFeePerBlobGas)
-        : null,
-      maxFeePerGas: tx.maxFeePerGas ? toBigInt(tx.maxFeePerGas) : null,
-      maxPriorityFeePerGas: tx.maxPriorityFeePerGas
-        ? toBigInt(tx.maxPriorityFeePerGas)
-        : null,
-      blobs: tx.blobs || null,
-      blobVersionedHashes: tx.blobVersionedHashes || null,
-      kzg: !!tx.blobVersionedHashes ? kzg : null,
+    }
+    if (!tx.type) {
+      // populate legacy tx
+      if (!tx.gasPrice) {
+        throw new Error('gasPrice is required for legacy tx')
+      }
+
+      unsignedTx.gasPrice = toBigInt(tx.gasPrice)
+    } else {
+      // populate typed tx
+      const txType = toNumber(tx.type)
+      if (txType === 1) {
+        // check for access list tx
+        if (!tx.gasPrice) {
+          throw new Error('gasPrice is required for access list tx')
+        }
+        unsignedTx.gasPrice = toBigInt(tx.gasPrice)
+        unsignedTx.accessList = tx.accessList
+      } else if (txType > 1) {
+        // check for post-EIP1559 tx
+        if (!tx.maxFeePerGas) {
+          throw new Error('maxFeePerGas is required for post-EIP1559 tx')
+        }
+        if (!tx.maxPriorityFeePerGas) {
+          throw new Error(
+            'maxPriorityFeePerGas is required for post-EIP1559 tx'
+          )
+        }
+
+        unsignedTx.maxFeePerGas = toBigInt(tx.maxFeePerGas)
+        unsignedTx.maxPriorityFeePerGas = toBigInt(tx.maxPriorityFeePerGas)
+
+        if (txType === 3) {
+          // extra checks for blob tx
+          if (!tx.maxFeePerBlobGas) {
+            throw new Error('maxFeePerBlobGas is required for blob tx')
+          }
+
+          if (!tx.blobs || !tx.blobVersionedHashes) {
+            throw new Error('blobs and their hashes are required for blob tx')
+          }
+
+          unsignedTx.maxFeePerBlobGas = toBigInt(tx.maxFeePerBlobGas)
+          unsignedTx.blobs = tx.blobs
+          unsignedTx.blobVersionedHashes = tx.blobVersionedHashes
+          unsignedTx.kzg = kzg
+        }
+      }
     }
 
     const signId = randomUUID()
