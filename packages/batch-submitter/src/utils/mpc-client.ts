@@ -181,6 +181,8 @@ export class MpcClient {
 
       unsignedTx.gasPrice = toBigInt(tx.gasPrice)
     } else {
+      unsignedTx.accessList = tx.accessList
+
       // populate typed tx
       const txType = toNumber(tx.type)
       if (txType === 1) {
@@ -189,7 +191,6 @@ export class MpcClient {
           throw new Error('gasPrice is required for access list tx')
         }
         unsignedTx.gasPrice = toBigInt(tx.gasPrice)
-        unsignedTx.accessList = tx.accessList
       } else if (txType > 1) {
         // check for post-EIP1559 tx
         if (!tx.maxFeePerGas) {
