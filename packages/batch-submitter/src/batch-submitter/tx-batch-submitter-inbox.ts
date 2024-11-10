@@ -314,9 +314,14 @@ export class TransactionBatchSubmitterInbox {
         return transactionSubmitter.submitSignedTransaction(
           tx,
           async (gasPrice) => {
-            tx.gasPrice = gasPrice
-            const signedTx = await mpcClient.signTx(tx, mpcInfo.mpc_id)
-            return signedTx
+            try {
+              tx.gasPrice = gasPrice
+              const signedTx = await mpcClient.signTx(tx, mpcInfo.mpc_id)
+              return signedTx
+            } catch (e) {
+              this.logger.error('Error signing tx with mpc', { err: e })
+              throw e
+            }
           },
           hooks
         )
