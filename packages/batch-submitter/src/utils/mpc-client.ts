@@ -185,6 +185,7 @@ export class MpcClient {
 
       // populate typed tx
       const txType = toNumber(tx.type)
+      unsignedTx.type = txType
       if (txType === 1) {
         // check for access list tx
         if (!tx.gasPrice) {

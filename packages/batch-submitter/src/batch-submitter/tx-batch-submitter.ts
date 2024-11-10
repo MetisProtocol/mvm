@@ -98,7 +98,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     seqsetValidHeight: number,
     seqsetContractAddress: string,
     seqsetUpgradeOnly: number,
-    useBlob: boolean
+    private useBlob: boolean
   ) {
     super(
       signer,
@@ -140,7 +140,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.maxTxSize,
       useMinio,
       minioConfig,
-      useBlob
+      this.useBlob
     )
     this.seqsetValidHeight = seqsetValidHeight
     this.seqsetContractAddress = seqsetContractAddress
@@ -495,12 +495,40 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     }
     this.logger.info('MPC model balance check of tx batch submitter...')
     const mpcClient = new MpcClient(this.mpcUrl)
-    const mpcInfo = await mpcClient.getLatestMpc()
+    const mpcLoadPromises = []
+    mpcLoadPromises.push(mpcClient.getLatestMpc())
+    if (this.useBlob) {
+      // if uses blob, also checks blob mpc balance
+      mpcLoadPromises.push(mpcClient.getLatestMpc('3'))
+    }
+    const results = await Promise.all(mpcLoadPromises)
+    const mpcInfo = results[0]
     if (!mpcInfo || !mpcInfo.mpc_address) {
       this.logger.error('MPC 0 info get failed')
       return false
     }
-    return this._hasEnoughETHToCoverGasCosts(mpcInfo.mpc_address)
+
+    const hasEnoughBalancePromises: Promise<boolean>[] = []
+
+    if (this.useBlob) {
+      const blobMpcInfo = results[1]
+      if (!blobMpcInfo || !blobMpcInfo.mpc_address) {
+        this.logger.error('MPC 3 info get failed')
+        return false
+      }
+
+      hasEnoughBalancePromises.push(
+        this._hasEnoughETHToCoverGasCosts(blobMpcInfo.mpc_address)
+      )
+    }
+
+    hasEnoughBalancePromises.push(
+      this._hasEnoughETHToCoverGasCosts(mpcInfo.mpc_address)
+    )
+
+    const hasEnoughBalance = await Promise.all(hasEnoughBalancePromises)
+
+    return hasEnoughBalance.reduce((acc, cur) => acc && cur, true)
   }
 
   /*********************

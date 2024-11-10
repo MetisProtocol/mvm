@@ -241,6 +241,8 @@ export class TransactionBatchSubmitterInbox {
                 const signedTx = await mpcClient.signTx(blobTx, mpcId)
                 // need to append the blob sidecar to the signed tx
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
+                // force set tx type to 3, just bypass the tx type inferring bug in ethers
+                signedTxUnmarshaled.type = 3
                 signedTxUnmarshaled.blobs = blobTx.blobs
                 signedTxUnmarshaled.kzg = blobTx.kzg
                 // repack the tx
