@@ -324,7 +324,7 @@ export class TransactionBatchSubmitterInbox {
               const signedTx = await mpcClient.signTx(tx, mpcInfo.mpc_id)
               return signedTx
             } catch (e) {
-              this.logger.error('Error signing tx with mpc', { err: e })
+              this.logger.error(`Error signing tx with mpc, ${e}`)
               throw e
             }
           },
