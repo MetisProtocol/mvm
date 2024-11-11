@@ -19,6 +19,7 @@ import {
   MinioConfig,
   QueueOrigin,
   remove0x,
+  sleep,
   toHexString,
   zlibCompressHexString,
 } from '@localtest911/core-utils'
@@ -260,6 +261,12 @@ export class TransactionBatchSubmitterInbox {
               throw new Error('Blob tx submission failed')
             }
           }
+        }
+
+        if (mpcUrl) {
+          // sleep 3000 ms to avoid mpc signing collision
+          this.logger.info('sleep 3000 ms to avoid mpc signing collision')
+          await sleep(3000)
         }
 
         const blobTxReceipt = await submitAndLogTx(
