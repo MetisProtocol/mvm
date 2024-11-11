@@ -263,12 +263,6 @@ export class TransactionBatchSubmitterInbox {
           }
         }
 
-        if (mpcUrl) {
-          // sleep 3000 ms to avoid mpc signing collision
-          this.logger.info('sleep 3000 ms to avoid mpc signing collision')
-          await sleep(3000)
-        }
-
         const blobTxReceipt = await submitAndLogTx(
           submitTx,
           `Submitted blob tx with ${mpcUrl ? 'mpc' : 'local'} signer!`,
@@ -298,6 +292,10 @@ export class TransactionBatchSubmitterInbox {
 
     // mpc url specified, use mpc to sign tx
     if (mpcUrl) {
+      // sleep 3000 ms to avoid mpc signing collision
+      this.logger.info('sleep 3000 ms to avoid mpc signing collision')
+      await sleep(3000)
+
       this.logger.info('submitter with mpc', { url: mpcUrl })
       const mpcClient = new MpcClient(mpcUrl)
       const chainId = (await signer.provider.getNetwork()).chainId
