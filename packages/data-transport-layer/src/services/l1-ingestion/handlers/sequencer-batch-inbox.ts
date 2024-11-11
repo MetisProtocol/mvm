@@ -29,13 +29,8 @@ import {
   TransactionEntry,
 } from '../../../types'
 import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
-import { MissingElementError } from './errors'
+import { BlobDataExpiredError, MissingElementError } from './errors'
 import { fetchBatches } from '../../../da/blob'
-
-const l2ToL1ChainId = {
-  1088: 1, // for metis andromeda
-  59902: 11155111, // for metis sepolia
-}
 
 export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
   SequencerBatchAppendedExtraData,
@@ -150,30 +145,35 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       }
 
       // fetch blobs from cl
-      // default to local devnet
-      let l1ChainId = l2ToL1ChainId[options.l2ChainId]
-      if (!l1ChainId) {
-        // not able to find pre-defined chain ids, get it from l1 rpc
-        l1ChainId = (await l1Client.getNetwork()).chainId
-      }
-
+      const l1ChainId = (await l1Client.getNetwork()).chainId
       const blobTxHashes = []
       for (let i = 0; i < contextData.length; i += 32) {
         blobTxHashes.push(ethers.hexlify(contextData.subarray(i, i + 32)))
       }
 
-      channels = channels.concat(
-        await fetchBatches({
-          blobTxHashes,
-          chainId: l1ChainId,
-          batchInbox: options.batchInboxAddress,
-          batchSenders: [options.batchInboxBlobSender.toLowerCase()],
-          concurrentRequests: 0,
-          l1Rpc: options.l1RpcProvider,
-          l1Beacon: options.l1BeaconProvider,
-          l2ChainId: options.l2ChainId,
-        })
-      )
+      try {
+        channels = channels.concat(
+          await fetchBatches({
+            blobTxHashes,
+            chainId: toNumber(l1ChainId),
+            batchInbox: options.batchInboxAddress,
+            batchSenders: [options.batchInboxBlobSender.toLowerCase()],
+            concurrentRequests: 0,
+            l1Rpc: options.l1RpcProvider,
+            l1Beacon: options.l1BeaconProvider,
+            l2ChainId: options.l2ChainId,
+          })
+        )
+      } catch (e) {
+        if (e instanceof BlobDataExpiredError) {
+          // if blob data has already expired, we must recover from a snapshot
+          console.error(
+            `Blob data has already expired, please recover from a most recent snapshot, error: ${e}`
+          )
+          process.exit(1)
+        }
+        throw e
+      }
 
       for (const channel of channels) {
         if (channel.invalidBatches || channel.invalidFrames) {

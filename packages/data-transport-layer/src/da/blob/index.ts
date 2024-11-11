@@ -9,6 +9,9 @@ import {
   RawSpanBatch,
   SpanBatchType,
 } from './channel'
+import { BlobDataExpiredError } from '../../services/l1-ingestion/handlers/errors'
+
+const blobExpireBlocks = 4096 * 32
 
 interface FetchBatchesConfig {
   blobTxHashes: string[] // blob transaction hashes
@@ -32,6 +35,8 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
     throw new Error('Failed to ping beacon chain, connection error')
   }
 
+  const latestBlock = await l1RpcProvider.getBlockNumber()
+
   // TODO: fetch batches concurrently
   const txsMetadata = []
   const channelsMetadata = []
@@ -40,6 +45,11 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
     const receipt = await l1RpcProvider.getTransactionReceipt(blobTxHash)
     if (!receipt) {
       throw new Error(`Tx or receipt of ${blobTxHash} not found`)
+    }
+
+    // checks whether blob data has expired
+    if (latestBlock - receipt.blockNumber > blobExpireBlocks) {
+      throw new BlobDataExpiredError(blobTxHash)
     }
 
     // TODO: We might be able to cache this somewhere, no need to retrieve this every time.
