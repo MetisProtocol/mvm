@@ -320,7 +320,8 @@ export class TransactionBatchSubmitterInbox {
           tx,
           async (gasPrice) => {
             try {
-              tx.gasPrice = gasPrice
+              tx.gasPrice =
+                gasPrice || (await this.l1Provider.getFeeData()).gasPrice
               const signedTx = await mpcClient.signTx(tx, mpcInfo.mpc_id)
               return signedTx
             } catch (e) {
