@@ -322,10 +322,10 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       for (const channel of channels) {
         // since currently we can only handle span batch,
         // so we can just skip the singular batch
-        for (let i = 0; i < channel.batches.length; i++) {
-          const spanBatch = channel.batches[i]
-          const l2BlockNumber = spanBatch.l2StartBlock + i
-          for (const batchElement of spanBatch.batches) {
+        for (const spanBatch of channel.batches) {
+          for (let j = 0; j < spanBatch.batches.length; j++) {
+            const l2BlockNumber = spanBatch.l2StartBlock + j
+            const batchElement = spanBatch.batches[j]
             blockEntries.push({
               index: l2BlockNumber,
               batchIndex: Number(extraData.batchIndex),
