@@ -306,13 +306,21 @@ export class StateBatchSubmitter extends BatchSubmitter {
       // mpc model can use ynatm
       // tx.gasPrice = gasPrice
 
+      this.logger.info('submitting with mpc address', { mpcAddress, txUnsign })
+
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return this.transactionSubmitter.submitSignedTransaction(
           txUnsign,
           async (gasPrice) => {
-            txUnsign.gasPrice = gasPrice
-            const signedTx = await mpcClient.signTx(txUnsign, mpcInfo.mpc_id)
-            return signedTx
+            try {
+              txUnsign.gasPrice =
+                gasPrice || (await this.signer.provider.getFeeData()).gasPrice
+              const signedTx = await mpcClient.signTx(txUnsign, mpcInfo.mpc_id)
+              return signedTx
+            } catch (e) {
+              this.logger.error('MPC sign tx failed', { error: e })
+              throw e
+            }
           },
           this._makeHooks('appendSequencerBatch')
         )
