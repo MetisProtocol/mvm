@@ -329,7 +329,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
             blockEntries.push({
               index: l2BlockNumber,
               batchIndex: Number(extraData.batchIndex),
-              timestamp: spanBatch.timestamp,
+              timestamp: batchElement.timestamp,
               transactions: batchElement.transactions.map(
                 (tx: L2Transaction) => {
                   // decode raw tx
@@ -355,7 +355,11 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                     confirmed: true,
                     seqSign:
                       tx.queueOrigin === QueueOrigin.Sequencer
-                        ? `0x${tx.seqR},0x${tx.seqS},0x${tx.seqV}`
+                        ? `0x${removeLeadingZeros(
+                            remove0x(tx.seqR)
+                          )},0x${removeLeadingZeros(
+                            remove0x(tx.seqS)
+                          )},0x${removeLeadingZeros(remove0x(tx.seqV))}`
                         : '0x0,0x0,0x0',
                   }
                 }
