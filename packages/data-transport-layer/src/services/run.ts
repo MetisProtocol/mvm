@@ -31,7 +31,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
       logsPerPollingInterval: config.uint('logs-per-polling-interval', 2000),
       dangerouslyCatchAllErrors: config.bool(
         'dangerously-catch-all-errors',
-        false
+        true
       ),
       l1BeaconProvider: config.str('l1-beacon-endpoint'),
       l2RpcProvider: config.str('l2-rpc-endpoint'),
