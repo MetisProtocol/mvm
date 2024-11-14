@@ -63,20 +63,25 @@ export class SpanChannelOut {
 
     const opaqueTxs: L2Transaction[] = []
     for (const tx of block.txs) {
-      const l2Tx = ethers.Transaction.from(tx.rawTransaction) as any
-      this.logger.info('Parsed tx', { hash: keccak256(tx.rawTransaction) })
-      l2Tx.l1BlockNumber = tx.l1BlockNumber
-      l2Tx.l1TxOrigin = tx.l1TxOrigin
-      l2Tx.queueOrigin = tx.isSequencerTx
-        ? QueueOrigin.Sequencer
-        : QueueOrigin.L1ToL2
-      l2Tx.rawTransaction = tx.rawTransaction
-      if (tx.seqSign) {
-        l2Tx.seqR = '0x' + tx.seqSign.slice(0, 64)
-        l2Tx.seqS = '0x' + tx.seqSign.slice(64, 128)
-        l2Tx.seqV = '0x' + tx.seqSign.slice(128, 130)
+      try {
+        const l2Tx = ethers.Transaction.from(tx.rawTransaction) as any
+        this.logger.info('Parsed tx', { hash: keccak256(tx.rawTransaction) })
+        l2Tx.l1BlockNumber = tx.l1BlockNumber
+        l2Tx.l1TxOrigin = tx.l1TxOrigin
+        l2Tx.queueOrigin = tx.isSequencerTx
+          ? QueueOrigin.Sequencer
+          : QueueOrigin.L1ToL2
+        l2Tx.rawTransaction = tx.rawTransaction
+        if (tx.seqSign) {
+          l2Tx.seqR = '0x' + tx.seqSign.slice(0, 64)
+          l2Tx.seqS = '0x' + tx.seqSign.slice(64, 128)
+          l2Tx.seqV = '0x' + tx.seqSign.slice(128, 130)
+        }
+        opaqueTxs.push(l2Tx as L2Transaction)
+      } catch (err) {
+        this.logger.error('Failed to parse tx', { err })
+        throw err
       }
-      opaqueTxs.push(l2Tx as L2Transaction)
     }
 
     const epochNum = block.txs[0].l1BlockNumber
