@@ -123,8 +123,18 @@ export class ChannelManager {
       throw new Error('ErrReorg')
     }
 
+    const lastBlock = this.blocks ? this.blocks[this.blocks.length - 1] : null
+
     this.blocks.push(block)
     this.tip = block.hash
+
+    this.logger.info('Added new L2 block to channel', {
+      count: this.blocks.length,
+      new: block.blockNumber,
+      newTimestamp: block.timestamp,
+      previous: lastBlock?.blockNumber,
+      previousTimestamp: lastBlock?.timestamp,
+    })
   }
 
   private nextTxData(channel: Channel | null): [TxData, boolean] {
