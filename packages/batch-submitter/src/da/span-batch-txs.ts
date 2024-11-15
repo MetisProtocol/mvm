@@ -3,6 +3,7 @@ import { Writer } from './types'
 import { newSpanBatchTx } from './span-batch-tx'
 import { encodeSpanBatchBits } from './utils'
 import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
+import { isEqual } from 'lodash'
 
 export class SpanBatchTxs {
   private totalBlockTxCount: number = 0
@@ -45,8 +46,8 @@ export class SpanBatchTxs {
       }
 
       this.txSigs.push({
-        r: tx?.signature.r ? BigInt(tx.signature.r) : BigInt(0),
-        s: tx?.signature.s ? BigInt(tx.signature.s) : BigInt(0),
+        r: !isEnqueue && tx?.signature.r ? BigInt(tx.signature.r) : BigInt(0),
+        s: !isEnqueue && tx?.signature.s ? BigInt(tx.signature.s) : BigInt(0),
       })
 
       const contractCreationBit = tx.to ? BigInt(0) : BigInt(1)
@@ -56,9 +57,9 @@ export class SpanBatchTxs {
         this.txTos.push(tx.to)
       }
 
-      const yParityBit = BigInt(
-        this.convertVToYParity(tx?.signature.v ?? 0, tx.type)
-      )
+      const yParityBit = !isEnqueue
+        ? BigInt(this.convertVToYParity(tx?.signature.v ?? 0, tx.type))
+        : BigInt(0)
       this.yParityBits |= yParityBit << BigInt(idx + offset)
 
       this.txNonces.push(Number(tx.nonce))
