@@ -332,6 +332,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
               timestamp: batchElement.timestamp,
               transactions: batchElement.transactions.map(
                 (tx: L2Transaction) => {
+                  const isSequencerTx = tx.queueOrigin === QueueOrigin.Sequencer
                   // decode raw tx
                   return {
                     index: l2BlockNumber,
@@ -340,27 +341,25 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                     timestamp: batchElement.timestamp,
                     gasLimit: tx.gasLimit.toString(10),
                     target: ethers.ZeroAddress,
-                    origin: tx.l1TxOrigin,
-                    data: tx.data,
-                    queueOrigin:
-                      tx.queueOrigin === QueueOrigin.Sequencer
-                        ? 'sequencer'
-                        : 'l1',
-                    value: toBeHex(tx.value),
-                    queueIndex: tx.nonce,
-                    decoded: decodeSequencerBatchTransaction(
-                      Buffer.from(remove0x(tx.rawTransaction), 'hex'),
-                      l2ChainId
-                    ),
+                    origin: isSequencerTx ? null : tx.l1TxOrigin,
+                    data: isSequencerTx ? tx.data : '0x',
+                    queueOrigin: isSequencerTx ? 'sequencer' : 'l1',
+                    value: isSequencerTx ? toBeHex(tx.value) : '0x0',
+                    queueIndex: isSequencerTx ? null : tx.nonce,
+                    decoded: isSequencerTx
+                      ? decodeSequencerBatchTransaction(
+                          Buffer.from(remove0x(tx.rawTransaction), 'hex'),
+                          l2ChainId
+                        )
+                      : null,
                     confirmed: true,
-                    seqSign:
-                      tx.queueOrigin === QueueOrigin.Sequencer
-                        ? `0x${removeLeadingZeros(
-                            remove0x(tx.seqR)
-                          )},0x${removeLeadingZeros(
-                            remove0x(tx.seqS)
-                          )},0x${removeLeadingZeros(remove0x(tx.seqV))}`
-                        : '0x0,0x0,0x0',
+                    seqSign: isSequencerTx
+                      ? `0x${removeLeadingZeros(
+                          remove0x(tx.seqR)
+                        )},0x${removeLeadingZeros(
+                          remove0x(tx.seqS)
+                        )},0x${removeLeadingZeros(remove0x(tx.seqV))}`
+                      : '0x0,0x0,0x0',
                   }
                 }
               ),

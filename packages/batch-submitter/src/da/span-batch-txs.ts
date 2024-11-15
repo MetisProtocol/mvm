@@ -54,6 +54,8 @@ export class SpanBatchTxs {
         this.txTos.push(tx.to)
       }
 
+      const isEnqueue = tx.queueOrigin === QueueOrigin.L1ToL2
+
       const yParityBit = BigInt(
         this.convertVToYParity(tx?.signature.v ?? 0, tx.type)
       )
@@ -61,13 +63,12 @@ export class SpanBatchTxs {
 
       this.txNonces.push(Number(tx.nonce))
       this.txGases.push(Number(tx.gasLimit))
-      this.txDatas.push(newSpanBatchTx(tx).marshalBinary())
+      this.txDatas.push(newSpanBatchTx(tx, isEnqueue).marshalBinary())
       this.txTypes.push(txType)
 
       // append metis extra fields
-      this.queueOriginBits |=
-        BigInt(tx.queueOrigin === QueueOrigin.L1ToL2) << BigInt(idx + offset)
-      if (tx.queueOrigin === QueueOrigin.L1ToL2) {
+      this.queueOriginBits |= BigInt(isEnqueue) << BigInt(idx + offset)
+      if (isEnqueue) {
         this.l1TxOrigins.push(tx.l1TxOrigin)
       }
 

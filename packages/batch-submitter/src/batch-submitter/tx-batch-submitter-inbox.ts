@@ -618,15 +618,17 @@ export class TransactionBatchSubmitterInbox {
     }
 
     block.l2Transactions.forEach((l2Tx: L2Transaction) => {
+      const isSequencerTx = this._isSequencerTx(l2Tx)
       const batchElementTx: BatchToInboxRawTx = {
-        rawTransaction: l2Tx.rawTransaction,
-        isSequencerTx: this._isSequencerTx(l2Tx),
+        rawTransaction: '',
+        isSequencerTx,
         seqSign: '',
         l1BlockNumber: l2Tx.l1BlockNumber,
         l1TxOrigin: null,
         queueIndex: null,
       }
       if (batchElementTx.isSequencerTx) {
+        batchElementTx.rawTransaction = l2Tx.rawTransaction
         if (!l2Tx.seqR) {
           batchElementTx.seqSign = ''
         } else {
@@ -650,6 +652,7 @@ export class TransactionBatchSubmitterInbox {
           batchElementTx.seqSign = `${r}${s}${v}`
         }
       } else {
+        batchElementTx.rawTransaction = ethers.Transaction.from(l2Tx).serialized
         batchElementTx.l1TxOrigin = l2Tx.l1TxOrigin
         batchElementTx.queueIndex = l2Tx.nonce
       }

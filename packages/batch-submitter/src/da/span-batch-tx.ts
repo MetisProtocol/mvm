@@ -38,10 +38,26 @@ class SpanBatchLegacyTxData implements SpanBatchTxData {
   gasPrice: bigint
   data: string
 
-  constructor(tx: L2Transaction) {
+  constructor(
+    tx:
+      | L2Transaction
+      | {
+          value: bigint
+          gasPrice: bigint
+          data: string
+        }
+  ) {
     this.value = tx.value
     this.gasPrice = tx.gasPrice
     this.data = tx.data
+  }
+
+  static enqueue(): SpanBatchLegacyTxData {
+    return new SpanBatchLegacyTxData({
+      value: BigInt(0),
+      gasPrice: BigInt(0),
+      data: '0x',
+    })
   }
 
   txType(): number {
@@ -110,10 +126,15 @@ class SpanBatchDynamicFeeTxData implements SpanBatchTxData {
   }
 }
 
-export const newSpanBatchTx = (tx: L2Transaction): SpanBatchTx => {
+export const newSpanBatchTx = (
+  tx: L2Transaction,
+  isEnqueue: boolean
+): SpanBatchTx => {
   switch (tx.type) {
     case 0:
-      return new SpanBatchTx(new SpanBatchLegacyTxData(tx))
+      return isEnqueue
+        ? new SpanBatchTx(SpanBatchLegacyTxData.enqueue())
+        : new SpanBatchTx(new SpanBatchLegacyTxData(tx))
     case 1:
       return new SpanBatchTx(new SpanBatchAccessListTxData(tx))
     case 2:
