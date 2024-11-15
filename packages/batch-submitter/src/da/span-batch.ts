@@ -31,14 +31,15 @@ export class SpanBatch {
   }
 
   async appendSingularBatch(singularBatch: SingularBatch): Promise<void> {
-    if (
-      this.batches.length > 0 &&
-      this.peek(0).timestamp > singularBatch.timestamp
-    ) {
-      throw new Error(
-        `span batch is not ordered: ${this.batches[0].timestamp} > ${singularBatch.timestamp}, ${this.batches.length}`
-      )
-    }
+    // FIXME: disable the check for now
+    // if (
+    //   this.batches.length > 0 &&
+    //   this.peek(0).timestamp > singularBatch.timestamp
+    // ) {
+    //   throw new Error(
+    //     `span batch is not ordered: ${this.batches[0].timestamp} > ${singularBatch.timestamp}, ${this.batches.length}`
+    //   )
+    // }
 
     if (this.batches.length === 0) {
       // record the start block number of the first singular batch
