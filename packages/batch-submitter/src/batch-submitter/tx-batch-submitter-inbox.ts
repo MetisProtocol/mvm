@@ -660,6 +660,11 @@ export class TransactionBatchSubmitterInbox {
           value: 0,
           data: l2Tx.data,
           type: l2Tx.type,
+          signature: {
+            r: '0x0',
+            s: '0x0',
+            v: 0,
+          },
         }).serialized
         batchElementTx.l1TxOrigin = l2Tx.l1TxOrigin
         batchElementTx.queueIndex = l2Tx.nonce
