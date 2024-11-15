@@ -652,7 +652,15 @@ export class TransactionBatchSubmitterInbox {
           batchElementTx.seqSign = `${r}${s}${v}`
         }
       } else {
-        batchElementTx.rawTransaction = ethers.Transaction.from(l2Tx).serialized
+        batchElementTx.rawTransaction = ethers.Transaction.from({
+          nonce: l2Tx.nonce,
+          gasLimit: l2Tx.gasLimit,
+          gasPrice: 0,
+          to: l2Tx.to,
+          value: 0,
+          data: l2Tx.data,
+          type: l2Tx.type,
+        }).serialized
         batchElementTx.l1TxOrigin = l2Tx.l1TxOrigin
         batchElementTx.queueIndex = l2Tx.nonce
       }
