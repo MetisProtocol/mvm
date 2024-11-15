@@ -35,7 +35,9 @@ export class SpanBatch {
       this.batches.length > 0 &&
       this.peek(0).timestamp > singularBatch.timestamp
     ) {
-      throw new Error('span batch is not ordered')
+      throw new Error(
+        `span batch is not ordered: ${this.batches[0].timestamp} > ${singularBatch.timestamp}, ${this.batches.length}`
+      )
     }
 
     if (this.batches.length === 0) {
