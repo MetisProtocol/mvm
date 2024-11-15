@@ -663,7 +663,9 @@ export class TransactionBatchSubmitterInbox {
           signature: {
             r: '0x0',
             s: '0x0',
-            v: 0,
+            // need to assign the chainId to v, otherwise ethers will not be able to parse this tx
+            // because enqueued tx is unsigned
+            v: this.l2ChainId,
           },
         }).serialized
         batchElementTx.l1TxOrigin = l2Tx.l1TxOrigin
