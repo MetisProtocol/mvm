@@ -36,7 +36,9 @@ export class SpanBatchTxs {
         this.totalLegacyTxCount++
       }
 
-      if (tx.chainId && BigInt(tx.chainId) !== chainId) {
+      const isEnqueue = tx.queueOrigin === QueueOrigin.L1ToL2
+
+      if (!isEnqueue && tx.chainId && BigInt(tx.chainId) !== chainId) {
         throw new Error(
           `Protected tx has chain ID ${tx.chainId}, but expected chain ID ${chainId}`
         )
@@ -53,8 +55,6 @@ export class SpanBatchTxs {
       if (tx.to) {
         this.txTos.push(tx.to)
       }
-
-      const isEnqueue = tx.queueOrigin === QueueOrigin.L1ToL2
 
       const yParityBit = BigInt(
         this.convertVToYParity(tx?.signature.v ?? 0, tx.type)

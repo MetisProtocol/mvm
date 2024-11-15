@@ -431,6 +431,15 @@ export class TransactionBatchSubmitterInbox {
     return [inboxBatchParams, wasBatchTruncated]
   }
 
+  private async _loadChainIds() {
+    if (!this.l1ChainId) {
+      this.l1ChainId = (await this.l1Provider.getNetwork()).chainId
+    }
+    if (!this.l2ChainId) {
+      this.l2ChainId = (await this.l2Provider.getNetwork()).chainId
+    }
+  }
+
   private async _getSequencerBatchParams(
     l2StartBlock: number,
     nextBatchIndex: number,
@@ -523,12 +532,7 @@ export class TransactionBatchSubmitterInbox {
         compressedEncoded = storagedObject
       }
     } else {
-      if (!this.l1ChainId) {
-        this.l1ChainId = (await this.l1Provider.getNetwork()).chainId
-      }
-      if (!this.l2ChainId) {
-        this.l2ChainId = (await this.l2Provider.getNetwork()).chainId
-      }
+      await this._loadChainIds()
 
       const channelManager = new ChannelManager(
         this.logger,
@@ -603,6 +607,8 @@ export class TransactionBatchSubmitterInbox {
   private async _getL2BatchElement(
     blockNumber: number
   ): Promise<BatchToInboxElement> {
+    await this._loadChainIds()
+
     const block = await this._getBlock(blockNumber)
     this.logger.debug('Fetched L2 block', {
       block,
