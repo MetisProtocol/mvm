@@ -22,6 +22,7 @@ import {
 import {
   EventHandlerSet,
   EventHandlerSetAny,
+  SenderType,
   TypedEthersEvent,
 } from '../../types'
 import { handleEventsTransactionEnqueued } from './handlers/transaction-enqueued'
@@ -116,7 +117,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     l1RpcProvider: Provider
     startingL1BlockNumber: number
     startingL1BatchIndex: number
-    defaultInboxSender: string
+    defaultInboxSenders: string[]
   } = {} as any
 
   protected async _init(): Promise<void> {
@@ -231,8 +232,14 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     if (totalElements > 0) {
       await this.state.db.putHighestL2BlockNumber(totalElements - 1)
     }
-    this.state.defaultInboxSender =
-      await this.state.contracts.Proxy__MVM_InboxSenderManager.defaultInboxSender()
+
+    for (const senderType of Object.values(SenderType)) {
+      this.state.defaultInboxSenders.push(
+        await this.state.contracts.Proxy__MVM_InboxSenderManager.defaultInboxSender(
+          senderType
+        )
+      )
+    }
   }
 
   protected async _start(): Promise<void> {
@@ -492,8 +499,18 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     const extraMap: Record<number, any> = {}
     for (const block of blocks) {
-      const inboxSenderAddress = await this._getInboxSender(block.number)
-      for (const tx of block.transactions) {
+      const inboxSenderAddress = await this._getInboxSender(
+        block.number,
+        SenderType.Batch
+      )
+      let inboxBlobSenderAddress
+      if (this.options.blobEnabled) {
+        inboxBlobSenderAddress = await this._getInboxSender(
+          block.number,
+          SenderType.Blob
+        )
+      }
+
       // we need to keep tracking the blob data index in a block in order to get the correct one for
       // our batch tx
       let blobIndex = 0
@@ -535,6 +552,15 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
               makeEvent,
               this.state.l1RpcProvider
             )
+
+            // append context values
+            if (inboxBlobSenderAddress) {
+              extraData.context = {
+                ...extraData.context,
+                inboxBlobSenderAddress,
+              }
+            }
+
             extraMap[extraData.batchIndex] = extraData
           } catch (err) {
             this.logger.warn('Verify inbox batch failed:', {
@@ -785,11 +811,18 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     throw new Error(`Unable to find appropriate L1 starting block number`)
   }
-  private async _getInboxSender(blockNumber: number): Promise<string> {
-    const inboxSender = await this.state.db.getFirstLteInboxSender(blockNumber)
+  private async _getInboxSender(
+    blockNumber: number,
+    senderType: SenderType
+  ): Promise<string> {
+    const inboxSender = await this.state.db.getFirstLteInboxSender(
+      blockNumber,
+      senderType
+    )
     if (inboxSender) {
       return inboxSender.inboxSender
     }
-    return this.state.defaultInboxSender
+
+    return this.state.defaultInboxSenders[senderType.valueOf()]
   }
 }

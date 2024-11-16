@@ -2,17 +2,14 @@
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 
 /* Imports: Internal */
+import { getContractDefinition, getContractInterface } from '../src'
 import {
-  getContractInterface,
-  getContractDefinition,
-} from '../src/contract-defs'
-import {
+  deployAndRegister,
+  getAdvancedContract,
+  getDeployedContract,
   hexStringEquals,
   registerAddress,
-  getDeployedContract,
   waitUntilTrue,
-  getAdvancedContract,
-  deployAndRegister,
 } from '../src/hardhat-deploy-ethers'
 
 const deployFn: DeployFunction = async (hre) => {
@@ -83,27 +80,59 @@ const deployFn: DeployFunction = async (hre) => {
     )
   })
 
-  // Set Slot 3 to the defaultInboxSender
+  // Set Slot 3 => 0x0 to the defaultInboxSender
+  // Set Slot 3 => 0x1 to the defaultInboxBlobSender
   console.log(
-    `Setting defaultInboxSender to ${
+    `Setting defaultInboxSender & defaultInboxBlobSender to ${
       (hre as any).deployConfig.inboxSenderAddress
-    }...`
+    } & ${(hre as any).deployConfig.inboxBlobSenderAddress} ...`
   )
 
   await proxy.setStorage(
-    hre.ethers.utils.hexZeroPad('0x03', 32),
+    hre.ethers.utils.keccak256(
+      hre.ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'uint256'],
+        ['0x03', '0x00']
+      )
+    ),
     hre.ethers.utils.hexZeroPad(
       (hre as any).deployConfig.inboxSenderAddress,
       32
     )
   )
 
-  const defaultInboxSender = await contract.defaultInboxSender()
-  console.log(`Confirming that defaultInboxSender  ${defaultInboxSender}`)
+  await proxy.setStorage(
+    hre.ethers.utils.keccak256(
+      hre.ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'uint256'],
+        ['0x03', '0x01']
+      )
+    ),
+    hre.ethers.utils.hexZeroPad(
+      (hre as any).deployConfig.inboxBlobSenderAddress,
+      32
+    )
+  )
+
+  const defaultInboxSender = await contract.defaultInboxSender(0)
+  console.log(`Confirming that defaultInboxSender ${defaultInboxSender}`)
   await waitUntilTrue(async () => {
     return hexStringEquals(
       hre.ethers.utils.hexValue(defaultInboxSender),
       hre.ethers.utils.hexValue((hre as any).deployConfig.inboxSenderAddress)
+    )
+  })
+
+  const defaultInboxBlobSender = await contract.defaultInboxSender(1)
+  console.log(
+    `Confirming that defaultInboxBlobSender ${defaultInboxBlobSender}`
+  )
+  await waitUntilTrue(async () => {
+    return hexStringEquals(
+      hre.ethers.utils.hexValue(defaultInboxBlobSender),
+      hre.ethers.utils.hexValue(
+        (hre as any).deployConfig.inboxBlobSenderAddress
+      )
     )
   })
 

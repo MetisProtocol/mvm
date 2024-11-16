@@ -15,6 +15,7 @@ export const handleInboxSenderSet: EventHandlerSet<
       index: event.args.blockNumber.toNumber(),
       blockNumber: event.args.blockNumber.toNumber(),
       inboxSender: event.args.inboxSender,
+      senderType: event.args.senderType,
     }
   },
   storeEvent: async (entry, db) => {

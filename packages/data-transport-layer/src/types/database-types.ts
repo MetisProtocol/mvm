@@ -100,8 +100,14 @@ export interface BlockEntry {
   confirmed: boolean
 }
 
+export enum SenderType {
+  Batch = 0,
+  Blob = 1,
+}
+
 export interface InboxSenderSetEntry {
   index: number
   blockNumber: number
   inboxSender: string
+  senderType: SenderType
 }

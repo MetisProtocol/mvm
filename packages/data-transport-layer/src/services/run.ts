@@ -67,6 +67,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
       batchInboxBlobSender: config.str('batch-inbox-blob-sender'),
       batchInboxStartIndex: config.uint('batch-inbox-start-index', 0),
       batchInboxL1Height: config.uint('batch-inbox-l1-height', 0),
+      blobEnabled: config.bool('blob-enabled', false),
     })
 
     const stop = async (signal) => {

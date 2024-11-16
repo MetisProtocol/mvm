@@ -48,6 +48,8 @@ export interface L1DataTransportServiceOptions {
   minioAccessKey?: string
   minioSecretKey?: string
 
+  blobEnabled?: boolean
+
   trustedIndexer?: string
 
   deSeqBlock: number
@@ -73,6 +75,11 @@ const optionSettings = {
 export class L1DataTransportService extends BaseService<L1DataTransportServiceOptions> {
   constructor(options: L1DataTransportServiceOptions) {
     super('L1_Data_Transport_Service', options, optionSettings)
+
+    // cannot enable both DAs
+    if (options.minioEnabled && options.blobEnabled) {
+      throw new Error('Cannot enable both minio and blob at the same time')
+    }
   }
 
   private state: {

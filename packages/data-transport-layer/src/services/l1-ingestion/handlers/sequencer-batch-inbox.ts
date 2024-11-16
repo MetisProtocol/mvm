@@ -157,7 +157,10 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
             blobTxHashes,
             chainId: toNumber(l1ChainId),
             batchInbox: options.batchInboxAddress,
-            batchSenders: [options.batchInboxBlobSender.toLowerCase()],
+            batchSenders:
+              extraData.context && extraData.context.inboxBlobSenderAddress
+                ? [extraData.context.inboxBlobSenderAddress.toLowerCase()]
+                : [],
             concurrentRequests: 0,
             l1Rpc: options.l1RpcProvider,
             l1Beacon: options.l1BeaconProvider,

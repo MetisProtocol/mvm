@@ -27,22 +27,40 @@ describe('InboxSenderManager', () => {
   })
 
   let defaultInboxSender: string
+  let defaultInboxBlobSender: string
   let InboxSenderManager: Contract
   beforeEach(async () => {
     defaultInboxSender = ethers.utils.getAddress(
       ethers.utils.hexlify(ethers.utils.randomBytes(20))
     )
+
+    defaultInboxBlobSender = ethers.utils.getAddress(
+      ethers.utils.hexlify(ethers.utils.randomBytes(20))
+    )
+
     InboxSenderManager = await Factory__InboxSenderManager.deploy(
       AddressManager.address,
-      defaultInboxSender
+      [
+        {
+          senderType: 0,
+          sender: defaultInboxSender,
+        },
+        {
+          senderType: 1,
+          sender: defaultInboxBlobSender,
+        },
+      ]
     )
     await AddressManager.setAddress('METIS_MANAGER', manager.getAddress())
   })
 
   describe('Default inbox sender', () => {
     it('should set the initial default inbox sender', async () => {
-      expect(await InboxSenderManager.defaultInboxSender()).to.equal(
+      expect(await InboxSenderManager.defaultInboxSender(0)).to.equal(
         defaultInboxSender
+      )
+      expect(await InboxSenderManager.defaultInboxSender(1)).to.equal(
+        defaultInboxBlobSender
       )
     })
   })
@@ -53,8 +71,20 @@ describe('InboxSenderManager', () => {
       const inboxSender = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
+      const inboxBlobSender = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
       await expect(
-        InboxSenderManager.setInboxSender(blockNumber, inboxSender)
+        InboxSenderManager.setInboxSender(blockNumber, [
+          {
+            senderType: 0,
+            sender: inboxSender,
+          },
+          {
+            senderType: 1,
+            sender: inboxBlobSender,
+          },
+        ])
       ).to.be.revertedWith(
         'MVM_InboxSenderManager: Function can only be called by the METIS_MANAGER.'
       )
@@ -65,16 +95,32 @@ describe('InboxSenderManager', () => {
       const inboxSender = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
-
-      await InboxSenderManager.connect(manager).setInboxSender(
-        blockNumber,
-        inboxSender
+      const inboxBlobSender = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
+
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber, [
+        {
+          senderType: 0,
+          sender: inboxSender,
+        },
+        {
+          senderType: 1,
+          sender: inboxBlobSender,
+        },
+      ])
 
       const storedInboxSender = await InboxSenderManager.getInboxSender(
-        blockNumber
+        blockNumber,
+        0
       )
       expect(storedInboxSender).to.equal(inboxSender)
+
+      const storedInboxBlobSender = await InboxSenderManager.getInboxSender(
+        blockNumber,
+        1
+      )
+      expect(storedInboxBlobSender).to.equal(inboxBlobSender)
     })
 
     it('should set inbox address successfully the second time ', async () => {
@@ -82,26 +128,88 @@ describe('InboxSenderManager', () => {
       const inboxSender1 = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
+      const inboxBlobSender1 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
       const blockNumber2 = 2
       const inboxSender2 = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
+      const inboxBlobSender2 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
 
-      await InboxSenderManager.connect(manager).setInboxSender(
-        blockNumber1,
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber1, [
+        {
+          senderType: 0,
+          sender: inboxSender1,
+        },
+        {
+          senderType: 1,
+          sender: inboxBlobSender1,
+        },
+      ])
+      expect(await InboxSenderManager.getInboxSender(blockNumber1, 0)).to.equal(
         inboxSender1
       )
-      expect(await InboxSenderManager.getInboxSender(blockNumber1)).to.equal(
-        inboxSender1
+      expect(await InboxSenderManager.getInboxSender(blockNumber1, 1)).to.equal(
+        inboxBlobSender1
       )
 
-      await InboxSenderManager.connect(manager).setInboxSender(
-        blockNumber2,
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber2, [
+        {
+          senderType: 0,
+          sender: inboxSender2,
+        },
+        {
+          senderType: 1,
+          sender: inboxBlobSender2,
+        },
+      ])
+
+      expect(await InboxSenderManager.getInboxSender(blockNumber2, 0)).to.equal(
         inboxSender2
       )
+      expect(await InboxSenderManager.getInboxSender(blockNumber2, 1)).to.equal(
+        inboxBlobSender2
+      )
 
-      expect(await InboxSenderManager.getInboxSender(blockNumber2)).to.equal(
-        inboxSender2
+      const blockNumber3 = 3
+      const inboxSender3 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
+      const inboxBlobSender3 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
+
+      // set inbox sender separately
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber3, [
+        {
+          senderType: 0,
+          sender: inboxSender3,
+        },
+      ])
+
+      expect(await InboxSenderManager.getInboxSender(blockNumber3, 0)).to.equal(
+        inboxSender3
+      )
+      expect(await InboxSenderManager.getInboxSender(blockNumber3, 1)).to.equal(
+        inboxBlobSender2
+      )
+
+      const blockNumber4 = 4
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber4, [
+        {
+          senderType: 1,
+          sender: inboxBlobSender3,
+        },
+      ])
+
+      expect(await InboxSenderManager.getInboxSender(blockNumber4, 0)).to.equal(
+        inboxSender3
+      )
+      expect(await InboxSenderManager.getInboxSender(blockNumber4, 1)).to.equal(
+        inboxBlobSender3
       )
     })
 
@@ -124,8 +232,11 @@ describe('InboxSenderManager', () => {
     })
 
     it('should return the default inbox sender if no address is set for a block', async () => {
-      expect(await InboxSenderManager.getInboxSender(1)).to.equal(
-        await InboxSenderManager.defaultInboxSender()
+      expect(await InboxSenderManager.getInboxSender(1, 0)).to.equal(
+        await InboxSenderManager.defaultInboxSender(0)
+      )
+      expect(await InboxSenderManager.getInboxSender(1, 1)).to.equal(
+        await InboxSenderManager.defaultInboxSender(1)
       )
     })
 
@@ -134,25 +245,49 @@ describe('InboxSenderManager', () => {
       const inboxSender1 = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
+      const inboxBlobSender1 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
       const blockNumber2 = 3
       const inboxSender2 = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
+      const inboxBlobSender2 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
       const queryBlockNumber = 2
 
-      await InboxSenderManager.connect(manager).setInboxSender(
-        blockNumber1,
-        inboxSender1
-      )
-      await InboxSenderManager.connect(manager).setInboxSender(
-        blockNumber2,
-        inboxSender2
-      )
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber1, [
+        {
+          senderType: 0,
+          sender: inboxSender1,
+        },
+        {
+          senderType: 1,
+          sender: inboxBlobSender1,
+        },
+      ])
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber2, [
+        {
+          senderType: 0,
+          sender: inboxSender2,
+        },
+        {
+          senderType: 1,
+          sender: inboxBlobSender2,
+        },
+      ])
 
       const storedInboxSender = await InboxSenderManager.getInboxSender(
-        queryBlockNumber
+        queryBlockNumber,
+        0
+      )
+      const storedInboxBlobSender = await InboxSenderManager.getInboxSender(
+        queryBlockNumber,
+        1
       )
       expect(storedInboxSender).to.equal(inboxSender1)
+      expect(storedInboxBlobSender).to.equal(inboxBlobSender1)
     })
 
     it('should return the latest inbox sender if the block number is greater than the highest set block', async () => {
@@ -160,33 +295,66 @@ describe('InboxSenderManager', () => {
       const inboxSender1 = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
+      const inboxBlobSender1 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
       const blockNumber2 = 2
       const inboxSender2 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
+      const inboxBlobSender2 = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
       const blockNumber3 = 3
       const inboxSender3 = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
+      const inboxBlobSender3 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
       const higherBlockNumber = 4
 
-      await InboxSenderManager.connect(manager).setInboxSender(
-        blockNumber1,
-        inboxSender1
-      )
-      await InboxSenderManager.connect(manager).setInboxSender(
-        blockNumber2,
-        inboxSender2
-      )
-      await InboxSenderManager.connect(manager).setInboxSender(
-        blockNumber3,
-        inboxSender3
-      )
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber1, [
+        {
+          senderType: 0,
+          sender: inboxSender1,
+        },
+        {
+          senderType: 1,
+          sender: inboxBlobSender1,
+        },
+      ])
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber2, [
+        {
+          senderType: 0,
+          sender: inboxSender2,
+        },
+        {
+          senderType: 1,
+          sender: inboxBlobSender2,
+        },
+      ])
+      await InboxSenderManager.connect(manager).setInboxSender(blockNumber3, [
+        {
+          senderType: 0,
+          sender: inboxSender3,
+        },
+        {
+          senderType: 1,
+          sender: inboxBlobSender3,
+        },
+      ])
 
       const storedInboxSender = await InboxSenderManager.getInboxSender(
-        higherBlockNumber
+        higherBlockNumber,
+        0
+      )
+      const storedInboxBlobSender = await InboxSenderManager.getInboxSender(
+        higherBlockNumber,
+        1
       )
       expect(storedInboxSender).to.equal(inboxSender3)
+      expect(storedInboxBlobSender).to.equal(inboxBlobSender3)
     })
   })
 })

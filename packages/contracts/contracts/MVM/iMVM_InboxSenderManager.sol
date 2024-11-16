@@ -2,11 +2,21 @@
 pragma solidity ^0.8.9;
 
 interface iMVM_InboxSenderManager {
-    event InboxSenderSet(uint256 indexed blockNumber, address indexed inboxSender);
+    enum InboxSenderType {
+        InboxSender,
+        InboxBlobSender
+    }
 
-    function defaultInboxSender() external view returns (address);
+    struct InboxSender {
+        InboxSenderType senderType;
+        address sender;
+    }
 
-    function setInboxSender(uint256 blockNumber, address inboxSender) external;
+    event InboxSenderSet(uint256 indexed blockNumber, address indexed inboxSender, InboxSenderType indexed inboxSenderType);
 
-    function getInboxSender(uint256 blockNumber) external view returns (address);
+    function defaultInboxSender(InboxSenderType senderType) external view returns (address);
+
+    function setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders) external;
+
+    function getInboxSender(uint256 blockNumber, InboxSenderType inboxSenderType) external view returns (address);
 }

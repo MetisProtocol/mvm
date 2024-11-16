@@ -14,18 +14,21 @@ contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver 
     /*************
      * Variables *
      *************/
-    // blockNumber => inboxSende
-    mapping(uint256 => address) public inboxSenders;
+    // blockNumber => inboxSender
+    mapping(uint256 => InboxSender[]) public inboxSenders;
+
     uint256[] public blockNumbers;
-    address public defaultInboxSender;
+    mapping(InboxSenderType => address) public defaultInboxSender;
 
     /***************
      * Constructor *
      ***************/
-    constructor(address _libAddressManager, address _defaultInboxSender)
+    constructor(address _libAddressManager, InboxSender[] memory _defaultInboxSenders)
         Lib_AddressResolver(_libAddressManager)
     {
-        defaultInboxSender = _defaultInboxSender;
+        for (uint256 i = 0; i < _defaultInboxSenders.length; ++i) {
+            defaultInboxSender[_defaultInboxSenders[i].senderType] = _defaultInboxSenders[i].sender;
+        }
     }
 
     /**********************
@@ -42,7 +45,7 @@ contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver 
     /********************
      * Public Functions *
      ********************/
-    function setInboxSender(uint256 blockNumber, address inboxSender)
+    function setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders)
         external
         override
         onlyManager
@@ -54,19 +57,28 @@ contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver 
             );
         }
 
-        inboxSenders[blockNumber] = inboxSender;
+        for (uint256 i = 0; i < _inboxSenders.length; ++i) {
+            inboxSenders[blockNumber].push(_inboxSenders[i]);
+        }
         blockNumbers.push(blockNumber);
-
-        emit InboxSenderSet(blockNumber, inboxSender);
+        for (uint256 i = 0; i < _inboxSenders.length; ++i) {
+            emit InboxSenderSet(blockNumber, _inboxSenders[i].sender, _inboxSenders[i].senderType);
+        }
     }
 
-    function getInboxSender(uint256 blockNumber) external view override returns (address) {
+    function getInboxSender(uint256 blockNumber, InboxSenderType inboxSenderType) external view override returns (address) {
         for (int256 i = int256(blockNumbers.length) - 1; i >= 0; i--) {
             if (blockNumbers[uint256(i)] <= blockNumber) {
-                return inboxSenders[blockNumbers[uint256(i)]];
+                InboxSender[] storage inboxSendersAtBlock = inboxSenders[blockNumbers[uint256(i)]];
+                for (uint256 j = 0; j < inboxSendersAtBlock.length; ++j) {
+                    InboxSender memory inboxSender = inboxSendersAtBlock[j];
+                    if (inboxSender.senderType == inboxSenderType) {
+                        return inboxSender.sender;
+                    }
+                }
             }
         }
 
-        return defaultInboxSender;
+        return defaultInboxSender[inboxSenderType];
     }
 }

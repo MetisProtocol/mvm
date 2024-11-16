@@ -15,6 +15,7 @@ import {
   AppendBatchElementEntry,
   BlockEntry,
   InboxSenderSetEntry,
+  SenderType,
 } from '../types/database-types'
 import { SimpleDB } from './simple-db'
 import { toBigInt, toNumber } from 'ethersv6'
@@ -181,7 +182,24 @@ export class TransportDB {
   public async putInboxSenderSetEntries(
     entries: InboxSenderSetEntry[]
   ): Promise<void> {
-    await this._putEntries(TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER, entries)
+    // store inbox senders by types
+    const storagePromises = []
+    for (const senderType of Object.values(SenderType)) {
+      const inboxSenders = entries.filter(
+        (entry) => entry.senderType === senderType
+      )
+
+      storagePromises.push(
+        this._putEntries(
+          `${TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER}:${senderType.toString(
+            10
+          )}`,
+          inboxSenders
+        )
+      )
+    }
+
+    await Promise.all(storagePromises)
   }
 
   public async getLatestVerifierStake(): Promise<VerifierStakeEntry> {
@@ -626,10 +644,13 @@ export class TransportDB {
   }
 
   public async getFirstLteInboxSender(
-    target: number
+    target: number,
+    inboxSenderType: SenderType
   ): Promise<InboxSenderSetEntry> {
     return this._getFirstLteEntity(
-      TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER,
+      `${TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER}:${inboxSenderType.toString(
+        10
+      )}`,
       target
     )
   }
