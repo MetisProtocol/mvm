@@ -36,3 +36,8 @@ export interface EventArgsSequencerBatchAppended {
   _numQueueElements: ethers.BigNumber
   _totalElements: ethers.BigNumber
 }
+
+export interface EventArgsInboxSenderSet {
+  _blockNumber: ethers.BigNumber
+  _inboxSender: string
+}

@@ -12,9 +12,9 @@ export const handleInboxSenderSet: EventHandlerSet<
   },
   parseEvent: async (event) => {
     return {
-      index: event.args.blockNumber.toNumber(),
-      blockNumber: event.args.blockNumber.toNumber(),
-      inboxSender: event.args.inboxSender,
+      index: event.args._blockNumber.toNumber(),
+      blockNumber: event.args._blockNumber.toNumber(),
+      inboxSender: event.args._inboxSender,
     }
   },
   storeEvent: async (entry, db) => {
