@@ -52,6 +52,33 @@ export class SimpleDB {
       return []
     }
   }
+  public async getFirstLte<TEntry>(
+    key: string,
+    target: number
+  ): Promise<TEntry | null> {
+    try {
+      return new Promise<TEntry>((resolve, reject) => {
+        const stream = this.db.createReadStream({
+          lte: this._makeKey(key, target),
+          reverse: true,
+          limit: 1,
+        })
+        stream.once('data', (data: any) => {
+          const transaction = JSON.parse(data.value)
+          resolve(transaction)
+        })
+        stream.on('error', (err: any) => {
+          reject(err)
+        })
+
+        stream.on('end', () => {
+          resolve(null) // 没有找到满足条件的值
+        })
+      })
+    } catch (err) {
+      return null
+    }
+  }
 
   public async rangeKV<TKey, TValue>(
     key: string,

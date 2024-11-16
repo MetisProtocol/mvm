@@ -34,6 +34,7 @@ export interface OptimismContracts {
   StateCommitmentChain: Contract
   CanonicalTransactionChain: Contract
   Proxy__MVM_CanonicalTransaction: Contract
+  Proxy__MVM_InboxSenderManager: Contract
 }
 
 export const loadOptimismContracts = async (
@@ -63,6 +64,10 @@ export const loadOptimismContracts = async (
     {
       name: 'Proxy__MVM_CanonicalTransaction',
       interface: 'iMVM_CanonicalTransaction',
+    },
+    {
+      name: 'Proxy__MVM_InboxSenderManager',
+      interface: 'iMVM_InboxSenderManager',
     },
   ]
 

@@ -49,6 +49,7 @@ const parseEnv = () => {
     ovmRelayerAddress: ensure('RELAYER_ADDRESS', 'xx'),
     mvmMetisAddress: ensure('METIS_ADDRESS', 'xx'),
     l2chainid: ensure('L2_CHAIN_ID', 'number'),
+    inboxSenderAddress: ensure('INBOX_SENDER_ADDRESS', 'xx'),
   }
 }
 
@@ -71,6 +72,7 @@ const main = async () => {
     mvmMetisAddress: config.mvmMetisAddress,
     mvmMetisManager: deployer.address,
     l2chainid: config.l2chainid,
+    inboxSenderAddress: config.inboxSenderAddress,
   })
 
   // Stuff below this line is currently required for CI to work properly. We probably want to
