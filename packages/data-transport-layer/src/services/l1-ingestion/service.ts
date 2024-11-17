@@ -540,7 +540,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           tx.to &&
           tx.to.toLowerCase() ===
             this.options.batchInboxAddress.toLowerCase() &&
-          tx.from.toLowerCase() === inboxSenderAddress &&
+          tx.from.toLowerCase() === inboxSenderAddress.toLowerCase() &&
           tx.data.length >= 140
         ) {
           this.logger.info('found inbox batch', {
@@ -574,7 +574,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             if (inboxBlobSenderAddress) {
               extraData.context = {
                 ...extraData.context,
-                inboxBlobSenderAddress,
+                inboxBlobSenderAddress: inboxBlobSenderAddress.toLowerCase(),
               }
             }
 
