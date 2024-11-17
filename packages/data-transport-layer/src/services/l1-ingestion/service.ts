@@ -234,11 +234,16 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     }
 
     for (const senderType of Object.values(SenderType)) {
-      this.state.defaultInboxSenders.push(
+      const inboxSender =
         await this.state.contracts.Proxy__MVM_InboxSenderManager.defaultInboxSender(
           senderType
         )
-      )
+
+      this.logger.info('Loaded default inbox sender', {
+        inboxSender,
+        senderType,
+      })
+      this.state.defaultInboxSenders.push(inboxSender.toLowerCase())
     }
   }
 
@@ -510,6 +515,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           SenderType.Blob
         )
       }
+
+      this.logger.info(`Using inbox at ${block.number}`, {
+        inboxSenderAddress,
+        inboxBlobSenderAddress,
+      })
 
       // we need to keep tracking the blob data index in a block in order to get the correct one for
       // our batch tx
