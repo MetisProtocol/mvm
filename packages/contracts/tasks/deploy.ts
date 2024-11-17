@@ -55,6 +55,18 @@ task('deploy')
     types.string
   )
   .addOptionalParam(
+    'inboxSenderAddress',
+    'Address of the inbox sender. Must be provided or this deployment will fail.',
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    'inboxBlobSenderAddress',
+    'Address of the inbox blob sender. Must be provided or this deployment will fail.',
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
     'ovmProposerAddress',
     'Address of the account that will propose state roots. Must be provided or this deployment will fail.',
     undefined,
@@ -122,6 +134,8 @@ task('deploy')
     validateAddressArg('ovmAddressManagerOwner')
     validateAddressArg('mvmMetisAddress')
     validateAddressArg('mvmMetisManager')
+    validateAddressArg('inboxSenderAddress')
+    validateAddressArg('inboxBlobSenderAddress')
 
     hre.deployConfig = args
     return runSuper(args)

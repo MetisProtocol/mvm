@@ -92,7 +92,7 @@ const deployFn: DeployFunction = async (hre) => {
     hre.ethers.utils.keccak256(
       hre.ethers.utils.defaultAbiCoder.encode(
         ['uint256', 'uint256'],
-        ['0x03', '0x00']
+        ['0x00', '0x03']
       )
     ),
     hre.ethers.utils.hexZeroPad(
@@ -105,7 +105,7 @@ const deployFn: DeployFunction = async (hre) => {
     hre.ethers.utils.keccak256(
       hre.ethers.utils.defaultAbiCoder.encode(
         ['uint256', 'uint256'],
-        ['0x03', '0x01']
+        ['0x01', '0x03']
       )
     ),
     hre.ethers.utils.hexZeroPad(
@@ -114,20 +114,20 @@ const deployFn: DeployFunction = async (hre) => {
     )
   )
 
-  const defaultInboxSender = await contract.defaultInboxSender(0)
-  console.log(`Confirming that defaultInboxSender ${defaultInboxSender}`)
   await waitUntilTrue(async () => {
+    const defaultInboxSender = await contract.defaultInboxSender(0)
+    console.log(`Confirming that defaultInboxSender ${defaultInboxSender}`)
     return hexStringEquals(
       hre.ethers.utils.hexValue(defaultInboxSender),
       hre.ethers.utils.hexValue((hre as any).deployConfig.inboxSenderAddress)
     )
   })
 
-  const defaultInboxBlobSender = await contract.defaultInboxSender(1)
-  console.log(
-    `Confirming that defaultInboxBlobSender ${defaultInboxBlobSender}`
-  )
   await waitUntilTrue(async () => {
+    const defaultInboxBlobSender = await contract.defaultInboxSender(1)
+    console.log(
+      `Confirming that defaultInboxBlobSender ${defaultInboxBlobSender}`
+    )
     return hexStringEquals(
       hre.ethers.utils.hexValue(defaultInboxBlobSender),
       hre.ethers.utils.hexValue(
@@ -165,7 +165,16 @@ const deployFn: DeployFunction = async (hre) => {
     contract: 'MVM_InboxSenderManager',
     args: [
       Lib_AddressManager.address,
-      (hre as any).deployConfig.inboxSenderAddress,
+      [
+        {
+          sender: (hre as any).deployConfig.inboxSenderAddress,
+          senderType: 0,
+        },
+        {
+          sender: (hre as any).deployConfig.inboxBlobSenderAddress,
+          senderType: 1,
+        },
+      ],
     ],
   })
 }
