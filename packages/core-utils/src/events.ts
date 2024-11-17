@@ -34,3 +34,9 @@ export interface EventArgsSequencerBatchAppended {
   _numQueueElements: bigint
   _totalElements: bigint
 }
+
+export interface EventArgsInboxSenderSet {
+  _blockNumber: bigint
+  _inboxSender: string
+  _senderType: number
+}

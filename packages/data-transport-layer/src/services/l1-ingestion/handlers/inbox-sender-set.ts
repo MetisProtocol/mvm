@@ -1,6 +1,11 @@
 /* Imports: Internal */
-import { EventArgsInboxSenderSet } from '@metis.io/core-utils'
-import { EventHandlerSet, InboxSenderSetEntry } from '../../../types'
+import { EventArgsInboxSenderSet } from '@localtest911/core-utils'
+import {
+  EventHandlerSet,
+  InboxSenderSetEntry,
+  SenderType,
+} from '../../../types'
+import { toNumber } from 'ethersv6'
 
 export const handleInboxSenderSet: EventHandlerSet<
   EventArgsInboxSenderSet,
@@ -12,10 +17,10 @@ export const handleInboxSenderSet: EventHandlerSet<
   },
   parseEvent: async (event) => {
     return {
-      index: event.args.blockNumber.toNumber(),
-      blockNumber: event.args.blockNumber.toNumber(),
-      inboxSender: event.args.inboxSender,
-      senderType: event.args.senderType,
+      index: toNumber(event.args._blockNumber),
+      blockNumber: toNumber(event.args.blockNumber),
+      inboxSender: event.args._inboxSender,
+      senderType: event.args._senderType,
     }
   },
   storeEvent: async (entry, db) => {
