@@ -185,6 +185,10 @@ export class TransportDB {
     // store inbox senders by types
     const storagePromises = []
     for (const senderType of Object.values(SenderType)) {
+      if (typeof senderType !== 'number') {
+        continue
+      }
+
       const inboxSenders = entries.filter(
         (entry) => entry.senderType === senderType
       )
@@ -648,9 +652,9 @@ export class TransportDB {
     inboxSenderType: SenderType
   ): Promise<InboxSenderSetEntry> {
     return this._getFirstLteEntity(
-      `${TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER}:${inboxSenderType.toString(
-        10
-      )}`,
+      `${TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER}:${inboxSenderType
+        .valueOf()
+        .toString(10)}`,
       target
     )
   }

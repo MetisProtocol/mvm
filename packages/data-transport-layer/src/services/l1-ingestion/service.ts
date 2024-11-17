@@ -234,6 +234,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     }
 
     for (const senderType of Object.values(SenderType)) {
+      if (typeof senderType !== 'number') {
+        continue
+      }
+
       const inboxSender =
         await this.state.contracts.Proxy__MVM_InboxSenderManager.defaultInboxSender(
           senderType
@@ -243,6 +247,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         inboxSender,
         senderType,
       })
+      if (!this.state.defaultInboxSenders) {
+        this.state.defaultInboxSenders = []
+      }
       this.state.defaultInboxSenders.push(inboxSender.toLowerCase())
     }
   }
@@ -506,13 +513,13 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     for (const block of blocks) {
       const inboxSenderAddress = await this._getInboxSender(
         block.number,
-        SenderType.Batch
+        SenderType.Batch.valueOf()
       )
       let inboxBlobSenderAddress
       if (this.options.blobEnabled) {
         inboxBlobSenderAddress = await this._getInboxSender(
           block.number,
-          SenderType.Blob
+          SenderType.Blob.valueOf()
         )
       }
 
@@ -829,7 +836,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       blockNumber,
       senderType
     )
-    if (inboxSender) {
+    if (inboxSender && inboxSender.inboxSender) {
       return inboxSender.inboxSender
     }
 
