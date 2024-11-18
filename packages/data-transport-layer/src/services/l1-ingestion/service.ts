@@ -722,7 +722,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           )
           // filter chainId
           const chainId = event.args._chainId
-            ? event.args._chainId.toNumber()
+            ? toNumber(event.args._chainId)
             : null
           const parsedEvent = await handlers.parseEvent(
             event,
