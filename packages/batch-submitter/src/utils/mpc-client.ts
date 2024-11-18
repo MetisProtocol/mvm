@@ -237,7 +237,7 @@ export class MpcClient {
       throw new Error(`MPC ${mpcId} propose sign failed`)
     }
 
-    const signedTx = await this.getMpcSignWithTimeout(signId, 60000, 5000)
+    const signedTx = await this.getMpcSignWithTimeout(signId, 6000, 5000)
     if (!signedTx) {
       throw new Error(`MPC ${mpcId} get sign failed`)
     }
