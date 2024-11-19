@@ -108,7 +108,11 @@ export class Writer {
   private data: number[] = []
 
   writeBytes(bytes: BytesLike): void {
-    this.data.push(...getBytes(bytes))
+    // append 1k bytes at a time, avoid stack overflow
+    const _bytes = getBytes(bytes)
+    for (let i = 0; i < _bytes.length; i += 1024) {
+      this.data.push(..._bytes.slice(i, Math.min(i + 1024, _bytes.length)))
+    }
   }
 
   writeUint8(value: number): void {
