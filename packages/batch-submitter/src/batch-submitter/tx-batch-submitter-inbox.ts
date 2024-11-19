@@ -96,10 +96,25 @@ export class TransactionBatchSubmitterInbox {
 
     const [batchParams, wasBatchTruncated] = params
     // encodeBatch of calldata for _shouldSubmitBatch
-    const batchSizeInBytes = batchParams.inputData.length / 2
+    let batchSizeInBytes = batchParams.inputData.length / 2
     this.logger.debug('Sequencer batch generated', {
       batchSizeInBytes,
     })
+
+    if (this.useBlob) {
+      // when using blob txs, need to calculate the blob txs size,
+      // to avoid the situation that the batch is too small,
+      // we will commit until at least one blob got included
+      if (batchParams.blobTxData.length > 1) {
+        batchSizeInBytes = 0
+        for (const txData of batchParams.blobTxData) {
+          batchSizeInBytes += txData.blobs.reduce(
+            (acc, blob) => acc + blob.data.length,
+            0
+          )
+        }
+      }
+    }
 
     // Only submit batch if one of the following is true:
     // 1. it was truncated
