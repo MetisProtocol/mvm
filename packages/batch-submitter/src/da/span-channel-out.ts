@@ -12,7 +12,6 @@ import {
 } from './consts'
 import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
 import { Logger } from '@eth-optimism/common-ts'
-import { keccak256 } from 'ethers/lib/utils'
 
 export class SpanChannelOut {
   private _id: Uint8Array
@@ -65,7 +64,6 @@ export class SpanChannelOut {
     for (const tx of block.txs) {
       try {
         const l2Tx = ethers.Transaction.from(tx.rawTransaction) as any
-        this.logger.info('Parsed tx', { hash: keccak256(tx.rawTransaction) })
         l2Tx.l1BlockNumber = tx.l1BlockNumber
         l2Tx.l1TxOrigin = tx.l1TxOrigin
         l2Tx.queueOrigin = tx.isSequencerTx
@@ -111,8 +109,10 @@ export class SpanChannelOut {
     await this.spanBatch.appendSingularBatch(batch)
     const rawSpanBatch = this.spanBatch.toRawSpanBatch()
 
-    this.rlp = await rawSpanBatch.encode()
-    this.logger.info('Appended singular batch', { newLength: this.rlp.length })
+    // this.rlp = await rawSpanBatch.encode()
+    this.logger.info('Appended singular batch', {
+      l2Block: batch.blockNumber,
+    })
 
     // if (this.rlp.length > MAX_RLP_BYTES_PER_CHANNEL) {
     //   this.logger.error(`Channel is too large: ${this.rlp.length}`)
@@ -201,7 +201,7 @@ export class SpanChannelOut {
     if (this.full) {
       return
     }
-    await this.compress(this.rlp)
+    await this.compress(await this.spanBatch.toRawSpanBatch().encode())
   }
 
   outputFrame(frameSize: number): [Frame, boolean] {

@@ -113,7 +113,7 @@ export class ChannelManager {
       blocks_added: blocksAdded,
       blocks_pending: this.blocks.length,
       channel_full: this.currentChannel!.isFull(),
-      input_bytes: this.currentChannel!.inputBytes(),
+      // input_bytes: this.currentChannel!.inputBytes(),
       ready_bytes: this.currentChannel!.readyBytes(),
     })
   }
