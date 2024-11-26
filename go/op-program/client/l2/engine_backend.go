@@ -5,8 +5,8 @@ import (
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum/go-ethereum/consensus/beacon"
 
+	"github.com/ethereum-optimism/optimism/l2geth/consensus/clique"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -48,13 +48,14 @@ func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle e
 	if !ok {
 		return nil, fmt.Errorf("unsupported L2 output version: %d", output.Version())
 	}
+	db := NewOracleBackedDB(oracle)
 	head := oracle.BlockByHash(outputV0.BlockHash)
 	logger.Info("Loaded L2 head", "hash", head.Hash(), "number", head.Number())
 	return &OracleBackedL2Chain{
 		log:      logger,
 		oracle:   oracle,
 		chainCfg: chainCfg,
-		engine:   beacon.New(nil),
+		engine:   clique.New(chainCfg.Clique, db),
 
 		hashByNum: map[uint64]common.Hash{
 			head.NumberU64(): head.Hash(),
@@ -67,7 +68,7 @@ func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle e
 		finalized:  head.Header(),
 		oracleHead: head.Header(),
 		blocks:     make(map[common.Hash]*types.Block),
-		db:         NewOracleBackedDB(oracle),
+		db:         db,
 		vmCfg: vm.Config{
 			PrecompileOverrides: engineapi.CreatePrecompileOverrides(precompileOracle),
 		},

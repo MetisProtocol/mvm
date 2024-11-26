@@ -25,16 +25,12 @@ package engineapi
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/params"
-
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
 var (
@@ -60,8 +56,8 @@ func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileO
 			return &ecrecoverOracle{Orig: orig, Oracle: precompileOracle}
 		case bn256PairingPrecompileAddress:
 			return &bn256PairingOracle{Orig: orig, Oracle: precompileOracle}
-		case kzgPointEvaluationPrecompileAddress:
-			return &kzgPointEvaluationOracle{Orig: orig, Oracle: precompileOracle}
+			// NOTE: we don't support the KZG precompile yet
+			// case kzgPointEvaluationPrecompileAddress: return &kzgPointEvaluationOracle{Orig: orig, Oracle: precompileOracle}
 		default:
 			return orig
 		}
@@ -159,67 +155,67 @@ func (b *bn256PairingOracle) Run(input []byte) ([]byte, error) {
 
 // kzgPointEvaluationOracle implements the EIP-4844 point evaluation precompile,
 // using the preimage-oracle to perform the evaluation.
-type kzgPointEvaluationOracle struct {
-	Orig   vm.PrecompiledContract
-	Oracle PrecompileOracle
-}
-
-// RequiredGas estimates the gas required for running the point evaluation precompile.
-func (b *kzgPointEvaluationOracle) RequiredGas(input []byte) uint64 {
-	return b.Orig.RequiredGas(input)
-}
-
-const (
-	blobVerifyInputLength     = 192 // Max input length for the point evaluation precompile.
-	blobPrecompileReturnValue = "000000000000000000000000000000000000000000000000000000000000100073eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"
-)
-
-var (
-	errBlobVerifyInvalidInputLength = errors.New("invalid input length")
-	errBlobVerifyMismatchedVersion  = errors.New("mismatched versioned hash")
-	errBlobVerifyKZGProof           = errors.New("error verifying kzg proof")
-)
-
-// Run executes the point evaluation precompile.
-func (b *kzgPointEvaluationOracle) Run(input []byte) ([]byte, error) {
-	// Modification note: the L1 precompile behavior may change, but not in incompatible ways.
-	// We want to enforce the subset that represents the EVM behavior activated in L2.
-	// Below is a copy of the Cancun behavior. L1 might expand on that at a later point.
-
-	if len(input) != blobVerifyInputLength {
-		return nil, errBlobVerifyInvalidInputLength
-	}
-	// versioned hash: first 32 bytes
-	var versionedHash common.Hash
-	copy(versionedHash[:], input[:])
-
-	var (
-		point kzg4844.Point
-		claim kzg4844.Claim
-	)
-	// Evaluation point: next 32 bytes
-	copy(point[:], input[32:])
-	// Expected output: next 32 bytes
-	copy(claim[:], input[64:])
-
-	// input kzg point: next 48 bytes
-	var commitment kzg4844.Commitment
-	copy(commitment[:], input[96:])
-	if eth.KZGToVersionedHash(commitment) != versionedHash {
-		return nil, errBlobVerifyMismatchedVersion
-	}
-
-	// Proof: next 48 bytes
-	var proof kzg4844.Proof
-	copy(proof[:], input[144:])
-
-	// Modification note: below replaces the kzg4844.VerifyProof call
-	result, ok := b.Oracle.Precompile(kzgPointEvaluationPrecompileAddress, input, b.RequiredGas(input))
-	if !ok {
-		return nil, fmt.Errorf("%w: invalid KZG point evaluation", errBlobVerifyKZGProof)
-	}
-	if !bytes.Equal(result, common.FromHex(blobPrecompileReturnValue)) {
-		panic("unexpected result from KZG point evaluation check")
-	}
-	return result, nil
-}
+//type kzgPointEvaluationOracle struct {
+//	Orig   vm.PrecompiledContract
+//	Oracle PrecompileOracle
+//}
+//
+//// RequiredGas estimates the gas required for running the point evaluation precompile.
+//func (b *kzgPointEvaluationOracle) RequiredGas(input []byte) uint64 {
+//	return b.Orig.RequiredGas(input)
+//}
+//
+//const (
+//	blobVerifyInputLength     = 192 // Max input length for the point evaluation precompile.
+//	blobPrecompileReturnValue = "000000000000000000000000000000000000000000000000000000000000100073eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"
+//)
+//
+//var (
+//	errBlobVerifyInvalidInputLength = errors.New("invalid input length")
+//	errBlobVerifyMismatchedVersion  = errors.New("mismatched versioned hash")
+//	errBlobVerifyKZGProof           = errors.New("error verifying kzg proof")
+//)
+//
+//// Run executes the point evaluation precompile.
+//func (b *kzgPointEvaluationOracle) Run(input []byte) ([]byte, error) {
+//	// Modification note: the L1 precompile behavior may change, but not in incompatible ways.
+//	// We want to enforce the subset that represents the EVM behavior activated in L2.
+//	// Below is a copy of the Cancun behavior. L1 might expand on that at a later point.
+//
+//	if len(input) != blobVerifyInputLength {
+//		return nil, errBlobVerifyInvalidInputLength
+//	}
+//	// versioned hash: first 32 bytes
+//	var versionedHash common.Hash
+//	copy(versionedHash[:], input[:])
+//
+//	var (
+//		point kzg4844.Point
+//		claim kzg4844.Claim
+//	)
+//	// Evaluation point: next 32 bytes
+//	copy(point[:], input[32:])
+//	// Expected output: next 32 bytes
+//	copy(claim[:], input[64:])
+//
+//	// input kzg point: next 48 bytes
+//	var commitment kzg4844.Commitment
+//	copy(commitment[:], input[96:])
+//	if eth.KZGToVersionedHash(commitment) != versionedHash {
+//		return nil, errBlobVerifyMismatchedVersion
+//	}
+//
+//	// Proof: next 48 bytes
+//	var proof kzg4844.Proof
+//	copy(proof[:], input[144:])
+//
+//	// Modification note: below replaces the kzg4844.VerifyProof call
+//	result, ok := b.Oracle.Precompile(kzgPointEvaluationPrecompileAddress, input, b.RequiredGas(input))
+//	if !ok {
+//		return nil, fmt.Errorf("%w: invalid KZG point evaluation", errBlobVerifyKZGProof)
+//	}
+//	if !bytes.Equal(result, common.FromHex(blobPrecompileReturnValue)) {
+//		panic("unexpected result from KZG point evaluation check")
+//	}
+//	return result, nil
+//}

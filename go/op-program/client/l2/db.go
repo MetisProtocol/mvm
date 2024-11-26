@@ -46,6 +46,34 @@ func (o *OracleKeyValueStore) Get(key []byte) ([]byte, error) {
 	return o.oracle.NodeByHash(*(*[common.HashLength]byte)(key)), nil
 }
 
+func (o *OracleKeyValueStore) HasAncient(kind string, number uint64) (bool, error) {
+	panic("implement me")
+}
+
+func (o *OracleKeyValueStore) Ancient(kind string, number uint64) ([]byte, error) {
+	panic("implement me")
+}
+
+func (o *OracleKeyValueStore) Ancients() (uint64, error) {
+	panic("implement me")
+}
+
+func (o *OracleKeyValueStore) AncientSize(kind string) (uint64, error) {
+	panic("implement me")
+}
+
+func (o *OracleKeyValueStore) AppendAncient(number uint64, hash, header, body, receipt, td []byte) error {
+	panic("implement me")
+}
+
+func (o *OracleKeyValueStore) TruncateAncients(n uint64) error {
+	panic("implement me")
+}
+
+func (o *OracleKeyValueStore) Sync() error {
+	panic("implement me")
+}
+
 func (o *OracleKeyValueStore) NewBatch() ethdb.Batch {
 	return o.db.NewBatch()
 }
