@@ -1,17 +1,15 @@
 package l2
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 )
 
-var codePrefixedKeyLength = common.HashLength + len(rawdb.CodePrefix)
+//var codePrefixedKeyLength = common.HashLength + len(rawdb.CodePrefix)
 
 var ErrInvalidKeyLength = errors.New("pre-images must be identified by 32-byte hash keys")
 
@@ -36,10 +34,12 @@ func (o *OracleKeyValueStore) Get(key []byte) ([]byte, error) {
 		return o.db.Get(key)
 	}
 
-	if len(key) == codePrefixedKeyLength && bytes.HasPrefix(key, rawdb.CodePrefix) {
-		key = key[len(rawdb.CodePrefix):]
-		return o.oracle.CodeByHash(*(*[common.HashLength]byte)(key)), nil
-	}
+	// NOTE: old version storage of contract code does not have prefix
+	// if len(key) == codePrefixedKeyLength && bytes.HasPrefix(key, rawdb.CodePrefix) {
+	// 	 key = key[len(rawdb.CodePrefix):]
+	// 	 return o.oracle.CodeByHash(*(*[common.HashLength]byte)(key)), nil
+	// }
+
 	if len(key) != common.HashLength {
 		return nil, ErrInvalidKeyLength
 	}
@@ -48,10 +48,6 @@ func (o *OracleKeyValueStore) Get(key []byte) ([]byte, error) {
 
 func (o *OracleKeyValueStore) NewBatch() ethdb.Batch {
 	return o.db.NewBatch()
-}
-
-func (o *OracleKeyValueStore) NewBatchWithSize(size int) ethdb.Batch {
-	return o.db.NewBatchWithSize(size)
 }
 
 func (o *OracleKeyValueStore) Put(key []byte, value []byte) error {
@@ -72,11 +68,19 @@ func (o *OracleKeyValueStore) Delete(key []byte) error {
 	panic("not supported")
 }
 
-func (o *OracleKeyValueStore) Stat() (string, error) {
+func (o *OracleKeyValueStore) Stat(property string) (string, error) {
 	panic("not supported")
 }
 
-func (o *OracleKeyValueStore) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
+func (o *OracleKeyValueStore) NewIterator() ethdb.Iterator {
+	panic("not supported")
+}
+
+func (o *OracleKeyValueStore) NewIteratorWithStart(start []byte) ethdb.Iterator {
+	panic("not supported")
+}
+
+func (o *OracleKeyValueStore) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
 	panic("not supported")
 }
 

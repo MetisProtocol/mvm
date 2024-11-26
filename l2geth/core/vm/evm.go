@@ -22,13 +22,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/crypto/sha3"
+
 	"github.com/ethereum-optimism/optimism/l2geth/common"
 	"github.com/ethereum-optimism/optimism/l2geth/crypto"
 	"github.com/ethereum-optimism/optimism/l2geth/params"
 	"github.com/ethereum-optimism/optimism/l2geth/rollup/dump"
 	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
 	"github.com/ethereum-optimism/optimism/l2geth/rollup/util"
-	"golang.org/x/crypto/sha3"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -59,6 +60,12 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			precompiles = PrecompiledContractsBerlin
 		}
 		if p := precompiles[*contract.CodeAddr]; p != nil {
+			// use override if exists
+			if evm.vmConfig.PrecompileOverrides != nil {
+				if override := evm.vmConfig.PrecompileOverrides(evm.chainRules, p, *contract.CodeAddr); override != nil {
+					return RunPrecompiledContract(override, input, contract)
+				}
+			}
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}

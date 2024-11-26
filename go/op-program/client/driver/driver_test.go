@@ -2,11 +2,10 @@ package driver
 
 import (
 	"errors"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/event"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
@@ -27,7 +26,7 @@ func (d *fakeEnd) Result() error {
 
 func TestDriver(t *testing.T) {
 	newTestDriver := func(t *testing.T, onEvent func(d *Driver, end *fakeEnd, ev event.Event)) *Driver {
-		logger := testlog.Logger(t, log.LevelInfo)
+		logger := testlog.Logger(t, slog.LevelInfo)
 		end := &fakeEnd{}
 		d := &Driver{
 			logger: logger,

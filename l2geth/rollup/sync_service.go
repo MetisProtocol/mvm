@@ -549,7 +549,7 @@ func (s *SyncService) HandleSyncFromOther() {
 	}
 
 	for block := range s.syncQueueFromOthers {
-		// unactive sequencers update local tx pool from active sequencer
+		// inactive sequencers update local tx pool from active sequencer
 		if !s.verifier {
 			blockNumber := block.NumberU64()
 			for index, tx := range block.Transactions() {

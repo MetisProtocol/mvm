@@ -1188,7 +1188,7 @@ func (pm *ProtocolManager) updateGasPrice(blocks types.Blocks) {
 }
 
 func (pm *ProtocolManager) updateTxQueue(blocks types.Blocks) {
-	log.Info("handle blocks inerted of fetcher or downloader", "len", len(blocks))
+	log.Info("handle blocks inserted by fetcher or downloader", "len", len(blocks))
 	for _, block := range blocks {
 		pm.txQueues <- block
 		// for _, tx := range block.Transactions() {

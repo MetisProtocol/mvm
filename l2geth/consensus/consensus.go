@@ -49,6 +49,15 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 }
 
+// ChainHeaderReader defines a small collection of methods needed to access the local
+// blockchain during header verification.
+type ChainHeaderReader interface {
+	ChainReader
+
+	// GetTd retrieves the total difficulty from the database by hash and number.
+	GetTd(hash common.Hash, number uint64) *big.Int
+}
+
 // Engine is an algorithm agnostic consensus engine.
 type Engine interface {
 	// Author retrieves the Ethereum address of the account that minted the given

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	altda "github.com/ethereum-optimism/optimism/op-alt-da"
+
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum-optimism/optimism/op-node/metrics"
@@ -12,8 +14,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/rollup/engine"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/event"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
-
-	altda "github.com/ethereum-optimism/optimism/go/op-alt-da"
 )
 
 type EndCondition interface {

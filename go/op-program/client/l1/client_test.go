@@ -2,20 +2,20 @@ package l1
 
 import (
 	"context"
+	"log/slog"
 	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-service/testutils"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l1/test"
 )
@@ -165,7 +165,7 @@ func TestL1BlockRefByNumber(t *testing.T) {
 func newClient(t *testing.T) (*OracleL1Client, *test.StubOracle) {
 	stub := test.NewStubOracle(t)
 	stub.Blocks[head.Hash()] = head
-	client := NewOracleL1Client(testlog.Logger(t, log.LevelDebug), stub, head.Hash())
+	client := NewOracleL1Client(testlog.Logger(t, slog.LevelDebug), stub, head.Hash())
 	return client, stub
 }
 

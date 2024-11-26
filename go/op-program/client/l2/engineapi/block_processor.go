@@ -6,9 +6,9 @@ import (
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -41,22 +41,14 @@ type BlockProcessor struct {
 
 func NewBlockProcessorFromPayloadAttributes(provider BlockDataProvider, parent common.Hash, attrs *eth.PayloadAttributes) (*BlockProcessor, error) {
 	header := &types.Header{
-		ParentHash:       parent,
-		Coinbase:         attrs.SuggestedFeeRecipient,
-		Difficulty:       common.Big0,
-		GasLimit:         uint64(*attrs.GasLimit),
-		Time:             uint64(attrs.Timestamp),
-		Extra:            nil,
-		MixDigest:        common.Hash(attrs.PrevRandao),
-		Nonce:            types.EncodeNonce(0),
-		ParentBeaconRoot: attrs.ParentBeaconBlockRoot,
-	}
-
-	// Ecotone
-	if attrs.ParentBeaconBlockRoot != nil {
-		zero := uint64(0)
-		header.BlobGasUsed = &zero
-		header.ExcessBlobGas = &zero
+		ParentHash: parent,
+		Coinbase:   attrs.SuggestedFeeRecipient,
+		Difficulty: common.Big0,
+		GasLimit:   uint64(*attrs.GasLimit),
+		Time:       uint64(attrs.Timestamp),
+		Extra:      nil,
+		MixDigest:  common.Hash(attrs.PrevRandao),
+		Nonce:      types.EncodeNonce(0),
 	}
 
 	return NewBlockProcessorFromHeader(provider, header)
@@ -65,9 +57,10 @@ func NewBlockProcessorFromPayloadAttributes(provider BlockDataProvider, parent c
 func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*BlockProcessor, error) {
 	header := types.CopyHeader(h) // Copy to avoid mutating the original header
 
-	if header.GasLimit > params.MaxGasLimit {
-		return nil, fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
-	}
+	//if header.GasLimit > params.MaxGasLimit {
+	//	return nil, fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
+	//}
+
 	parentHeader := provider.GetHeaderByHash(header.ParentHash)
 	if header.Time <= parentHeader.Time {
 		return nil, errors.New("invalid timestamp")
@@ -77,21 +70,9 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 		return nil, fmt.Errorf("get parent state: %w", err)
 	}
 	header.Number = new(big.Int).Add(parentHeader.Number, common.Big1)
-	header.BaseFee = eip1559.CalcBaseFee(provider.Config(), parentHeader, header.Time)
 	header.GasUsed = 0
 	gasPool := new(core.GasPool).AddGas(header.GasLimit)
-	if h.ParentBeaconRoot != nil {
-		// Unfortunately this is not part of any Geth environment setup,
-		// we just have to apply it, like how the Geth block-builder worker does.
-		context := core.NewEVMBlockContext(header, provider, nil, provider.Config(), statedb)
-		// NOTE: Unlikely to be needed for the beacon block root, but we setup any precompile overrides anyways for forwards-compatibility
-		var precompileOverrides vm.PrecompileOverrides
-		if vmConfig := provider.GetVMConfig(); vmConfig != nil && vmConfig.PrecompileOverrides != nil {
-			precompileOverrides = vmConfig.PrecompileOverrides
-		}
-		vmenv := vm.NewEVM(context, vm.TxContext{}, statedb, provider.Config(), vm.Config{PrecompileOverrides: precompileOverrides})
-		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv, statedb)
-	}
+
 	return &BlockProcessor{
 		header:       header,
 		state:        statedb,
@@ -112,7 +93,6 @@ func (b *BlockProcessor) CheckTxWithinGasLimit(tx *types.Transaction) error {
 
 func (b *BlockProcessor) AddTx(tx *types.Transaction) error {
 	txIndex := len(b.transactions)
-	b.state.SetTxContext(tx.Hash(), txIndex)
 	receipt, err := core.ApplyTransaction(b.dataProvider.Config(), b.dataProvider, &b.header.Coinbase,
 		b.gasPool, b.state, b.header, tx, &b.header.GasUsed, *b.dataProvider.GetVMConfig())
 	if err != nil {
@@ -124,15 +104,11 @@ func (b *BlockProcessor) AddTx(tx *types.Transaction) error {
 }
 
 func (b *BlockProcessor) Assemble() (*types.Block, error) {
-	body := types.Body{
-		Transactions: b.transactions,
-	}
-
-	return b.dataProvider.Engine().FinalizeAndAssemble(b.dataProvider, b.header, b.state, &body, b.receipts)
+	return b.dataProvider.Engine().FinalizeAndAssemble(b.dataProvider, b.header, b.state, b.transactions, nil, b.receipts)
 }
 
 func (b *BlockProcessor) Commit() error {
-	root, err := b.state.Commit(b.header.Number.Uint64(), b.dataProvider.Config().IsEIP158(b.header.Number))
+	root, err := b.state.Commit(b.dataProvider.Config().IsEIP158(b.header.Number))
 	if err != nil {
 		return fmt.Errorf("state write error: %w", err)
 	}

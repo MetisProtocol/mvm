@@ -24,8 +24,13 @@ import (
 	"github.com/ethereum-optimism/optimism/l2geth/common"
 	"github.com/ethereum-optimism/optimism/l2geth/common/math"
 	"github.com/ethereum-optimism/optimism/l2geth/log"
+	"github.com/ethereum-optimism/optimism/l2geth/params"
 	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
 )
+
+// PrecompileOverrides is a function that can be used to override the default precompiled contracts
+// Nil is returned when there is no precompile. The original is returned if the existing precompile should run.
+type PrecompileOverrides func(rules params.Rules, original PrecompiledContract, addr common.Address) PrecompiledContract
 
 // Config are the configuration options for the Interpreter
 type Config struct {
@@ -40,6 +45,8 @@ type Config struct {
 	EVMInterpreter   string // External EVM interpreter options
 
 	ExtraEips []int // Additional EIPS that are to be enabled
+
+	PrecompileOverrides PrecompileOverrides // Precompiles can be swapped / changed / wrapped as needed
 }
 
 // Interpreter is used to run Ethereum based contracts and will utilise the

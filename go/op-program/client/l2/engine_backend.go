@@ -5,9 +5,10 @@ import (
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum/go-ethereum/consensus/beacon"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -171,11 +172,10 @@ func (o *OracleBackedL2Chain) Engine() consensus.Engine {
 }
 
 func (o *OracleBackedL2Chain) StateAt(root common.Hash) (*state.StateDB, error) {
-	stateDB, err := state.New(root, state.NewDatabase(rawdb.NewDatabase(o.db)), nil)
+	stateDB, err := state.New(root, state.NewDatabase(rawdb.NewDatabase(o.db)))
 	if err != nil {
 		return nil, err
 	}
-	stateDB.MakeSinglethreaded()
 	return stateDB, nil
 }
 

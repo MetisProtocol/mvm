@@ -1,6 +1,7 @@
 package engineapi
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
@@ -19,7 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/holiman/uint256"
 )
 
 type EngineBackend interface {
@@ -154,7 +155,6 @@ func (ea *L2EngineAPI) startBlock(parent common.Hash, attrs *eth.PayloadAttribut
 	ea.l2ForceEmpty = attrs.NoTxPool
 	ea.payloadID = computePayloadId(parent, attrs)
 
-	// pre-process the deposits
 	for i, otx := range attrs.Transactions {
 		var tx types.Transaction
 		if err := tx.UnmarshalBinary(otx); err != nil {
@@ -203,36 +203,7 @@ func (ea *L2EngineAPI) config() *params.ChainConfig {
 	return ea.backend.Config()
 }
 
-func (ea *L2EngineAPI) ForkchoiceUpdatedV1(ctx context.Context, state *eth.ForkchoiceState, attr *eth.PayloadAttributes) (*eth.ForkchoiceUpdatedResult, error) {
-	if attr != nil {
-		if attr.Withdrawals != nil {
-			return STATUS_INVALID, engine.InvalidParams.With(errors.New("withdrawals not supported in V1"))
-		}
-		if ea.config().IsShanghai(ea.config().LondonBlock, uint64(attr.Timestamp)) {
-			return STATUS_INVALID, engine.InvalidParams.With(errors.New("forkChoiceUpdateV1 called post-shanghai"))
-		}
-	}
-
-	return ea.forkchoiceUpdated(ctx, state, attr)
-}
-
-func (ea *L2EngineAPI) ForkchoiceUpdatedV2(ctx context.Context, state *eth.ForkchoiceState, attr *eth.PayloadAttributes) (*eth.ForkchoiceUpdatedResult, error) {
-	if attr != nil {
-		if err := ea.verifyPayloadAttributes(attr); err != nil {
-			return STATUS_INVALID, engine.InvalidParams.With(err)
-		}
-	}
-
-	return ea.forkchoiceUpdated(ctx, state, attr)
-}
-
-// Ported from: https://github.com/ethereum-optimism/op-geth/blob/c50337a60a1309a0f1dca3bf33ed1bb38c46cdd7/eth/catalyst/api.go#L197C1-L205C1
-func (ea *L2EngineAPI) ForkchoiceUpdatedV3(ctx context.Context, state *eth.ForkchoiceState, attr *eth.PayloadAttributes) (*eth.ForkchoiceUpdatedResult, error) {
-	if attr != nil {
-		if err := ea.verifyPayloadAttributes(attr); err != nil {
-			return STATUS_INVALID, engine.InvalidParams.With(err)
-		}
-	}
+func (ea *L2EngineAPI) ForkchoiceUpdated(ctx context.Context, state *eth.ForkchoiceState, attr *eth.PayloadAttributes) (*eth.ForkchoiceUpdatedResult, error) {
 	return ea.forkchoiceUpdated(ctx, state, attr)
 }
 
@@ -241,64 +212,27 @@ func (ea *L2EngineAPI) verifyPayloadAttributes(attr *eth.PayloadAttributes) erro
 	c := ea.config()
 
 	// Verify withdrawals attribute for Shanghai.
-	if err := checkAttribute(c.IsShanghai, attr.Withdrawals != nil, c.LondonBlock, uint64(attr.Timestamp)); err != nil {
+	if err := checkAttribute(c.IsShanghai, attr.Withdrawals != nil, c.ShanghaiBlock, uint64(attr.Timestamp)); err != nil {
 		return fmt.Errorf("invalid withdrawals: %w", err)
-	}
-	// Verify beacon root attribute for Cancun.
-	if err := checkAttribute(c.IsCancun, attr.ParentBeaconBlockRoot != nil, c.LondonBlock, uint64(attr.Timestamp)); err != nil {
-		return fmt.Errorf("invalid parent beacon block root: %w", err)
 	}
 
 	return nil
 }
 
-func checkAttribute(active func(*big.Int, uint64) bool, exists bool, block *big.Int, time uint64) error {
-	if active(block, time) && !exists {
+func checkAttribute(active func(*big.Int) bool, exists bool, block *big.Int, time uint64) error {
+	if active(block) && !exists {
 		return errors.New("fork active, missing expected attribute")
 	}
-	if !active(block, time) && exists {
+	if !active(block) && exists {
 		return errors.New("fork inactive, unexpected attribute set")
 	}
 	return nil
 }
 
-func (ea *L2EngineAPI) NewPayloadV1(ctx context.Context, payload *eth.ExecutionPayload) (*eth.PayloadStatusV1, error) {
-	if payload.Withdrawals != nil {
-		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("withdrawals not supported in V1"))
-	}
-
-	return ea.newPayload(ctx, payload, nil, nil)
-}
-
-func (ea *L2EngineAPI) NewPayloadV2(ctx context.Context, payload *eth.ExecutionPayload) (*eth.PayloadStatusV1, error) {
-	if ea.config().IsShanghai(new(big.Int).SetUint64(uint64(payload.BlockNumber)), uint64(payload.Timestamp)) {
-		if payload.Withdrawals == nil {
-			return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("nil withdrawals post-shanghai"))
-		}
-	} else if payload.Withdrawals != nil {
-		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("non-nil withdrawals pre-shanghai"))
-	}
-
-	return ea.newPayload(ctx, payload, nil, nil)
-}
-
 // Ported from: https://github.com/ethereum-optimism/op-geth/blob/c50337a60a1309a0f1dca3bf33ed1bb38c46cdd7/eth/catalyst/api.go#L486C1-L507
-func (ea *L2EngineAPI) NewPayloadV3(ctx context.Context, params *eth.ExecutionPayload, versionedHashes []common.Hash, beaconRoot *common.Hash) (*eth.PayloadStatusV1, error) {
-	if params.ExcessBlobGas == nil {
-		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("nil excessBlobGas post-cancun"))
-	}
-	if params.BlobGasUsed == nil {
-		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("nil params.BlobGasUsed post-cancun"))
-	}
-	if versionedHashes == nil {
-		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("nil versionedHashes post-cancun"))
-	}
-	if beaconRoot == nil {
-		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("nil parentBeaconBlockRoot post-cancun"))
-	}
-
-	if !ea.config().IsCancun(new(big.Int).SetUint64(uint64(params.BlockNumber)), uint64(params.Timestamp)) {
-		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.UnsupportedFork.With(errors.New("newPayloadV3 called pre-cancun"))
+func (ea *L2EngineAPI) NewPayload(ctx context.Context, params *eth.ExecutionPayload, versionedHashes []common.Hash, beaconRoot *common.Hash) (*eth.PayloadStatusV1, error) {
+	if params.ExcessBlobGas != nil || params.BlobGasUsed != nil || versionedHashes != nil || beaconRoot != nil {
+		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("unexpected non-nil params in l2geth"))
 	}
 
 	return ea.newPayload(ctx, params, versionedHashes, beaconRoot)
@@ -316,7 +250,13 @@ func (ea *L2EngineAPI) getPayload(_ context.Context, payloadId eth.PayloadID) (*
 		return nil, engine.UnknownPayload
 	}
 
-	return eth.BlockAsPayloadEnv(bl, ea.config().CanyonTime)
+	payload, err := BlockAsPayload(bl)
+	if err != nil {
+		return nil, err
+	}
+	return &eth.ExecutionPayloadEnvelope{
+		ExecutionPayload: payload,
+	}, nil
 }
 
 func (ea *L2EngineAPI) forkchoiceUpdated(_ context.Context, state *eth.ForkchoiceState, attr *eth.PayloadAttributes) (*eth.ForkchoiceUpdatedResult, error) {
@@ -330,32 +270,10 @@ func (ea *L2EngineAPI) forkchoiceUpdated(_ context.Context, state *eth.Forkchoic
 	// reason.
 	block := ea.backend.GetBlockByHash(state.HeadBlockHash)
 	if block == nil {
-		if ea.downloader == nil {
-			ea.log.Warn("Must register downloader to be able to snap sync")
-			return STATUS_SYNCING, nil
-		}
-		// If the head hash is unknown (was not given to us in a newPayload request),
-		// we cannot resolve the header, so not much to do. This could be extended in
-		// the future to resolve from the `eth` network, but it's an unexpected case
-		// that should be fixed, not papered over.
-		header := ea.remotes[state.HeadBlockHash]
-		if header == nil {
-			ea.log.Warn("Forkchoice requested unknown head", "hash", state.HeadBlockHash)
-			return STATUS_SYNCING, nil
-		}
+		// unlike op, we don't have a syncer to handle this case, something is wrong
+		panic("missing block from preimage oracle")
+	}
 
-		ea.log.Info("Forkchoice requested sync to new head", "number", header.Number(), "hash", header.Hash())
-		if err := ea.downloader.BeaconSync(downloader.SnapSync, header.Header(), nil); err != nil {
-			return STATUS_SYNCING, err
-		}
-		return STATUS_SYNCING, nil
-	}
-	// Block is known locally, just sanity check that the beacon client does not
-	// attempt to push us back to before the merge.
-	// Note: Differs from op-geth implementation as pre-merge blocks are never supported here
-	if block.Difficulty().BitLen() > 0 && block.NumberU64() > 0 {
-		return STATUS_INVALID, errors.New("pre-merge blocks not supported")
-	}
 	valid := func(id *engine.PayloadID) *eth.ForkchoiceUpdatedResult {
 		return &eth.ForkchoiceUpdatedResult{
 			PayloadStatus: eth.PayloadStatusV1{Status: eth.ExecutionValid, LatestValidHash: &state.HeadBlockHash},
@@ -371,8 +289,6 @@ func (ea *L2EngineAPI) forkchoiceUpdated(_ context.Context, state *eth.Forkchoic
 		// If the specified head matches with our local head, do nothing and keep
 		// generating the payload. It's a special corner case that a few slots are
 		// missing and we are requested to generate the payload in slot.
-	} else if ea.backend.Config().Optimism == nil { // minor L2Engine API divergence: allow proposers to reorg their own chain
-		panic("engine not configured as optimism engine")
 	}
 
 	// If the beacon client also advertised a finalized block, mark the local
@@ -445,23 +361,17 @@ func (ea *L2EngineAPI) newPayload(_ context.Context, payload *eth.ExecutionPaylo
 		txs[i] = tx
 	}
 	block, err := engine.ExecutableDataToBlock(engine.ExecutableData{
-		ParentHash:    payload.ParentHash,
-		FeeRecipient:  payload.FeeRecipient,
-		StateRoot:     common.Hash(payload.StateRoot),
-		ReceiptsRoot:  common.Hash(payload.ReceiptsRoot),
-		LogsBloom:     payload.LogsBloom[:],
-		Random:        common.Hash(payload.PrevRandao),
-		Number:        uint64(payload.BlockNumber),
-		GasLimit:      uint64(payload.GasLimit),
-		GasUsed:       uint64(payload.GasUsed),
-		Timestamp:     uint64(payload.Timestamp),
-		ExtraData:     payload.ExtraData,
-		BaseFeePerGas: (*uint256.Int)(&payload.BaseFeePerGas).ToBig(),
-		BlockHash:     payload.BlockHash,
-		Transactions:  txs,
-		Withdrawals:   toGethWithdrawals(payload),
-		ExcessBlobGas: (*uint64)(payload.ExcessBlobGas),
-		BlobGasUsed:   (*uint64)(payload.BlobGasUsed),
+		ParentHash:   payload.ParentHash,
+		StateRoot:    common.Hash(payload.StateRoot),
+		ReceiptsRoot: common.Hash(payload.ReceiptsRoot),
+		LogsBloom:    payload.LogsBloom[:],
+		Number:       uint64(payload.BlockNumber),
+		GasLimit:     uint64(payload.GasLimit),
+		GasUsed:      uint64(payload.GasUsed),
+		Timestamp:    uint64(payload.Timestamp),
+		ExtraData:    payload.ExtraData,
+		BlockHash:    payload.BlockHash,
+		Transactions: txs,
 	}, hashes, root)
 	if err != nil {
 		log.Debug("Invalid NewPayload params", "params", payload, "error", err)
@@ -515,4 +425,33 @@ func (ea *L2EngineAPI) invalid(err error, latestValid *types.Header) *eth.Payloa
 	}
 	errorMsg := err.Error()
 	return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid, LatestValidHash: &currentHash, ValidationError: &errorMsg}
+}
+
+func BlockAsPayload(bl *types.Block) (*eth.ExecutionPayload, error) {
+	opaqueTxs := make([]eth.Data, len(bl.Transactions()))
+	for i, tx := range bl.Transactions() {
+		buffer := bytes.NewBuffer(nil)
+		if err := tx.EncodeRLP(buffer); err != nil {
+			return nil, fmt.Errorf("tx %d failed to marshal: %w", i, err)
+		}
+		opaqueTxs[i] = buffer.Bytes()
+	}
+
+	payload := &eth.ExecutionPayload{
+		ParentHash:   bl.ParentHash(),
+		FeeRecipient: bl.Coinbase(),
+		StateRoot:    eth.Bytes32(bl.Root()),
+		ReceiptsRoot: eth.Bytes32(bl.ReceiptHash()),
+		LogsBloom:    eth.Bytes256(bl.Bloom()),
+		PrevRandao:   eth.Bytes32(bl.MixDigest()),
+		BlockNumber:  eth.Uint64Quantity(bl.NumberU64()),
+		GasLimit:     eth.Uint64Quantity(bl.GasLimit()),
+		GasUsed:      eth.Uint64Quantity(bl.GasUsed()),
+		Timestamp:    eth.Uint64Quantity(bl.Time()),
+		ExtraData:    bl.Extra(),
+		BlockHash:    bl.Hash(),
+		Transactions: opaqueTxs,
+	}
+
+	return payload, nil
 }

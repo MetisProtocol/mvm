@@ -7,9 +7,10 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-program/client/l2/engineapi"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/predeploys"
+
+	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -37,15 +38,8 @@ func (o *OracleEngine) L2OutputRoot(l2ClaimBlockNum uint64) (eth.Bytes32, error)
 	if outBlock == nil {
 		return eth.Bytes32{}, fmt.Errorf("failed to get L2 block at %d", l2ClaimBlockNum)
 	}
-	stateDB, err := o.backend.StateAt(outBlock.Root)
-	if err != nil {
-		return eth.Bytes32{}, fmt.Errorf("failed to open L2 state db at block %s: %w", outBlock.Hash(), err)
-	}
-	withdrawalsTrie, err := stateDB.OpenStorageTrie(predeploys.L2ToL1MessagePasserAddr)
-	if err != nil {
-		return eth.Bytes32{}, fmt.Errorf("withdrawals trie unavailable at block %v: %w", outBlock.Hash(), err)
-	}
-	return rollup.ComputeL2OutputRootV0(eth.HeaderBlockInfo(outBlock), withdrawalsTrie.Hash())
+
+	return eth.Bytes32(outBlock.Root), nil
 }
 
 func (o *OracleEngine) GetPayload(ctx context.Context, payloadInfo eth.PayloadInfo) (*eth.ExecutionPayloadEnvelope, error) {
@@ -66,27 +60,11 @@ func (o *OracleEngine) GetPayload(ctx context.Context, payloadInfo eth.PayloadIn
 }
 
 func (o *OracleEngine) ForkchoiceUpdate(ctx context.Context, state *eth.ForkchoiceState, attr *eth.PayloadAttributes) (*eth.ForkchoiceUpdatedResult, error) {
-	switch method := o.rollupCfg.ForkchoiceUpdatedVersion(attr); method {
-	case eth.FCUV3:
-		return o.api.ForkchoiceUpdatedV3(ctx, state, attr)
-	case eth.FCUV2:
-		return o.api.ForkchoiceUpdatedV2(ctx, state, attr)
-	case eth.FCUV1:
-		return o.api.ForkchoiceUpdatedV1(ctx, state, attr)
-	default:
-		return nil, fmt.Errorf("unsupported ForkchoiceUpdated version: %s", method)
-	}
+	return o.api.ForkchoiceUpdated(ctx, state, attr)
 }
 
 func (o *OracleEngine) NewPayload(ctx context.Context, payload *eth.ExecutionPayload, parentBeaconBlockRoot *common.Hash) (*eth.PayloadStatusV1, error) {
-	switch method := o.rollupCfg.NewPayloadVersion(uint64(payload.Timestamp)); method {
-	case eth.NewPayloadV3:
-		return o.api.NewPayloadV3(ctx, payload, []common.Hash{}, parentBeaconBlockRoot)
-	case eth.NewPayloadV2:
-		return o.api.NewPayloadV2(ctx, payload)
-	default:
-		return nil, fmt.Errorf("unsupported NewPayload version: %s", method)
-	}
+	return o.api.NewPayload(ctx, payload, []common.Hash{}, parentBeaconBlockRoot)
 }
 
 func (o *OracleEngine) PayloadByHash(ctx context.Context, hash common.Hash) (*eth.ExecutionPayloadEnvelope, error) {
