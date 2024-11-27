@@ -6,9 +6,9 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
-	"github.com/ethereum-optimism/optimism/l2geth/consensus/clique"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"

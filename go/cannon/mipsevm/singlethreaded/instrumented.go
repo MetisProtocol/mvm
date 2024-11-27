@@ -4,7 +4,8 @@ import (
 	"io"
 
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/exec"

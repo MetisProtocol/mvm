@@ -22,10 +22,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
-	"github.com/ethereum-optimism/optimism/l2geth/console"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
+	"github.com/MetisProtocol/mvm/l2geth/console"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 // promptPassphrase prompts the user for a passphrase.  Set confirmation to true

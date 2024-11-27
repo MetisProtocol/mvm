@@ -21,11 +21,12 @@ import (
 	"net"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/core/forkid"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enr"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/core/forkid"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
+	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 var (

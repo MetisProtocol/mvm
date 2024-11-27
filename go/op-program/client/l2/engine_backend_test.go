@@ -2,24 +2,23 @@ package l2
 
 import (
 	"encoding/binary"
+	"log/slog"
 	"math/big"
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/beacon"
+	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/triedb"
-	"github.com/ethereum/go-ethereum/triedb/hashdb"
-	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi/test"
@@ -242,7 +241,7 @@ func TestPrecompileOracle(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			blockCount := 3
 			headBlockNumber := 3
-			logger := testlog.Logger(t, log.LevelDebug)
+			logger := testlog.Logger(t, slog.LevelDebug)
 			chainCfg, blocks, oracle := setupOracle(t, blockCount, headBlockNumber, true)
 			head := blocks[headBlockNumber].Hash()
 			stubOutput := eth.OutputV0{BlockHash: head}
@@ -275,7 +274,7 @@ func setupOracleBackedChain(t *testing.T, blockCount int) ([]*types.Block, *Orac
 }
 
 func setupOracleBackedChainWithLowerHead(t *testing.T, blockCount int, headBlockNumber int) ([]*types.Block, *OracleBackedL2Chain) {
-	logger := testlog.Logger(t, log.LevelDebug)
+	logger := testlog.Logger(t, slog.LevelDebug)
 	chainCfg, blocks, oracle := setupOracle(t, blockCount, headBlockNumber, false)
 	head := blocks[headBlockNumber].Hash()
 	stubOutput := eth.OutputV0{BlockHash: head}
@@ -313,20 +312,19 @@ func setupOracle(t *testing.T, blockCount int, headBlockNumber int, enableEcoton
 	}
 	l1Genesis, err := genesis.NewL1Genesis(deployConfig)
 	require.NoError(t, err)
-	l2Genesis, err := genesis.NewL2Genesis(deployConfig, l1Genesis.ToBlock())
+	l2Genesis, err := genesis.NewL2Genesis(deployConfig, l1Genesis.ToBlock(nil))
 	require.NoError(t, err)
 
-	l2Genesis.Alloc[fundedAddress] = types.Account{
+	l2Genesis.Alloc[fundedAddress] = core.GenesisAccount{
 		Balance: big.NewInt(1_000_000_000_000_000_000),
 		Nonce:   0,
 	}
 	chainCfg := l2Genesis.Config
-	consensus := beacon.New(nil)
 	db := rawdb.NewMemoryDatabase()
-	trieDB := triedb.NewDatabase(db, &triedb.Config{HashDB: hashdb.Defaults})
+	consensus := clique.New(nil, db)
 
 	// Set minimal amount of stuff to avoid nil references later
-	genesisBlock := l2Genesis.MustCommit(db, trieDB)
+	genesisBlock := l2Genesis.MustCommit(db)
 	blocks, _ := core.GenerateChain(chainCfg, genesisBlock, consensus, db, blockCount, func(i int, gen *core.BlockGen) {})
 	blocks = append([]*types.Block{genesisBlock}, blocks...)
 
@@ -372,18 +370,20 @@ func createBlock(t *testing.T, chain *OracleBackedL2Chain, opts ...blockCreateOp
 	config := chain.Config()
 	db := rawdb.NewDatabase(NewOracleBackedDB(chain.oracle))
 	blocks, _ := core.GenerateChain(config, parent, chain.Engine(), db, 1, func(i int, gen *core.BlockGen) {
-		rawTx := &types.DynamicFeeTx{
-			ChainID:   config.ChainID,
-			Nonce:     nonce,
-			To:        cfg.target,
-			GasTipCap: big.NewInt(0),
-			GasFeeCap: parent.BaseFee(),
-			Gas:       2_000_000,
-			Data:      cfg.input,
-			Value:     big.NewInt(1),
+		rawTx := types.NewTransaction(nonce, *cfg.target, big.NewInt(1), 2_000_000, big.NewInt(0), cfg.input)
+		signer := types.NewEIP155Signer(config.ChainID)
+		hash := signer.Hash(rawTx)
+		sig, err := crypto.Sign(hash[:], fundedKey)
+		if err != nil {
+			panic(err)
 		}
-		tx := types.MustSignNewTx(fundedKey, types.NewLondonSigner(config.ChainID), rawTx)
-		gen.AddTx(tx)
+
+		signed, err := rawTx.WithSignature(signer, sig)
+		if err != nil {
+			panic(err)
+		}
+
+		gen.AddTx(signed)
 	})
 	return blocks[0]
 }

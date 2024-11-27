@@ -3,8 +3,9 @@ package memory
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 func TestCachedPage(t *testing.T) {

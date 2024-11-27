@@ -4,8 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/tracing"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
@@ -16,7 +17,7 @@ import (
 
 func TestEVM_CloneFlags(t *testing.T) {
 	contracts := testutil.TestContractsSetup(t, testutil.MipsMultithreaded)
-	var tracer *tracing.Hooks
+	var tracer vm.Tracer
 
 	cases := []struct {
 		name  string

@@ -26,8 +26,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/math"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/common/math"
 )
 
 // Custom type which is registered in the flags library which cli uses for

@@ -21,10 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/params"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/types"
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb/memorydb"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/params"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/types"
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb/memorydb"
 )
 
 var (

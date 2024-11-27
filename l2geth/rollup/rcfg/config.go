@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 // UsingOVM is used to enable or disable functionality necessary for the OVM.

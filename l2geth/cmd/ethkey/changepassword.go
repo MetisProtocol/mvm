@@ -21,9 +21,10 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/keystore"
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
 )
 
 var newPassphraseFlag = cli.StringFlag{

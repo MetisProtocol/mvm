@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -91,7 +91,8 @@ func (o *KvStateOracle) NodeByHash(nodeHash common.Hash) []byte {
 }
 
 func (o *KvStateOracle) CodeByHash(hash common.Hash) []byte {
-	return rawdb.ReadCode(o.Source, hash)
+	code, _ := o.Source.Get(hash[:])
+	return code
 }
 
 func NewStubStateOracle(t *testing.T) *StubStateOracle {

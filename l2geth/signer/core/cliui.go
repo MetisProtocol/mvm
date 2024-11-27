@@ -24,10 +24,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/internal/ethapi"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"golang.org/x/crypto/ssh/terminal"
+
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/internal/ethapi"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 type CommandlineUI struct {

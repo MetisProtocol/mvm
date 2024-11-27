@@ -24,9 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))

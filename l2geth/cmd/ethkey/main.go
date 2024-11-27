@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
 )
 
 const (

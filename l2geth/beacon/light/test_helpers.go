@@ -21,10 +21,10 @@ import (
 	"crypto/sha256"
 	mrand "math/rand"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/merkle"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/params"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/types"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/merkle"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/params"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/types"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 func GenerateTestCommittee() *types.SerializedSyncCommittee {

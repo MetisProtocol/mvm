@@ -5,24 +5,21 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
-	"os"
+	"time"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/srcmap"
-	"github.com/ethereum/go-ethereum/core/tracing"
-	"github.com/ethereum/go-ethereum/eth/tracers/logger"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/consensus"
+	"github.com/MetisProtocol/mvm/l2geth/consensus/ethash"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 type Artifacts struct {
@@ -87,23 +84,32 @@ func loadArtifacts(version MipsVersion) (*Artifacts, error) {
 func NewEVMEnv(contracts *ContractMetadata) (*vm.EVM, *state.StateDB) {
 	// Temporary hack until Cancun is activated on mainnet
 	cpy := *params.MainnetChainConfig
-	chainCfg := &cpy // don't modify the global chain config
-	// Activate Cancun for EIP-4844 KZG point evaluation precompile
-	cancunActivation := *chainCfg.ShanghaiTime + 10
-	chainCfg.CancunTime = &cancunActivation
+	chainCfg := &cpy             // don't modify the global chain config
 	offsetBlocks := uint64(1000) // blocks after cancun fork
-	bc := &testChain{startTime: *chainCfg.CancunTime + offsetBlocks*12}
+	bc := &testChain{startTime: uint64(time.Now().Unix()) + offsetBlocks*12}
 	header := bc.GetHeader(common.Hash{}, 17034870+offsetBlocks)
 	db := rawdb.NewMemoryDatabase()
 	statedb := state.NewDatabase(db)
-	state, err := state.New(types.EmptyRootHash, statedb, nil)
+	state, err := state.New(types.EmptyRootHash, statedb)
 	if err != nil {
 		panic(fmt.Errorf("failed to create memory state db: %w", err))
 	}
-	blockContext := core.NewEVMBlockContext(header, bc, nil, chainCfg, state)
+	evmContext := core.NewEVMContext(types.NewMessage(
+		contracts.Addresses.Sender,
+		nil,
+		0,
+		big.NewInt(0),
+		0,
+		big.NewInt(0),
+		nil,
+		false,
+		big.NewInt(0),
+		0,
+		types.QueueOriginSequencer,
+	), header, bc, nil)
 	vmCfg := vm.Config{}
 
-	env := vm.NewEVM(blockContext, vm.TxContext{}, state, chainCfg, vmCfg)
+	env := vm.NewEVM(evmContext, state, chainCfg, vmCfg)
 	// pre-deploy the contracts
 	env.StateDB.SetCode(contracts.Addresses.Oracle, contracts.Artifacts.Oracle.DeployedBytecode.Object)
 
@@ -111,14 +117,12 @@ func NewEVMEnv(contracts *ContractMetadata) (*vm.EVM, *state.StateDB) {
 	copy(mipsCtorArgs[12:], contracts.Addresses.Oracle[:])
 	mipsDeploy := append(bytes.Clone(contracts.Artifacts.MIPS.Bytecode.Object), mipsCtorArgs[:]...)
 	startingGas := uint64(30_000_000)
-	_, deployedMipsAddr, leftOverGas, err := env.Create(vm.AccountRef(contracts.Addresses.Sender), mipsDeploy, startingGas, common.U2560)
+	_, deployedMipsAddr, leftOverGas, err := env.Create(vm.AccountRef(contracts.Addresses.Sender), mipsDeploy, startingGas, big.NewInt(0))
 	if err != nil {
 		panic(fmt.Errorf("failed to deploy MIPS contract: %w. took %d gas", err, startingGas-leftOverGas))
 	}
 	contracts.Addresses.MIPS = deployedMipsAddr
 
-	rules := env.ChainConfig().Rules(header.Number, true, header.Time)
-	env.StateDB.Prepare(rules, contracts.Addresses.Sender, contracts.Addresses.FeeRecipient, &contracts.Addresses.MIPS, vm.ActivePrecompiles(rules), nil)
 	return env, state
 }
 
@@ -134,48 +138,48 @@ func (d *testChain) GetHeader(h common.Hash, n uint64) *types.Header {
 	parentHash := common.Hash{0: 0xff}
 	binary.BigEndian.PutUint64(parentHash[1:], n-1)
 	return &types.Header{
-		ParentHash:      parentHash,
-		UncleHash:       types.EmptyUncleHash,
-		Coinbase:        common.Address{},
-		Root:            common.Hash{},
-		TxHash:          types.EmptyTxsHash,
-		ReceiptHash:     types.EmptyReceiptsHash,
-		Bloom:           types.Bloom{},
-		Difficulty:      big.NewInt(0),
-		Number:          new(big.Int).SetUint64(n),
-		GasLimit:        30_000_000,
-		GasUsed:         0,
-		Time:            d.startTime + n*12,
-		Extra:           nil,
-		MixDigest:       common.Hash{},
-		Nonce:           types.BlockNonce{},
-		BaseFee:         big.NewInt(7),
-		WithdrawalsHash: &types.EmptyWithdrawalsHash,
+		ParentHash:  parentHash,
+		UncleHash:   types.EmptyUncleHash,
+		Coinbase:    common.Address{},
+		Root:        common.Hash{},
+		TxHash:      types.EmptyTxsHash,
+		ReceiptHash: types.EmptyReceiptsHash,
+		Bloom:       types.Bloom{},
+		Difficulty:  big.NewInt(0),
+		Number:      new(big.Int).SetUint64(n),
+		GasLimit:    30_000_000,
+		GasUsed:     0,
+		Time:        d.startTime + n*12,
+		Extra:       nil,
+		MixDigest:   common.Hash{},
+		Nonce:       types.BlockNonce{},
 	}
 }
 
-func MarkdownTracer() *tracing.Hooks {
-	return logger.NewMarkdownLogger(&logger.Config{}, os.Stdout).Hooks()
+func MarkdownTracer() vm.Tracer {
+	return vm.NewStructLogger(&vm.LogConfig{})
 }
 
-func SourceMapTracer(t require.TestingT, version MipsVersion, mips *foundry.Artifact, oracle *foundry.Artifact, addrs *Addresses) *tracing.Hooks {
-	srcFS := foundry.NewSourceMapFS(os.DirFS("../../../packages/contracts-bedrock"))
-	var mipsSrcMap *srcmap.SourceMap
-	var err error
-	switch version {
-	case MipsSingleThreaded:
-		mipsSrcMap, err = srcFS.SourceMap(mips, "MIPS")
-	case MipsMultithreaded:
-		mipsSrcMap, err = srcFS.SourceMap(mips, "MIPS2")
-	default:
-		require.Fail(t, "invalid mips version")
-	}
-	require.NoError(t, err)
-	oracleSrcMap, err := srcFS.SourceMap(oracle, "PreimageOracle")
-	require.NoError(t, err)
-
-	return srcmap.NewSourceMapTracer(map[common.Address]*srcmap.SourceMap{
-		addrs.MIPS:   mipsSrcMap,
-		addrs.Oracle: oracleSrcMap,
-	}, os.Stdout).Hooks()
-}
+// TODO: unfortunately, op-code level tracing is not yet supported by the l2geth tracer,
+//       so we can't use it here.
+//func SourceMapTracer(t require.TestingT, version MipsVersion, mips *foundry.Artifact, oracle *foundry.Artifact, addrs *Addresses) vm.Tracer {
+//	srcFS := foundry.NewSourceMapFS(os.DirFS("../../../packages/contracts-bedrock"))
+//	var mipsSrcMap *srcmap.SourceMap
+//	var err error
+//	switch version {
+//	case MipsSingleThreaded:
+//		mipsSrcMap, err = srcFS.SourceMap(mips, "MIPS")
+//	case MipsMultithreaded:
+//		mipsSrcMap, err = srcFS.SourceMap(mips, "MIPS2")
+//	default:
+//		require.Fail(t, "invalid mips version")
+//	}
+//	require.NoError(t, err)
+//	oracleSrcMap, err := srcFS.SourceMap(oracle, "PreimageOracle")
+//	require.NoError(t, err)
+//
+//	return srcmap.NewSourceMapTracer(map[common.Address]*srcmap.SourceMap{
+//		addrs.MIPS:   mipsSrcMap,
+//		addrs.Oracle: oracleSrcMap,
+//	}, os.Stdout).Hooks()
+//}

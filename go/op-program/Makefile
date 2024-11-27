@@ -10,8 +10,8 @@ PC_LDFLAGSSTRING := $(LDFLAGSSTRING)
 PC_LDFLAGSSTRING +=-X github.com/ethereum-optimism/optimism/go/op-program/version.Version=v0.0.0
 PC_LDFLAGSSTRING +=-X github.com/ethereum-optimism/optimism/go/op-program/version.Meta=
 
-LDFLAGSSTRING +=-X github.com/ethereum-optimism/optimism/op-program/version.Version=$(VERSION)
-LDFLAGSSTRING +=-X github.com/ethereum-optimism/optimism/op-program/version.Meta=$(VERSION_META)
+LDFLAGSSTRING +=-X github.com/ethereum-optimism/optimism/go/op-program/version.Version=$(VERSION)
+LDFLAGSSTRING +=-X github.com/ethereum-optimism/optimism/go/op-program/version.Meta=$(VERSION_META)
 
 COMPAT_DIR := temp/compat
 

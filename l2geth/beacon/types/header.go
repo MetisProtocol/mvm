@@ -23,9 +23,9 @@ import (
 
 	zrntcommon "github.com/protolambda/zrnt/eth2/beacon/common"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/merkle"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/params"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/merkle"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/params"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 //go:generate go run github.com/fjl/gencodec -type Header -field-override headerMarshaling -out gen_header_json.go

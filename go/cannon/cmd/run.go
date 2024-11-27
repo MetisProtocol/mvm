@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"slices"
@@ -10,11 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded"
 
@@ -264,11 +266,10 @@ func Run(ctx *cli.Context) error {
 		return err
 	}
 
-	guestLogger := Logger(os.Stderr, log.LevelInfo)
-	outLog := &mipsevm.LoggingWriter{Log: guestLogger.With("module", "guest", "stream", "stdout")}
-	errLog := &mipsevm.LoggingWriter{Log: guestLogger.With("module", "guest", "stream", "stderr")}
+	outLog := &mipsevm.LoggingWriter{Log: Logger(os.Stderr, slog.LevelInfo, "module", "guest", "stream", "stdout")}
+	errLog := &mipsevm.LoggingWriter{Log: Logger(os.Stderr, slog.LevelInfo, "module", "guest", "stream", "stderr")}
 
-	l := Logger(os.Stderr, log.LevelInfo).With("module", "vm")
+	l := Logger(os.Stderr, slog.LevelInfo, "module", "vm")
 
 	stopAtAnyPreimage := false
 	var stopAtPreimageKeyPrefix []byte
@@ -321,8 +322,8 @@ func Run(ctx *cli.Context) error {
 		args = []string{""}
 	}
 
-	poOut := Logger(os.Stdout, log.LevelInfo).With("module", "host")
-	poErr := Logger(os.Stderr, log.LevelInfo).With("module", "host")
+	poOut := Logger(os.Stdout, slog.LevelInfo, "module", "host")
+	poErr := Logger(os.Stderr, slog.LevelInfo, "module", "host")
 	po, err := NewProcessPreimageOracle(args[0], args[1:], poOut, poErr)
 	if err != nil {
 		return fmt.Errorf("failed to create pre-image oracle process: %w", err)

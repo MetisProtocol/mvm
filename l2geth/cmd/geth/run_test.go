@@ -25,8 +25,9 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/ethereum-optimism/optimism/l2geth/internal/cmdtest"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
+
+	"github.com/MetisProtocol/mvm/l2geth/internal/cmdtest"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 func tmpdir(t *testing.T) string {

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 var _ = (*syncAggregateMarshaling)(nil)

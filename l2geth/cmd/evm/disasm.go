@@ -22,8 +22,9 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/core/asm"
 	cli "gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/core/asm"
 )
 
 var disasmCommand = cli.Command{

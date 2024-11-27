@@ -25,12 +25,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/keystore"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/console"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/dnsdisc"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
 	cli "gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/console"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/dnsdisc"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 )
 
 var (

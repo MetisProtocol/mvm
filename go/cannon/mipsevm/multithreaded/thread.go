@@ -3,8 +3,8 @@ package multithreaded
 import (
 	"encoding/binary"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/exec"

@@ -9,8 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/triedb"
-	"github.com/ethereum/go-ethereum/triedb/hashdb"
 )
 
 // ReadTrie takes a Merkle Patricia Trie (MPT) root of a "DerivableList", and a pre-image oracle getter,
@@ -48,15 +46,11 @@ func ReadTrie(root common.Hash, getPreimage func(key common.Hash) []byte) []hexu
 	//
 	// For now we just use the state DB trie approach.
 
-	tdb := triedb.NewDatabase(odb, &triedb.Config{HashDB: hashdb.Defaults})
-	tr, err := trie.New(trie.TrieID(root), tdb)
+	tr, err := trie.New(root, trie.NewDatabaseWithCache(odb, 16))
 	if err != nil {
 		panic(err)
 	}
-	iter, err := tr.NodeIterator(nil)
-	if err != nil {
-		panic(err)
-	}
+	iter := tr.NodeIterator(nil)
 
 	// With small lists the iterator seems to use 0x80 (RLP empty string, unlike the others)
 	// as key for item 0, causing it to come last.
@@ -90,6 +84,14 @@ func ReadTrie(root common.Hash, getPreimage func(key common.Hash) []byte) []hexu
 
 type rawList []hexutil.Bytes
 
+func (r rawList) GetRlp(i int) []byte {
+	if i >= len(r) {
+		return nil
+	}
+
+	return r[i]
+}
+
 func (r rawList) Len() int {
 	return len(r)
 }
@@ -101,7 +103,6 @@ func (r rawList) EncodeIndex(i int, buf *bytes.Buffer) {
 var _ types.DerivableList = rawList(nil)
 
 type noResetHasher struct {
-	*trie.StackTrie
 }
 
 // Reset is intercepted and is no-op, because we want to retain the writing function when calling types.DeriveSha
@@ -115,12 +116,24 @@ func (n noResetHasher) Reset() {}
 // Note: empty values are illegal, and there may be less pre-images returned than values,
 // if any values are less than 32 bytes and fit into branch-node slots that way.
 func WriteTrie(values []hexutil.Bytes) (common.Hash, []hexutil.Bytes) {
-	var out []hexutil.Bytes
-	st := noResetHasher{
-		trie.NewStackTrie(func(path []byte, hash common.Hash, blob []byte) {
-			out = append(out, common.CopyBytes(blob)) // the stack hasher may mutate the blob bytes, so copy them.
-		}),
+	// TODO: need to verify this implementation, not sure whether it is correct or not,
+	//       will need to run some tests on this
+	keybuf := new(bytes.Buffer)
+	trie := new(trie.Trie)
+	for i := 0; i < len(values); i++ {
+		keybuf.Reset()
+		rlp.Encode(keybuf, uint(i))
+		trie.Update(keybuf.Bytes(), values[i])
 	}
-	root := types.DeriveSha(rawList(values), st)
-	return root, out
+
+	// loop through the trie and collect all the leaf nodes
+	iter := trie.NodeIterator(nil)
+	var out []hexutil.Bytes
+	for iter.Next(true) {
+		if iter.Leaf() {
+			out = append(out, common.CopyBytes(iter.LeafBlob()))
+		}
+	}
+
+	return trie.Hash(), out
 }

@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 func TestBlockFromJSON(t *testing.T) {

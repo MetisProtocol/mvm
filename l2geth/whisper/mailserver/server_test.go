@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	whisper "github.com/ethereum-optimism/optimism/l2geth/whisper/whisperv6"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	whisper "github.com/MetisProtocol/mvm/l2geth/whisper/whisperv6"
 )
 
 const powRequirement = 0.00001

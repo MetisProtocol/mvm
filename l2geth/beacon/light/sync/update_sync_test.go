@@ -19,8 +19,8 @@ package sync
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light/request"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/types"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light/request"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/types"
 )
 
 func TestCheckpointInit(t *testing.T) {

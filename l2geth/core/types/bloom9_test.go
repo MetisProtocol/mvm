@@ -54,7 +54,7 @@ func TestBloom(t *testing.T) {
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
 )
 
 func TestBloom9(t *testing.T) {

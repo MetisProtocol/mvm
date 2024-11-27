@@ -30,8 +30,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/keystore"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
 )
 
 // Tests that the account management snippets work correctly.

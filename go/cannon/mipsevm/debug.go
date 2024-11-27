@@ -1,6 +1,6 @@
 package mipsevm
 
-import "github.com/ethereum/go-ethereum/common/hexutil"
+import "github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 
 type DebugInfo struct {
 	Pages               int            `json:"pages"`

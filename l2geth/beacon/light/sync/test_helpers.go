@@ -20,9 +20,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light/request"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/types"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light/request"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/types"
 )
 
 type requestWithID struct {

@@ -7,15 +7,18 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
-func Logger(w io.Writer, lvl slog.Level) log.Logger {
+func Logger(w io.Writer, lvl slog.Level, ctx ...interface{}) log.Logger {
+	logger := log.New(ctx)
 	if term.IsTerminal(int(os.Stdout.Fd())) {
-		return log.NewLogger(log.LogfmtHandlerWithLevel(w, lvl))
+		logger.SetHandler(log.LvlFilterHandler(log.Lvl(lvl), log.StreamHandler(w, log.TerminalFormat(true))))
 	} else {
-		return log.NewLogger(rawLogHandler(w, lvl))
+		logger.SetHandler(log.LvlFilterHandler(log.Lvl(lvl), log.StreamHandler(w, log.LogfmtFormat())))
 	}
+
+	return logger
 }
 
 // rawLogHandler returns a handler that strips out the time attribute

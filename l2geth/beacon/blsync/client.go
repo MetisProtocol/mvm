@@ -21,16 +21,16 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light/api"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light/request"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light/sync"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/types"
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb/memorydb"
-	"github.com/ethereum-optimism/optimism/l2geth/event"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light/api"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light/request"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light/sync"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/types"
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb/memorydb"
+	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 type Client struct {

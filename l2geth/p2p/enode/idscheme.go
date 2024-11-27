@@ -21,11 +21,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/math"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enr"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/MetisProtocol/mvm/l2geth/common/math"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 // List of known secure identity schemes.

@@ -20,10 +20,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/merkle"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/params"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	ctypes "github.com/ethereum-optimism/optimism/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/merkle"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/params"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	ctypes "github.com/MetisProtocol/mvm/l2geth/core/types"
 )
 
 // HeadInfo represents an unvalidated new head announcement.

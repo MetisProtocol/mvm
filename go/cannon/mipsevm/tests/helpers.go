@@ -3,8 +3,9 @@ package tests
 import (
 	"io"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+
+	"github.com/MetisProtocol/mvm/l2geth/log"
 
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded"

@@ -7,18 +7,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/engine"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
-
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/engine"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
 // Should implement derive.Engine
@@ -170,19 +169,10 @@ func createOracleEngine(t *testing.T) (*OracleEngine, *stubEngineBackend) {
 }
 
 func createL2Block(t *testing.T, number int) *types.Block {
-	tx, err := derive.L1InfoDeposit(chaincfg.Sepolia, eth.SystemConfig{}, uint64(1), eth.HeaderBlockInfo(&types.Header{
-		Number:  big.NewInt(32),
-		BaseFee: big.NewInt(7),
-	}), 0)
-	require.NoError(t, err)
 	header := &types.Header{
-		Number:  big.NewInt(int64(number)),
-		BaseFee: big.NewInt(7),
+		Number: big.NewInt(int64(number)),
 	}
-	body := &types.Body{
-		Transactions: []*types.Transaction{types.NewTx(tx)},
-	}
-	return types.NewBlock(header, body, nil, trie.NewStackTrie(nil))
+	return types.NewBlock(header, nil, nil, nil)
 }
 
 type stubEngineBackend struct {

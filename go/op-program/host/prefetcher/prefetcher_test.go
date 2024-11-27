@@ -5,25 +5,28 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/stretchr/testify/require"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-program/client/l1"
-	"github.com/ethereum-optimism/optimism/op-program/client/l2"
-	"github.com/ethereum-optimism/optimism/op-program/client/mpt"
-	"github.com/ethereum-optimism/optimism/op-program/host/kvstore"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-service/testutils"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+
+	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
+	"github.com/ethereum-optimism/optimism/go/op-program/client/l2"
+	"github.com/ethereum-optimism/optimism/go/op-program/client/mpt"
+	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
 )
 
 var (
@@ -569,7 +572,7 @@ func TestRetryWhenNotAvailableAfterPrefetching(t *testing.T) {
 	_, l1Source, l1BlobSource, l2Cl, kv := createPrefetcher(t)
 	putsToIgnore := 2
 	kv = &unreliableKvStore{KV: kv, putsToIgnore: putsToIgnore}
-	prefetcher := NewPrefetcher(testlog.Logger(t, log.LevelInfo), l1Source, l1BlobSource, l2Cl, kv)
+	prefetcher := NewPrefetcher(testlog.Logger(t, slog.LevelInfo), l1Source, l1BlobSource, l2Cl, kv)
 
 	// Expect one call for each ignored put, plus one more request for when the put succeeds
 	for i := 0; i < putsToIgnore+1; i++ {
@@ -611,7 +614,7 @@ func (m *l2Client) ExpectOutputByRoot(root common.Hash, output eth.Output, err e
 }
 
 func createPrefetcher(t *testing.T) (*Prefetcher, *testutils.MockL1Source, *testutils.MockBlobsFetcher, *l2Client, kvstore.KV) {
-	logger := testlog.Logger(t, log.LevelDebug)
+	logger := testlog.Logger(t, slog.LevelDebug)
 	kv := kvstore.NewMemKV()
 
 	l1Source := new(testutils.MockL1Source)

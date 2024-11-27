@@ -19,10 +19,10 @@ package blsync
 import (
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/types"
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/types"
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 // lightClientConfig contains beacon light client configuration

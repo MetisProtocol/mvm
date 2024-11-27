@@ -23,11 +23,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/scwallet"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/usbwallet"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
 	"github.com/robertkrimen/otto"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts/scwallet"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/usbwallet"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 // bridge is a collection of JavaScript utility methods to bride the .js runtime

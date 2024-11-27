@@ -19,11 +19,11 @@ package api
 import (
 	"reflect"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light/request"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/light/sync"
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/types"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light/request"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/light/sync"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/types"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // ApiServer is a wrapper around BeaconLightApi that implements request.requestServer.

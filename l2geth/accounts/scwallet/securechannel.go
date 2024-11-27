@@ -25,11 +25,12 @@ import (
 	"crypto/sha512"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
 	pcsc "github.com/gballet/go-libpcsclite"
 	"github.com/wsddn/go-ecdh"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/text/unicode/norm"
+
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 const (

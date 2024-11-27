@@ -24,13 +24,14 @@ import (
 	"net"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/netutil"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/netutil"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 var (
@@ -568,14 +569,14 @@ loop:
 		case <-statsDump.C:
 			log.Trace("<-statsDump.C")
 			/*r, ok := net.ticketStore.radius[testTopic]
-			if !ok {
-				fmt.Printf("(%x) no radius @ %v\n", net.tab.self.ID[:8], time.Now())
-			} else {
-				topics := len(net.ticketStore.tickets)
-				tickets := len(net.ticketStore.nodes)
-				rad := r.radius / (maxRadius/10000+1)
-				fmt.Printf("(%x) topics:%d radius:%d tickets:%d @ %v\n", net.tab.self.ID[:8], topics, rad, tickets, time.Now())
-			}*/
+			  if !ok {
+			  	fmt.Printf("(%x) no radius @ %v\n", net.tab.self.ID[:8], time.Now())
+			  } else {
+			  	topics := len(net.ticketStore.tickets)
+			  	tickets := len(net.ticketStore.nodes)
+			  	rad := r.radius / (maxRadius/10000+1)
+			  	fmt.Printf("(%x) topics:%d radius:%d tickets:%d @ %v\n", net.tab.self.ID[:8], topics, rad, tickets, time.Now())
+			  }*/
 
 			tm := mclock.Now()
 			for topic, r := range net.ticketStore.radius {

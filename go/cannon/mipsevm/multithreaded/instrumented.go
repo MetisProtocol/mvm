@@ -3,8 +3,8 @@ package multithreaded
 import (
 	"io"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 

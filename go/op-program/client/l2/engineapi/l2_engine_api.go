@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type EngineBackend interface {
@@ -157,7 +158,7 @@ func (ea *L2EngineAPI) startBlock(parent common.Hash, attrs *eth.PayloadAttribut
 
 	for i, otx := range attrs.Transactions {
 		var tx types.Transaction
-		if err := tx.UnmarshalBinary(otx); err != nil {
+		if err := rlp.DecodeBytes(otx, &tx); err != nil {
 			return fmt.Errorf("transaction %d is not valid: %w", i, err)
 		}
 		err := ea.blockProcessor.AddTx(&tx)

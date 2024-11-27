@@ -22,9 +22,10 @@ import (
 	"io"
 	"sort"
 
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
-	"github.com/ethereum-optimism/optimism/l2geth/internal/debug"
 	cli "gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
+	"github.com/MetisProtocol/mvm/l2geth/internal/debug"
 )
 
 // AppHelpTemplate is the test template for the default, global app help topic.

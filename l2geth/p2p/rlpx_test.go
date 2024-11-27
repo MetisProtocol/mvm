@@ -32,11 +32,12 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto/ecies"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/simulations/pipes"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/crypto/ecies"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/simulations/pipes"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 func TestSharedSecret(t *testing.T) {

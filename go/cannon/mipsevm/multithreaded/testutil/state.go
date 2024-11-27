@@ -1,8 +1,8 @@
 package testutil
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/multithreaded"
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/testutil"

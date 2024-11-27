@@ -17,7 +17,6 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 
@@ -25,9 +24,9 @@ import (
 	zrntcommon "github.com/protolambda/zrnt/eth2/beacon/common"
 	"github.com/protolambda/zrnt/eth2/beacon/deneb"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 type payloadType interface {
@@ -121,7 +120,7 @@ func convertTransactions(list zrntcommon.PayloadTransactions, execHeader *types.
 	txs := make([]*types.Transaction, len(list))
 	for i, opaqueTx := range list {
 		var tx types.Transaction
-		if err := rlp.Decode(bytes.NewBuffer(opaqueTx), &tx); err != nil {
+		if err := rlp.DecodeBytes(opaqueTx, &tx); err != nil {
 			return nil, fmt.Errorf("failed to parse tx %d: %v", i, err)
 		}
 		txs[i] = &tx

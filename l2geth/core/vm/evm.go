@@ -24,12 +24,12 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/dump"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/util"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/dump"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/util"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -543,6 +543,8 @@ func (evm *EVM) AddressWhitelisted(addr common.Address) bool {
 	isWhitelisted := evm.StateDB.GetState(dump.OvmWhitelistAddress, key)
 	return isWhitelisted != common.Hash{}
 }
+
+func (evm *EVM) VMConfig() *Config { return &evm.vmConfig }
 
 func (evm *EVM) BuyL1FeeFailTracer(caller common.Address, addr common.Address, input []byte, gas, gasUsed uint64, value *big.Int, err error) {
 	if evm.vmConfig.Debug && evm.vmConfig.Tracer != nil {

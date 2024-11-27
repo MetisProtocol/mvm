@@ -20,17 +20,16 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
-
 	"net"
 	"reflect"
 	"testing"
 	"testing/quick"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enr"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/netutil"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/netutil"
 )
 
 func TestTable_pingReplace(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 var zlibWriterPool = sync.Pool{

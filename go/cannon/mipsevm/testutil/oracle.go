@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"

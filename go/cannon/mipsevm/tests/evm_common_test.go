@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"path"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/tracing"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/stretchr/testify/require"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
 
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm/exec"
@@ -27,7 +28,7 @@ func TestEVM(t *testing.T) {
 	testFiles, err := os.ReadDir("open_mips_tests/test/bin")
 	require.NoError(t, err)
 
-	var tracer *tracing.Hooks // no-tracer by default, but test_util.MarkdownTracer
+	var tracer vm.Tracer // no-tracer by default, but test_util.MarkdownTracer
 
 	cases := GetMipsVersionTestCases(t)
 	skippedTests := map[string][]string{
@@ -119,7 +120,7 @@ func TestEVM(t *testing.T) {
 }
 
 func TestEVMSingleStep(t *testing.T) {
-	var tracer *tracing.Hooks
+	var tracer vm.Tracer
 
 	versions := GetMipsVersionTestCases(t)
 	cases := []struct {
@@ -174,7 +175,7 @@ func TestEVMSingleStep(t *testing.T) {
 }
 
 func TestEVM_MMap(t *testing.T) {
-	var tracer *tracing.Hooks
+	var tracer vm.Tracer
 
 	versions := GetMipsVersionTestCases(t)
 	cases := []struct {
@@ -247,7 +248,7 @@ func TestEVM_MMap(t *testing.T) {
 }
 
 func TestEVMSysWriteHint(t *testing.T) {
-	var tracer *tracing.Hooks
+	var tracer vm.Tracer
 
 	versions := GetMipsVersionTestCases(t)
 	cases := []struct {
@@ -450,7 +451,7 @@ func TestEVMSysWriteHint(t *testing.T) {
 }
 
 func TestEVMFault(t *testing.T) {
-	var tracer *tracing.Hooks // no-tracer by default, but see test_util.MarkdownTracer
+	var tracer vm.Tracer // no-tracer by default, but see test_util.MarkdownTracer
 	sender := common.Address{0x13, 0x37}
 
 	versions := GetMipsVersionTestCases(t)
@@ -469,7 +470,7 @@ func TestEVMFault(t *testing.T) {
 			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
 			t.Run(testName, func(t *testing.T) {
 				env, evmState := testutil.NewEVMEnv(v.Contracts)
-				env.Config.Tracer = tracer
+				env.VMConfig().Tracer = tracer
 
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithNextPC(tt.nextPC))
 				state := goVm.GetState()
@@ -488,8 +489,8 @@ func TestEVMFault(t *testing.T) {
 				input := testutil.EncodeStepInput(t, stepWitness, mipsevm.LocalContext{}, v.Contracts.Artifacts.MIPS)
 				startingGas := uint64(30_000_000)
 
-				_, _, err := env.Call(vm.AccountRef(sender), v.Contracts.Addresses.MIPS, input, startingGas, common.U2560)
-				require.EqualValues(t, err, vm.ErrExecutionReverted)
+				_, _, err := env.Call(vm.AccountRef(sender), v.Contracts.Addresses.MIPS, input, startingGas, big.NewInt(0))
+				require.Contains(t, err.Error(), "execution reverted")
 				logs := evmState.Logs()
 				require.Equal(t, 0, len(logs))
 			})
@@ -498,7 +499,7 @@ func TestEVMFault(t *testing.T) {
 }
 
 func TestHelloEVM(t *testing.T) {
-	var tracer *tracing.Hooks // no-tracer by default, but see test_util.MarkdownTracer
+	var tracer vm.Tracer // no-tracer by default, but see test_util.MarkdownTracer
 	versions := GetMipsVersionTestCases(t)
 
 	for _, v := range versions {
@@ -546,7 +547,7 @@ func TestHelloEVM(t *testing.T) {
 }
 
 func TestClaimEVM(t *testing.T) {
-	var tracer *tracing.Hooks // no-tracer by default, but see test_util.MarkdownTracer
+	var tracer vm.Tracer // no-tracer by default, but see test_util.MarkdownTracer
 	versions := GetMipsVersionTestCases(t)
 
 	for _, v := range versions {

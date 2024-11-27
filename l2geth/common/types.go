@@ -30,7 +30,7 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 // Lengths of hashes and addresses in bytes.

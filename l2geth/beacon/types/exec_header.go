@@ -25,8 +25,8 @@ import (
 	"github.com/protolambda/zrnt/eth2/beacon/deneb"
 	"github.com/protolambda/ztyp/tree"
 
-	"github.com/ethereum-optimism/optimism/l2geth/beacon/merkle"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/beacon/merkle"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 type headerObject interface {

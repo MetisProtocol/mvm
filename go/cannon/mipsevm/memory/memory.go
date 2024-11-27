@@ -8,7 +8,7 @@ import (
 	"math/bits"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 // Note: 2**12 = 4 KiB, the min phys page size in the Go runtime.

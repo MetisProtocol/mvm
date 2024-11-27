@@ -20,15 +20,14 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
-
 	"net"
 	"reflect"
 	"testing"
 	"testing/quick"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 func TestBucket_bumpNoDuplicates(t *testing.T) {

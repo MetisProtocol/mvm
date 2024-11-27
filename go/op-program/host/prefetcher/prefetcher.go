@@ -9,11 +9,8 @@ import (
 	"strings"
 
 	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-program/client/l1"
-	"github.com/ethereum-optimism/optimism/op-program/client/l2"
-	"github.com/ethereum-optimism/optimism/op-program/client/mpt"
-	"github.com/ethereum-optimism/optimism/op-program/host/kvstore"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -21,6 +18,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+
+	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
+	"github.com/ethereum-optimism/optimism/go/op-program/client/l2"
+	"github.com/ethereum-optimism/optimism/go/op-program/client/mpt"
+	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
 )
 
 var (
@@ -187,7 +189,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 		if !slices.Contains(acceleratedPrecompiles, precompileAddress) {
 			return fmt.Errorf("unsupported precompile address: %s", precompileAddress)
 		}
-		// NOTE: We use the precompiled contracts from Cancun because it's the only set that contains the addresses of all accelerated precompiles
+		// NOTE: We use the precompiled contracts from Berlin because it's the latest set that we have right now.
 		// We assume the precompile Run function behavior does not change across EVM upgrades.
 		// As such, we must not rely on upgrade-specific behavior such as precompile.RequiredGas.
 		precompile := getPrecompiledContract(precompileAddress)
@@ -329,5 +331,5 @@ func parseHint(hint string) (string, []byte, error) {
 }
 
 func getPrecompiledContract(address common.Address) vm.PrecompiledContract {
-	return vm.PrecompiledContractsCancun[address]
+	return vm.PrecompiledContractsBerlin[address]
 }

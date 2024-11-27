@@ -22,12 +22,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/internal/ethapi"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/signer/core"
-	"github.com/ethereum-optimism/optimism/l2geth/signer/rules/deps"
-	"github.com/ethereum-optimism/optimism/l2geth/signer/storage"
 	"github.com/robertkrimen/otto"
+
+	"github.com/MetisProtocol/mvm/l2geth/internal/ethapi"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/signer/core"
+	"github.com/MetisProtocol/mvm/l2geth/signer/rules/deps"
+	"github.com/MetisProtocol/mvm/l2geth/signer/storage"
 )
 
 var (

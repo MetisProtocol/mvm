@@ -19,7 +19,7 @@ package request
 import (
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // Module represents a mechanism which is typically responsible for downloading
