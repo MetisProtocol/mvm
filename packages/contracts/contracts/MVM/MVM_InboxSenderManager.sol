@@ -3,7 +3,6 @@ pragma solidity ^0.8.9;
 
 import {Lib_AddressResolver} from "../libraries/resolver/Lib_AddressResolver.sol";
 import {iMVM_InboxSenderManager} from "./iMVM_InboxSenderManager.sol";
-import {MVM_InboxSenderManager} from "@metis.io/contracts/contracts/MVM/MVM_InboxSenderManager.sol";
 
 /* Library Imports */
 
