@@ -4,8 +4,20 @@ import { Blob } from './blob'
 export class L1BeaconClient {
   private readonly baseUrl: string
 
+  private readonly beaconChainGenesisPromise: Promise<any>
+
+  private readonly beaconChainConfigPromise: Promise<any>
+
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
+
+    this.beaconChainGenesisPromise = axios.get(
+      `${this.baseUrl}/eth/v1/beacon/genesis`
+    )
+
+    this.beaconChainConfigPromise = axios.get(
+      `${this.baseUrl}/eth/v1/config/spec`
+    )
   }
 
   // checks the beacon chain version, usually just use this as a ping method
@@ -42,18 +54,9 @@ export class L1BeaconClient {
 
   // calculate the slot number from a given timestamp
   async getTimeToSlotFn(): Promise<(timestamp: number) => number> {
-    // TODO: We might be able to cache these, no need to fetch them every time.
-    //       But we need to be careful that these value might change when the beacon chain upgrades.
-    const genesisResponsePromise = axios.get(
-      `${this.baseUrl}/eth/v1/beacon/genesis`
-    )
-    const configResponsePromise = axios.get(
-      `${this.baseUrl}/eth/v1/config/spec`
-    )
-
     const [genesisResponse, configResponse] = await Promise.all([
-      genesisResponsePromise,
-      configResponsePromise,
+      this.beaconChainGenesisPromise,
+      this.beaconChainConfigPromise,
     ])
 
     const genesisTime = Number(genesisResponse.data.data.genesis_time)
