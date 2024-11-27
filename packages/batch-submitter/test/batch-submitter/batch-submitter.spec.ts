@@ -1,39 +1,34 @@
 import { expect } from '../setup'
 
 /* External Imports */
-import { Contract, ethers, ContractFactory, Signer, BigNumber } from 'ethers'
+import { BigNumber, Contract, ContractFactory, ethers, Signer } from 'ethers'
 import ganache from 'ganache-core'
 import sinon from 'sinon'
 
 import scc from '@metis.io/contracts/artifacts/contracts/L1/rollup/StateCommitmentChain.sol/StateCommitmentChain.json'
-import { getContractInterface, predeploys } from '@eth-optimism/contracts'
-import { smockit, MockContract } from '@eth-optimism/smock'
+import { getContractInterface } from '@eth-optimism/contracts'
+import { MockContract, smockit } from '@eth-optimism/smock'
 
 import { getContractFactory } from 'old-contracts'
 
 /* Internal Imports */
 import { MockchainProvider } from './mockchain-provider'
 import {
+  FORCE_INCLUSION_PERIOD_SECONDS,
   makeAddressManager,
   setProxyTarget,
-  FORCE_INCLUSION_PERIOD_SECONDS,
 } from '../helpers'
 import {
-  TransactionBatchSubmitter as RealTransactionBatchSubmitter,
-  StateBatchSubmitter,
-  TX_BATCH_SUBMITTER_LOG_TAG,
-  STATE_BATCH_SUBMITTER_LOG_TAG,
   BatchSubmitter,
-  YnatmTransactionSubmitter,
   ResubmissionConfig,
+  STATE_BATCH_SUBMITTER_LOG_TAG,
+  StateBatchSubmitter,
+  TransactionBatchSubmitter as RealTransactionBatchSubmitter,
+  TX_BATCH_SUBMITTER_LOG_TAG,
+  YnatmTransactionSubmitter,
 } from '../../src'
 
-import {
-  QueueOrigin,
-  Batch,
-  Signature,
-  remove0x,
-} from '@localtest911/core-utils'
+import { Batch, QueueOrigin, remove0x, Signature } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 const DUMMY_ADDRESS = '0x' + '00'.repeat(20)

@@ -1,10 +1,6 @@
 /* Imports: Internal */
-import { EventArgsInboxSenderSet } from '@localtest911/core-utils'
-import {
-  EventHandlerSet,
-  InboxSenderSetEntry,
-  SenderType,
-} from '../../../types'
+import { EventArgsInboxSenderSet } from '@metis.io/core-utils'
+import { EventHandlerSet, InboxSenderSetEntry } from '../../../types'
 import { toNumber } from 'ethersv6'
 
 export const handleInboxSenderSet: EventHandlerSet<

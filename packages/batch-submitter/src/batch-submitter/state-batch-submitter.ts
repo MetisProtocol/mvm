@@ -2,24 +2,19 @@
 import { Promise as bPromise } from 'bluebird'
 import {
   Contract,
+  ContractTransaction,
   ethers,
   Signer,
-  TransactionReceipt,
   toNumber,
-  ContractTransaction,
+  TransactionReceipt,
 } from 'ethersv6'
 import { getContractDefinition } from '@metis.io/contracts'
-import {
-  L2Block,
-  RollupInfo,
-  Bytes32,
-  remove0x,
-} from '@localtest911/core-utils'
+import { Bytes32, L2Block, remove0x, RollupInfo } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
-import { BlockRange, BatchSubmitter } from '.'
-import { TransactionSubmitter, MpcClient } from '../utils'
+import { BatchSubmitter, BlockRange } from '.'
+import { MpcClient, TransactionSubmitter } from '../utils'
 import { InboxStorage } from '../storage'
 
 export class StateBatchSubmitter extends BatchSubmitter {

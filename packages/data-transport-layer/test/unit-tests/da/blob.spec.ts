@@ -1,6 +1,5 @@
 import { parseFrames } from '../../../src/da/blob/frame'
 import { l1BlobData } from '../examples/l1-data'
-import { remove0x } from '@localtest911/core-utils'
 import {
   BatchData,
   batchReader,

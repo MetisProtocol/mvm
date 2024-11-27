@@ -1,6 +1,6 @@
 /* External Imports */
-import { TransactionResponse, Block, JsonRpcProvider, toNumber } from 'ethersv6'
-import { L2Transaction, L2Block, RollupInfo } from '@localtest911/core-utils'
+import { Block, JsonRpcProvider, toNumber, TransactionResponse } from 'ethersv6'
+import { L2Block, L2Transaction, RollupInfo } from '@metis.io/core-utils'
 
 /**
  * Unformatted Transaction & Blocks. This exists because Geth currently

@@ -3,25 +3,25 @@ import { Contract, ethers, EventLog, toBigInt, toNumber } from 'ethersv6'
 import { MerkleTree } from 'merkletreejs'
 import { getContractDefinition } from '@metis.io/contracts'
 import {
-  fromHexString,
-  toHexString,
-  toRpcHexString,
   EventArgsSequencerBatchAppended,
+  fromHexString,
   MinioClient,
   MinioConfig,
   remove0x,
-} from '@localtest911/core-utils'
+  toHexString,
+  toRpcHexString,
+} from '@metis.io/core-utils'
 
 /* Imports: Internal */
 import {
   DecodedSequencerBatchTransaction,
+  EventHandlerSet,
   SequencerBatchAppendedExtraData,
   SequencerBatchAppendedParsedEvent,
   TransactionBatchEntry,
   TransactionEntry,
-  EventHandlerSet,
 } from '../../../types'
-import { SEQUENCER_GAS_LIMIT, parseSignatureVParam } from '../../../utils'
+import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
 import { MissingElementError } from './errors'
 
 export const handleEventsSequencerBatchAppended: EventHandlerSet<
