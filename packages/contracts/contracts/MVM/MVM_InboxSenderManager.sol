@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import {Lib_AddressResolver} from "../libraries/resolver/Lib_AddressResolver.sol";
+import {iMVM_InboxSenderManager} from "./iMVM_InboxSenderManager.sol";
+import {MVM_InboxSenderManager} from "@metis.io/contracts/contracts/MVM/MVM_InboxSenderManager.sol";
+
 /* Library Imports */
-import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
-import { iMVM_InboxSenderManager } from "./iMVM_InboxSenderManager.sol";
 
 contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver {
     /*************
@@ -14,8 +16,8 @@ contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver 
     /*************
      * Variables *
      *************/
-    // blockNumber => inboxSender
-    mapping(uint256 => InboxSender[]) public inboxSenders;
+    // blockNumber => InboxSenderType => inboxSender
+    mapping(uint256 => mapping(InboxSenderType => InboxSender)) public inboxSenders;
 
     uint256[] public blockNumbers;
     mapping(InboxSenderType => address) public defaultInboxSender;
@@ -50,35 +52,61 @@ contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver 
         override
         onlyManager
     {
-        if (blockNumbers.length > 0) {
-            require(
-                blockNumber > blockNumbers[blockNumbers.length - 1],
-                "Block number must be greater than the previous block number."
-            );
-        }
+        _setInboxSenders(blockNumber, _inboxSenders);
+    }
 
-        for (uint256 i = 0; i < _inboxSenders.length; ++i) {
-            inboxSenders[blockNumber].push(_inboxSenders[i]);
-        }
-        blockNumbers.push(blockNumber);
-        for (uint256 i = 0; i < _inboxSenders.length; ++i) {
-            emit InboxSenderSet(blockNumber, _inboxSenders[i].sender, _inboxSenders[i].senderType);
-        }
+    // allow us to overwrite the last block number and its senders, just in case if we made any mistake
+    function overwriteLastInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders)
+    external
+    override
+    onlyManager
+    {
+        require(blockNumbers.length > 0, "MVM_InboxSenderManager: No block to update.");
+
+        // pop the last block
+        uint256 lastBlockNumber = blockNumbers[blockNumbers.length - 1];
+        blockNumbers.pop();
+
+        // clean up the last block senders
+        mapping(InboxSenderType => InboxSender) storage lastInboxSenders = inboxSenders[lastBlockNumber];
+        delete lastInboxSenders[InboxSenderType.InboxSender];
+        delete lastInboxSenders[InboxSenderType.InboxBlobSender];
+
+        // write the new senders
+        _setInboxSenders(blockNumber, _inboxSenders);
     }
 
     function getInboxSender(uint256 blockNumber, InboxSenderType inboxSenderType) external view override returns (address) {
         for (int256 i = int256(blockNumbers.length) - 1; i >= 0; i--) {
             if (blockNumbers[uint256(i)] <= blockNumber) {
-                InboxSender[] storage inboxSendersAtBlock = inboxSenders[blockNumbers[uint256(i)]];
-                for (uint256 j = 0; j < inboxSendersAtBlock.length; ++j) {
-                    InboxSender memory inboxSender = inboxSendersAtBlock[j];
-                    if (inboxSender.senderType == inboxSenderType) {
-                        return inboxSender.sender;
-                    }
+                address sender = inboxSenders[blockNumbers[uint256(i)]][inboxSenderType].sender;
+                if (sender != address(0)) {
+                    return sender;
                 }
             }
         }
 
         return defaultInboxSender[inboxSenderType];
+    }
+
+    /********************
+     * Internal Functions *
+     ********************/
+    function _setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders)
+    private
+    {
+        if (blockNumbers.length > 0) {
+            require(
+                blockNumber > blockNumbers[blockNumbers.length - 1],
+                "MVM_InboxSenderManager: Block number must be greater than the previous block number."
+            );
+        }
+        for (uint256 i = 0; i < _inboxSenders.length; ++i) {
+            inboxSenders[blockNumber][_inboxSenders[i].senderType] = _inboxSenders[i];
+        }
+        blockNumbers.push(blockNumber);
+        for (uint256 i = 0; i < _inboxSenders.length; ++i) {
+            emit InboxSenderSet(blockNumber, _inboxSenders[i].sender, _inboxSenders[i].senderType);
+        }
     }
 }

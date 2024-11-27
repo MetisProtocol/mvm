@@ -2,7 +2,7 @@ import { expect } from '../../setup'
 
 /* External Imports */
 import { ethers } from 'hardhat'
-import { Signer, ContractFactory, Contract } from 'ethers'
+import { Contract, ContractFactory, Signer } from 'ethers'
 
 /* Internal Imports */
 import { makeAddressManager } from '../../helpers'
@@ -328,7 +328,38 @@ describe('InboxSenderManager', () => {
       const inboxBlobSender3 = ethers.utils.getAddress(
         ethers.utils.hexlify(ethers.utils.randomBytes(20))
       )
-      const higherBlockNumber = 4
+      const blockNumber4 = 4
+      const inboxSender4 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
+      const inboxBlobSender4 = ethers.utils.getAddress(
+        ethers.utils.hexlify(ethers.utils.randomBytes(20))
+      )
+      const higherBlockNumber = 5
+      console.log(
+        'inboxSender1',
+        inboxSender1,
+        'inboxBlobSender1',
+        inboxBlobSender1
+      )
+      console.log(
+        'inboxSender2',
+        inboxSender2,
+        'inboxBlobSender2',
+        inboxBlobSender2
+      )
+      console.log(
+        'inboxSender3',
+        inboxSender3,
+        'inboxBlobSender3',
+        inboxBlobSender3
+      )
+      console.log(
+        'inboxSender4',
+        inboxSender4,
+        'inboxBlobSender4',
+        inboxBlobSender4
+      )
 
       await InboxSenderManager.connect(manager).setInboxSenders(blockNumber1, [
         {
@@ -371,6 +402,63 @@ describe('InboxSenderManager', () => {
       )
       expect(storedInboxSender).to.equal(inboxSender3)
       expect(storedInboxBlobSender).to.equal(inboxBlobSender3)
+
+      // overwrite should work
+      await InboxSenderManager.connect(manager).overwriteLastInboxSenders(
+        blockNumber4,
+        [
+          {
+            senderType: 0,
+            sender: inboxSender4,
+          },
+          {
+            senderType: 1,
+            sender: inboxBlobSender4,
+          },
+        ]
+      )
+
+      const storedInboxSender4 = await InboxSenderManager.getInboxSender(
+        higherBlockNumber,
+        0
+      )
+      const storedInboxBlobSender4 = await InboxSenderManager.getInboxSender(
+        higherBlockNumber,
+        1
+      )
+      expect(storedInboxSender4).to.equal(inboxSender4)
+      expect(storedInboxBlobSender4).to.equal(inboxBlobSender4)
+
+      // 3 has been overwritten, should return 2
+      const storedInboxSender2 = await InboxSenderManager.getInboxSender(
+        blockNumber3,
+        0
+      )
+      const storedInboxBlobSender2 = await InboxSenderManager.getInboxSender(
+        blockNumber3,
+        1
+      )
+      expect(storedInboxSender2).to.equal(inboxSender2)
+      expect(storedInboxBlobSender2).to.equal(inboxBlobSender2)
+
+      // overwrite should revert if the block number is less than the second last block, in current case, which is 2
+      await expect(
+        InboxSenderManager.connect(manager).overwriteLastInboxSenders(
+          blockNumber2,
+          [
+            {
+              senderType: 0,
+              sender: inboxSender4,
+            },
+            {
+              senderType: 1,
+              sender: inboxBlobSender4,
+            },
+          ]
+        )
+      ).to.be.revertedWith(
+        'MVM_InboxSenderManager: Block number must be greater than the previous block number.'
+      )
     })
   })
 })

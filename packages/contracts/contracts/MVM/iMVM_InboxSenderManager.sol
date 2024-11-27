@@ -18,5 +18,7 @@ interface iMVM_InboxSenderManager {
 
     function setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders) external;
 
+    function overwriteLastInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders) external;
+
     function getInboxSender(uint256 blockNumber, InboxSenderType inboxSenderType) external view returns (address);
 }
