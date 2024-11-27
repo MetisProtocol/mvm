@@ -16,7 +16,7 @@ COPY packages/message-relayer/package.json ./packages/message-relayer/package.js
 COPY packages/replica-healthcheck/package.json ./packages/replica-healthcheck/package.json
 COPY packages/regenesis-surgery/package.json ./packages/regenesis-surgery/package.json
 COPY integration-tests/package.json ./integration-tests/package.json
-RUN yarn install
+RUN yarn install --frozen-lockfile
 # Build projects
 COPY ./packages ./packages
 COPY ./integration-tests ./integration-tests
