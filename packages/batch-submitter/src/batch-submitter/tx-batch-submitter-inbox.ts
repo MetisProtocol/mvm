@@ -182,7 +182,7 @@ export class TransactionBatchSubmitterInbox {
         mpcClient = new MpcClient(mpcUrl)
       }
 
-      const chainId = (await signer.provider.getNetwork()).chainId
+      const { chainId } = await signer.provider.getNetwork()
       // if using blob, we need to submit the blob txs before the inbox tx
       const blobTxData = batchParams.blobTxData
       // submit the blob txs in order, to simplify the process,

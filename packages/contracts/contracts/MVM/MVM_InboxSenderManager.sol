@@ -76,7 +76,12 @@ contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver 
     }
 
     function getInboxSender(uint256 blockNumber, InboxSenderType inboxSenderType) external view override returns (address) {
-        for (int256 i = int256(blockNumbers.length) - 1; i >= 0; i--) {
+        uint256 blockNumerCounts = blockNumbers.length;
+        if (blockNumerCounts == 0) {
+            return defaultInboxSender[inboxSenderType];
+        }
+
+        for (int256 i = int256(blockNumerCounts) - 1; i >= 0; i--) {
             if (blockNumbers[uint256(i)] <= blockNumber) {
                 address sender = inboxSenders[blockNumbers[uint256(i)]][inboxSenderType].sender;
                 if (sender != address(0)) {
@@ -94,18 +99,24 @@ contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver 
     function _setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders)
     private
     {
+        require(_inboxSenders.length > 0, "MVM_InboxSenderManager: Inbox senders cannot be empty.");
+
         if (blockNumbers.length > 0) {
             require(
                 blockNumber > blockNumbers[blockNumbers.length - 1],
                 "MVM_InboxSenderManager: Block number must be greater than the previous block number."
             );
         }
+
         for (uint256 i = 0; i < _inboxSenders.length; ++i) {
+            require(
+                _inboxSenders[i].sender != address(0),
+                "MVM_InboxSenderManager: Inbox sender cannot be empty."
+            );
             inboxSenders[blockNumber][_inboxSenders[i].senderType] = _inboxSenders[i];
-        }
-        blockNumbers.push(blockNumber);
-        for (uint256 i = 0; i < _inboxSenders.length; ++i) {
             emit InboxSenderSet(blockNumber, _inboxSenders[i].sender, _inboxSenders[i].senderType);
         }
+
+        blockNumbers.push(blockNumber);
     }
 }
