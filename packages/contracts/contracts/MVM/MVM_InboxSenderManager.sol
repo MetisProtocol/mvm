@@ -56,9 +56,9 @@ contract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver 
 
     // allow us to overwrite the last block number and its senders, just in case if we made any mistake
     function overwriteLastInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders)
-    external
-    override
-    onlyManager
+        external
+        override
+        onlyManager
     {
         require(blockNumbers.length > 0, "MVM_InboxSenderManager: No block to update.");
 
