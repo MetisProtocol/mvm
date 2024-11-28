@@ -1,7 +1,7 @@
 package kvstore
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )

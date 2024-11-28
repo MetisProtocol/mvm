@@ -9,11 +9,13 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
+	l2common "github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -64,23 +66,48 @@ func (o *OracleEngine) ForkchoiceUpdate(ctx context.Context, state *eth.Forkchoi
 }
 
 func (o *OracleEngine) NewPayload(ctx context.Context, payload *eth.ExecutionPayload, parentBeaconBlockRoot *common.Hash) (*eth.PayloadStatusV1, error) {
-	return o.api.NewPayload(ctx, payload, []common.Hash{}, parentBeaconBlockRoot)
+	return o.api.NewPayload(ctx, payload, []l2common.Hash{}, (*l2common.Hash)(parentBeaconBlockRoot))
 }
 
 func (o *OracleEngine) PayloadByHash(ctx context.Context, hash common.Hash) (*eth.ExecutionPayloadEnvelope, error) {
-	block := o.backend.GetBlockByHash(hash)
+	block := o.backend.GetBlockByHash(l2common.Hash(hash))
 	if block == nil {
 		return nil, ErrNotFound
 	}
-	return eth.BlockAsPayloadEnv(block, o.rollupCfg.CanyonTime)
+
+	txs := block.Transactions()
+	opaqueTxs := make([]eth.Data, len(txs))
+	for i, _ := range txs {
+		opaqueTxs = append(opaqueTxs, txs.GetRlp(i))
+	}
+
+	header := block.Header()
+	return &eth.ExecutionPayloadEnvelope{
+		ParentBeaconBlockRoot: nil,
+		ExecutionPayload: &eth.ExecutionPayload{
+			ParentHash:   common.Hash(block.ParentHash()),
+			FeeRecipient: common.Address(block.Coinbase()),
+			StateRoot:    eth.Bytes32(header.Root),
+			ReceiptsRoot: eth.Bytes32(header.ReceiptHash),
+			LogsBloom:    eth.Bytes256(header.Bloom),
+			PrevRandao:   eth.Bytes32{},
+			BlockNumber:  eth.Uint64Quantity(header.Number.Uint64()),
+			GasLimit:     eth.Uint64Quantity(header.GasLimit),
+			GasUsed:      eth.Uint64Quantity(header.GasUsed),
+			Timestamp:    eth.Uint64Quantity(header.Time),
+			ExtraData:    header.Extra,
+			BlockHash:    common.Hash(header.Hash()),
+			Transactions: opaqueTxs,
+		},
+	}, nil
 }
 
 func (o *OracleEngine) PayloadByNumber(ctx context.Context, n uint64) (*eth.ExecutionPayloadEnvelope, error) {
 	hash := o.backend.GetCanonicalHash(n)
-	if hash == (common.Hash{}) {
+	if hash == (l2common.Hash{}) {
 		return nil, ErrNotFound
 	}
-	return o.PayloadByHash(ctx, hash)
+	return o.PayloadByHash(ctx, common.Hash(hash))
 }
 
 func (o *OracleEngine) L2BlockRefByLabel(ctx context.Context, label eth.BlockLabel) (eth.L2BlockRef, error) {
@@ -102,23 +129,24 @@ func (o *OracleEngine) L2BlockRefByLabel(ctx context.Context, label eth.BlockLab
 	if block == nil {
 		return eth.L2BlockRef{}, ErrNotFound
 	}
-	return derive.L2BlockToBlockRef(o.rollupCfg, block)
+
+	return L2BlockToBlockRef(block), nil
 }
 
 func (o *OracleEngine) L2BlockRefByHash(ctx context.Context, l2Hash common.Hash) (eth.L2BlockRef, error) {
-	block := o.backend.GetBlockByHash(l2Hash)
+	block := o.backend.GetBlockByHash(l2common.Hash(l2Hash))
 	if block == nil {
 		return eth.L2BlockRef{}, ErrNotFound
 	}
-	return derive.L2BlockToBlockRef(o.rollupCfg, block)
+	return L2BlockToBlockRef(block), nil
 }
 
 func (o *OracleEngine) L2BlockRefByNumber(ctx context.Context, n uint64) (eth.L2BlockRef, error) {
 	hash := o.backend.GetCanonicalHash(n)
-	if hash == (common.Hash{}) {
+	if hash == (l2common.Hash{}) {
 		return eth.L2BlockRef{}, ErrNotFound
 	}
-	return o.L2BlockRefByHash(ctx, hash)
+	return o.L2BlockRefByHash(ctx, common.Hash(hash))
 }
 
 func (o *OracleEngine) SystemConfigByL2Hash(ctx context.Context, hash common.Hash) (eth.SystemConfig, error) {
@@ -127,4 +155,20 @@ func (o *OracleEngine) SystemConfigByL2Hash(ctx context.Context, hash common.Has
 		return eth.SystemConfig{}, err
 	}
 	return derive.PayloadToSystemConfig(o.rollupCfg, payload.ExecutionPayload)
+}
+
+func L2BlockToBlockRef(block *types.Block) eth.L2BlockRef {
+	return eth.L2BlockRef{
+		Hash:       common.Hash(block.Hash()),
+		Number:     block.NumberU64(),
+		ParentHash: common.Hash(block.ParentHash()),
+		Time:       block.Time(),
+
+		// unlike op using the deposit tx to save l1 block info in every block,
+		// for these two fields we need to retrieve them from the DTL,
+		// but since we are in the oracle engine, we don't have access to the DTL,
+		// need to use hint to get the l1 block info from the host
+		L1Origin:       eth.BlockID{},
+		SequenceNumber: 0,
+	}
 }

@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	l2common "github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/trie"
 )
 
 // ReadTrie takes a Merkle Patricia Trie (MPT) root of a "DerivableList", and a pre-image oracle getter,
@@ -46,7 +49,7 @@ func ReadTrie(root common.Hash, getPreimage func(key common.Hash) []byte) []hexu
 	//
 	// For now we just use the state DB trie approach.
 
-	tr, err := trie.New(root, trie.NewDatabaseWithCache(odb, 16))
+	tr, err := trie.New(l2common.Hash(root), trie.NewDatabaseWithCache(odb, 16))
 	if err != nil {
 		panic(err)
 	}
@@ -116,8 +119,8 @@ func (n noResetHasher) Reset() {}
 // Note: empty values are illegal, and there may be less pre-images returned than values,
 // if any values are less than 32 bytes and fit into branch-node slots that way.
 func WriteTrie(values []hexutil.Bytes) (common.Hash, []hexutil.Bytes) {
-	// TODO: need to verify this implementation, not sure whether it is correct or not,
-	//       will need to run some tests on this
+	// TODO(@dumdumgoose): need to verify this implementation, not sure whether it is correct or not,
+	//                     will need to run some tests on this
 	keybuf := new(bytes.Buffer)
 	trie := new(trie.Trie)
 	for i := 0; i < len(values); i++ {
@@ -135,5 +138,5 @@ func WriteTrie(values []hexutil.Bytes) (common.Hash, []hexutil.Bytes) {
 		}
 	}
 
-	return trie.Hash(), out
+	return common.Hash(trie.Hash()), out
 }

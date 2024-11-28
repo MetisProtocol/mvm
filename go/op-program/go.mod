@@ -4,13 +4,13 @@ go 1.21
 
 replace (
 	github.com/ethereum-optimism/optimism/go/op-preimage => ../op-preimage
-	github.com/ethereum/go-ethereum v1.14.8 => github.com/ethereum-optimism/op-geth v1.101408.0-rc.4.0.20240827042333-110c433a2469
+	github.com/MetisProtocol/mvm/l2geth v1.14.8 => github.com/ethereum-optimism/op-geth v1.101408.0-rc.4.0.20240827042333-110c433a2469
 )
 
 require (
 	github.com/ethereum-optimism/optimism v1.9.1
 	github.com/ethereum-optimism/optimism/go/op-preimage v0.0.0
-	github.com/ethereum/go-ethereum v1.14.8
+	github.com/MetisProtocol/mvm/l2geth v1.14.8
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/holiman/uint256 v1.3.1
 	github.com/stretchr/testify v1.9.0

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 	"github.com/ethereum-optimism/optimism/go/op-program/verify"

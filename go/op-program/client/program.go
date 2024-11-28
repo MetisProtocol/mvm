@@ -6,9 +6,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
+	l2common "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -62,7 +64,7 @@ func RunProgram(logger log.Logger, preimageOracle io.ReadWriter, preimageHinter 
 
 // runDerivation executes the L2 state transition, given a minimal interface to retrieve data.
 func runDerivation(logger log.Logger, cfg *rollup.Config, l2Cfg *params.ChainConfig, l1Head common.Hash, l2OutputRoot common.Hash, l2Claim common.Hash, l2ClaimBlockNum uint64, l1Oracle l1.Oracle, l2Oracle l2.Oracle) error {
-	l1Source := l1.NewOracleL1Client(logger, l1Oracle, l1Head)
+	l1Source := l1.NewOracleL1Client(logger, l1Oracle, l2common.Hash(l1Head))
 	l1BlobsSource := l1.NewBlobFetcher(logger, l1Oracle)
 	engineBackend, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, l1Oracle /* kzg oracle */, l2Cfg, l2OutputRoot)
 	if err != nil {

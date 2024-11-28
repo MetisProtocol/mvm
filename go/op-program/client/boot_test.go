@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"

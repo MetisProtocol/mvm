@@ -9,16 +9,18 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	l2gethcommon "github.com/ethereum/go-ethereum/common"
+	l2gethhex "github.com/ethereum/go-ethereum/common/hexutil"
+	optypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/clique"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/consensus/clique"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi/test"
@@ -244,7 +246,7 @@ func TestPrecompileOracle(t *testing.T) {
 			logger := testlog.Logger(t, slog.LevelDebug)
 			chainCfg, blocks, oracle := setupOracle(t, blockCount, headBlockNumber, true)
 			head := blocks[headBlockNumber].Hash()
-			stubOutput := eth.OutputV0{BlockHash: head}
+			stubOutput := eth.OutputV0{BlockHash: l2gethcommon.Hash(head)}
 			precompileOracle := l2test.NewStubPrecompileOracle(t)
 			arg := append(test.target.Bytes(), binary.BigEndian.AppendUint64(nil, test.requiredGas)...)
 			arg = append(arg, test.input...)
@@ -277,7 +279,7 @@ func setupOracleBackedChainWithLowerHead(t *testing.T, blockCount int, headBlock
 	logger := testlog.Logger(t, slog.LevelDebug)
 	chainCfg, blocks, oracle := setupOracle(t, blockCount, headBlockNumber, false)
 	head := blocks[headBlockNumber].Hash()
-	stubOutput := eth.OutputV0{BlockHash: head}
+	stubOutput := eth.OutputV0{BlockHash: l2gethcommon.Hash(head)}
 	precompileOracle := l2test.NewStubPrecompileOracle(t)
 	chain, err := NewOracleBackedL2Chain(logger, oracle, precompileOracle, chainCfg, common.Hash(eth.OutputRoot(&stubOutput)))
 	require.NoError(t, err)
@@ -294,7 +296,7 @@ func setupOracle(t *testing.T, blockCount int, headBlockNumber int, enableEcoton
 				L2GenesisBlockGasLimit: 30_000_000,
 				// Arbitrary non-zero difficulty in genesis.
 				// This is slightly weird for a chain starting post-merge but it happens so need to make sure it works
-				L2GenesisBlockDifficulty: (*hexutil.Big)(big.NewInt(100)),
+				L2GenesisBlockDifficulty: (*l2gethhex.Big)(big.NewInt(100)),
 			},
 			L2CoreDeployConfig: genesis.L2CoreDeployConfig{
 				L1ChainID:   900,
@@ -304,7 +306,7 @@ func setupOracle(t *testing.T, blockCount int, headBlockNumber int, enableEcoton
 		},
 	}
 	if enableEcotone {
-		ts := hexutil.Uint64(0)
+		ts := l2gethhex.Uint64(0)
 		deployConfig.L2GenesisRegolithTimeOffset = &ts
 		deployConfig.L2GenesisCanyonTimeOffset = &ts
 		deployConfig.L2GenesisDeltaTimeOffset = &ts
@@ -312,10 +314,10 @@ func setupOracle(t *testing.T, blockCount int, headBlockNumber int, enableEcoton
 	}
 	l1Genesis, err := genesis.NewL1Genesis(deployConfig)
 	require.NoError(t, err)
-	l2Genesis, err := genesis.NewL2Genesis(deployConfig, l1Genesis.ToBlock(nil))
+	l2Genesis, err := genesis.NewL2Genesis(deployConfig, l1Genesis.ToBlock())
 	require.NoError(t, err)
 
-	l2Genesis.Alloc[fundedAddress] = core.GenesisAccount{
+	l2Genesis.Alloc[l2gethcommon.Address(fundedAddress)] = optypes.Account{
 		Balance: big.NewInt(1_000_000_000_000_000_000),
 		Nonce:   0,
 	}

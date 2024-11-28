@@ -7,13 +7,13 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/consensus"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 var (
@@ -42,7 +42,7 @@ type BlockProcessor struct {
 func NewBlockProcessorFromPayloadAttributes(provider BlockDataProvider, parent common.Hash, attrs *eth.PayloadAttributes) (*BlockProcessor, error) {
 	header := &types.Header{
 		ParentHash: parent,
-		Coinbase:   attrs.SuggestedFeeRecipient,
+		Coinbase:   common.Address{},
 		Difficulty: common.Big0,
 		GasLimit:   uint64(*attrs.GasLimit),
 		Time:       uint64(attrs.Timestamp),

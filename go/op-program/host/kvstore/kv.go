@@ -3,7 +3,7 @@ package kvstore
 import (
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 // ErrNotFound is returned when a pre-image cannot be found in the KV store.

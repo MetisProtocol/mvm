@@ -3,8 +3,8 @@ package chainconfig
 import (
 	"fmt"
 
+	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum/go-ethereum/params"
 )
 
 var MetisAndromedaChainConfig, MetisSepoliaChainConfig, MetisLocalDevChainConfig *params.ChainConfig

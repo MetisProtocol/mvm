@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/config"

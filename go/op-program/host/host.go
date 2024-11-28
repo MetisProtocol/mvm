@@ -13,8 +13,10 @@ import (
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/client"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
-	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	cl "github.com/ethereum-optimism/optimism/go/op-program/client"
@@ -208,6 +210,7 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
 	l2DebugCl := &L2Source{L2Client: l2Cl, DebugClient: sources.NewDebugClient(l2RPC.CallContext)}
+	l2DebugCl.InfoAndTxsByHash()
 	return prefetcher.NewPrefetcher(logger, l1Cl, l1BlobFetcher, l2DebugCl, kv), nil
 }
 

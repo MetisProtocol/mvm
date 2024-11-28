@@ -13,10 +13,11 @@ import (
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/config"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core"
 )
 
 var (

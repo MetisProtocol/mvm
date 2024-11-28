@@ -5,17 +5,17 @@ import (
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/clique"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/consensus"
+	"github.com/MetisProtocol/mvm/l2geth/consensus/clique"
+	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi"
 )
@@ -49,7 +49,7 @@ func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle e
 		return nil, fmt.Errorf("unsupported L2 output version: %d", output.Version())
 	}
 	db := NewOracleBackedDB(oracle)
-	head := oracle.BlockByHash(outputV0.BlockHash)
+	head := oracle.BlockByHash(common.Hash(outputV0.BlockHash))
 	logger.Info("Loaded L2 head", "hash", head.Hash(), "number", head.Number())
 	return &OracleBackedL2Chain{
 		log:      logger,

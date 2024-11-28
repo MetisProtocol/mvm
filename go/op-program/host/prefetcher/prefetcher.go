@@ -10,14 +10,19 @@ import (
 
 	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+	opcommon "github.com/ethereum/go-ethereum/common"
+	ophex "github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2"
@@ -37,9 +42,9 @@ var acceleratedPrecompiles = []common.Address{
 }
 
 type L1Source interface {
-	InfoByHash(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, error)
-	InfoAndTxsByHash(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, types.Transactions, error)
-	FetchReceipts(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, types.Receipts, error)
+	InfoByHash(ctx context.Context, blockHash opcommon.Hash) (eth.BlockInfo, error)
+	InfoAndTxsByHash(ctx context.Context, blockHash opcommon.Hash) (eth.BlockInfo, ethtypes.Transactions, error)
+	FetchReceipts(ctx context.Context, blockHash opcommon.Hash) (eth.BlockInfo, ethtypes.Receipts, error)
 }
 
 type L1BlobSource interface {
@@ -150,7 +155,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 
 		// Fetch the blob sidecar for the indexed blob hash passed in the hint.
 		indexedBlobHash := eth.IndexedBlobHash{
-			Hash:  blobVersionHash,
+			Hash:  opcommon.Hash(blobVersionHash),
 			Index: blobHashIndex,
 		}
 		// We pass an `eth.L1BlockRef`, but `GetBlobSidecars` only uses the timestamp, which we received in the hint.
@@ -290,22 +295,32 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 }
 
 func (p *Prefetcher) storeReceipts(receipts types.Receipts) error {
-	opaqueReceipts, err := eth.EncodeReceipts(receipts)
-	if err != nil {
-		return err
+	opaqueReceipts := make([]ophex.Bytes, len(receipts))
+	for i, el := range receipts {
+		dat, err := rlp.EncodeToBytes(el)
+		if err != nil {
+			return fmt.Errorf("failed to marshal receipt %d: %w", i, err)
+		}
+		opaqueReceipts[i] = dat
 	}
+
 	return p.storeTrieNodes(opaqueReceipts)
 }
 
 func (p *Prefetcher) storeTransactions(txs types.Transactions) error {
-	opaqueTxs, err := eth.EncodeTransactions(txs)
-	if err != nil {
-		return err
+	opaqueTxs := make([]ophex.Bytes, len(txs))
+	for i, el := range txs {
+		dat, err := rlp.EncodeToBytes(el)
+		if err != nil {
+			return fmt.Errorf("failed to marshal tx %d: %w", i, err)
+		}
+		opaqueTxs[i] = dat
 	}
+
 	return p.storeTrieNodes(opaqueTxs)
 }
 
-func (p *Prefetcher) storeTrieNodes(values []hexutil.Bytes) error {
+func (p *Prefetcher) storeTrieNodes(values []ophex.Bytes) error {
 	_, nodes := mpt.WriteTrie(values)
 	for _, node := range nodes {
 		key := preimage.Keccak256Key(crypto.Keccak256Hash(node)).PreimageKey()

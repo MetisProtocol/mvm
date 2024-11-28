@@ -6,10 +6,10 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 )
 
 // Same as l2.StateOracle but need to use our own copy to avoid dependency loops
