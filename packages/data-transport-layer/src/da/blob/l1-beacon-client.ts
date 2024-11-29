@@ -1,28 +1,87 @@
 import axios from 'axios'
 import { Blob } from './blob'
 
-export class L1BeaconClient {
+interface BeaconChainRequestHandler {
+  request(url: string, params?: any): Promise<any>
+}
+
+class DefaultRequestHandler implements BeaconChainRequestHandler {
   private readonly baseUrl: string
-
-  private readonly beaconChainGenesisPromise: Promise<any>
-
-  private readonly beaconChainConfigPromise: Promise<any>
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
+  }
 
-    this.beaconChainGenesisPromise = axios.get(
-      `${this.baseUrl}/eth/v1/beacon/genesis`
-    )
+  async request(url: string, params?: any): Promise<any> {
+    const response = await axios.get(`${url}`, {
+      baseURL: this.baseUrl,
+      params,
+    })
 
-    this.beaconChainConfigPromise = axios.get(
-      `${this.baseUrl}/eth/v1/config/spec`
-    )
+    if (response.status !== 200) {
+      throw new Error(`Failed to fetch ${url} from beacon chain`)
+    }
+
+    return response.data
+  }
+}
+
+class DrpcRequestHandler extends DefaultRequestHandler {
+  private readonly token?: string
+
+  constructor(baseUrl: string) {
+    // base url format is: https://lb.drpc.org/rest/eth-beacon-chain-sepolia?dkey={token}
+    // we need to parse the url first and extract the base url and the token
+    const url = new URL(baseUrl)
+    const searchParams = new URLSearchParams(url.search)
+
+    super(url.origin + url.pathname)
+
+    this.token = searchParams.get('dkey')
+  }
+
+  async request(url: string, params?: any): Promise<any> {
+    params = params || {}
+    if (this.token) {
+      params.dkey = this.token
+    }
+
+    return super.request(url, params)
+  }
+}
+
+class HandlerFactory {
+  static createHandler(baseUrl: string): BeaconChainRequestHandler {
+    const url = new URL(baseUrl)
+    if (url.hostname.includes('drpc.org')) {
+      return new DrpcRequestHandler(baseUrl)
+    }
+
+    return new DefaultRequestHandler(baseUrl)
+  }
+}
+
+export class L1BeaconClient {
+  private readonly handler: BeaconChainRequestHandler
+
+  public readonly beaconChainGenesisPromise: Promise<any>
+
+  public readonly beaconChainConfigPromise: Promise<any>
+
+  constructor(baseUrl: string) {
+    this.handler = HandlerFactory.createHandler(baseUrl)
+
+    this.beaconChainGenesisPromise = this.request(`eth/v1/beacon/genesis`)
+    this.beaconChainConfigPromise = this.request(`eth/v1/config/spec`)
+  }
+
+  async request(url: string, params?: any): Promise<any> {
+    return this.handler.request(url, params)
   }
 
   // checks the beacon chain version, usually just use this as a ping method
   async checkVersion(): Promise<void> {
-    const response = await axios.get(`${this.baseUrl}/eth/v1/node/version`)
+    await this.request(`eth/v1/node/version`)
   }
 
   // retrieve blobs from the beacon chain
@@ -43,13 +102,10 @@ export class L1BeaconClient {
 
   // retrieve blob sidecars from the beacon chain
   async getBlobSidecars(slot: number, indices: number[]): Promise<any[]> {
-    const response = await axios.get(
-      `${this.baseUrl}/eth/v1/beacon/blob_sidecars/${slot}`,
-      {
-        params: { indices: indices.join(',') },
-      }
-    )
-    return response.data.data
+    const response = await this.request(`eth/v1/beacon/blob_sidecars/${slot}`, {
+      indices: indices.join(','),
+    })
+    return response.data
   }
 
   // calculate the slot number from a given timestamp
@@ -59,8 +115,8 @@ export class L1BeaconClient {
       this.beaconChainConfigPromise,
     ])
 
-    const genesisTime = Number(genesisResponse.data.data.genesis_time)
-    const secondsPerSlot = Number(configResponse.data.data.SECONDS_PER_SLOT)
+    const genesisTime = Number(genesisResponse.data.genesis_time)
+    const secondsPerSlot = Number(configResponse.data.SECONDS_PER_SLOT)
 
     return (timestamp: number) => {
       if (timestamp < genesisTime) {
