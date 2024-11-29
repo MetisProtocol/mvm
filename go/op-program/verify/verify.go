@@ -18,11 +18,11 @@ import (
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/retry"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
 
@@ -140,7 +140,7 @@ func (r *Runner) RunToFinalized(ctx context.Context) error {
 	}
 
 	// Retrieve finalized L1 block after finalized L2 block to ensure it is
-	l1Head, err := retryOp(ctx, func() (*types.Header, error) {
+	l1Head, err := retryOp(ctx, func() (*ethTypes.Header, error) {
 		return l1Client.HeaderByNumber(ctx, big.NewInt(rpc.FinalizedBlockNumber.Int64()))
 	})
 	if err != nil {
@@ -161,7 +161,7 @@ func (r *Runner) RunToFinalized(ctx context.Context) error {
 		return fmt.Errorf("failed to find ending block info: %w", err)
 	}
 
-	return r.run(l1Head.Hash(), agreedBlockInfo, agreedOutputRoot, claimedOutputRoot, claimedBlockInfo)
+	return r.run(common.Hash(l1Head.Hash()), agreedBlockInfo, agreedOutputRoot, claimedOutputRoot, claimedBlockInfo)
 }
 
 func (r *Runner) run(l1Head common.Hash, agreedBlockInfo eth.BlockInfo, agreedOutputRoot common.Hash, claimedOutputRoot common.Hash, claimedBlockInfo eth.BlockInfo) error {
@@ -204,7 +204,7 @@ func (r *Runner) run(l1Head common.Hash, agreedBlockInfo eth.BlockInfo, agreedOu
 	fmt.Printf("Configuration: %s\n", argsStr)
 
 	offlineCfg := config.NewConfig(
-		r.rollupCfg, r.chainCfg, l1Head, agreedBlockInfo.Hash(), agreedOutputRoot, claimedOutputRoot, claimedBlockInfo.NumberU64())
+		r.rollupCfg, r.chainCfg, l1Head, common.Hash(agreedBlockInfo.Hash()), agreedOutputRoot, claimedOutputRoot, claimedBlockInfo.NumberU64())
 	offlineCfg.DataDir = r.dataDir
 	onlineCfg := *offlineCfg
 	onlineCfg.L1URL = r.l1RpcUrl

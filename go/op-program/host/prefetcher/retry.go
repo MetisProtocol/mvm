@@ -8,8 +8,11 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/retry"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	l2common "github.com/MetisProtocol/mvm/l2geth/common"
+	l2types "github.com/MetisProtocol/mvm/l2geth/core/types"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 const maxAttempts = math.MaxInt // Succeed or die trying
@@ -102,8 +105,8 @@ type RetryingL2Source struct {
 	strategy retry.Strategy
 }
 
-func (s *RetryingL2Source) InfoAndTxsByHash(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, types.Transactions, error) {
-	return retry.Do2(ctx, maxAttempts, s.strategy, func() (eth.BlockInfo, types.Transactions, error) {
+func (s *RetryingL2Source) InfoAndTxsByHash(ctx context.Context, blockHash l2common.Hash) (eth.BlockInfo, l2types.Transactions, error) {
+	return retry.Do2(ctx, maxAttempts, s.strategy, func() (eth.BlockInfo, l2types.Transactions, error) {
 		i, t, err := s.source.InfoAndTxsByHash(ctx, blockHash)
 		if err != nil {
 			s.logger.Warn("Failed to retrieve l2 info and txs", "hash", blockHash, "err", err)
@@ -112,7 +115,7 @@ func (s *RetryingL2Source) InfoAndTxsByHash(ctx context.Context, blockHash commo
 	})
 }
 
-func (s *RetryingL2Source) NodeByHash(ctx context.Context, hash common.Hash) ([]byte, error) {
+func (s *RetryingL2Source) NodeByHash(ctx context.Context, hash l2common.Hash) ([]byte, error) {
 	return retry.Do(ctx, maxAttempts, s.strategy, func() ([]byte, error) {
 		n, err := s.source.NodeByHash(ctx, hash)
 		if err != nil {
@@ -122,7 +125,7 @@ func (s *RetryingL2Source) NodeByHash(ctx context.Context, hash common.Hash) ([]
 	})
 }
 
-func (s *RetryingL2Source) CodeByHash(ctx context.Context, hash common.Hash) ([]byte, error) {
+func (s *RetryingL2Source) CodeByHash(ctx context.Context, hash l2common.Hash) ([]byte, error) {
 	return retry.Do(ctx, maxAttempts, s.strategy, func() ([]byte, error) {
 		c, err := s.source.CodeByHash(ctx, hash)
 		if err != nil {
@@ -132,7 +135,7 @@ func (s *RetryingL2Source) CodeByHash(ctx context.Context, hash common.Hash) ([]
 	})
 }
 
-func (s *RetryingL2Source) OutputByRoot(ctx context.Context, root common.Hash) (eth.Output, error) {
+func (s *RetryingL2Source) OutputByRoot(ctx context.Context, root l2common.Hash) (eth.Output, error) {
 	return retry.Do(ctx, maxAttempts, s.strategy, func() (eth.Output, error) {
 		o, err := s.source.OutputByRoot(ctx, root)
 		if err != nil {

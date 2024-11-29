@@ -210,7 +210,6 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
 	l2DebugCl := &L2Source{L2Client: l2Cl, DebugClient: sources.NewDebugClient(l2RPC.CallContext)}
-	l2DebugCl.InfoAndTxsByHash()
 	return prefetcher.NewPrefetcher(logger, l1Cl, l1BlobFetcher, l2DebugCl, kv), nil
 }
 
