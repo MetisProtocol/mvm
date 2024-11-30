@@ -1,27 +1,27 @@
 /* Imports: External */
-import { BigNumber, ethers, constants } from 'ethers'
+import { Contract, ethers, EventLog, toBigInt, toNumber } from 'ethersv6'
 import { MerkleTree } from 'merkletreejs'
-import { getContractFactory } from '@metis.io/contracts'
+import { getContractDefinition } from '@metis.io/contracts'
 import {
-  fromHexString,
-  toHexString,
-  toRpcHexString,
   EventArgsSequencerBatchAppended,
+  fromHexString,
   MinioClient,
   MinioConfig,
   remove0x,
+  toHexString,
+  toRpcHexString,
 } from '@metis.io/core-utils'
 
 /* Imports: Internal */
 import {
   DecodedSequencerBatchTransaction,
+  EventHandlerSet,
   SequencerBatchAppendedExtraData,
   SequencerBatchAppendedParsedEvent,
   TransactionBatchEntry,
   TransactionEntry,
-  EventHandlerSet,
 } from '../../../types'
-import { SEQUENCER_GAS_LIMIT, parseSignatureVParam } from '../../../utils'
+import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
 import { MissingElementError } from './errors'
 
 export const handleEventsSequencerBatchAppended: EventHandlerSet<
@@ -30,17 +30,19 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
   SequencerBatchAppendedParsedEvent
 > = {
   getExtraData: async (event, l1RpcProvider) => {
-    const eventBlock = await l1RpcProvider.getBlockWithTransactions(event.blockNumber)
-    const l1Transaction = eventBlock.transactions.find(i=>i.hash == event.transactionHash)
+    const eventBlock = await l1RpcProvider.getBlock(event.blockNumber, true)
+    const l1Transaction = await eventBlock.prefetchedTransactions.find(
+      (i) => i.hash === event.transactionHash
+    )
 
     // TODO: We need to update our events so that we actually have enough information to parse this
     // batch without having to pull out this extra event. For the meantime, we need to find this
     // "TransactonBatchAppended" event to get the rest of the data.
-    const CanonicalTransactionChain = getContractFactory(
-      'CanonicalTransactionChain'
+    const CanonicalTransactionChain = new Contract(
+      event.address,
+      getContractDefinition('CanonicalTransactionChain').abi,
+      l1RpcProvider
     )
-      .attach(event.address)
-      .connect(l1RpcProvider)
 
     const batchSubmissionEvent = (
       await CanonicalTransactionChain.queryFilter(
@@ -48,12 +50,12 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         eventBlock.number,
         eventBlock.number
       )
-    ).find((foundEvent: ethers.Event) => {
+    ).find((foundEvent: EventLog) => {
       // We might have more than one event in this block, so we specifically want to find a
       // "TransactonBatchAppended" event emitted immediately before the event in question.
       return (
         foundEvent.transactionHash === event.transactionHash &&
-        foundEvent.logIndex === event.logIndex - 1
+        foundEvent.index === event.index - 1
       )
     })
 
@@ -71,11 +73,15 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       l1TransactionData: l1Transaction.data,
       gasLimit: `${SEQUENCER_GAS_LIMIT}`,
 
-      prevTotalElements: batchSubmissionEvent.args._prevTotalElements,
-      batchIndex: batchSubmissionEvent.args._batchIndex,
-      batchSize: batchSubmissionEvent.args._batchSize,
-      batchRoot: batchSubmissionEvent.args._batchRoot,
-      batchExtraData: batchSubmissionEvent.args._extraData,
+      prevTotalElements: event.args._prevTotalElements,
+      batchIndex: event.args._batchIndex,
+      batchSize: event.args._batchSize,
+      batchRoot: event.args._batchRoot,
+      batchExtraData: event.args._extraData,
+
+      // blob related, not used in old sequencer batch
+      blobIndex: 0,
+      blobCount: 0,
     }
   },
   parseEvent: async (event, extraData, l2ChainId, options) => {
@@ -112,7 +118,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
           `converted buffer length is < 44.`
       )
     }
-    const numContexts = BigNumber.from(calldata.slice(44, 47)).toNumber()
+    const numContexts = toNumber(calldata.slice(44, 47))
     let transactionIndex = 0
     let enqueuedCount = 0
     let nextTxPointer = 47 + 16 * numContexts
@@ -168,14 +174,14 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         )
 
         transactionEntries.push({
-          index: extraData.prevTotalElements
-            .add(BigNumber.from(transactionIndex))
-            .toNumber(),
-          batchIndex: extraData.batchIndex.toNumber(),
-          blockNumber: BigNumber.from(context.blockNumber).toNumber(),
-          timestamp: BigNumber.from(context.timestamp).toNumber(),
-          gasLimit: BigNumber.from(0).toString(),
-          target: constants.AddressZero,
+          index: toNumber(
+            extraData.prevTotalElements + toBigInt(transactionIndex)
+          ),
+          batchIndex: toNumber(extraData.batchIndex),
+          blockNumber: toNumber(context.blockNumber),
+          timestamp: toNumber(context.timestamp),
+          gasLimit: toNumber(0).toString(),
+          target: ethers.ZeroAddress,
           origin: null,
           data: toHexString(sequencerTransaction),
           queueOrigin: 'sequencer',
@@ -187,14 +193,15 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         })
         // block number = index + 1
         leafs.push(
-          ethers.utils.keccak256(
-            ethers.utils.solidityPack(
+          ethers.keccak256(
+            new ethers.AbiCoder().encode(
               ['uint256', 'bytes'],
               [
-                extraData.prevTotalElements
-                  .add(BigNumber.from(transactionIndex))
-                  .add(BigNumber.from(1))
-                  .toNumber(),
+                toNumber(
+                  extraData.prevTotalElements +
+                    toBigInt(transactionIndex) +
+                    toBigInt(1)
+                ),
                 parseMerkleLeafFromSequencerBatchTransaction(
                   calldata,
                   nextTxPointer
@@ -210,9 +217,8 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       }
 
       for (let j = 0; j < context.numSubsequentQueueTransactions; j++) {
-        const queueIndex = event.args._startingQueueIndex.add(
-          BigNumber.from(enqueuedCount)
-        )
+        const queueIndex =
+          event.args._startingQueueIndex + toBigInt(enqueuedCount)
 
         // Okay, so. Since events are processed in parallel, we don't know if the Enqueue
         // event associated with this queue element has already been processed. So we'll ask
@@ -222,24 +228,24 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         // was submitted to CTC as part of the context. use the timestamp in the context otherwise
         // the batch timestamp will be inconsistent with the main node.
         transactionEntries.push({
-          index: extraData.prevTotalElements
-            .add(BigNumber.from(transactionIndex))
-            .toNumber(),
-          batchIndex: extraData.batchIndex.toNumber(),
-          blockNumber: BigNumber.from(0).toNumber(),
+          index: toNumber(
+            extraData.prevTotalElements + toBigInt(transactionIndex)
+          ),
+          batchIndex: toNumber(extraData.batchIndex),
+          blockNumber: 0,
           timestamp:
-            extraData.prevTotalElements
-              .add(BigNumber.from(transactionIndex))
-              .toNumber() <= 2287472
-              ? BigNumber.from(0).toNumber()
-              : BigNumber.from(context.timestamp).toNumber(), //timestamp needs to be consistent
-          gasLimit: BigNumber.from(0).toString(),
-          target: constants.AddressZero,
-          origin: constants.AddressZero,
+            toNumber(
+              extraData.prevTotalElements + toBigInt(transactionIndex)
+            ) <= 2287472
+              ? 0
+              : toNumber(context.timestamp), //timestamp needs to be consistent
+          gasLimit: toBigInt(0).toString(),
+          target: ethers.ZeroAddress,
+          origin: ethers.ZeroAddress,
           data: '0x',
           queueOrigin: 'l1',
           value: '0x0',
-          queueIndex: queueIndex.toNumber(),
+          queueIndex: toNumber(queueIndex),
           decoded: null,
           confirmed: true,
           seqSign: null, //enqueue always set to null
@@ -297,7 +303,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     }
 
     const hash = (el: Buffer | string): Buffer => {
-      return Buffer.from(ethers.utils.keccak256(el).slice(2), 'hex')
+      return Buffer.from(ethers.keccak256(el).slice(2), 'hex')
     }
     const tree = new MerkleTree(leafs, hash)
     let merkleRoot = tree.getHexRoot()
@@ -311,18 +317,18 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
     )
     if (fromStorage && rootFromCalldata !== merkleRoot) {
       throw new Error(
-        `verified calldata from storage error, batch index is ${extraData.batchIndex.toNumber()}`
+        `verified calldata from storage error, batch index is ${extraData.batchIndex}`
       )
     }
 
     const transactionBatchEntry: TransactionBatchEntry = {
-      index: extraData.batchIndex.toNumber(),
+      index: toNumber(extraData.batchIndex),
       root: extraData.batchRoot,
-      size: extraData.batchSize.toNumber(),
-      prevTotalElements: extraData.prevTotalElements.toNumber(),
+      size: toNumber(extraData.batchSize),
+      prevTotalElements: toNumber(extraData.prevTotalElements),
       extraData: extraData.batchExtraData,
-      blockNumber: BigNumber.from(extraData.blockNumber).toNumber(),
-      timestamp: BigNumber.from(extraData.timestamp).toNumber(),
+      blockNumber: toNumber(extraData.blockNumber),
+      timestamp: toNumber(extraData.timestamp),
       submitter: extraData.submitter,
       l1TransactionHash: extraData.l1TransactionHash,
     }
@@ -375,18 +381,12 @@ const parseSequencerBatchContext = (
   offset: number
 ): SequencerBatchContext => {
   return {
-    numSequencedTransactions: BigNumber.from(
-      calldata.slice(offset, offset + 3)
-    ).toNumber(),
-    numSubsequentQueueTransactions: BigNumber.from(
+    numSequencedTransactions: toNumber(calldata.slice(offset, offset + 3)),
+    numSubsequentQueueTransactions: toNumber(
       calldata.slice(offset + 3, offset + 6)
-    ).toNumber(),
-    timestamp: BigNumber.from(
-      calldata.slice(offset + 6, offset + 11)
-    ).toNumber(),
-    blockNumber: BigNumber.from(
-      calldata.slice(offset + 11, offset + 16)
-    ).toNumber(),
+    ),
+    timestamp: toNumber(calldata.slice(offset + 6, offset + 11)),
+    blockNumber: toNumber(calldata.slice(offset + 11, offset + 16)),
   }
 }
 
@@ -394,9 +394,7 @@ const parseMerkleLeafFromSequencerBatchTransaction = (
   calldata: Buffer,
   offset: number
 ): Buffer => {
-  const transactionLength = BigNumber.from(
-    calldata.slice(offset, offset + 3)
-  ).toNumber()
+  const transactionLength = toNumber(calldata.slice(offset, offset + 3))
 
   return calldata.slice(offset, offset + 3 + transactionLength)
 }
@@ -405,9 +403,7 @@ const parseSequencerBatchTransaction = (
   calldata: Buffer,
   offset: number
 ): Buffer => {
-  const transactionLength = BigNumber.from(
-    calldata.slice(offset, offset + 3)
-  ).toNumber()
+  const transactionLength = toNumber(calldata.slice(offset, offset + 3))
 
   return calldata.slice(offset + 3, offset + 3 + transactionLength)
 }
@@ -416,19 +412,19 @@ const decodeSequencerBatchTransaction = (
   transaction: Buffer,
   l2ChainId: number
 ): DecodedSequencerBatchTransaction => {
-  const decodedTx = ethers.utils.parseTransaction(transaction)
+  const decodedTx = ethers.Transaction.from(`0x${transaction.toString('hex')}`)
 
   return {
-    nonce: BigNumber.from(decodedTx.nonce).toString(),
-    gasPrice: BigNumber.from(decodedTx.gasPrice).toString(),
-    gasLimit: BigNumber.from(decodedTx.gasLimit).toString(),
+    nonce: toBigInt(decodedTx.nonce).toString(),
+    gasPrice: toBigInt(decodedTx.gasPrice).toString(),
+    gasLimit: toBigInt(decodedTx.gasLimit).toString(),
     value: toRpcHexString(decodedTx.value),
     target: decodedTx.to ? toHexString(decodedTx.to) : null,
     data: toHexString(decodedTx.data),
     sig: {
-      v: parseSignatureVParam(decodedTx.v, l2ChainId),
-      r: toHexString(decodedTx.r),
-      s: toHexString(decodedTx.s),
+      v: parseSignatureVParam(decodedTx.signature.v, l2ChainId),
+      r: toHexString(decodedTx.signature.r),
+      s: toHexString(decodedTx.signature.s),
     },
   }
 }

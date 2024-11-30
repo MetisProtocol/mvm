@@ -1,38 +1,39 @@
 /* External Imports */
 import { Promise as bPromise } from 'bluebird'
-import { Signer, ethers, Contract, providers, BigNumber } from 'ethers'
-import { TransactionReceipt } from '@ethersproject/abstract-provider'
 import {
-  getContractInterface,
-  getContractFactory,
-  getContractInterface as getNewContractInterface,
-} from '@metis.io/contracts'
+  Contract,
+  ethers,
+  JsonRpcProvider,
+  Signer,
+  toNumber,
+  TransactionReceipt,
+} from 'ethersv6'
+import { getContractDefinition } from '@metis.io/contracts'
 
 import {
-  L2Block,
-  RollupInfo,
-  BatchElement,
   Batch,
-  QueueOrigin,
+  BatchElement,
   EncodeSequencerBatchOptions,
+  L2Block,
   MinioClient,
   MinioConfig,
+  QueueOrigin,
   remove0x,
+  RollupInfo,
   toHexString,
 } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
 import {
-  CanonicalTransactionChainContract,
-  encodeAppendSequencerBatch,
-  BatchContext,
   AppendSequencerBatchParams,
+  BatchContext,
+  encodeAppendSequencerBatch,
 } from '../transaction-chain-contract'
 
-import { BlockRange, BatchSubmitter, TransactionBatchSubmitterInbox } from '.'
-import { TransactionSubmitter, MpcClient, sequencerSetABI } from '../utils'
-import { InboxStorage, InboxRecordInfo } from '../storage'
+import { BatchSubmitter, BlockRange, TransactionBatchSubmitterInbox } from '.'
+import { MpcClient, sequencerSetABI, TransactionSubmitter } from '../utils'
+import { InboxStorage } from '../storage'
 
 export interface AutoFixBatchOptions {
   fixDoublePlayedDeposits: boolean
@@ -41,14 +42,15 @@ export interface AutoFixBatchOptions {
 }
 
 export class TransactionBatchSubmitter extends BatchSubmitter {
-  protected chainContract: CanonicalTransactionChainContract
-  protected mvmCtcContract: CanonicalTransactionChainContract
+  protected chainContract: Contract
+  protected mvmCtcContract: Contract
   protected seqsetContract: Contract
   protected l2ChainId: number
   protected syncing: boolean
   private autoFixBatchOptions: AutoFixBatchOptions
   private validateBatch: boolean
   private transactionSubmitter: TransactionSubmitter
+  private blobTransactionSubmitter: TransactionSubmitter
   private gasThresholdInGwei: number
   private useMinio: boolean
   private minioConfig: MinioConfig
@@ -64,7 +66,9 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
 
   constructor(
     signer: Signer,
-    l2Provider: providers.StaticJsonRpcProvider,
+    blobSigner: Signer,
+    l1Provider: JsonRpcProvider,
+    l2Provider: JsonRpcProvider,
     minTxSize: number,
     maxTxSize: number,
     maxBatchSize: number,
@@ -75,6 +79,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     minBalanceEther: number,
     gasThresholdInGwei: number,
     transactionSubmitter: TransactionSubmitter,
+    blobTransactionSubmitter: TransactionSubmitter,
     blockOffset: number,
     validateBatch: boolean,
     logger: Logger,
@@ -92,10 +97,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     batchInboxStoragePath: string,
     seqsetValidHeight: number,
     seqsetContractAddress: string,
-    seqsetUpgradeOnly: number
+    seqsetUpgradeOnly: number,
+    private useBlob: boolean
   ) {
     super(
       signer,
+      blobSigner,
+      l1Provider,
       l2Provider,
       minTxSize,
       maxTxSize,
@@ -115,6 +123,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.autoFixBatchOptions = autoFixBatchOptions
     this.gasThresholdInGwei = gasThresholdInGwei
     this.transactionSubmitter = transactionSubmitter
+    this.blobTransactionSubmitter = blobTransactionSubmitter
     this.useMinio = useMinio
     this.minioConfig = minioConfig
     this.mpcUrl = mpcUrl
@@ -125,11 +134,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.inboxSubmitter = new TransactionBatchSubmitterInbox(
       this.inboxStorage,
       this.inboxAddress,
+      this.l1Provider,
       this.l2Provider,
       this.logger,
       this.maxTxSize,
       useMinio,
-      minioConfig
+      minioConfig,
+      this.useBlob
     )
     this.seqsetValidHeight = seqsetValidHeight
     this.seqsetContractAddress = seqsetContractAddress
@@ -158,16 +169,16 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     const ctcAddress = addrs.ctcAddress
     const mvmCtcAddress = addrs.mvmCtcAddress
 
-    if (mvmCtcAddress === ethers.constants.AddressZero) {
+    if (mvmCtcAddress === ethers.ZeroAddress) {
       this.logger.error('MVM_CanonicalTransaction contract load failed')
       process.exit(1)
     }
 
     if (
       typeof this.chainContract !== 'undefined' &&
-      ctcAddress === this.chainContract.address &&
+      ctcAddress === (await this.chainContract.getAddress()) &&
       typeof this.mvmCtcContract !== 'undefined' &&
-      mvmCtcAddress === this.mvmCtcContract.address
+      mvmCtcAddress === (await this.mvmCtcContract.getAddress())
     ) {
       this.logger.debug('Chain contract already initialized', {
         ctcAddress,
@@ -177,30 +188,34 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       return
     }
 
-    const unwrapped_OVM_CanonicalTransactionChain = (
-      await getContractFactory('CanonicalTransactionChain', this.signer)
-    ).attach(ctcAddress)
+    const unwrapped_OVM_CanonicalTransactionChain = new Contract(
+      ctcAddress,
+      getContractDefinition('CanonicalTransactionChain').abi,
+      this.signer
+    )
 
-    this.chainContract = new CanonicalTransactionChainContract(
-      unwrapped_OVM_CanonicalTransactionChain.address,
-      getContractInterface('CanonicalTransactionChain'),
+    this.chainContract = new Contract(
+      await unwrapped_OVM_CanonicalTransactionChain.getAddress(),
+      getContractDefinition('CanonicalTransactionChain').abi,
       this.signer
     )
     this.logger.info('Initialized new CTC', {
-      address: this.chainContract.address,
+      address: await this.chainContract.getAddress(),
     })
 
-    const unwrapped_MVM_CanonicalTransaction = (
-      await getContractFactory('MVM_CanonicalTransaction', this.signer)
-    ).attach(mvmCtcAddress)
+    const unwrapped_MVM_CanonicalTransaction = new Contract(
+      mvmCtcAddress,
+      getContractDefinition('MVM_CanonicalTransaction').abi,
+      this.signer
+    )
 
-    this.mvmCtcContract = new CanonicalTransactionChainContract(
-      unwrapped_MVM_CanonicalTransaction.address,
-      getContractInterface('MVM_CanonicalTransaction'),
+    this.mvmCtcContract = new Contract(
+      await unwrapped_MVM_CanonicalTransaction.getAddress(),
+      getContractDefinition('MVM_CanonicalTransaction').abi,
       this.signer // to be replaced
     )
     this.logger.info('Initialized new mvmCTC', {
-      address: this.mvmCtcContract.address,
+      address: await this.mvmCtcContract.getAddress(),
     })
 
     if (this.seqsetValidHeight > 0 && this.seqsetContractAddress) {
@@ -241,19 +256,19 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     )
 
     let startBlock =
-      (
+      toNumber(
         await this.chainContract.getTotalElementsByChainId(this.l2ChainId)
-      ).toNumber() + this.blockOffset
+      ) + this.blockOffset
     this.logger.info('Retrieved start block number from CTC', {
       startBlock,
     })
 
     // batch index start from config
-    const batchIndexStart = BigNumber.from(this.inboxStartIndex).toNumber()
+    const batchIndexStart = toNumber(this.inboxStartIndex)
     // current batch index from CTC contract
-    const batchIndexCtcNext = (
+    const batchIndexCtcNext = toNumber(
       await this.chainContract.getTotalBatchesByChainId(this.l2ChainId)
-    ).toNumber()
+    )
     const localInboxRecord = await this.inboxStorage.getLatestConfirmedTx()
     const useBatchInbox =
       this.inboxAddress &&
@@ -263,9 +278,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     // read next batch index from local storage and inbox tx hash
     let batchIndexNext = batchIndexCtcNext
     if (localInboxRecord) {
-      const localBatchIndex = BigNumber.from(
-        localInboxRecord.batchIndex
-      ).toNumber()
+      const localBatchIndex = toNumber(localInboxRecord.batchIndex)
       if (localBatchIndex >= batchIndexNext) {
         batchIndexNext = localBatchIndex + 1
 
@@ -283,12 +296,10 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
           // set start block from raw data
           // 0x[2: DA type] [2: compress type] [64: batch index] [64: L2 start] [8: total blocks]
           //  > 142 ( 2 + 2 + 2 + 64 + 64 + 8 )
-          const inboxTxStartBlock = BigNumber.from(
+          const inboxTxStartBlock = toNumber(
             '0x' + inboxTx.data.substring(70, 134)
-          ).toNumber()
-          const inboxTxTotal = BigNumber.from(
-            '0x' + inboxTx.data.substring(134, 142)
-          ).toNumber()
+          )
+          const inboxTxTotal = toNumber('0x' + inboxTx.data.substring(134, 142))
           startBlock = inboxTxStartBlock + inboxTxTotal
 
           this.logger.info('Retrieved start block number from BatchInbox tx', {
@@ -330,17 +341,17 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     ) {
       // seqsetContract should ready
       const l2FinalizeBlock = await this.seqsetContract.finalizedBlock()
-      const l2FinalizeBlockNum = BigNumber.from(l2FinalizeBlock).toNumber()
+      const l2FinalizeBlockNum = toNumber(l2FinalizeBlock)
       if (l2FinalizeBlockNum > 0) {
         const l2EpochLength = await this.seqsetContract.epochLength()
-        const l2EpochLengthNum = BigNumber.from(l2EpochLength).toNumber()
+        const l2EpochLengthNum = toNumber(l2EpochLength)
         const l2RespanIncrement = 100
         // set safe confirmations as 1 epoch length plus 3 respan increments
-        const l2SafeConfirmtions = l2EpochLengthNum + 3 * l2RespanIncrement + 1
+        const l2SafeConfirmations = l2EpochLengthNum + 3 * l2RespanIncrement + 1
         endBlock = Math.min(
           endBlock,
           l2FinalizeBlockNum,
-          Math.max(l2HeighestBlock - l2SafeConfirmtions, 0)
+          Math.max(l2HeighestBlock - l2SafeConfirmations, 0)
         )
       }
     }
@@ -376,7 +387,10 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   ): Promise<TransactionReceipt> {
     // Do not submit batch if gas price above threshold
     const gasPriceInGwei = parseInt(
-      ethers.utils.formatUnits(await this.signer.getGasPrice(), 'gwei'),
+      ethers.formatUnits(
+        (await this.signer.provider.getFeeData()).gasPrice,
+        'gwei'
+      ),
       10
     )
     if (gasPriceInGwei > this.gasThresholdInGwei) {
@@ -402,20 +416,22 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         nextBatchIndex,
         this.metrics,
         this.signer,
+        this.blobSigner,
         this.mpcUrl,
         (sizeInBytes: number): boolean => {
           return this._shouldSubmitBatch(sizeInBytes)
         },
         this.transactionSubmitter,
+        this.blobTransactionSubmitter,
         this._makeHooks('sendBatchToInbox'),
         (
-          submitTransaction: () => Promise<TransactionReceipt>,
+          submitTransaction: () => Promise<ethers.TransactionReceipt>,
           successMessage: string,
           callback?: (
-            receipt: TransactionReceipt | null,
+            receipt: ethers.TransactionReceipt | null,
             err: any
           ) => Promise<boolean>
-        ): Promise<TransactionReceipt> => {
+        ): Promise<ethers.TransactionReceipt> => {
           return this._submitAndLogTx(
             submitTransaction,
             successMessage,
@@ -479,12 +495,40 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     }
     this.logger.info('MPC model balance check of tx batch submitter...')
     const mpcClient = new MpcClient(this.mpcUrl)
-    const mpcInfo = await mpcClient.getLatestMpc()
+    const mpcLoadPromises = []
+    mpcLoadPromises.push(mpcClient.getLatestMpc())
+    if (this.useBlob) {
+      // if uses blob, also checks blob mpc balance
+      mpcLoadPromises.push(mpcClient.getLatestMpc('3'))
+    }
+    const results = await Promise.all(mpcLoadPromises)
+    const mpcInfo = results[0]
     if (!mpcInfo || !mpcInfo.mpc_address) {
       this.logger.error('MPC 0 info get failed')
       return false
     }
-    return this._hasEnoughETHToCoverGasCosts(mpcInfo.mpc_address)
+
+    const hasEnoughBalancePromises: Promise<boolean>[] = []
+
+    if (this.useBlob) {
+      const blobMpcInfo = results[1]
+      if (!blobMpcInfo || !blobMpcInfo.mpc_address) {
+        this.logger.error('MPC 3 info get failed')
+        return false
+      }
+
+      hasEnoughBalancePromises.push(
+        this._hasEnoughETHToCoverGasCosts(blobMpcInfo.mpc_address)
+      )
+    }
+
+    hasEnoughBalancePromises.push(
+      this._hasEnoughETHToCoverGasCosts(mpcInfo.mpc_address)
+    )
+
+    const hasEnoughBalance = await Promise.all(hasEnoughBalancePromises)
+
+    return hasEnoughBalance.reduce((acc, cur) => acc && cur, true)
   }
 
   /*********************
@@ -522,15 +566,18 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     //     this.encodeSequencerBatchOptions
     //   )
     // unsigned tx
-    const tx = this.useMinio
-      ? await this.mvmCtcContract.customPopulateTransaction.appendSequencerBatch(
+    const tx: ethers.TransactionRequest = {
+      to: this.useMinio
+        ? await this.mvmCtcContract.getAddress()
+        : await this.chainContract.getAddress(),
+      data:
+        '0x' +
+        (await encodeAppendSequencerBatch(
           batchParams,
           this.encodeSequencerBatchOptions
-        )
-      : await this.chainContract.customPopulateTransaction.appendSequencerBatch(
-          batchParams,
-          this.encodeSequencerBatchOptions
-        )
+        )),
+      nonce: await this.signer.getNonce(),
+    }
 
     // MPC enabled: prepare nonce, gasPrice
     if (this.mpcUrl) {
@@ -547,7 +594,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         from: mpcAddress,
         data: tx.data,
       })
-      tx.value = ethers.utils.parseEther('0')
+      tx.value = ethers.parseEther('0')
       tx.chainId = (await this.signer.provider.getNetwork()).chainId
       // mpc model can use ynatm
       // tx.gasPrice = gasPrice
@@ -603,7 +650,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     )
 
     // fix max batch size with env and mvmCtc
-    const mvmMaxBatchSize = await this.mvmCtcContract.getTxBatchSize()
+    const mvmMaxBatchSize = toNumber(await this.mvmCtcContract.getTxBatchSize())
     const fixedMaxTxSize = Math.min(this.maxTxSize, mvmMaxBatchSize)
 
     // Fix our batches if we are configured to. This will not
@@ -942,15 +989,17 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   }> {
     const manager = new Contract(
       this.addressManagerAddress,
-      getNewContractInterface('Lib_AddressManager'),
+      getContractDefinition('Lib_AddressManager').abi,
       this.signer.provider
     )
 
-    const addr = await manager.getAddress('ChainStorageContainer-CTC-batches')
+    const addr = await manager
+      .getFunction('getAddress')
+      .staticCall('ChainStorageContainer-CTC-batches')
 
     const container = new Contract(
       addr,
-      getNewContractInterface('IChainStorageContainer'),
+      getContractDefinition('IChainStorageContainer').abi,
       this.signer.provider
     )
 
@@ -1132,7 +1181,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     const batchElement = {
       stateRoot: block.stateRoot,
       timestamp: block.timestamp,
-      blockNumber: block.transactions[0].l1BlockNumber,
+      blockNumber: block.l2Transactions[0].l1BlockNumber,
       isSequencerTx: false,
       rawTransaction: undefined,
       seqSign: null,
@@ -1145,13 +1194,13 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         )
       }
       batchElement.isSequencerTx = true
-      batchElement.rawTransaction = block.transactions[0].rawTransaction
-      if (!block.transactions[0].seqR) {
+      batchElement.rawTransaction = block.l2Transactions[0].rawTransaction
+      if (!block.l2Transactions[0].seqR) {
         batchElement.seqSign = ''
       } else {
-        let r = remove0x(block.transactions[0].seqR)
-        let s = remove0x(block.transactions[0].seqS)
-        let v = remove0x(block.transactions[0].seqV)
+        let r = remove0x(block.l2Transactions[0].seqR)
+        let s = remove0x(block.l2Transactions[0].seqS)
+        let v = remove0x(block.l2Transactions[0].seqV)
         if (r === '0') {
           r = '00'
         } else {
@@ -1174,16 +1223,14 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   }
 
   private async _getBlock(blockNumber: number): Promise<L2Block> {
-    // const p = this.l2Provider.getBlockWithTransactions(blockNumber)
-    const p = this.l2Provider.send('eth_getBlockByNumber', [
-      this.toRpcHexString(blockNumber),
-      true,
-    ])
-    return p as Promise<L2Block>
+    const p = await this.l2Provider.getBlock(blockNumber, true)
+    const l2BLock = p as L2Block
+    await Promise.all(l2BLock.l2TransactionPromises)
+    return l2BLock
   }
 
   private _isSequencerTx(block: L2Block): boolean {
-    return block.transactions[0].queueOrigin === QueueOrigin.Sequencer
+    return block.l2Transactions[0].queueOrigin === QueueOrigin.Sequencer
   }
 
   private toRpcHexString(n: number): string {

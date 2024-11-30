@@ -1,7 +1,6 @@
 /* Imports: External */
 import { LevelUp } from 'levelup'
 import level from 'level'
-import { BigNumber } from 'ethers'
 // 1088 patch only
 import patch01 from './patch-01'
 /* Imports: Internal */
@@ -15,8 +14,11 @@ import {
   VerifierStakeEntry,
   AppendBatchElementEntry,
   BlockEntry,
+  InboxSenderSetEntry,
+  SenderType,
 } from '../types/database-types'
 import { SimpleDB } from './simple-db'
+import { toBigInt, toNumber } from 'ethersv6'
 
 const TRANSPORT_DB_KEYS = {
   ENQUEUE: `enqueue`,
@@ -37,8 +39,13 @@ const TRANSPORT_DB_KEYS = {
   VERIFIER_SUCCESSFUL: `verifier:successful`,
   MVM_CTC_VERIFIER_STAKE: `mvmctc:verifierstake`,
   MVM_CTC_BATCH_ELEMENT: `mvmctc:batchelement`,
+  MVM_CTC_INBOX_SENDER: `mvmctc:inboxsender`,
   BLOCK: `block`,
   UNCONFIRMED_BLOCK: `unconfirmed:block`,
+
+  // FDG required keys
+  L1_BLOCK_TO_L2_MAPPER_PREFIX: `l1tol2blockmapper:`,
+  L2_BLOCK_TO_L1_MAPPER_PREFIX: `l2tol1blockmapper:`,
 }
 
 interface Indexed {
@@ -170,6 +177,33 @@ export class TransportDB {
         entries[entries.length - 1].index
       )
     }
+  }
+
+  public async putInboxSenderSetEntries(
+    entries: InboxSenderSetEntry[]
+  ): Promise<void> {
+    // store inbox senders by types
+    const storagePromises = []
+    for (const senderType of Object.values(SenderType)) {
+      if (typeof senderType !== 'number') {
+        continue
+      }
+
+      const inboxSenders = entries.filter(
+        (entry) => entry.senderType === senderType
+      )
+
+      storagePromises.push(
+        this._putEntries(
+          `${TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER}:${senderType.toString(
+            10
+          )}`,
+          inboxSenders
+        )
+      )
+    }
+
+    await Promise.all(storagePromises)
   }
 
   public async getLatestVerifierStake(): Promise<VerifierStakeEntry> {
@@ -338,12 +372,8 @@ export class TransportDB {
     return this.db.get<number>(TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK, 0)
   }
 
-  public async putHighestL2BlockNumber(
-    block: number | BigNumber
-  ): Promise<void> {
-    if (
-      BigNumber.from(block).toNumber() <= (await this.getHighestL2BlockNumber())
-    ) {
+  public async putHighestL2BlockNumber(block: number | bigint): Promise<void> {
+    if (toNumber(toBigInt(block)) <= (await this.getHighestL2BlockNumber())) {
       return
     }
 
@@ -351,7 +381,7 @@ export class TransportDB {
       {
         key: TRANSPORT_DB_KEYS.HIGHEST_L2_BLOCK,
         index: 0,
-        value: BigNumber.from(block).toNumber(),
+        value: toNumber(toBigInt(block)),
       },
     ])
   }
@@ -406,6 +436,82 @@ export class TransportDB {
         value: batch,
       },
     ])
+  }
+
+  public async getLastDerivedL1Block(l2ChainId: number): Promise<number> {
+    const derivedL1Blocks = await this.db.rangeKV<number, number>(
+      `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
+      0,
+      undefined, // set no limit to upper bound
+      true, // reads in reverse order
+      true // only needs to latest entry
+    )
+
+    return !derivedL1Blocks ? 0 : derivedL1Blocks[0].key
+  }
+
+  public async getL1OriginOfL2Block(
+    l2block: number,
+    l2ChainId: number
+  ): Promise<number> {
+    const l1Origin = await this.db.get<number>(
+      `${TRANSPORT_DB_KEYS.L2_BLOCK_TO_L1_MAPPER_PREFIX}${l2ChainId}`,
+      l2block
+    )
+
+    return !l1Origin ? 0 : l1Origin
+  }
+
+  // getL2SafeHeadFromL1Block returns the latest safe l2 block along with the corresponding l1 block number,
+  // the first element of the tuple is the l1 block number that is closet to the given l1 block number,
+  // the second element of the tuple is the safe l2 block number.
+  public async getL2SafeHeadFromL1Block(
+    l1block: number,
+    l2ChainId: number
+  ): Promise<[number, number]> {
+    const l2Blocks = await this.db.rangeKV<number, number>(
+      `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
+      0,
+      l1block,
+      true, // reads in reverse order
+      true // only needs to latest entry
+    )
+
+    return !l2Blocks ? [0, 0] : [l2Blocks[0].key, l2Blocks[0].value]
+  }
+
+  public async setL1BlockToL2BlockMapping(
+    l1block: number,
+    l2ChainId: number,
+    l2block: number
+  ): Promise<void> {
+    return this.db.put<number>([
+      {
+        key: `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
+        index: l1block,
+        value: l2block,
+      },
+    ])
+  }
+
+  public async setL2BlockToL1BlockMapping(
+    l1block: number,
+    l2ChainId: number,
+    l2blocks: number[]
+  ): Promise<void> {
+    if (!l2blocks) {
+      return
+    }
+
+    return this.db.put<number>(
+      l2blocks.map((l2block) => {
+        return {
+          key: `${TRANSPORT_DB_KEYS.L2_BLOCK_TO_L1_MAPPER_PREFIX}${l2ChainId}`,
+          index: l2block,
+          value: l1block,
+        }
+      })
+    )
   }
 
   public async getStartingL1Block(): Promise<number> {
@@ -541,6 +647,18 @@ export class TransportDB {
     return fullTransactions
   }
 
+  public async getFirstLteInboxSender(
+    target: number,
+    inboxSenderType: SenderType
+  ): Promise<InboxSenderSetEntry> {
+    return this._getFirstLteEntity(
+      `${TRANSPORT_DB_KEYS.MVM_CTC_INBOX_SENDER}:${inboxSenderType
+        .valueOf()
+        .toString(10)}`,
+      target
+    )
+  }
+
   private async _getFullBlock(block: BlockEntry): Promise<BlockEntry> {
     const fullTransactions = []
     for (const transaction of block.transactions) {
@@ -647,5 +765,12 @@ export class TransportDB {
     endIndex: number
   ): Promise<TEntry[] | []> {
     return this.db.range<TEntry>(`${key}:index`, startIndex, endIndex)
+  }
+
+  private async _getFirstLteEntity<TEntry extends Indexed>(
+    key: string,
+    target: number
+  ): Promise<TEntry | null> {
+    return this.db.getFirstLte<TEntry>(`${key}:index`, target)
   }
 }

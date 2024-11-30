@@ -1,24 +1,20 @@
-import { BaseProvider } from '@ethersproject/providers'
-import { BigNumber, Event } from 'ethers'
-
 import { TransportDB } from '../db/transport-db'
 import {
-  TransactionBatchEntry,
-  TransactionEntry,
+  BlockEntry,
   StateRootBatchEntry,
   StateRootEntry,
-  VerifierStakeEntry,
-  AppendBatchElementEntry,
-  BlockEntry,
+  TransactionBatchEntry,
+  TransactionEntry,
 } from './database-types'
+import { EventLog, Provider } from 'ethersv6'
 
-export type TypedEthersEvent<T> = Event & {
+export type TypedEthersEvent<T> = EventLog & {
   args: T
 }
 
 export type GetExtraDataHandler<TEventArgs, TExtraData> = (
   event?: TypedEthersEvent<TEventArgs>,
-  l1RpcProvider?: BaseProvider
+  l1RpcProvider?: Provider
 ) => Promise<TExtraData>
 
 export type ParseEventHandler<TEventArgs, TExtraData, TParsedEvent> = (
@@ -34,7 +30,15 @@ export type StoreEventHandler<TParsedEvent> = (
   options?: any
 ) => Promise<void>
 
-export interface EventHandlerSet<TEventArgs, TExtraData, TParsedEvent> {
+export interface ContextfulData {
+  context?: any
+}
+
+export interface EventHandlerSet<
+  TEventArgs,
+  TExtraData extends ContextfulData,
+  TParsedEvent
+> {
   getExtraData: GetExtraDataHandler<TEventArgs, TExtraData>
   parseEvent: ParseEventHandler<TEventArgs, TExtraData, TParsedEvent>
   storeEvent: StoreEventHandler<TParsedEvent>
@@ -42,16 +46,19 @@ export interface EventHandlerSet<TEventArgs, TExtraData, TParsedEvent> {
 
 export type GetExtraDataHandlerAny<TExtraData> = (
   event?: any,
-  l1RpcProvider?: BaseProvider
+  l1RpcProvider?: Provider
 ) => Promise<TExtraData>
 
-export interface EventHandlerSetAny<TExtraData, TParsedEvent> {
+export interface EventHandlerSetAny<
+  TExtraData extends ContextfulData,
+  TParsedEvent
+> {
   getExtraData: GetExtraDataHandlerAny<TExtraData>
   parseEvent: ParseEventHandler<any, TExtraData, TParsedEvent>
   storeEvent: StoreEventHandler<TParsedEvent>
 }
 
-export interface SequencerBatchAppendedExtraData {
+export interface SequencerBatchAppendedExtraData extends ContextfulData {
   timestamp: number
   blockNumber: number
   submitter: string
@@ -60,11 +67,15 @@ export interface SequencerBatchAppendedExtraData {
   gasLimit: string
 
   // Stuff from TransactionBatchAppended.
-  prevTotalElements: BigNumber
-  batchIndex: BigNumber
-  batchSize: BigNumber
+  prevTotalElements: bigint
+  batchIndex: bigint
+  batchSize: bigint
   batchRoot: string
   batchExtraData: string
+
+  // blob related
+  blobIndex: number
+  blobCount: number
 }
 
 export interface SequencerBatchAppendedParsedEvent {
@@ -77,7 +88,7 @@ export interface SequencerBatchInboxParsedEvent {
   blockEntries: BlockEntry[]
 }
 
-export interface StateBatchAppendedExtraData {
+export interface StateBatchAppendedExtraData extends ContextfulData {
   timestamp: number
   blockNumber: number
   submitter: string
@@ -85,7 +96,7 @@ export interface StateBatchAppendedExtraData {
   l1TransactionData: string
 }
 
-export interface StateBatchAppendedParsedEvent {
+export interface StateBatchAppendedParsedEvent extends ContextfulData {
   stateRootBatchEntry: StateRootBatchEntry
   stateRootEntries: StateRootEntry[]
 }

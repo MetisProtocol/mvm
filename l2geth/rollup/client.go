@@ -161,7 +161,7 @@ type Client struct {
 	signer  *types.EIP155Signer
 	chainID string
 
-  useInbox bool
+	useInbox bool
 }
 
 // TransactionResponse represents the response from the remote server when
@@ -371,20 +371,20 @@ func (c *Client) GetLatestTransactionIndex(backend Backend) (*uint64, error) {
 
 // GetLatestTransactionBatchIndex returns the latest transaction batch index
 func (c *Client) GetLatestTransactionBatchIndex() (*uint64, error) {
-  var batch *Batch
-  var err error
-  if !c.useInbox {
-	  batch, _, err = c.GetLatestTransactionBatch()
-  } else {
-	  batch, _, err = c.GetLatestBlockBatch()
-  }
+	var batch *Batch
+	var err error
+	if !c.useInbox {
+		batch, _, err = c.GetLatestTransactionBatch()
+	} else {
+		batch, _, err = c.GetLatestBlockBatch()
+	}
 	if err != nil {
 		if strings.Contains(err.Error(), "USE_INBOX_BATCH_INDEX") {
 			batch, _, err = c.GetLatestBlockBatch()
 			if err != nil {
 				return nil, err
 			}
-      c.useInbox = true
+			c.useInbox = true
 		} else {
 			return nil, err
 		}
@@ -849,7 +849,7 @@ func (c *Client) GetLatestBlock(backend Backend) (*types.Block, error) {
 
 	if err != nil {
 		// return nil, fmt.Errorf("cannot fetch latest block: %w", err)
-    return nil, errElementNotFound
+		return nil, errElementNotFound
 	}
 	res, ok := response.Result().(*BlockResponse)
 	if !ok {

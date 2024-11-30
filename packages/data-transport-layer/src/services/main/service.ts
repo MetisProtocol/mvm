@@ -1,7 +1,8 @@
 /* Imports: External */
-import { BaseService, Logger, Metrics } from '@eth-optimism/common-ts'
+import { BaseService, Metrics } from '@eth-optimism/common-ts'
 import { LevelUp } from 'levelup'
 import level from 'level'
+import { Counter } from 'prom-client'
 
 /* Imports: Internal */
 import { L1IngestionService } from '../l1-ingestion/service'
@@ -9,7 +10,6 @@ import { L1TransportServer } from '../server/service'
 import { validators } from '../../utils'
 import { L2IngestionService } from '../l2-ingestion/service'
 import { TransportDBMapHolder } from '../../db/transport-db'
-import { Counter } from 'prom-client'
 
 export interface L1DataTransportServiceOptions {
   nodeEnv: string
@@ -20,6 +20,7 @@ export interface L1DataTransportServiceOptions {
   dangerouslyCatchAllErrors?: boolean
   hostname: string
   l1RpcProvider: string
+  l1BeaconProvider: string
   l2ChainId: number
   l2RpcProvider: string
   metrics?: Metrics
@@ -47,11 +48,14 @@ export interface L1DataTransportServiceOptions {
   minioAccessKey?: string
   minioSecretKey?: string
 
+  blobEnabled?: boolean
+
   trustedIndexer?: string
 
   deSeqBlock: number
   batchInboxAddress: string
   batchInboxSender: string
+  batchInboxBlobSender: string
   batchInboxStartIndex: number
   batchInboxL1Height: number
 }

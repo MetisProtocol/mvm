@@ -1,11 +1,13 @@
 import { expect } from '../setup'
-import { ethers, BigNumber, Signer } from 'ethers'
-import { submitTransactionWithYNATM } from '../../src/utils/tx-submission'
-import { ResubmissionConfig } from '../../src'
 import {
+  ethers,
+  Signer,
+  toBigInt,
   TransactionReceipt,
   TransactionResponse,
-} from '@ethersproject/abstract-provider'
+} from 'ethers'
+import { submitTransactionWithYNATM } from '../../src/utils/tx-submission'
+import { ResubmissionConfig } from '../../src'
 
 const nullFunction = () => undefined
 const nullHooks = {
@@ -25,9 +27,9 @@ describe('submitTransactionWithYNATM', async () => {
     const numConfirmations = 3
     const tx = {
       data: 'we here though',
-    } as ethers.PopulatedTransaction
+    } as ethers.PreparedTransactionRequest
     const sendTransaction = async (
-      _tx: ethers.PopulatedTransaction
+      _tx: ethers.PreparedTransactionRequest
     ): Promise<TransactionResponse> => {
       called.sendTransaction = true
       expect(_tx.data).to.equal(tx.data)
@@ -49,14 +51,16 @@ describe('submitTransactionWithYNATM', async () => {
       } as TransactionReceipt
     }
     const signer = {
-      getGasPrice: async () => ethers.BigNumber.from(0),
+      getGasPrice: async () => ethers.toBigInt(0),
       sendTransaction,
       provider: {
         waitForTransaction,
       },
-    } as Signer
+    } as unknown as Signer
     const hooks = {
-      beforeSendTransaction: (submittingTx: ethers.PopulatedTransaction) => {
+      beforeSendTransaction: (
+        submittingTx: ethers.PreparedTransactionRequest
+      ) => {
         called.beforeSendTransaction = true
         expect(submittingTx.data).to.equal(tx.data)
       },
@@ -90,14 +94,14 @@ describe('submitTransactionWithYNATM', async () => {
     const resubmissionTimeout = 100
     const txReceiptDelay = resubmissionTimeout * 3
     const numConfirmations = 3
-    let lastGasPrice = BigNumber.from(0)
+    let lastGasPrice = toBigInt(0)
     // Create a transaction which has a gas price that we will watch increment
     const tx = {
-      gasPrice: lastGasPrice.add(1),
+      gasPrice: lastGasPrice + 1n,
       data: 'hello world!',
-    } as ethers.PopulatedTransaction
+    } as ethers.PreparedTransactionRequest
     const sendTransaction = async (
-      _tx: ethers.PopulatedTransaction
+      _tx: ethers.PreparedTransactionRequest
     ): Promise<TransactionResponse> => {
       // Ensure the gas price is always increasing
       expect(_tx.gasPrice > lastGasPrice).to.be.true
@@ -114,12 +118,12 @@ describe('submitTransactionWithYNATM', async () => {
       return {} as TransactionReceipt
     }
     const signer = {
-      getGasPrice: async () => ethers.BigNumber.from(0),
+      getGasPrice: async () => ethers.toBigInt(0),
       sendTransaction,
       provider: {
         waitForTransaction,
       },
-    } as Signer
+    } as unknown as Signer
     const config: ResubmissionConfig = {
       resubmissionTimeout,
       minGasPriceInGwei: 0,

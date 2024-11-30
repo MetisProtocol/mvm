@@ -63,14 +63,15 @@ export interface VerifierResultResponse {
 
 export type SyncingResponse =
   | {
-      syncing: true
-      highestKnownTransactionIndex: number
-      currentTransactionIndex: number
-    }
+  syncing: true
+  highestKnownTransactionIndex: number
+  currentTransactionIndex: number
+}
   | {
-      syncing: false
-      currentTransactionIndex: number
-    }
+  syncing: false
+  currentTransactionIndex: number
+}
+
 export interface VerifierStakeResponse {
   verifierStake: VerifierStakeEntry
 }
@@ -81,4 +82,37 @@ export interface AppendBatchElementResponse {
 
 export interface HighestResponse {
   blockNumber: number
+}
+
+export interface BlockID {
+  hash: string
+  number: number
+}
+
+export interface L2BlockRef {
+  hash: string
+  number: number
+  parentHash: string
+  timestamp: number
+  l1origin: BlockID
+  sequenceNumber: number
+}
+
+export interface L1BlockRef {
+  hash: string
+  number: number
+  parentHash: string
+  time: number
+}
+
+export interface SyncStatusResponse {
+  currentL1: L1BlockRef
+  currentL1Finalized?: L1BlockRef // Deprecated by Optimism
+  headL1: L1BlockRef
+  safeL1: L1BlockRef
+  finalizedL1: L1BlockRef
+  unsafeL2: L2BlockRef
+  safeL2: L2BlockRef
+  finalizedL2: L2BlockRef
+  pendingSafeL2: L2BlockRef
 }

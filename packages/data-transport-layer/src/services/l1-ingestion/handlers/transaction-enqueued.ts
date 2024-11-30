@@ -1,7 +1,7 @@
 import { EventArgsTransactionEnqueued } from '@metis.io/core-utils'
+import { toNumber } from 'ethersv6'
 
 /* Imports: Internal */
-import { BigNumber } from 'ethers'
 import { EnqueueEntry, EventHandlerSet } from '../../../types'
 import { MissingElementError } from './errors'
 
@@ -15,16 +15,16 @@ export const handleEventsTransactionEnqueued: EventHandlerSet<
   },
   parseEvent: async (event) => {
     return {
-      index: event.args._queueIndex.toNumber(),
+      index: toNumber(event.args._queueIndex),
       target: event.args._target,
       data: event.args._data,
       gasLimit: event.args._gasLimit.toString(),
       origin: event.args._l1TxOrigin,
-      blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+      blockNumber: toNumber(event.blockNumber),
       timestamp:
-        BigNumber.from(event.blockNumber).toNumber() >= 14570938
+        toNumber(event.blockNumber) >= 14570938
           ? Math.floor(new Date().getTime() / 1000)
-          : event.args._timestamp.toNumber(),
+          : toNumber(event.args._timestamp),
       ctcIndex: null,
     }
   },

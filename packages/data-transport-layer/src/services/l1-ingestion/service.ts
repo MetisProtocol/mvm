@@ -1,30 +1,29 @@
 /* Imports: External */
-import { fromHexString, FallbackProvider } from '@metis.io/core-utils'
+import { FallbackProvider, fromHexString } from '@metis.io/core-utils'
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
-import { BaseProvider } from '@ethersproject/providers'
-import { BlockWithTransactions } from '@ethersproject/abstract-provider'
 import { LevelUp } from 'levelup'
-import { constants } from 'ethers'
-import { Gauge, Counter } from 'prom-client'
+import { Block, ethers, EventLog, Provider, toNumber } from 'ethersv6'
+import { Counter, Gauge } from 'prom-client'
 
 /* Imports: Internal */
 import {
   TransportDB,
-  TransportDBMapHolder,
   TransportDBMap,
+  TransportDBMapHolder,
 } from '../../db/transport-db'
 import {
+  addressEvent,
+  loadContract,
+  loadOptimismContracts,
   OptimismContracts,
   sleep,
-  loadOptimismContracts,
-  loadContract,
   validators,
-  addressEvent,
 } from '../../utils'
 import {
-  TypedEthersEvent,
   EventHandlerSet,
   EventHandlerSetAny,
+  SenderType,
+  TypedEthersEvent,
 } from '../../types'
 import { handleEventsTransactionEnqueued } from './handlers/transaction-enqueued'
 import { handleEventsSequencerBatchAppended } from './handlers/sequencer-batch-appended'
@@ -34,6 +33,7 @@ import { MissingElementError } from './handlers/errors'
 import { handleEventsVerifierStake } from './handlers/verifier-stake'
 import { handleEventsAppendBatchElement } from './handlers/append-batch-element'
 import { handleEventsSequencerBatchInbox } from './handlers/sequencer-batch-inbox'
+import { handleInboxSenderSet } from './handlers/inbox-sender-set'
 
 interface L1IngestionMetrics {
   highestSyncedL1Block: Gauge<string>
@@ -114,9 +114,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     dbs: TransportDBMap
     dbOfL2: TransportDB
     contracts: OptimismContracts
-    l1RpcProvider: BaseProvider
+    l1RpcProvider: Provider
     startingL1BlockNumber: number
     startingL1BatchIndex: number
+    defaultInboxSenders: string[]
   } = {} as any
 
   protected async _init(): Promise<void> {
@@ -151,7 +152,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     )
 
     const code = await this.state.l1RpcProvider.getCode(
-      Lib_AddressManager.address
+      await Lib_AddressManager.getAddress()
     )
     if (fromHexString(code).length === 0) {
       throw new Error(
@@ -163,12 +164,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // Just check to make sure this doesn't throw. If this is a valid AddressManager, then this
       // call should succeed. If it throws, then our AddressManager is broken. We don't care about
       // the result.
-      await Lib_AddressManager.getAddress(
+      await Lib_AddressManager.getFunction('getAddress').staticCall(
         `Here's a contract name that definitely doesn't exist.`
       )
     } catch (err) {
       throw new Error(
-        `Seems like your AddressManager is busted: ${Lib_AddressManager.address}`
+        `Seems like your AddressManager is busted: ${Lib_AddressManager.address}, ${err}`
       )
     }
 
@@ -216,10 +217,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         await this.state.contracts.CanonicalTransactionChain.getTotalBatchesByChainId(
           this.options.l2ChainId
         )
-      this.state.startingL1BatchIndex = startingL1BatchIndex
+      this.state.startingL1BatchIndex = toNumber(startingL1BatchIndex)
       await this.state.db.setStartingL1BatchIndex(
         this.state.startingL1BatchIndex
       )
+    } else {
+      this.state.startingL1BatchIndex = startingL1BatchIndex
     }
 
     // Store the total number of submitted transactions so the server can tell clients if we're
@@ -228,6 +231,26 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       await this.state.contracts.CanonicalTransactionChain.getTotalElements()
     if (totalElements > 0) {
       await this.state.db.putHighestL2BlockNumber(totalElements - 1)
+    }
+
+    for (const senderType of Object.values(SenderType)) {
+      if (typeof senderType !== 'number') {
+        continue
+      }
+
+      const inboxSender =
+        await this.state.contracts.Proxy__MVM_InboxSenderManager.defaultInboxSender(
+          senderType
+        )
+
+      this.logger.info('Loaded default inbox sender', {
+        inboxSender,
+        senderType,
+      })
+      if (!this.state.defaultInboxSenders) {
+        this.state.defaultInboxSenders = []
+      }
+      this.state.defaultInboxSenders.push(inboxSender.toLowerCase())
     }
   }
 
@@ -255,7 +278,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
         const latestBatch = await this.state.dbOfL2.getLatestTransactionBatch()
         const highestSyncedL1BatchIndex =
-          latestBatch === null ? -1 : latestBatch.index
+          // FIXME: comment out this to bypass the previous upgrade checks
+          // latestBatch === null ? -1 : latestBatch.index
+          latestBatch === null ? 0 : latestBatch.index
 
         this.logger.info('Synchronizing events from Layer 1 (Ethereum)', {
           usingL2ChainId: this.options.l2ChainId,
@@ -277,7 +302,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           inboxBatchStart > 0
         const useBatchInbox =
           hasInboxConfig &&
-          highestSyncedL1BatchIndex > 0 &&
+          // FIXME: comment out this to bypass the previous upgrade checks
+          // highestSyncedL1BatchIndex > 0 &&
           inboxBatchStart <= highestSyncedL1BatchIndex + 1 &&
           this.state.startingL1BatchIndex <= highestSyncedL1BatchIndex + 1
 
@@ -359,6 +385,14 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             )
           }
 
+          await this._syncEvents(
+            'Proxy__MVM_InboxSenderManager',
+            'InboxSenderSet',
+            highestSyncedL1Block,
+            targetL1Block,
+            handleInboxSenderSet
+          )
+
           await this._syncInboxBatch(
             highestSyncedL1Block,
             targetL1Block,
@@ -407,7 +441,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           }
 
           // Find the last good element and reset the highest synced L1 block to go back to the
-          // last good element. Will resync other event types too but we have no issues with
+          // last good element. Will resync other event types too, but we have no issues with
           // syncing the same events more than once.
           const eventName = err.name
           if (!(eventName in handlers)) {
@@ -465,11 +499,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   ): Promise<void> {
     const blockPromises = []
     for (let i = fromL1Block; i <= toL1Block; i++) {
-      blockPromises.push(this.state.l1RpcProvider.getBlockWithTransactions(i))
+      blockPromises.push(this.state.l1RpcProvider.getBlock(i, true))
     }
 
     // Just making sure that the blocks will come back in increasing order.
-    const blocks = (await Promise.all(blockPromises)) as BlockWithTransactions[]
+    const blocks = (await Promise.all(blockPromises)) as Block[]
     this.logger.info('_syncInboxBatch get blocks', {
       fromL1Block,
       toL1Block,
@@ -477,15 +511,43 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     const extraMap: Record<number, any> = {}
     for (const block of blocks) {
-      for (const tx of block.transactions) {
+      const inboxSenderAddress = await this._getInboxSender(
+        block.number,
+        SenderType.Batch.valueOf()
+      )
+      let inboxBlobSenderAddress
+      if (this.options.blobEnabled) {
+        inboxBlobSenderAddress = await this._getInboxSender(
+          block.number,
+          SenderType.Blob.valueOf()
+        )
+      }
+
+      this.logger.info(`Using inbox at ${block.number}`, {
+        inboxSenderAddress,
+        inboxBlobSenderAddress,
+      })
+
+      // we need to keep tracking the blob data index in a block in order to get the correct one for
+      // our batch tx
+      let blobIndex = 0
+      const txsPromises = block.transactions.map((txHash) =>
+        this.state.l1RpcProvider.getTransaction(txHash)
+      )
+      const txs = await Promise.all(txsPromises)
+      for (const tx of txs) {
         if (
           tx.to &&
           tx.to.toLowerCase() ===
             this.options.batchInboxAddress.toLowerCase() &&
-          tx.from.toLowerCase() ===
-            this.options.batchInboxSender.toLowerCase() &&
+          tx.from.toLowerCase() === inboxSenderAddress.toLowerCase() &&
           tx.data.length >= 140
         ) {
+          this.logger.info('found inbox batch', {
+            blockNumber: block.number,
+            txIndex: tx.index,
+            txHash: tx.hash,
+          })
           // check receipt status, 0 fail
           const receipt = await this.state.l1RpcProvider.getTransactionReceipt(
             tx.hash
@@ -496,23 +558,36 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           ) {
             continue
           }
-          // verfiy data
+          // verify data
           const makeEvent = {
             transaction: tx,
             block,
+            blobIndex,
           }
           try {
             const extraData = await handlers.getExtraData(
               makeEvent,
               this.state.l1RpcProvider
             )
+
+            // append context values
+            if (inboxBlobSenderAddress) {
+              extraData.context = {
+                ...extraData.context,
+                inboxBlobSenderAddress: inboxBlobSenderAddress.toLowerCase(),
+              }
+            }
+
             extraMap[extraData.batchIndex] = extraData
           } catch (err) {
             this.logger.warn('Verify inbox batch failed:', {
               tx,
+              err,
             })
           }
         }
+
+        blobIndex += tx.blobVersionedHashes ? tx.blobVersionedHashes.length : 0
       }
     }
     const extraDatas: any[] = []
@@ -525,19 +600,31 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     if (extraDatas.length > 0) {
       const tick = Date.now()
       for (const extraData of extraDatas) {
-        const parsedEvent = await handlers.parseEvent(
-          null,
-          extraData,
-          this.options.l2ChainId,
-          this.options
-        )
-        this.logger.info('Storing Inbox Batch:', {
-          chainId: this.options.l2ChainId,
-        })
-        this.logger.debug('Storing Inbox Batch Data:', {
-          parsedEvent,
-        })
-        await handlers.storeEvent(parsedEvent, this.state.dbOfL2, this.options)
+        try {
+          const parsedEvent = await handlers.parseEvent(
+            null,
+            extraData,
+            this.options.l2ChainId,
+            this.options
+          )
+          this.logger.info('Storing Inbox Batch:', {
+            chainId: this.options.l2ChainId,
+          })
+          this.logger.debug('Storing Inbox Batch Data:', {
+            parsedEvent,
+          })
+          await handlers.storeEvent(
+            parsedEvent,
+            this.state.dbOfL2,
+            this.options
+          )
+        } catch (e) {
+          this.logger.error('Failed to store inbox batch:', {
+            error: e,
+            extraData,
+          })
+        }
+
         // await this.state.db.setHighestSyncedL1BatchIndex(extraData.batchIndex)
       }
 
@@ -634,7 +721,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             this.state.l1RpcProvider
           )
           // filter chainId
-          const chainId = event.args._chainId.toNumber()
+          const chainId = event.args._chainId
+            ? toNumber(event.args._chainId)
+            : null
           const parsedEvent = await handlers.parseEvent(
             event,
             extraData,
@@ -684,10 +773,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       )
       const addressDict = addressEvent[chainId]
       if (!addressDict[contractName]) {
-        return constants.AddressZero
+        return ethers.ZeroAddress
       }
       const arr = addressDict[contractName]
-      let findAddress = constants.AddressZero
+      let findAddress = ethers.ZeroAddress
       for (let i = arr.length - 1; i >= 0; i--) {
         const addr = arr[i]
         if (blockNumber >= addr.Start) {
@@ -708,10 +797,10 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     )
 
     if (events.length > 0) {
-      return events[events.length - 1].args._newAddress
+      return (events[events.length - 1] as EventLog).args._newAddress
     } else {
       // Address wasn't set before this.
-      return constants.AddressZero
+      return ethers.ZeroAddress
     }
   }
 
@@ -738,5 +827,19 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     }
 
     throw new Error(`Unable to find appropriate L1 starting block number`)
+  }
+  private async _getInboxSender(
+    blockNumber: number,
+    senderType: SenderType
+  ): Promise<string> {
+    const inboxSender = await this.state.db.getFirstLteInboxSender(
+      blockNumber,
+      senderType
+    )
+    if (inboxSender && inboxSender.inboxSender) {
+      return inboxSender.inboxSender
+    }
+
+    return this.state.defaultInboxSenders[senderType.valueOf()]
   }
 }

@@ -2,13 +2,11 @@
 import { BaseService, Logger, Metrics } from '@eth-optimism/common-ts'
 import express, { Request, Response } from 'express'
 import promBundle from 'express-prom-bundle'
-import { Gauge } from 'prom-client'
 import cors from 'cors'
-import { BigNumber } from 'ethers'
-import { JsonRpcProvider } from '@ethersproject/providers'
 import { LevelUp } from 'levelup'
 import * as Sentry from '@sentry/node'
 import * as Tracing from '@sentry/tracing'
+import { toBigInt, toNumber, JsonRpcProvider, Block } from 'ethersv6'
 
 /* Imports: Internal */
 import { TransportDB, TransportDBMapHolder } from '../../db/transport-db'
@@ -28,6 +26,9 @@ import {
   VerifierStakeResponse,
   AppendBatchElementResponse,
   HighestResponse,
+  SyncStatusResponse,
+  L1BlockRef,
+  L2BlockRef,
 } from '../../types'
 import { validators } from '../../utils'
 import { L1DataTransportServiceOptions } from '../main/service'
@@ -169,14 +170,14 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
     if (this.state.l1RpcProvider) {
       this.logger.info('HTTP Server L1 RPC Provider initialized', {
-        url: this.state.l1RpcProvider.connection.url,
+        url: this.state.l1RpcProvider._getConnection().url,
       })
     } else {
       this.logger.warn('HTTP Server L1 RPC Provider not initialized')
     }
     if (this.state.l2RpcProvider) {
       this.logger.info('HTTP Server L2 RPC Provider initialized', {
-        url: this.state.l2RpcProvider.connection.url,
+        url: this.state.l2RpcProvider._getConnection().url,
       })
     } else {
       this.logger.warn('HTTP Server L2 RPC Provider not initialized')
@@ -286,7 +287,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/eth/syncing/:chainId',
       async (req): Promise<SyncingResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
         const backend = req.query.backend || this.options.defaultBackend
@@ -354,16 +355,16 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       '/eth/gasprice',
       async (req): Promise<GasPriceResponse> => {
         const backend = req.query.backend || this.options.l1GasPriceBackend
-        let gasPrice: BigNumber
+        let gasPrice: bigint
 
         if (backend === 'l1') {
-          gasPrice = await this.state.l1RpcProvider.getGasPrice()
+          gasPrice = (await this.state.l1RpcProvider.getFeeData()).gasPrice
         } else if (backend === 'l2') {
           const response = await this.state.l2RpcProvider.send(
             'rollup_gasPrices',
             []
           )
-          gasPrice = BigNumber.from(response.l1GasPrice)
+          gasPrice = toBigInt(response.l1GasPrice)
         } else {
           throw new Error(`Unknown L1 gas price backend: ${backend}`)
         }
@@ -395,7 +396,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/eth/context/blocknumber/:number',
       async (req): Promise<ContextResponse> => {
-        const number = BigNumber.from(req.params.number).toNumber()
+        const number = toNumber(req.params.number)
         const tip = await this.state.l1RpcProvider.getBlockNumber()
         const blockNumber = Math.max(0, tip - this.options.confirmations)
 
@@ -420,7 +421,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/enqueue/latest/:chainId',
       async (req): Promise<EnqueueResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
         const enqueue = await db.getLatestEnqueue()
 
@@ -450,11 +451,9 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/enqueue/index/:index/:chainId',
       async (req): Promise<EnqueueResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
-        const enqueue = await db.getEnqueueByIndex(
-          BigNumber.from(req.params.index).toNumber()
-        )
+        const enqueue = await db.getEnqueueByIndex(toNumber(req.params.index))
 
         if (enqueue === null) {
           return {
@@ -482,7 +481,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/transaction/latest/:chainId',
       async (req): Promise<TransactionResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
         const backend = req.query.backend || this.options.defaultBackend
@@ -521,7 +520,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/transaction/index/:index/:chainId',
       async (req): Promise<TransactionResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
         const backend = req.query.backend || this.options.defaultBackend
@@ -530,12 +529,12 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         switch (backend) {
           case 'l1':
             transaction = await db.getFullTransactionByIndex(
-              BigNumber.from(req.params.index).toNumber()
+              toNumber(req.params.index)
             )
             break
           case 'l2':
             transaction = await db.getUnconfirmedTransactionByIndex(
-              BigNumber.from(req.params.index).toNumber()
+              toNumber(req.params.index)
             )
             break
           default:
@@ -564,7 +563,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/batch/transaction/latest/:chainId',
       async (req): Promise<TransactionBatchResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
         const batch = await db.getLatestTransactionBatch()
 
@@ -580,9 +579,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         }
 
         const transactions = await db.getFullTransactionsByIndexRange(
-          BigNumber.from(batch.prevTotalElements).toNumber(),
-          BigNumber.from(batch.prevTotalElements).toNumber() +
-            BigNumber.from(batch.size).toNumber()
+          toNumber(batch.prevTotalElements),
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -596,15 +594,15 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/batch/transaction/index/:index/:chainId',
       async (req): Promise<TransactionBatchResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
-        if (this.useBatchInbox(BigNumber.from(req.params.index).toNumber())) {
+        if (this.useBatchInbox(toNumber(req.params.index))) {
           throw new Error('USE_INBOX_BATCH_INDEX')
         }
 
         const batch = await db.getTransactionBatchByIndex(
-          BigNumber.from(req.params.index).toNumber()
+          toNumber(req.params.index)
         )
 
         if (batch === null) {
@@ -615,9 +613,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         }
 
         const transactions = await db.getFullTransactionsByIndexRange(
-          BigNumber.from(batch.prevTotalElements).toNumber(),
-          BigNumber.from(batch.prevTotalElements).toNumber() +
-            BigNumber.from(batch.size).toNumber()
+          toNumber(batch.prevTotalElements),
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -631,7 +628,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/block/latest/:chainId',
       async (req): Promise<BlockResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
         const backend = req.query.backend || this.options.defaultBackend
@@ -668,7 +665,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/block/index/:index/:chainId',
       async (req): Promise<BlockResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
         const backend = req.query.backend || this.options.defaultBackend
@@ -676,13 +673,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         switch (backend) {
           case 'l1':
-            block = await db.getBlockByIndex(
-              BigNumber.from(req.params.index).toNumber()
-            )
+            block = await db.getBlockByIndex(toNumber(req.params.index))
             break
           case 'l2':
             block = await db.getUnconfirmedBlockByIndex(
-              BigNumber.from(req.params.index).toNumber()
+              toNumber(req.params.index)
             )
             break
           default:
@@ -709,7 +704,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/batch/block/latest/:chainId',
       async (req): Promise<BlockBatchResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
         const batch = await db.getLatestTransactionBatch()
 
@@ -725,9 +720,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         }
 
         const blocks = await db.getBlocksByIndexRange(
-          BigNumber.from(batch.prevTotalElements).toNumber(),
-          BigNumber.from(batch.prevTotalElements).toNumber() +
-            BigNumber.from(batch.size).toNumber()
+          toNumber(batch.prevTotalElements),
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -741,15 +735,15 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/batch/block/index/:index/:chainId',
       async (req): Promise<BlockBatchResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
-        if (!this.useBatchInbox(BigNumber.from(req.params.index).toNumber())) {
+        if (!this.useBatchInbox(toNumber(req.params.index))) {
           throw new Error('BELOW_INBOX_BATCH_INDEX')
         }
 
         const batch = await db.getTransactionBatchByIndex(
-          BigNumber.from(req.params.index).toNumber()
+          toNumber(req.params.index)
         )
 
         if (batch === null) {
@@ -760,9 +754,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         }
 
         const blocks = await db.getBlocksByIndexRange(
-          BigNumber.from(batch.prevTotalElements).toNumber(),
-          BigNumber.from(batch.prevTotalElements).toNumber() +
-            BigNumber.from(batch.size).toNumber()
+          toNumber(batch.prevTotalElements),
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -776,7 +769,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/stateroot/latest/:chainId',
       async (req): Promise<StateRootResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
         const backend = req.query.backend || this.options.defaultBackend
@@ -813,7 +806,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/stateroot/index/:index/:chainId',
       async (req): Promise<StateRootResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
 
         const backend = req.query.backend || this.options.defaultBackend
@@ -821,13 +814,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         switch (backend) {
           case 'l1':
-            stateRoot = await db.getStateRootByIndex(
-              BigNumber.from(req.params.index).toNumber()
-            )
+            stateRoot = await db.getStateRootByIndex(toNumber(req.params.index))
             break
           case 'l2':
             stateRoot = await db.getUnconfirmedStateRootByIndex(
-              BigNumber.from(req.params.index).toNumber()
+              toNumber(req.params.index)
             )
             break
           default:
@@ -854,7 +845,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/batch/stateroot/latest/:chainId',
       async (req): Promise<StateRootBatchResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
         const batch = await db.getLatestStateRootBatch()
 
@@ -866,9 +857,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         }
 
         const stateRoots = await db.getStateRootsByIndexRange(
-          BigNumber.from(batch.prevTotalElements).toNumber(),
-          BigNumber.from(batch.prevTotalElements).toNumber() +
-            BigNumber.from(batch.size).toNumber()
+          toNumber(batch.prevTotalElements),
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -882,10 +872,10 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/batch/stateroot/index/:index/:chainId',
       async (req): Promise<StateRootBatchResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
         const batch = await db.getStateRootBatchByIndex(
-          BigNumber.from(req.params.index).toNumber()
+          toNumber(req.params.index)
         )
 
         if (batch === null) {
@@ -896,9 +886,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
         }
 
         const stateRoots = await db.getStateRootsByIndexRange(
-          BigNumber.from(batch.prevTotalElements).toNumber(),
-          BigNumber.from(batch.prevTotalElements).toNumber() +
-            BigNumber.from(batch.size).toNumber()
+          toNumber(batch.prevTotalElements),
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
         )
 
         return {
@@ -912,7 +901,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/verifier/get/:success/:chainId',
       async (req): Promise<VerifierResultResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const success =
           req.params.success === 'true' || req.params.success === '1'
         const db = await this._getDb(chainId)
@@ -939,9 +928,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
           const batch = await db.getStateRootBatchByIndex(stateRoot.batchIndex)
           resp.batch = batch
           const stateRoots = await db.getStateRootsByIndexRange(
-            BigNumber.from(batch.prevTotalElements).toNumber(),
-            BigNumber.from(batch.prevTotalElements).toNumber() +
-              BigNumber.from(batch.size).toNumber()
+            toNumber(batch.prevTotalElements),
+            toNumber(batch.prevTotalElements) + toNumber(batch.size)
           )
           const rootsArray: string[] = []
           if (stateRoots && stateRoots.length > 0) {
@@ -964,11 +952,11 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/verifier/set/:success/:chainId/:index/:stateRoot/:verifierRoot',
       async (req): Promise<VerifierResultResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const success =
           req.params.success === 'true' || req.params.success === '1'
         const entry: VerifierResultEntry = {
-          index: BigNumber.from(req.params.index).toNumber(),
+          index: toNumber(req.params.index),
           stateRoot: req.params.stateRoot,
           verifierRoot: req.params.verifierRoot,
           timestamp: new Date().getTime(),
@@ -989,7 +977,7 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/verifier/stake/latest/:chainId',
       async (req): Promise<VerifierStakeResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
+        const chainId = toNumber(req.params.chainId)
         const db = await this._getDb(chainId)
         const result = await db.getLatestVerifierStake()
 
@@ -1009,8 +997,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/verifier/stake/index/:index/:chainId',
       async (req): Promise<VerifierStakeResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
-        const index = BigNumber.from(req.params.index).toNumber()
+        const chainId = toNumber(req.params.chainId)
+        const index = toNumber(req.params.index)
         const db = await this._getDb(chainId)
         const result = await db.getVerifierStakeByIndex(index)
 
@@ -1030,8 +1018,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/batch/element/index/:index/:chainId',
       async (req): Promise<AppendBatchElementResponse> => {
-        const chainId = BigNumber.from(req.params.chainId).toNumber()
-        const index = BigNumber.from(req.params.index).toNumber()
+        const chainId = toNumber(req.params.chainId)
+        const index = toNumber(req.params.index)
         const db = await this._getDb(chainId)
         const result = await db.getBatchElementByIndex(index)
 
@@ -1043,6 +1031,174 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
 
         return {
           batchElement: result,
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
+      '/rollup/safe-head/:chainId/:l1bock',
+      async (req): Promise<L2BlockRef> => {
+        const l1BlockNumber = toNumber(req.params.l1block)
+        const chainId = toNumber(req.params.chainId)
+        const [derivedFromL1Block, safeL2Block] =
+          await this.state.db.getL2SafeHeadFromL1Block(l1BlockNumber, chainId)
+
+        // get l1 block and l2 block async
+        const derivedFromL1BlockPromise = this.state.l1RpcProvider.getBlock(
+          `0x${derivedFromL1Block.toString(16)}`
+        )
+        const safeL2BlockPromise = this.state.l2RpcProvider.getBlock(
+          `0x${safeL2Block.toString(16)}`
+        )
+        const [l1Block, l2Block] = await Promise.all<Block>([
+          derivedFromL1BlockPromise,
+          safeL2BlockPromise,
+        ])
+
+        return {
+          hash: l2Block.hash,
+          number: safeL2Block,
+          parentHash: l2Block.parentHash,
+          timestamp: l2Block.timestamp,
+          l1origin: {
+            hash: l1Block.hash,
+            number: l1Block.number,
+          },
+          sequenceNumber: 0,
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
+      '/rollup/l1origin/:chainId/:l2block',
+      async (req): Promise<L1BlockRef> => {
+        const l2BlockNumber = toNumber(req.params.l2block)
+        const chainId = toNumber(req.params.chainId)
+        const l1BlockNumber = await this.state.db.getL1OriginOfL2Block(
+          l2BlockNumber,
+          chainId
+        )
+
+        const l1Block = await this.state.l1RpcProvider.getBlock(
+          `0x${l1BlockNumber.toString(16)}`
+        )
+
+        return {
+          hash: l1Block.hash,
+          number: l1Block.number,
+          parentHash: l1Block.parentHash,
+          time: l1Block.timestamp,
+        }
+      }
+    )
+
+    this._registerRoute(
+      'get',
+      '/rollup/sync-status/:chainId',
+      async (req): Promise<SyncStatusResponse> => {
+        const chainId = toNumber(req.params.chainId)
+
+        // convert eth block to block ref
+        const buildL1BlockRef = (block: Block): L1BlockRef => {
+          return {
+            hash: block.hash,
+            number: block.number,
+            parentHash: block.parentHash,
+            time: block.timestamp,
+          }
+        }
+
+        // retrieve required L1 blocks
+        const lastDerivedL1Block = await this.state.db.getLastDerivedL1Block(
+          chainId
+        )
+
+        const lastDerivedL1Promise = this.state.l1RpcProvider.getBlock(
+          `0x${lastDerivedL1Block.toString(16)}`
+        )
+
+        // query required blocks from L1 asynchronously
+        const headL1Promise = this.state.l1RpcProvider.getBlock('latest')
+        const safeL1Promise = this.state.l1RpcProvider.getBlock('safe')
+        const finalizedL1Promise =
+          this.state.l1RpcProvider.getBlock('finalized')
+        const [lastDerivedL1, headL1, safeL1, finalizedL1] = (
+          await Promise.all<Block>([
+            lastDerivedL1Promise,
+            headL1Promise,
+            safeL1Promise,
+            finalizedL1Promise,
+          ])
+        ).map(buildL1BlockRef)
+
+        // build L2 block ref from L2 block and L1 block ref
+        const buildL2BlockRef = (
+          l2Block: Block,
+          l1Block: L1BlockRef | undefined
+        ): L2BlockRef => {
+          return {
+            hash: l2Block.hash,
+            number: l2Block.number,
+            parentHash: l2Block.parentHash,
+            timestamp: l2Block.timestamp,
+            l1origin: !l1Block
+              ? undefined
+              : {
+                  hash: l1Block.hash,
+                  number: l1Block.number,
+                },
+            // TODO: currently we are not using this for FDG, leave this as 0 for now
+            sequenceNumber: 0,
+          }
+        }
+
+        // retrieve required L2 blocks
+        const [, safeL2Block] = await this.state.db.getL2SafeHeadFromL1Block(
+          lastDerivedL1.number,
+          chainId
+        )
+        const safeL2 = buildL2BlockRef(
+          await this.state.l2RpcProvider.getBlock(
+            `0x${safeL2Block.toString(16)}`
+          ),
+          lastDerivedL1
+        )
+        const unsafeL2 = buildL2BlockRef(
+          await this.state.l2RpcProvider.getBlock('latest'),
+          undefined
+        )
+
+        // find the latest finalized L2 block
+        const [derivedFromL1Block, finalizedL2Block] =
+          await this.state.db.getL2SafeHeadFromL1Block(
+            finalizedL1.number,
+            chainId
+          )
+        const currentL1Finalized = buildL1BlockRef(
+          await this.state.l1RpcProvider.getBlock(
+            `0x${derivedFromL1Block.toString(16)}`
+          )
+        )
+        const finalizedL2 = buildL2BlockRef(
+          await this.state.l2RpcProvider.getBlock(
+            `0x${finalizedL2Block.toString(16)}`
+          ),
+          currentL1Finalized
+        )
+
+        return {
+          currentL1: lastDerivedL1,
+          headL1,
+          safeL1,
+          finalizedL1,
+          unsafeL2,
+          safeL2,
+          finalizedL2,
+          // FIXME: use safe l2 as pending safe l2 for now,
+          //  since currently we don't have a way to get pending safe l2.
+          pendingSafeL2: safeL2,
         }
       }
     )

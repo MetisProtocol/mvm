@@ -1,38 +1,34 @@
 import { expect } from '../setup'
 
 /* External Imports */
-import { ethers } from 'hardhat'
-import '@nomiclabs/hardhat-ethers'
-import { Signer, ContractFactory, Contract, BigNumber } from 'ethers'
+import { BigNumber, Contract, ContractFactory, ethers, Signer } from 'ethers'
 import ganache from 'ganache-core'
 import sinon from 'sinon'
-import { Web3Provider } from '@ethersproject/providers'
 
 import scc from '@metis.io/contracts/artifacts/contracts/L1/rollup/StateCommitmentChain.sol/StateCommitmentChain.json'
-import { getContractInterface, predeploys } from '@eth-optimism/contracts'
-import { smockit, MockContract } from '@eth-optimism/smock'
+import { getContractInterface } from '@eth-optimism/contracts'
+import { MockContract, smockit } from '@eth-optimism/smock'
 
 import { getContractFactory } from 'old-contracts'
 
 /* Internal Imports */
 import { MockchainProvider } from './mockchain-provider'
 import {
+  FORCE_INCLUSION_PERIOD_SECONDS,
   makeAddressManager,
   setProxyTarget,
-  FORCE_INCLUSION_PERIOD_SECONDS,
 } from '../helpers'
 import {
-  CanonicalTransactionChainContract,
-  TransactionBatchSubmitter as RealTransactionBatchSubmitter,
-  StateBatchSubmitter,
-  TX_BATCH_SUBMITTER_LOG_TAG,
-  STATE_BATCH_SUBMITTER_LOG_TAG,
   BatchSubmitter,
-  YnatmTransactionSubmitter,
   ResubmissionConfig,
+  STATE_BATCH_SUBMITTER_LOG_TAG,
+  StateBatchSubmitter,
+  TransactionBatchSubmitter as RealTransactionBatchSubmitter,
+  TX_BATCH_SUBMITTER_LOG_TAG,
+  YnatmTransactionSubmitter,
 } from '../../src'
 
-import { QueueOrigin, Batch, Signature, remove0x } from '@metis.io/core-utils'
+import { Batch, QueueOrigin, remove0x, Signature } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 const DUMMY_ADDRESS = '0x' + '00'.repeat(20)
@@ -148,7 +144,7 @@ describe('BatchSubmitter', () => {
       Factory__OVM_StateCommitmentChain.connect(signer)
   })
 
-  let OVM_CanonicalTransactionChain: CanonicalTransactionChainContract
+  let OVM_CanonicalTransactionChain: Contract
   let OVM_StateCommitmentChain: Contract
   let l2Provider: MockchainProvider
   beforeEach(async () => {
@@ -158,11 +154,11 @@ describe('BatchSubmitter', () => {
         FORCE_INCLUSION_PERIOD_SECONDS
       )
 
-    await unwrapped_OVM_CanonicalTransactionChain.init()
+    await unwrapped_OVM_CanonicalTransactionChain.getFunction('init')()
 
     await AddressManager.setAddress(
       'OVM_CanonicalTransactionChain',
-      unwrapped_OVM_CanonicalTransactionChain.address
+      await unwrapped_OVM_CanonicalTransactionChain.getAddress()
     )
 
     await AddressManager.setAddress(
@@ -170,7 +166,7 @@ describe('BatchSubmitter', () => {
       unwrapped_OVM_CanonicalTransactionChain.address
     )
 
-    OVM_CanonicalTransactionChain = new CanonicalTransactionChainContract(
+    OVM_CanonicalTransactionChain = new Contract(
       unwrapped_OVM_CanonicalTransactionChain.address,
       getContractInterface('CanonicalTransactionChain'),
       sequencer
@@ -219,7 +215,7 @@ describe('BatchSubmitter', () => {
       gasRetryIncrement: GAS_RETRY_INCREMENT,
     }
     const txBatchTxSubmitter = new YnatmTransactionSubmitter(
-      sequencer,
+      sequencer as any,
       resubmissionConfig,
       1
     )
@@ -451,6 +447,7 @@ describe('BatchSubmitter', () => {
       )
       stateBatchSubmitter = new StateBatchSubmitter(
         sequencer,
+        l1Provider,
         l2Provider as any,
         MIN_TX_SIZE,
         MAX_TX_SIZE,
@@ -465,7 +462,12 @@ describe('BatchSubmitter', () => {
         1,
         new Logger({ name: STATE_BATCH_SUBMITTER_LOG_TAG }),
         testMetrics,
-        '0x' + '01'.repeat(20) // placeholder for fraudSubmissionAddress
+        '0x' + '01'.repeat(20), // placeholder for fraudSubmissionAddress,
+        '',
+        '',
+        '',
+        0,
+        0
       )
     })
 

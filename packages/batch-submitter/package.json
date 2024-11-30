@@ -1,6 +1,6 @@
 {
   "name": "@eth-optimism/batch-submitter",
-  "version": "0.3.14",
+  "version": "0.4.0",
   "private": true,
   "description": "[Optimism] Batch submission for sequencer & aggregators",
   "main": "dist/index",
@@ -9,7 +9,7 @@
     "dist/index"
   ],
   "scripts": {
-    "start": "node ./exec/run-batch-submitter.js",
+    "start": "node --enable-source-maps ./exec/run-batch-submitter.js",
     "build": "tsc -p ./tsconfig.build.json",
     "clean": "rimraf cache/ dist/ ./tsconfig.build.tsbuildinfo",
     "lint": "yarn lint:fix && yarn lint:check",
@@ -19,6 +19,7 @@
     "lint:check": "eslint .",
     "test": "hardhat test --show-stack-traces",
     "test:mpc": "ts-mocha test/batch-submitter/mpc-client.spec.ts --timeout 320000 --show-stack-traces",
+    "test:blob": "ts-mocha test/batch-submitter/blob-da.spec.ts --timeout 320000 --show-stack-traces",
     "test:coverage": "nyc hardhat test && nyc merge .nyc_output coverage.json"
   },
   "keywords": [
@@ -37,25 +38,27 @@
   "dependencies": {
     "@eth-optimism/common-ts": "0.1.5",
     "@metis.io/contracts": "^1.2.*",
-    "@metis.io/core-utils": "^0.6.1",
+    "@metis.io/core-utils": "~0.7.6",
     "@eth-optimism/ynatm": "^0.2.2",
-    "@ethersproject/abstract-provider": "^5.4.1",
-    "@ethersproject/providers": "^5.4.5",
     "@sentry/node": "^6.3.1",
     "bcfg": "^0.1.6",
+    "lodash": "^4.17.21",
     "bluebird": "^3.7.2",
     "dotenv": "^10.0.0",
-    "ethers": "^5.4.5",
+    "ethersv6": "npm:ethers@~6.13.4",
+    "rlp": "^3.0.0",
+    "c-kzg": "^4.0.1",
     "old-contracts": "npm:@eth-optimism/contracts@^0.0.2-alpha.7",
     "prom-client": "^13.1.0"
   },
   "devDependencies": {
     "@eth-optimism/smock": "^1.1.10",
-    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomicfoundation/hardhat-ethers": "~3.0.8",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@types/bluebird": "^3.5.34",
     "@types/chai": "^4.2.18",
     "@types/mocha": "^8.2.2",
+    "@types/lodash": "^4.14.168",
     "@types/node": "^15.12.2",
     "@types/prettier": "^2.2.3",
     "@types/rimraf": "^3.0.0",

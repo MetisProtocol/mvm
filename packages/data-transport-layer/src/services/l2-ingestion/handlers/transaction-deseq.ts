@@ -1,6 +1,5 @@
 /* Imports: External */
-import { BigNumber, ethers } from 'ethers'
-import { serialize } from '@ethersproject/transactions'
+import { ethers, toNumber } from 'ethersv6'
 
 /* Imports: Internal */
 import { TransportDB } from '../../../db/transport-db'
@@ -24,16 +23,16 @@ export const handleDeSequencerBlock = {
     const txEntryList = block.transactions.map((transaction) => {
       const transactionIndex =
         transaction.index === null || transaction.index === undefined
-          ? BigNumber.from(transaction.blockNumber).toNumber() - 1
-          : BigNumber.from(transaction.index).toNumber()
+          ? toNumber(transaction.blockNumber) - 1
+          : toNumber(transaction.index)
 
       let transactionEntry: Partial<TransactionEntry> = {
         // Legacy support.
         index: transactionIndex,
         value: transaction.value,
         batchIndex: null,
-        blockNumber: BigNumber.from(transaction.l1BlockNumber).toNumber(),
-        timestamp: BigNumber.from(transaction.l1Timestamp).toNumber(),
+        blockNumber: toNumber(transaction.l1BlockNumber),
+        timestamp: toNumber(transaction.l1Timestamp),
         queueOrigin: transaction.queueOrigin,
         confirmed: false,
       }
@@ -46,34 +45,32 @@ export const handleDeSequencerBlock = {
             s: padHexString(transaction.s, 32),
           },
           value: transaction.value,
-          gasLimit: BigNumber.from(transaction.gas).toString(),
-          gasPrice: BigNumber.from(transaction.gasPrice).toString(),
-          nonce: BigNumber.from(transaction.nonce).toString(),
+          gasLimit: toNumber(transaction.gas).toString(),
+          gasPrice: toNumber(transaction.gasPrice).toString(),
+          nonce: toNumber(transaction.nonce).toString(),
           target: transaction.to,
           data: transaction.input,
         }
 
         transactionEntry = {
           ...transactionEntry,
-          gasLimit: BigNumber.from(0).toString(),
-          target: ethers.constants.AddressZero,
+          gasLimit: toNumber(0).toString(),
+          target: ethers.ZeroAddress,
           origin: null,
-          data: serialize(
-            {
-              value: transaction.value,
-              gasLimit: transaction.gas,
-              gasPrice: transaction.gasPrice,
-              nonce: transaction.nonce,
-              to: transaction.to,
-              data: transaction.input,
-              chainId,
-            },
-            {
-              v: BigNumber.from(transaction.v).toNumber(),
+          data: ethers.Transaction.from({
+            value: transaction.value,
+            gasLimit: transaction.gas,
+            gasPrice: transaction.gasPrice,
+            nonce: transaction.nonce,
+            to: transaction.to,
+            data: transaction.input,
+            chainId,
+            signature: {
+              v: toNumber(transaction.v),
               r: padHexString(transaction.r, 32),
               s: padHexString(transaction.s, 32),
-            }
-          ),
+            },
+          }).serialized,
           decoded: decodedTransaction,
           queueIndex: null,
         }
@@ -84,16 +81,16 @@ export const handleDeSequencerBlock = {
       } else {
         transactionEntry = {
           ...transactionEntry,
-          gasLimit: BigNumber.from(transaction.gas).toString(),
-          target: ethers.utils.getAddress(transaction.to),
-          origin: ethers.utils.getAddress(transaction.l1TxOrigin),
+          gasLimit: toNumber(transaction.gas).toString(),
+          target: ethers.getAddress(transaction.to),
+          origin: ethers.getAddress(transaction.l1TxOrigin),
           data: transaction.input,
           decoded: null,
           queueIndex:
             transaction.queueIndex === null ||
             transaction.queueIndex === undefined
-              ? BigNumber.from(transaction.nonce).toNumber()
-              : BigNumber.from(transaction.queueIndex).toNumber(),
+              ? toNumber(transaction.nonce)
+              : toNumber(transaction.queueIndex),
         }
       }
       return transactionEntry as TransactionEntry
@@ -101,7 +98,7 @@ export const handleDeSequencerBlock = {
     const blockEntry: BlockEntry = {
       index: block.number - 1, // keep same rule as single tx index
       batchIndex: null,
-      timestamp: BigNumber.from(block.timestamp).toNumber(),
+      timestamp: toNumber(block.timestamp),
       transactions: txEntryList,
       confirmed: false,
     }

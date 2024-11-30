@@ -1,70 +1,88 @@
 import cloneDeep from 'lodash/cloneDeep'
-import { providers, BigNumber } from 'ethers'
+import {
+  Block,
+  BlockParams,
+  ethers,
+  JsonRpcProvider,
+  Network,
+  toBeHex,
+  toBigInt,
+  toNumber,
+  TransactionReceipt,
+  TransactionReceiptParams,
+  TransactionResponse,
+  TransactionResponseParams,
+} from 'ethersv6'
+import { L2Block, L2Transaction } from './batches'
 
 /**
  * Helper for adding additional L2 context to transactions
  */
-export const injectL2Context = (l1Provider: providers.JsonRpcProvider) => {
-  const provider = cloneDeep(l1Provider)
 
-  // Pass through the state root
-  const blockFormat = provider.formatter.block.bind(provider.formatter)
-  provider.formatter.block = (block) => {
-    const b = blockFormat(block)
-    b.stateRoot = block.stateRoot
-    return b
+export class L2Provider extends JsonRpcProvider {
+  toL2Transaction(
+    tx: TransactionResponseParams,
+    txResponse: TransactionResponse
+  ): L2Transaction {
+    const anyTx = tx as any
+    const txResponseAny = txResponse as any
+
+    txResponseAny.l1BlockNumber = toNumber(anyTx.l1BlockNumber)
+    txResponseAny.l1TxOrigin = anyTx.l1TxOrigin
+    txResponseAny.queueOrigin = anyTx.queueOrigin
+    txResponseAny.rawTransaction = anyTx.rawTransaction
+    txResponseAny.seqV = anyTx.seqV ? toBeHex(toNumber(anyTx.seqV)) : null
+    txResponseAny.seqR = anyTx.seqR ? toBeHex(toBigInt(anyTx.seqR)) : null
+    txResponseAny.seqS = anyTx.seqS ? toBeHex(toBigInt(anyTx.seqS)) : null
+
+    return txResponseAny as L2Transaction
   }
 
-  // Pass through the state root and additional tx data
-  const blockWithTransactions = provider.formatter.blockWithTransactions.bind(
-    provider.formatter
-  )
-  provider.formatter.blockWithTransactions = (block) => {
-    const b = blockWithTransactions(block)
-    b.stateRoot = block.stateRoot
-    for (let i = 0; i < b.transactions.length; i++) {
-      b.transactions[i].l1BlockNumber = block.transactions[i].l1BlockNumber
-      if (b.transactions[i].l1BlockNumber != null) {
-        b.transactions[i].l1BlockNumber = parseInt(
-          b.transactions[i].l1BlockNumber,
-          16
+  _wrapBlock(value: BlockParams, network: Network) {
+    const originalTxs = value.transactions
+    const block = super._wrapBlock(value, network)
+    const blockAny = block as any
+    blockAny.l2Transactions = new Array<L2Transaction>(
+      block.transactions ? block.transactions.length : 0
+    )
+    blockAny.l2TransactionPromises = originalTxs.map(async (tx, index) => {
+      let txResponse: TransactionResponse
+      if (typeof tx === 'string') {
+        txResponse = await this.getTransaction(tx)
+      } else {
+        txResponse = this.toL2Transaction(
+          tx,
+          block.prefetchedTransactions[index]
         )
       }
-      b.transactions[i].l1TxOrigin = block.transactions[i].l1TxOrigin
-      b.transactions[i].queueOrigin = block.transactions[i].queueOrigin
-      b.transactions[i].rawTransaction = block.transactions[i].rawTransaction
-    }
-    return b
+      blockAny.l2Transactions[index] = txResponse as L2Transaction
+      return txResponse
+    })
+
+    return blockAny as L2Block
   }
 
-  // Handle additional tx data
-  const formatTxResponse = provider.formatter.transactionResponse.bind(
-    provider.formatter
-  )
-  provider.formatter.transactionResponse = (transaction) => {
-    const tx = formatTxResponse(transaction) as any
-    tx.txType = transaction.txType
-    tx.queueOrigin = transaction.queueOrigin
-    tx.rawTransaction = transaction.rawTransaction
-    tx.l1BlockNumber = transaction.l1BlockNumber
-    if (tx.l1BlockNumber != null) {
-      tx.l1BlockNumber = parseInt(tx.l1BlockNumber, 16)
-    }
-    tx.l1TxOrigin = transaction.l1TxOrigin
-    return tx
+  _wrapTransactionResponse(
+    tx: TransactionResponseParams,
+    network: Network
+  ): TransactionResponse {
+    return this.toL2Transaction(tx, super._wrapTransactionResponse(tx, network))
   }
 
-  const formatReceiptResponse = provider.formatter.receipt.bind(
-    provider.formatter
-  )
-  provider.formatter.receipt = (receipt) => {
-    const r = formatReceiptResponse(receipt)
-    r.l1GasPrice = BigNumber.from(receipt.l1GasPrice)
-    r.l1GasUsed = BigNumber.from(receipt.l1GasUsed)
-    r.l1Fee = BigNumber.from(receipt.l1Fee)
-    r.l1FeeScalar = parseFloat(receipt.l1FeeScalar)
-    return r
-  }
+  _wrapTransactionReceipt(
+    receipt: TransactionReceiptParams,
+    network: Network
+  ): TransactionReceipt {
+    const txReceipt = super._wrapTransactionReceipt(receipt, network)
 
-  return provider
+    const anyReceipt = receipt as any
+    const txReceiptAny = txReceipt as any
+
+    txReceiptAny.l1GasPrice = toBigInt(anyReceipt.l1GasPrice || 0)
+    txReceiptAny.l1GasUsed = toBigInt(anyReceipt.l1GasUsed || 0)
+    txReceiptAny.l1Fee = toBigInt(anyReceipt.l1Fee || 0)
+    txReceiptAny.l1FeeScalar = parseFloat(anyReceipt.l1FeeScalar || 0)
+
+    return txReceiptAny as TransactionReceipt
+  }
 }

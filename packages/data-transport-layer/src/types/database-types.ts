@@ -99,3 +99,15 @@ export interface BlockEntry {
   transactions: TransactionEntry[]
   confirmed: boolean
 }
+
+export enum SenderType {
+  Batch = 0,
+  Blob = 1,
+}
+
+export interface InboxSenderSetEntry {
+  index: number
+  blockNumber: number
+  inboxSender: string
+  senderType: SenderType
+}

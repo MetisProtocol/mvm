@@ -1,21 +1,11 @@
 /* External Imports */
-import {
-  Contract,
-  Signer,
-  utils,
-  providers,
-  PopulatedTransaction,
-} from 'ethers'
-import {
-  TransactionReceipt,
-  TransactionResponse,
-} from '@ethersproject/abstract-provider'
-import { Gauge, Histogram, Counter } from 'prom-client'
+import { Contract, ethers, JsonRpcProvider, toNumber } from 'ethersv6'
+import { Counter, Gauge, Histogram } from 'prom-client'
 import { RollupInfo, sleep } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
-import { getContractFactory } from 'old-contracts'
 /* Internal Imports */
 import { TxSubmissionHooks } from '..'
+import { getContractDefinition } from '@metis.io/contracts'
 
 export interface BlockRange {
   start: number
@@ -44,8 +34,10 @@ export abstract class BatchSubmitter {
   protected metrics: BatchSubmitterMetrics
 
   constructor(
-    readonly signer: Signer,
-    readonly l2Provider: providers.StaticJsonRpcProvider,
+    readonly signer: ethers.Signer,
+    readonly blobSigner: ethers.Signer,
+    readonly l1Provider: JsonRpcProvider,
+    readonly l2Provider: JsonRpcProvider,
     readonly minTxSize: number,
     readonly maxTxSize: number,
     readonly maxBatchSize: number,
@@ -68,13 +60,13 @@ export abstract class BatchSubmitter {
     endBlock: number,
     useInbox?: boolean,
     nextBatchIndex?: number
-  ): Promise<TransactionReceipt>
-  public abstract _onSync(): Promise<TransactionReceipt>
+  ): Promise<ethers.TransactionReceipt>
+  public abstract _onSync(): Promise<ethers.TransactionReceipt>
   public abstract _getBatchStartAndEnd(): Promise<BlockRange>
   public abstract _updateChainInfo(): Promise<void>
   public abstract _mpcBalanceCheck(): Promise<boolean>
 
-  public async submitNextBatch(): Promise<TransactionReceipt> {
+  public async submitNextBatch(): Promise<ethers.TransactionReceipt> {
     if (typeof this.l2ChainId === 'undefined') {
       this.l2ChainId = await this._getL2ChainId()
     }
@@ -124,8 +116,8 @@ export abstract class BatchSubmitter {
       : await this.signer.getAddress()
     const balance = mpcAddressEnabled
       ? await this.signer.provider.getBalance(mpcAddress)
-      : await this.signer.getBalance()
-    const ether = utils.formatEther(balance)
+      : await this.signer.provider.getBalance(await this.signer.getAddress())
+    const ether = ethers.formatEther(balance)
     const num = parseFloat(ether)
 
     this.logger.info('Checked balance', {
@@ -151,7 +143,7 @@ export abstract class BatchSubmitter {
   }
 
   protected async _getL2ChainId(): Promise<number> {
-    return this.l2Provider.send('eth_chainId', [])
+    return toNumber(await this.l2Provider.send('eth_chainId', []))
   }
 
   protected async _getChainAddresses(): Promise<{
@@ -159,16 +151,17 @@ export abstract class BatchSubmitter {
     sccAddress: string
     mvmCtcAddress: string
   }> {
-    const addressManager = (
-      await getContractFactory('Lib_AddressManager', this.signer)
-    ).attach(this.addressManagerAddress)
-    const sccAddress = await addressManager.getAddress('StateCommitmentChain')
-    const ctcAddress = await addressManager.getAddress(
-      'CanonicalTransactionChain'
+    const addressManager = new Contract(
+      this.addressManagerAddress,
+      getContractDefinition('Lib_AddressManager').abi,
+      this.signer
     )
-    const mvmCtcAddress = await addressManager.getAddress(
-      'Proxy__MVM_CanonicalTransaction'
-    )
+
+    const getAddress = addressManager.getFunction('getAddress').staticCall
+
+    const sccAddress = await getAddress('StateCommitmentChain')
+    const ctcAddress = await getAddress('CanonicalTransactionChain')
+    const mvmCtcAddress = await getAddress('Proxy__MVM_CanonicalTransaction')
     return {
       ctcAddress,
       sccAddress,
@@ -219,17 +212,22 @@ export abstract class BatchSubmitter {
 
   protected _makeHooks(txName: string): TxSubmissionHooks {
     return {
-      beforeSendTransaction: (tx: PopulatedTransaction) => {
+      beforeSendTransaction: async (tx: ethers.TransactionRequest) => {
         this.logger.info(`Submitting ${txName} transaction`, {
-          gasPrice: tx.gasPrice,
-          maxFeePerGas: tx.maxFeePerGas,
-          maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
-          gasLimit: tx.gasLimit,
-          nonce: tx.nonce,
-          contractAddr: this.chainContract.address,
+          gasPrice: tx.gasPrice ? toNumber(tx.gasPrice) : 0,
+          maxFeePerGas: tx.maxFeePerGas ? toNumber(tx.maxFeePerGas) : 0,
+          maxPriorityFeePerGas: tx.maxPriorityFeePerGas
+            ? toNumber(tx.maxPriorityFeePerGas)
+            : 0,
+          maxFeePerBlobGas: tx.maxFeePerBlobGas
+            ? toNumber(tx.maxFeePerBlobGas)
+            : 0,
+          gasLimit: tx.gasLimit ? toNumber(tx.gasLimit) : null,
+          nonce: toNumber(tx.nonce),
+          contractAddr: tx.to,
         })
       },
-      onTransactionResponse: (txResponse: TransactionResponse) => {
+      onTransactionResponse: (txResponse: ethers.TransactionResponse) => {
         this.logger.info(`Submitted ${txName} transaction`, {
           txHash: txResponse.hash,
           from: txResponse.from,
@@ -242,17 +240,17 @@ export abstract class BatchSubmitter {
   }
 
   protected async _submitAndLogTx(
-    submitTransaction: () => Promise<TransactionReceipt>,
+    submitTransaction: () => Promise<ethers.TransactionReceipt>,
     successMessage: string,
     callback?: (
-      receipt: TransactionReceipt | null,
+      receipt: ethers.TransactionReceipt | null,
       err: any
     ) => Promise<boolean>
-  ): Promise<TransactionReceipt> {
+  ): Promise<ethers.TransactionReceipt> {
     this.lastBatchSubmissionTimestamp = Date.now()
     this.logger.debug('Submitting transaction & waiting for receipt...')
 
-    let receipt: TransactionReceipt
+    let receipt: ethers.TransactionReceipt
     try {
       receipt = await submitTransaction()
       if (callback) {
@@ -285,7 +283,7 @@ export abstract class BatchSubmitter {
     this.logger.info('Received transaction receipt', { receipt })
     this.logger.info(successMessage)
     this.metrics.batchesSubmitted.inc()
-    this.metrics.submissionGasUsed.observe(receipt.gasUsed.toNumber())
+    this.metrics.submissionGasUsed.observe(toNumber(receipt.gasUsed))
     this.metrics.submissionTimestamp.observe(Date.now())
     return receipt
   }

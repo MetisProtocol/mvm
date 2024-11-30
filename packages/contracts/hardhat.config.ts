@@ -1,4 +1,3 @@
-import { HardhatUserConfig } from 'hardhat/types'
 import 'solidity-coverage'
 import * as dotenv from 'dotenv'
 
@@ -28,7 +27,7 @@ const privateKey =
   process.env.PRIVATE_KEY ||
   '0x0000000000000000000000000000000000000000000000000000000000000000' // this is to avoid hardhat error
 
-const config: HardhatUserConfig = {
+const config = {
   networks: {
     hardhat: {
       accounts: DEFAULT_ACCOUNTS_HARDHAT,

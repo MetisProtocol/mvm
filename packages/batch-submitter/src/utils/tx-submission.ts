@@ -1,9 +1,4 @@
-import { Signer, utils, ethers, PopulatedTransaction } from 'ethers'
-import {
-  TransactionReceipt,
-  TransactionResponse,
-  Provider,
-} from '@ethersproject/abstract-provider'
+import { ethers, Signer, toBigInt, toNumber } from 'ethersv6'
 import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'
@@ -16,93 +11,134 @@ export interface ResubmissionConfig {
 }
 
 export type SubmitTransactionFn = (
-  tx: PopulatedTransaction
-) => Promise<TransactionReceipt>
+  tx: ethers.TransactionRequest
+) => Promise<ethers.TransactionReceipt>
 
 export interface TxSubmissionHooks {
-  beforeSendTransaction: (tx: PopulatedTransaction) => void
-  onTransactionResponse: (txResponse: TransactionResponse) => void
+  beforeSendTransaction: (tx: ethers.TransactionRequest) => void
+  onTransactionResponse: (txResponse: ethers.TransactionResponse) => void
 }
 
 const getGasPriceInGwei = async (signer: Signer): Promise<number> => {
   return parseInt(
-    ethers.utils.formatUnits(await signer.getGasPrice(), 'gwei'),
+    ethers.formatUnits((await signer.provider.getFeeData()).gasPrice, 'gwei'),
     10
   )
 }
 
 export const submitTransactionWithYNATM = async (
-  tx: PopulatedTransaction,
+  tx: ethers.TransactionRequest,
   signer: Signer,
   config: ResubmissionConfig,
   numConfirmations: number,
   hooks: TxSubmissionHooks
-): Promise<TransactionReceipt> => {
+): Promise<ethers.TransactionReceipt> => {
   const sendTxAndWaitForReceipt = async (
     gasPrice
-  ): Promise<TransactionReceipt> => {
-    const fullTx = {
-      ...tx,
-      gasPrice,
+  ): Promise<ethers.TransactionReceipt> => {
+    const isEIP1559 = !!tx.maxFeePerGas || !!tx.maxPriorityFeePerGas
+    let fullTx: any
+    const fee = await signer.provider.getFeeData()
+    if (isEIP1559) {
+      // to be compatible with EIP-1559, we need to set the gasPrice to the maxPriorityFeePerGas
+      const feeScalingFactor = gasPrice
+        ? gasPrice /
+          (toNumber(tx.maxFeePerGas) + toNumber(tx.maxPriorityFeePerGas))
+        : 1
+      fullTx = {
+        ...tx,
+        maxFeePerGas: fee.maxFeePerGas, // set base fee to latest
+        maxPriorityFeePerGas:
+          fee.maxPriorityFeePerGas * toBigInt(feeScalingFactor), // update priority fee with the scaling factor
+      }
+    } else {
+      fullTx = {
+        ...tx,
+        // in some cases (mostly local testing env) gas price is lower than 1 gwei,
+        // so we need to replace it to the current gas price
+        gasPrice: gasPrice || fee.gasPrice,
+      }
     }
+
     hooks.beforeSendTransaction(fullTx)
-    const txResponse = await signer.sendTransaction(fullTx)
-    hooks.onTransactionResponse(txResponse)
-    return signer.provider.waitForTransaction(txResponse.hash, numConfirmations)
+    try {
+      const txResponse = await signer.sendTransaction(fullTx)
+      hooks.onTransactionResponse(txResponse)
+      return signer.provider.waitForTransaction(
+        txResponse.hash,
+        numConfirmations
+      )
+    } catch (err) {
+      console.error('Error sending transaction:', err)
+      throw err
+    }
   }
 
   const minGasPrice = await getGasPriceInGwei(signer)
-  const receipt = await ynatm.send({
-    sendTransactionFunction: sendTxAndWaitForReceipt,
-    minGasPrice: ynatm.toGwei(minGasPrice),
-    maxGasPrice: ynatm.toGwei(config.maxGasPriceInGwei),
-    gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
-    delay: config.resubmissionTimeout,
-  })
-  return receipt
+  try {
+    const receipt = await ynatm.send({
+      sendTransactionFunction: sendTxAndWaitForReceipt,
+      minGasPrice: ynatm.toGwei(minGasPrice),
+      maxGasPrice: ynatm.toGwei(config.maxGasPriceInGwei),
+      gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
+      delay: config.resubmissionTimeout,
+    })
+    return receipt
+  } catch (err) {
+    console.error('Error submitting transaction:', err)
+    throw err
+  }
 }
 
 export const submitSignedTransactionWithYNATM = async (
-  tx: PopulatedTransaction,
+  tx: ethers.TransactionRequest,
   signFunction: Function,
   signer: Signer,
   config: ResubmissionConfig,
   numConfirmations: number,
   hooks: TxSubmissionHooks
-): Promise<TransactionReceipt> => {
-  const sendTxAndWaitForReceipt = async (
-    signedTx
-  ): Promise<TransactionReceipt> => {
-    hooks.beforeSendTransaction(tx)
-    const txResponse = await signer.provider.sendTransaction(signedTx)
-    hooks.onTransactionResponse(txResponse)
-    return signer.provider.waitForTransaction(txResponse.hash, numConfirmations)
-  }
+): Promise<ethers.TransactionReceipt> => {
+  try {
+    const sendTxAndWaitForReceipt = async (
+      signedTx
+    ): Promise<ethers.TransactionReceipt> => {
+      hooks.beforeSendTransaction(tx)
+      const txResponse = await signer.provider.broadcastTransaction(signedTx)
+      hooks.onTransactionResponse(txResponse)
+      return signer.provider.waitForTransaction(
+        txResponse.hash,
+        numConfirmations
+      )
+    }
 
-  const ynatmAsync = new YnatmAsync()
-  const minGasPrice = await getGasPriceInGwei(signer)
-  const receipt = await ynatmAsync.sendAfterSign({
-    sendSignedTransactionFunction: sendTxAndWaitForReceipt,
-    signFunction,
-    minGasPrice: ynatmAsync.toGwei(minGasPrice),
-    maxGasPrice: ynatmAsync.toGwei(config.maxGasPriceInGwei),
-    gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
-    delay: config.resubmissionTimeout,
-  })
-  return receipt
+    const ynatmAsync = new YnatmAsync()
+    const minGasPrice = await getGasPriceInGwei(signer)
+    const receipt = await ynatmAsync.sendAfterSign({
+      sendSignedTransactionFunction: sendTxAndWaitForReceipt,
+      signFunction,
+      minGasPrice: ynatmAsync.toGwei(minGasPrice),
+      maxGasPrice: ynatmAsync.toGwei(config.maxGasPriceInGwei),
+      gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
+      delay: config.resubmissionTimeout,
+    })
+    return receipt
+  } catch (e) {
+    console.error('Error submitting transaction:', e)
+    throw e
+  }
 }
 
 export interface TransactionSubmitter {
   submitTransaction(
-    tx: PopulatedTransaction,
+    tx: ethers.TransactionRequest,
     hooks?: TxSubmissionHooks
-  ): Promise<TransactionReceipt>
+  ): Promise<ethers.TransactionReceipt>
 
   submitSignedTransaction(
-    tx: PopulatedTransaction,
+    tx: ethers.TransactionRequest,
     signFunction: Function,
     hooks?: TxSubmissionHooks
-  ): Promise<TransactionReceipt>
+  ): Promise<ethers.TransactionReceipt>
 }
 
 export class YnatmTransactionSubmitter implements TransactionSubmitter {
@@ -113,9 +149,9 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
   ) {}
 
   public async submitTransaction(
-    tx: PopulatedTransaction,
+    tx: ethers.TransactionRequest,
     hooks?: TxSubmissionHooks
-  ): Promise<TransactionReceipt> {
+  ): Promise<ethers.TransactionReceipt> {
     if (!hooks) {
       hooks = {
         beforeSendTransaction: () => undefined,
@@ -132,10 +168,10 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
   }
 
   public async submitSignedTransaction(
-    tx: PopulatedTransaction,
+    tx: ethers.TransactionRequest,
     signFunction: Function,
     hooks?: TxSubmissionHooks
-  ): Promise<TransactionReceipt> {
+  ): Promise<ethers.TransactionReceipt> {
     if (!hooks) {
       hooks = {
         beforeSendTransaction: () => undefined,

@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@changesets/cli": "^2.16.0",
-    "@codechecks/client": "^0.1.11"
+    "@codechecks/client": "^0.1.11",
+    "ethersv6": "npm:ethers@~6.13.4"
   }
 }

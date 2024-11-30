@@ -1,12 +1,11 @@
 /* Imports: External */
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
-import { StaticJsonRpcProvider } from '@ethersproject/providers'
-import { BigNumber } from 'ethers'
 import { LevelUp } from 'levelup'
 import axios from 'axios'
 import bfj from 'bfj'
 import { Gauge } from 'prom-client'
 import path from 'path'
+import { toNumber, JsonRpcProvider } from 'ethersv6'
 
 /* Imports: Internal */
 import {
@@ -82,7 +81,7 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
   private state: {
     db: TransportDB
     dbs: TransportDBMap
-    l2RpcProvider: StaticJsonRpcProvider
+    l2RpcProvider: JsonRpcProvider
   } = {} as any
 
   protected async _init(): Promise<void> {
@@ -108,7 +107,7 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
     } else {
       this.state.l2RpcProvider =
         typeof this.options.l2RpcProvider === 'string'
-          ? new StaticJsonRpcProvider(this.options.l2RpcProvider)
+          ? new JsonRpcProvider(this.options.l2RpcProvider)
           : this.options.l2RpcProvider
     }
   }
@@ -218,10 +217,7 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
 
       // Just making sure that the blocks will come back in increasing order.
       blocks = (await Promise.all(blockPromises)).sort((a, b) => {
-        return (
-          BigNumber.from(a.number).toNumber() -
-          BigNumber.from(b.number).toNumber()
-        )
+        return toNumber(a.number) - toNumber(b.number)
       })
     } else {
       // This request returns a large response.  Parsing it into JSON inside the ethers library is
@@ -241,7 +237,7 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
       }
 
       const resp = await axios.post(
-        this.state.l2RpcProvider.connection.url,
+        this.state.l2RpcProvider._getConnection().url,
         req,
         { responseType: 'stream' }
       )

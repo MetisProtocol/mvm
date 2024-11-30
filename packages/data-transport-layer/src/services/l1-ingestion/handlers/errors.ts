@@ -9,3 +9,9 @@ export class MissingElementError extends Error {
     super(`missing event: ${name}`)
   }
 }
+
+export class BlobDataExpiredError extends Error {
+  constructor(public blobTxHash: string) {
+    super(`Blob tx ${blobTxHash} has expired`)
+  }
+}

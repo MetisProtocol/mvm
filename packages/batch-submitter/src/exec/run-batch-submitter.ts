@@ -1,27 +1,24 @@
 /* External Imports */
-import { injectL2Context, Bcfg, MinioConfig } from '@metis.io/core-utils'
+import { Bcfg, L2Provider, MinioConfig } from '@metis.io/core-utils'
 import * as Sentry from '@sentry/node'
-import { Logger, Metrics, createMetricsServer } from '@eth-optimism/common-ts'
-import { Signer, Wallet } from 'ethers'
-import {
-  StaticJsonRpcProvider,
-  TransactionReceipt,
-} from '@ethersproject/providers'
+import { createMetricsServer, Logger, Metrics } from '@eth-optimism/common-ts'
+import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethersv6'
 import * as dotenv from 'dotenv'
 import Config from 'bcfg'
+import { loadTrustedSetup } from 'c-kzg'
 
 /* Internal Imports */
 import {
-  TransactionBatchSubmitter,
   AutoFixBatchOptions,
-  StateBatchSubmitter,
   STATE_BATCH_SUBMITTER_LOG_TAG,
+  StateBatchSubmitter,
+  TransactionBatchSubmitter,
   TX_BATCH_SUBMITTER_LOG_TAG,
 } from '..'
 import {
+  ResubmissionConfig,
   TransactionSubmitter,
   YnatmTransactionSubmitter,
-  ResubmissionConfig,
 } from '../utils'
 
 interface RequiredEnvVars {
@@ -160,16 +157,59 @@ export const run = async () => {
     'debug-impersonate-sequencer-address',
     env.DEBUG_IMPERSONATE_SEQUENCER_ADDRESS
   )
+  const DEBUG_IMPERSONATE_BLOB_ADDRESS = config.str(
+    'debug-impersonate-blob-address',
+    env.DEBUG_IMPERSONATE_BLOB_ADDRESS
+  )
   const DEBUG_IMPERSONATE_PROPOSER_ADDRESS = config.str(
     'debug-impersonate-proposer-address',
     env.DEBUG_IMPERSONATE_PROPOSER_ADDRESS
   )
 
-  const getSequencerSigner = async (): Promise<Signer> => {
-    const l1Provider = new StaticJsonRpcProvider(
-      requiredEnvVars.L1_NODE_WEB3_URL
-    )
+  const getBlobSigner = async (): Promise<Signer> => {
+    if (useHardhat && USE_BLOB) {
+      if (!DEBUG_IMPERSONATE_BLOB_ADDRESS) {
+        throw new Error('Must pass DEBUG_IMPERSONATE_BLOB_ADDRESS')
+      }
+      await l1Provider.send('hardhat_impersonateAccount', [
+        DEBUG_IMPERSONATE_SEQUENCER_ADDRESS,
+      ])
+      return l1Provider.getSigner(DEBUG_IMPERSONATE_BLOB_ADDRESS)
+    }
 
+    if (BLOB_PRIVATE_KEY) {
+      if (
+        BLOB_PRIVATE_KEY === SEQUENCER_PRIVATE_KEY ||
+        BLOB_PRIVATE_KEY === PROPOSER_PRIVATE_KEY
+      ) {
+        throw new Error(
+          'Blob private key must be different from sequencer and proposer private keys'
+        )
+      }
+
+      return new Wallet(BLOB_PRIVATE_KEY, l1Provider)
+    } else if (BLOB_MNEMONIC) {
+      if (
+        (BLOB_MNEMONIC === SEQUENCER_MNEMONIC &&
+          BLOB_HD_PATH === SEQUENCER_HD_PATH) ||
+        (BLOB_MNEMONIC === PROPOSER_MNEMONIC &&
+          BLOB_HD_PATH === PROPOSER_HD_PATH)
+      ) {
+        throw new Error(
+          'Blob mnemonic and hd path must be different from sequencer and proposer'
+        )
+      }
+
+      return HDNodeWallet.fromPhrase(BLOB_MNEMONIC, null, BLOB_HD_PATH).connect(
+        l1Provider
+      )
+    }
+    throw new Error(
+      'Must pass one of BLOB_PRIVATE_KEY, MNEMONIC, or BLOB_MNEMONIC'
+    )
+  }
+
+  const getSequencerSigner = async (): Promise<Signer> => {
     if (useHardhat) {
       if (!DEBUG_IMPERSONATE_SEQUENCER_ADDRESS) {
         throw new Error('Must pass DEBUG_IMPERSONATE_SEQUENCER_ADDRESS')
@@ -183,9 +223,11 @@ export const run = async () => {
     if (SEQUENCER_PRIVATE_KEY) {
       return new Wallet(SEQUENCER_PRIVATE_KEY, l1Provider)
     } else if (SEQUENCER_MNEMONIC) {
-      return Wallet.fromMnemonic(SEQUENCER_MNEMONIC, SEQUENCER_HD_PATH).connect(
-        l1Provider
-      )
+      return HDNodeWallet.fromPhrase(
+        SEQUENCER_MNEMONIC,
+        null,
+        SEQUENCER_HD_PATH
+      ).connect(l1Provider)
     }
     throw new Error(
       'Must pass one of SEQUENCER_PRIVATE_KEY, MNEMONIC, or SEQUENCER_MNEMONIC'
@@ -193,10 +235,6 @@ export const run = async () => {
   }
 
   const getProposerSigner = async (): Promise<Signer> => {
-    const l1Provider = new StaticJsonRpcProvider(
-      requiredEnvVars.L1_NODE_WEB3_URL
-    )
-
     if (useHardhat) {
       if (!DEBUG_IMPERSONATE_PROPOSER_ADDRESS) {
         throw new Error('Must pass DEBUG_IMPERSONATE_PROPOSER_ADDRESS')
@@ -210,9 +248,11 @@ export const run = async () => {
     if (PROPOSER_PRIVATE_KEY) {
       return new Wallet(PROPOSER_PRIVATE_KEY, l1Provider)
     } else if (PROPOSER_MNEMONIC) {
-      return Wallet.fromMnemonic(PROPOSER_MNEMONIC, PROPOSER_HD_PATH).connect(
-        l1Provider
-      )
+      return HDNodeWallet.fromPhrase(
+        PROPOSER_MNEMONIC,
+        null,
+        PROPOSER_HD_PATH
+      ).connect(l1Provider)
     }
     throw new Error(
       'Must pass one of PROPOSER_PRIVATE_KEY, MNEMONIC, or PROPOSER_MNEMONIC'
@@ -250,6 +290,8 @@ export const run = async () => {
     'sequencer-private-key',
     env.SEQUENCER_PRIVATE_KEY
   )
+  // dedicated private key for signing blob txs
+  const BLOB_PRIVATE_KEY = config.str('blob-private-key', env.BLOB_PRIVATE_KEY)
   // Kept for backwards compatibility
   const PROPOSER_PRIVATE_KEY = config.str(
     'proposer-private-key',
@@ -259,6 +301,10 @@ export const run = async () => {
     'sequencer-mnemonic',
     env.SEQUENCER_MNEMONIC || env.MNEMONIC
   )
+  const BLOB_MNEMONIC = config.str(
+    'blob-mnemonic',
+    env.BLOB_MNEMONIC || env.MNEMONIC
+  )
   const PROPOSER_MNEMONIC = config.str(
     'proposer-mnemonic',
     env.PROPOSER_MNEMONIC || env.MNEMONIC
@@ -266,6 +312,10 @@ export const run = async () => {
   const SEQUENCER_HD_PATH = config.str(
     'sequencer-hd-path',
     env.SEQUENCER_HD_PATH || env.HD_PATH
+  )
+  const BLOB_HD_PATH = config.str(
+    'blob-hd-path',
+    env.BLOB_HD_PATH || env.HD_PATH
   )
   const PROPOSER_HD_PATH = config.str(
     'proposer-hd-path',
@@ -275,6 +325,12 @@ export const run = async () => {
   const VALIDATE_TX_BATCH = config.bool(
     'validate-tx-batch',
     env.VALIDATE_TX_BATCH ? env.VALIDATE_TX_BATCH === 'true' : false
+  )
+
+  // Blob DA
+  const USE_BLOB = config.bool(
+    'use-blob',
+    env.USE_BLOB ? env.USE_BLOB === 'true' : false
   )
 
   // Auto fix batch options -- TODO: Remove this very hacky config
@@ -379,7 +435,10 @@ export const run = async () => {
 
     MPC_URL: config.str('mpc-url', env.MPC_URL),
 
-    BATCH_INBOX_STORAGE_PATH: config.str('batch-inbox-storage-path', '/data'),
+    BATCH_INBOX_STORAGE_PATH: config.str(
+      'batch-inbox-storage-path',
+      env.BATCH_INBOX_STORAGE_PATH || '/data'
+    ),
     BATCH_INBOX_ADDRESS: config.str(
       'batch-inbox-address',
       env.BATCH_INBOX_ADDRESS
@@ -421,11 +480,21 @@ export const run = async () => {
 
   const clearPendingTxs = requiredEnvVars.CLEAR_PENDING_TXS
 
-  const l2Provider = injectL2Context(
-    new StaticJsonRpcProvider(requiredEnvVars.L2_NODE_WEB3_URL)
-  )
+  const l2Provider = new L2Provider(requiredEnvVars.L2_NODE_WEB3_URL)
+  const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
+
+  if (requiredEnvVars.MINIO_ENABLED && USE_BLOB) {
+    logger.error(
+      'Cannot use both Memo and Blob as DA, you can only choose one from them'
+    )
+    process.exit(1)
+  }
 
   const sequencerSigner: Signer = await getSequencerSigner()
+  let blobSigner: Signer
+  if (USE_BLOB) {
+    blobSigner = await getBlobSigner()
+  }
   let proposerSigner: Signer = await getProposerSigner()
 
   const sequencerAddress = await sequencerSigner.getAddress()
@@ -441,6 +510,12 @@ export const run = async () => {
     addressManagerAddress: requiredEnvVars.ADDRESS_MANAGER_ADDRESS,
   })
 
+  if (USE_BLOB) {
+    logger.info('Blob DA enabled, initializing KZG trusted setup...')
+    // initialize KZG trusted setup, required for blob DA
+    loadTrustedSetup(0)
+  }
+
   const resubmissionConfig: ResubmissionConfig = {
     resubmissionTimeout: requiredEnvVars.RESUBMISSION_TIMEOUT * 1_000,
     minGasPriceInGwei: MIN_GAS_PRICE_IN_GWEI,
@@ -453,6 +528,13 @@ export const run = async () => {
       resubmissionConfig,
       requiredEnvVars.NUM_CONFIRMATIONS
     )
+  const blobTxSubmitter: TransactionSubmitter = USE_BLOB
+    ? new YnatmTransactionSubmitter(
+        blobSigner,
+        resubmissionConfig,
+        requiredEnvVars.NUM_CONFIRMATIONS
+      )
+    : null
   let minioConfig: MinioConfig = null
   if (
     requiredEnvVars.MINIO_ENABLED &&
@@ -476,6 +558,8 @@ export const run = async () => {
   }
   const txBatchSubmitter = new TransactionBatchSubmitter(
     sequencerSigner,
+    blobSigner,
+    l1Provider,
     l2Provider,
     requiredEnvVars.MIN_L1_TX_SIZE,
     requiredEnvVars.MAX_L1_TX_SIZE,
@@ -487,6 +571,7 @@ export const run = async () => {
     requiredEnvVars.SAFE_MINIMUM_ETHER_BALANCE,
     GAS_THRESHOLD_IN_GWEI,
     txBatchTxSubmitter,
+    blobTxSubmitter,
     BLOCK_OFFSET,
     VALIDATE_TX_BATCH,
     logger.child({ name: TX_BATCH_SUBMITTER_LOG_TAG }),
@@ -500,7 +585,8 @@ export const run = async () => {
     requiredEnvVars.BATCH_INBOX_STORAGE_PATH,
     requiredEnvVars.SEQSET_VALID_HEIGHT,
     requiredEnvVars.SEQSET_CONTRACT,
-    SEQSET_UPGRADE_ONLY
+    SEQSET_UPGRADE_ONLY,
+    USE_BLOB
   )
 
   const stateBatchTxSubmitter: TransactionSubmitter =
@@ -511,6 +597,7 @@ export const run = async () => {
     )
   const stateBatchSubmitter = new StateBatchSubmitter(
     proposerSigner,
+    l1Provider,
     l2Provider,
     requiredEnvVars.MIN_L1_STATE_SIZE,
     requiredEnvVars.MAX_L1_STATE_SIZE,
@@ -547,13 +634,13 @@ export const run = async () => {
 
   // Loops infinitely!
   const loop = async (
-    func: () => Promise<TransactionReceipt>
+    func: () => Promise<ethers.TransactionReceipt>
   ): Promise<void> => {
     // Clear all pending transactions
     if (clearPendingTxs) {
       try {
-        const pendingTxs = await sequencerSigner.getTransactionCount('pending')
-        const latestTxs = await sequencerSigner.getTransactionCount('latest')
+        const pendingTxs = await sequencerSigner.getNonce('pending')
+        const latestTxs = await sequencerSigner.getNonce('latest')
         if (pendingTxs > latestTxs) {
           logger.info(
             'Detected pending transactions. Clearing all transactions!'
