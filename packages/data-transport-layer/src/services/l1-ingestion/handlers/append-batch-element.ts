@@ -8,9 +8,6 @@ import {
 /* Imports: External */
 import { toNumber } from 'ethersv6'
 
-/* Imports: External */
-import { toNumber } from 'ethersv6'
-
 export const handleEventsAppendBatchElement: EventHandlerSet<
   EventArgsAppendBatchElement,
   null,

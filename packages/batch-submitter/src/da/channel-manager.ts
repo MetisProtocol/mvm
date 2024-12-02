@@ -108,7 +108,6 @@ export class ChannelManager {
     await this.currentChannel.close()
 
     this.blocks = this.blocks.slice(blocksAdded)
-    this.currentChannel.close()
 
     this.logger.debug('Added blocks to channel', {
       blocks_added: blocksAdded,

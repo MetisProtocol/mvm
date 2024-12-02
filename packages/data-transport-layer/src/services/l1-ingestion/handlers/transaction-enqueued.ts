@@ -4,7 +4,6 @@ import { toNumber } from 'ethersv6'
 /* Imports: Internal */
 import { EnqueueEntry, EventHandlerSet } from '../../../types'
 import { MissingElementError } from './errors'
-import { toNumber } from 'ethers'
 
 export const handleEventsTransactionEnqueued: EventHandlerSet<
   EventArgsTransactionEnqueued,

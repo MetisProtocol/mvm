@@ -127,50 +127,6 @@ export class SimpleDB {
     }
   }
 
-  public async rangeKV<TKey, TValue>(
-    key: string,
-    startIndex: number,
-    endIndex?: number,
-    reverse?: boolean, // add this so we could retrieve the entries in reverse order
-    peek?: boolean // add this so we could just peek the first entry
-  ): Promise<{ key: TKey; value: TValue }[] | []> {
-    try {
-      return new Promise<any[]>((resolve, reject) => {
-        const data: { key: TKey; value: TValue }[] = []
-        this.db
-          .createReadStream({
-            gte: this._makeKey(key, startIndex),
-            lt: endIndex
-              ? this._makeKey(key, endIndex)
-              : this._makeUpperBoundKey(key),
-            reverse,
-          })
-          .on('data', (k, v) => {
-            data.push({
-              key: JSON.parse(k),
-              value: JSON.parse(v),
-            })
-            if (peek) {
-              // If we're just peeking, we can stop the stream early.
-              resolve(data)
-            }
-          })
-          .on('error', (err: any) => {
-            resolve(null)
-          })
-          .on('close', () => {
-            // TODO: Close vs end? Need to double check later.
-            resolve(data)
-          })
-          .on('end', () => {
-            resolve(data)
-          })
-      })
-    } catch (err) {
-      return []
-    }
-  }
-
   public async put<TEntry>(
     entries: {
       key: string
@@ -200,10 +156,5 @@ export class SimpleDB {
   private _makeUpperBoundKey(key: string): string {
     // prettier-ignore
     return `${key}:${toBigInt(2 ** 32 - 1).toString().padStart(32, '0')}`
-  }
-
-  private _makeUpperBoundKey(key: string): string {
-    // prettier-ignore
-    return `${key}:${BigNumber.from(2 ** 32 - 1).toString().padStart(32, '0')}`
   }
 }
