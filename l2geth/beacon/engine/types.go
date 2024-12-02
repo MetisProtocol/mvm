@@ -26,7 +26,6 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
-	"github.com/MetisProtocol/mvm/l2geth/trie"
 )
 
 // PayloadVersion denotes the version of PayloadAttributes used to request the
@@ -182,7 +181,7 @@ type ForkchoiceStateV1 struct {
 func encodeTransactions(txs []*types.Transaction) [][]byte {
 	var enc = make([][]byte, len(txs))
 	for i, tx := range txs {
-		enc[i], _ = tx.MarshalBinary()
+		enc[i], _ = rlp.EncodeToBytes(tx)
 	}
 	return enc
 }
@@ -210,7 +209,7 @@ func decodeTransactions(enc [][]byte) ([]*types.Transaction, error) {
 // and that the blockhash of the constructed block matches the parameters. Nil
 // Withdrawals value will propagate through the returned block. Empty
 // Withdrawals value must be passed via non-nil, length 0 value in data.
-func ExecutableDataToBlock(data ExecutableData, versionedHashes []common.Hash, beaconRoot *common.Hash) (*types.Block, error) {
+func ExecutableDataToBlock(data ExecutableData, _ []common.Hash, beaconRoot *common.Hash) (*types.Block, error) {
 	txs, err := decodeTransactions(data.Transactions)
 	if err != nil {
 		return nil, err
@@ -221,52 +220,23 @@ func ExecutableDataToBlock(data ExecutableData, versionedHashes []common.Hash, b
 	if len(data.LogsBloom) != 256 {
 		return nil, fmt.Errorf("invalid logsBloom length: %v", len(data.LogsBloom))
 	}
-	// Check that baseFeePerGas is not negative or too big
-	if data.BaseFeePerGas != nil && (data.BaseFeePerGas.Sign() == -1 || data.BaseFeePerGas.BitLen() > 256) {
-		return nil, fmt.Errorf("invalid baseFeePerGas: %v", data.BaseFeePerGas)
-	}
-	var blobHashes = make([]common.Hash, 0, len(txs))
-	for _, tx := range txs {
-		blobHashes = append(blobHashes, tx.BlobHashes()...)
-	}
-	if len(blobHashes) != len(versionedHashes) {
-		return nil, fmt.Errorf("invalid number of versionedHashes: %v blobHashes: %v", versionedHashes, blobHashes)
-	}
-	for i := 0; i < len(blobHashes); i++ {
-		if blobHashes[i] != versionedHashes[i] {
-			return nil, fmt.Errorf("invalid versionedHash at %v: %v blobHashes: %v", i, versionedHashes, blobHashes)
-		}
-	}
-	// Only set withdrawalsRoot if it is non-nil. This allows CLs to use
-	// ExecutableData before withdrawals are enabled by marshaling
-	// Withdrawals as the json null value.
-	var withdrawalsRoot *common.Hash
-	if data.Withdrawals != nil {
-		h := types.DeriveSha(types.Withdrawals(data.Withdrawals), trie.NewStackTrie(nil))
-		withdrawalsRoot = &h
-	}
 	header := &types.Header{
-		ParentHash:       data.ParentHash,
-		UncleHash:        types.EmptyUncleHash,
-		Coinbase:         data.FeeRecipient,
-		Root:             data.StateRoot,
-		TxHash:           types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
-		ReceiptHash:      data.ReceiptsRoot,
-		Bloom:            types.BytesToBloom(data.LogsBloom),
-		Difficulty:       common.Big0,
-		Number:           new(big.Int).SetUint64(data.Number),
-		GasLimit:         data.GasLimit,
-		GasUsed:          data.GasUsed,
-		Time:             data.Timestamp,
-		BaseFee:          data.BaseFeePerGas,
-		Extra:            data.ExtraData,
-		MixDigest:        data.Random,
-		WithdrawalsHash:  withdrawalsRoot,
-		ExcessBlobGas:    data.ExcessBlobGas,
-		BlobGasUsed:      data.BlobGasUsed,
-		ParentBeaconRoot: beaconRoot,
+		ParentHash:  data.ParentHash,
+		UncleHash:   types.EmptyUncleHash,
+		Coinbase:    data.FeeRecipient,
+		Root:        data.StateRoot,
+		TxHash:      types.DeriveSha(types.Transactions(txs)),
+		ReceiptHash: data.ReceiptsRoot,
+		Bloom:       types.BytesToBloom(data.LogsBloom),
+		Difficulty:  common.Big0,
+		Number:      new(big.Int).SetUint64(data.Number),
+		GasLimit:    data.GasLimit,
+		GasUsed:     data.GasUsed,
+		Time:        data.Timestamp,
+		Extra:       data.ExtraData,
+		MixDigest:   data.Random,
 	}
-	block := types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs, Uncles: nil, Withdrawals: data.Withdrawals})
+	block := types.NewBlockWithHeader(header).WithBody(txs, nil)
 	if block.Hash() != data.BlockHash {
 		return nil, fmt.Errorf("blockhash mismatch, want %x, got %x", data.BlockHash, block.Hash())
 	}
@@ -275,44 +245,27 @@ func ExecutableDataToBlock(data ExecutableData, versionedHashes []common.Hash, b
 
 // BlockToExecutableData constructs the ExecutableData structure by filling the
 // fields from the given block. It assumes the given block is post-merge block.
-func BlockToExecutableData(block *types.Block, fees *big.Int, sidecars []*types.BlobTxSidecar) *ExecutionPayloadEnvelope {
+func BlockToExecutableData(block *types.Block, fees *big.Int) *ExecutionPayloadEnvelope {
 	data := &ExecutableData{
-		BlockHash:     block.Hash(),
-		ParentHash:    block.ParentHash(),
-		FeeRecipient:  block.Coinbase(),
-		StateRoot:     block.Root(),
-		Number:        block.NumberU64(),
-		GasLimit:      block.GasLimit(),
-		GasUsed:       block.GasUsed(),
-		BaseFeePerGas: block.BaseFee(),
-		Timestamp:     block.Time(),
-		ReceiptsRoot:  block.ReceiptHash(),
-		LogsBloom:     block.Bloom().Bytes(),
-		Transactions:  encodeTransactions(block.Transactions()),
-		Random:        block.MixDigest(),
-		ExtraData:     block.Extra(),
-		Withdrawals:   block.Withdrawals(),
-		BlobGasUsed:   block.BlobGasUsed(),
-		ExcessBlobGas: block.ExcessBlobGas(),
-	}
-	bundle := BlobsBundleV1{
-		Commitments: make([]hexutil.Bytes, 0),
-		Blobs:       make([]hexutil.Bytes, 0),
-		Proofs:      make([]hexutil.Bytes, 0),
-	}
-	for _, sidecar := range sidecars {
-		for j := range sidecar.Blobs {
-			bundle.Blobs = append(bundle.Blobs, hexutil.Bytes(sidecar.Blobs[j][:]))
-			bundle.Commitments = append(bundle.Commitments, hexutil.Bytes(sidecar.Commitments[j][:]))
-			bundle.Proofs = append(bundle.Proofs, hexutil.Bytes(sidecar.Proofs[j][:]))
-		}
+		BlockHash:    block.Hash(),
+		ParentHash:   block.ParentHash(),
+		FeeRecipient: block.Coinbase(),
+		StateRoot:    block.Root(),
+		Number:       block.NumberU64(),
+		GasLimit:     block.GasLimit(),
+		GasUsed:      block.GasUsed(),
+		Timestamp:    block.Time(),
+		ReceiptsRoot: block.ReceiptHash(),
+		LogsBloom:    block.Bloom().Bytes(),
+		Transactions: encodeTransactions(block.Transactions()),
+		Random:       block.MixDigest(),
+		ExtraData:    block.Extra(),
 	}
 	return &ExecutionPayloadEnvelope{
-		ExecutionPayload:      data,
-		BlockValue:            fees,
-		BlobsBundle:           &bundle,
-		Override:              false,
-		ParentBeaconBlockRoot: block.BeaconRoot(),
+		ExecutionPayload: data,
+		BlockValue:       fees,
+		BlobsBundle:      nil,
+		Override:         false,
 	}
 }
 

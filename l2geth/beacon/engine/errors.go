@@ -50,8 +50,7 @@ func (e *EngineAPIError) With(err error) *EngineAPIError {
 }
 
 var (
-	_ rpc.Error     = new(EngineAPIError)
-	_ rpc.DataError = new(EngineAPIError)
+	_ rpc.Error = new(EngineAPIError)
 )
 
 var (

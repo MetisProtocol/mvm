@@ -16,8 +16,8 @@
 
 // geth is the official command-line client for Ethereum.
 
-//go:build cgo
-// +build cgo
+//go:build !cgo
+// +build !cgo
 
 package main
 
@@ -25,14 +25,12 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"runtime"
 	godebug "runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/elastic/gosigar"
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/MetisProtocol/mvm/l2geth/accounts"
@@ -302,19 +300,6 @@ func prepare(ctx *cli.Context) {
 	if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" && !ctx.GlobalIsSet(utils.CacheFlag.Name) {
 		log.Info("Dropping default light client cache", "provided", ctx.GlobalInt(utils.CacheFlag.Name), "updated", 128)
 		ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(128))
-	}
-	// Cap the cache allowance and tune the garbage collector
-	var mem gosigar.Mem
-	// Workaround until OpenBSD support lands into gosigar
-	// Check https://github.com/elastic/gosigar#supported-platforms
-	if runtime.GOOS != "openbsd" {
-		if err := mem.Get(); err == nil {
-			allowance := int(mem.Total / 1024 / 1024 / 3)
-			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
-				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
-				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
-			}
-		}
 	}
 	// Ensure Go's GC ignores the database cache for trigger percentage
 	cache := ctx.GlobalInt(utils.CacheFlag.Name)
