@@ -1,8 +1,8 @@
 package l1
 
 import (
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )

@@ -5,15 +5,15 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/client"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum-optimism/optimism/op-service/sources/caching"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/ethereum-optimism/optimism/go/op-program/host/l2sources"
 )
 
 type L2Client struct {
-	*sources.L2Client
+	*l2sources.L2Client
 
 	// l2Head is the L2 block hash that we use to fetch L2 output
 	l2Head common.Hash
@@ -22,12 +22,12 @@ type L2Client struct {
 }
 
 type L2ClientConfig struct {
-	*sources.L2ClientConfig
+	*l2sources.L2ClientConfig
 	L2Head common.Hash
 }
 
 func NewL2Client(client client.RPC, log log.Logger, metrics caching.Metrics, config *L2ClientConfig) (*L2Client, error) {
-	l2Client, err := sources.NewL2Client(client, log, metrics, config.L2ClientConfig)
+	l2Client, err := l2sources.NewL2Client(client, log, metrics, config.L2ClientConfig)
 	if err != nil {
 		return nil, err
 	}

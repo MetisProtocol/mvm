@@ -4,14 +4,11 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-
-	ethcommon "github.com/ethereum/go-ethereum/common"
-
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/params"
-	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
@@ -70,7 +67,7 @@ func (p *PreimageOracle) TransactionsByBlockHash(blockHash common.Hash) (eth.Blo
 	header := p.headerByBlockHash(blockHash)
 	p.hint.Hint(TransactionsHint(blockHash))
 
-	opaqueTxs := mpt.ReadTrie(header.TxHash, func(key ethcommon.Hash) []byte {
+	opaqueTxs := mpt.ReadTrie(header.TxHash, func(key common.Hash) []byte {
 		return p.oracle.Get(preimage.Keccak256Key(key))
 	})
 
@@ -87,7 +84,7 @@ func (p *PreimageOracle) ReceiptsByBlockHash(blockHash common.Hash) (eth.BlockIn
 
 	p.hint.Hint(ReceiptsHint(blockHash))
 
-	opaqueReceipts := mpt.ReadTrie(info.ReceiptHash(), func(key ethcommon.Hash) []byte {
+	opaqueReceipts := mpt.ReadTrie(info.ReceiptHash(), func(key common.Hash) []byte {
 		return p.oracle.Get(preimage.Keccak256Key(key))
 	})
 

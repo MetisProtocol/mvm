@@ -6,8 +6,10 @@ import (
 	"fmt"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	opderive "github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+
+	"github.com/ethereum-optimism/optimism/go/op-program/derive"
 
 	l2common "github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi"
@@ -130,7 +132,7 @@ func (o *OracleEngine) L2BlockRefByLabel(ctx context.Context, label eth.BlockLab
 		return eth.L2BlockRef{}, ErrNotFound
 	}
 
-	return L2BlockToBlockRef(block), nil
+	return derive.L2BlockToBlockRef(block), nil
 }
 
 func (o *OracleEngine) L2BlockRefByHash(ctx context.Context, l2Hash common.Hash) (eth.L2BlockRef, error) {
@@ -154,7 +156,7 @@ func (o *OracleEngine) SystemConfigByL2Hash(ctx context.Context, hash common.Has
 	if err != nil {
 		return eth.SystemConfig{}, err
 	}
-	return derive.PayloadToSystemConfig(o.rollupCfg, payload.ExecutionPayload)
+	return opderive.PayloadToSystemConfig(o.rollupCfg, payload.ExecutionPayload)
 }
 
 func L2BlockToBlockRef(block *types.Block) eth.L2BlockRef {

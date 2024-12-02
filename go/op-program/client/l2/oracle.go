@@ -1,109 +1,111 @@
 package l2
 
 import (
-  "fmt"
+	"fmt"
 
-  "github.com/MetisProtocol/mvm/l2geth/common"
-  "github.com/MetisProtocol/mvm/l2geth/core/types"
-  "github.com/MetisProtocol/mvm/l2geth/rlp"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 
-  "github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 
-  "github.com/ethereum-optimism/optimism/go/op-program/client/mpt"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 
-  preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	"github.com/ethereum-optimism/optimism/go/op-program/client/mpt"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 // StateOracle defines the high-level API used to retrieve L2 state data pre-images
 // The returned data is always the preimage of the requested hash.
 type StateOracle interface {
-  // NodeByHash retrieves the merkle-patricia trie node pre-image for a given hash.
-  // Trie nodes may be from the world state trie or any account storage trie.
-  // Contract code is not stored as part of the trie and must be retrieved via CodeByHash
-  NodeByHash(nodeHash common.Hash) []byte
+	// NodeByHash retrieves the merkle-patricia trie node pre-image for a given hash.
+	// Trie nodes may be from the world state trie or any account storage trie.
+	// Contract code is not stored as part of the trie and must be retrieved via CodeByHash
+	NodeByHash(nodeHash common.Hash) []byte
 
-  // CodeByHash retrieves the contract code pre-image for a given hash.
-  // codeHash should be retrieved from the world state account for a contract.
-  CodeByHash(codeHash common.Hash) []byte
+	// CodeByHash retrieves the contract code pre-image for a given hash.
+	// codeHash should be retrieved from the world state account for a contract.
+	CodeByHash(codeHash common.Hash) []byte
 }
 
 // Oracle defines the high-level API used to retrieve L2 data.
 // The returned data is always the preimage of the requested hash.
 type Oracle interface {
-  StateOracle
+	StateOracle
 
-  // BlockByHash retrieves the block with the given hash.
-  BlockByHash(blockHash common.Hash) *types.Block
+	// BlockByHash retrieves the block with the given hash.
+	BlockByHash(blockHash common.Hash) *types.Block
 
-  OutputByRoot(root common.Hash) eth.Output
+	OutputByRoot(root common.Hash) eth.Output
 }
 
 // PreimageOracle implements Oracle using by interfacing with the pure preimage.Oracle
 // to fetch pre-images to decode into the requested data.
 type PreimageOracle struct {
-  oracle preimage.Oracle
-  hint   preimage.Hinter
+	oracle preimage.Oracle
+	hint   preimage.Hinter
 }
 
 var _ Oracle = (*PreimageOracle)(nil)
 
 func NewPreimageOracle(raw preimage.Oracle, hint preimage.Hinter) *PreimageOracle {
-  return &PreimageOracle{
-    oracle: raw,
-    hint:   hint,
-  }
+	return &PreimageOracle{
+		oracle: raw,
+		hint:   hint,
+	}
 }
 
 func (p *PreimageOracle) headerByBlockHash(blockHash common.Hash) *types.Header {
-  p.hint.Hint(BlockHeaderHint(blockHash))
-  headerRlp := p.oracle.Get(preimage.Keccak256Key(blockHash))
-  var header types.Header
-  if err := rlp.DecodeBytes(headerRlp, &header); err != nil {
-    panic(fmt.Errorf("invalid block header %s: %w", blockHash, err))
-  }
-  return &header
+	p.hint.Hint(BlockHeaderHint(blockHash))
+	headerRlp := p.oracle.Get(preimage.Keccak256Key(blockHash))
+	var header types.Header
+	if err := rlp.DecodeBytes(headerRlp, &header); err != nil {
+		panic(fmt.Errorf("invalid block header %s: %w", blockHash, err))
+	}
+	return &header
 }
 
 func (p *PreimageOracle) BlockByHash(blockHash common.Hash) *types.Block {
-  header := p.headerByBlockHash(blockHash)
-  txs := p.LoadTransactions(blockHash, header.TxHash)
+	header := p.headerByBlockHash(blockHash)
+	txs := p.LoadTransactions(blockHash, header.TxHash)
 
-  return types.NewBlockWithHeader(header).WithBody(txs, nil)
+	return types.NewBlockWithHeader(header).WithBody(txs, nil)
 }
 
 func (p *PreimageOracle) LoadTransactions(blockHash common.Hash, txHash common.Hash) []*types.Transaction {
-  p.hint.Hint(TransactionsHint(blockHash))
+	p.hint.Hint(TransactionsHint(blockHash))
 
-  opaqueTxs := mpt.ReadTrie(txHash, func(key common.Hash) []byte {
-    return p.oracle.Get(preimage.Keccak256Key(key))
-  })
+	opaqueTxs := mpt.ReadTrie(ethcommon.Hash(txHash), func(key ethcommon.Hash) []byte {
+		return p.oracle.Get(preimage.Keccak256Key(key))
+	})
 
-  txs := make([]*types.Transaction, len(opaqueTxs))
-  for i, opaqueTx := range opaqueTxs {
-    if err := rlp.DecodeBytes(opaqueTx, &txs[i]); err != nil {
-      panic(fmt.Errorf("failed to decode tx %d: %w", i, err))
-    }
-  }
+	txs := make([]*types.Transaction, len(opaqueTxs))
+	for i, opaqueTx := range opaqueTxs {
+		if err := rlp.DecodeBytes(opaqueTx, &txs[i]); err != nil {
+			panic(fmt.Errorf("failed to decode tx %d: %w", i, err))
+		}
+	}
 
-  return txs
+	return txs
 }
 
 func (p *PreimageOracle) NodeByHash(nodeHash common.Hash) []byte {
-  p.hint.Hint(StateNodeHint(nodeHash))
-  return p.oracle.Get(preimage.Keccak256Key(nodeHash))
+	p.hint.Hint(StateNodeHint(nodeHash))
+	return p.oracle.Get(preimage.Keccak256Key(nodeHash))
 }
 
 func (p *PreimageOracle) CodeByHash(codeHash common.Hash) []byte {
-  p.hint.Hint(CodeHint(codeHash))
-  return p.oracle.Get(preimage.Keccak256Key(codeHash))
+	p.hint.Hint(CodeHint(codeHash))
+	return p.oracle.Get(preimage.Keccak256Key(codeHash))
 }
 
 func (p *PreimageOracle) OutputByRoot(l2OutputRoot common.Hash) eth.Output {
-  p.hint.Hint(L2OutputHint(l2OutputRoot))
-  data := p.oracle.Get(preimage.Keccak256Key(l2OutputRoot))
-  output, err := eth.UnmarshalOutput(data)
-  if err != nil {
-    panic(fmt.Errorf("invalid L2 output data for root %s: %w", l2OutputRoot, err))
-  }
-  return output
+	p.hint.Hint(L2OutputHint(l2OutputRoot))
+	data := p.oracle.Get(preimage.Keccak256Key(l2OutputRoot))
+	output, err := eth.UnmarshalOutput(data)
+	if err != nil {
+		panic(fmt.Errorf("invalid L2 output data for root %s: %w", l2OutputRoot, err))
+	}
+	return output
 }

@@ -5,8 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/MetisProtocol/mvm/l2geth"
-	ethcommon "github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/ethereum/go-ethereum"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
@@ -30,7 +29,7 @@ type OracleL1Client struct {
 }
 
 func NewOracleL1Client(logger log.Logger, oracle Oracle, l1Head common.Hash) *OracleL1Client {
-	head := eth.InfoToL1BlockRef(oracle.HeaderByBlockHash(ethcommon.Hash(l1Head)))
+	head := eth.InfoToL1BlockRef(oracle.HeaderByBlockHash(l1Head))
 	logger.Info("L1 head loaded", "hash", head.Hash, "number", head.Number)
 	return &OracleL1Client{
 		logger:               logger,
@@ -60,27 +59,27 @@ func (o *OracleL1Client) L1BlockRefByNumber(ctx context.Context, number uint64) 
 	block := o.earliestIndexedBlock
 	o.logger.Info("Extending block by number lookup", "from", block.Number, "to", number)
 	for block.Number > number {
-		block = eth.InfoToL1BlockRef(o.oracle.HeaderByBlockHash(ethcommon.Hash(block.ParentHash)))
-		o.hashByNum[block.Number] = common.Hash(block.Hash)
+		block = eth.InfoToL1BlockRef(o.oracle.HeaderByBlockHash(block.ParentHash))
+		o.hashByNum[block.Number] = block.Hash
 		o.earliestIndexedBlock = block
 	}
 	return block, nil
 }
 
 func (o *OracleL1Client) L1BlockRefByHash(ctx context.Context, hash common.Hash) (eth.L1BlockRef, error) {
-	return eth.InfoToL1BlockRef(o.oracle.HeaderByBlockHash(ethcommon.Hash(hash))), nil
+	return eth.InfoToL1BlockRef(o.oracle.HeaderByBlockHash(hash)), nil
 }
 
 func (o *OracleL1Client) InfoByHash(ctx context.Context, hash common.Hash) (eth.BlockInfo, error) {
-	return o.oracle.HeaderByBlockHash(ethcommon.Hash(hash)), nil
+	return o.oracle.HeaderByBlockHash(hash), nil
 }
 
 func (o *OracleL1Client) FetchReceipts(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, types.Receipts, error) {
-	info, rcpts := o.oracle.ReceiptsByBlockHash(ethcommon.Hash(blockHash))
+	info, rcpts := o.oracle.ReceiptsByBlockHash(blockHash)
 	return info, rcpts, nil
 }
 
 func (o *OracleL1Client) InfoAndTxsByHash(ctx context.Context, hash common.Hash) (eth.BlockInfo, types.Transactions, error) {
-	info, txs := o.oracle.TransactionsByBlockHash(ethcommon.Hash(hash))
+	info, txs := o.oracle.TransactionsByBlockHash(hash)
 	return info, txs, nil
 }

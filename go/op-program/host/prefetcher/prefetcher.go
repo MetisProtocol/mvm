@@ -10,9 +10,9 @@ import (
 
 	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-	opcommon "github.com/ethereum/go-ethereum/common"
-	ophex "github.com/ethereum/go-ethereum/common/hexutil"
 
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
@@ -42,9 +42,9 @@ var acceleratedPrecompiles = []common.Address{
 }
 
 type L1Source interface {
-	InfoByHash(ctx context.Context, blockHash opcommon.Hash) (eth.BlockInfo, error)
-	InfoAndTxsByHash(ctx context.Context, blockHash opcommon.Hash) (eth.BlockInfo, ethtypes.Transactions, error)
-	FetchReceipts(ctx context.Context, blockHash opcommon.Hash) (eth.BlockInfo, ethtypes.Receipts, error)
+	InfoByHash(ctx context.Context, blockHash ethcommon.Hash) (eth.BlockInfo, error)
+	InfoAndTxsByHash(ctx context.Context, blockHash ethcommon.Hash) (eth.BlockInfo, ethtypes.Transactions, error)
+	FetchReceipts(ctx context.Context, blockHash ethcommon.Hash) (eth.BlockInfo, ethtypes.Receipts, error)
 }
 
 type L1BlobSource interface {
@@ -115,7 +115,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L1 block hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
-		header, err := p.l1Fetcher.InfoByHash(ctx, hash)
+		header, err := p.l1Fetcher.InfoByHash(ctx, ethcommon.Hash(hash))
 		if err != nil {
 			return fmt.Errorf("failed to fetch L1 block %s header: %w", hash, err)
 		}
@@ -129,21 +129,21 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L1 transactions hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
-		_, txs, err := p.l1Fetcher.InfoAndTxsByHash(ctx, hash)
+		_, txs, err := p.l1Fetcher.InfoAndTxsByHash(ctx, ethcommon.Hash(hash))
 		if err != nil {
 			return fmt.Errorf("failed to fetch L1 block %s txs: %w", hash, err)
 		}
-		return p.storeTransactions(txs)
+		return p.storeL1Transactions(txs)
 	case l1.HintL1Receipts:
 		if len(hintBytes) != 32 {
 			return fmt.Errorf("invalid L1 receipts hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
-		_, receipts, err := p.l1Fetcher.FetchReceipts(ctx, hash)
+		_, receipts, err := p.l1Fetcher.FetchReceipts(ctx, ethcommon.Hash(hash))
 		if err != nil {
 			return fmt.Errorf("failed to fetch L1 block %s receipts: %w", hash, err)
 		}
-		return p.storeReceipts(receipts)
+		return p.storeL1Receipts(receipts)
 	case l1.HintL1Blob:
 		if len(hintBytes) != 48 {
 			return fmt.Errorf("invalid blob hint: %x", hint)
@@ -155,7 +155,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 
 		// Fetch the blob sidecar for the indexed blob hash passed in the hint.
 		indexedBlobHash := eth.IndexedBlobHash{
-			Hash:  opcommon.Hash(blobVersionHash),
+			Hash:  ethcommon.Hash(blobVersionHash),
 			Index: blobHashIndex,
 		}
 		// We pass an `eth.L1BlockRef`, but `GetBlobSidecars` only uses the timestamp, which we received in the hint.
@@ -259,7 +259,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 		if err != nil {
 			return err
 		}
-		return p.storeTransactions(txs)
+		return p.storeL2Transactions(txs)
 	case l2.HintL2StateNode:
 		if len(hintBytes) != 32 {
 			return fmt.Errorf("invalid L2 state node hint: %x", hint)
@@ -294,8 +294,17 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 	return fmt.Errorf("unknown hint type: %v", hintType)
 }
 
-func (p *Prefetcher) storeReceipts(receipts types.Receipts) error {
-	opaqueReceipts := make([]ophex.Bytes, len(receipts))
+func (p *Prefetcher) storeL1Receipts(receipts ethtypes.Receipts) error {
+	data, err := eth.EncodeReceipts(receipts)
+	if err != nil {
+		return fmt.Errorf("failed to encode receipts: %w", err)
+	}
+
+	return p.storeTrieNodes(data)
+}
+
+func (p *Prefetcher) storeL2Receipts(receipts types.Receipts) error {
+	opaqueReceipts := make([]ethhex.Bytes, len(receipts))
 	for i, el := range receipts {
 		dat, err := rlp.EncodeToBytes(el)
 		if err != nil {
@@ -307,8 +316,17 @@ func (p *Prefetcher) storeReceipts(receipts types.Receipts) error {
 	return p.storeTrieNodes(opaqueReceipts)
 }
 
-func (p *Prefetcher) storeTransactions(txs types.Transactions) error {
-	opaqueTxs := make([]ophex.Bytes, len(txs))
+func (p *Prefetcher) storeL1Transactions(txs ethtypes.Transactions) error {
+	data, err := eth.EncodeTransactions(txs)
+	if err != nil {
+		return fmt.Errorf("failed to encode transactions: %w", err)
+	}
+
+	return p.storeTrieNodes(data)
+}
+
+func (p *Prefetcher) storeL2Transactions(txs types.Transactions) error {
+	opaqueTxs := make([]ethhex.Bytes, len(txs))
 	for i, el := range txs {
 		dat, err := rlp.EncodeToBytes(el)
 		if err != nil {
@@ -320,7 +338,7 @@ func (p *Prefetcher) storeTransactions(txs types.Transactions) error {
 	return p.storeTrieNodes(opaqueTxs)
 }
 
-func (p *Prefetcher) storeTrieNodes(values []ophex.Bytes) error {
+func (p *Prefetcher) storeTrieNodes(values []ethhex.Bytes) error {
 	_, nodes := mpt.WriteTrie(values)
 	for _, node := range nodes {
 		key := preimage.Keccak256Key(crypto.Keccak256Hash(node)).PreimageKey()

@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/ethereum-optimism/optimism/go/op-program/host/l2sources"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	cl "github.com/ethereum-optimism/optimism/go/op-program/client"
@@ -28,7 +29,7 @@ import (
 
 type L2Source struct {
 	*L2Client
-	*sources.DebugClient
+	*l2sources.DebugClient
 }
 
 func Main(logger log.Logger, cfg *config.Config) error {
@@ -198,7 +199,7 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 	}
 
 	l1ClCfg := sources.L1ClientDefaultConfig(cfg.Rollup, cfg.L1TrustRPC, cfg.L1RPCKind)
-	l2ClCfg := sources.L2ClientDefaultConfig(cfg.Rollup, true)
+	l2ClCfg := l2sources.L2ClientDefaultConfig(cfg.Rollup, true)
 	l1Cl, err := sources.NewL1Client(l1RPC, logger, nil, l1ClCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L1 client: %w", err)
@@ -209,7 +210,7 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
-	l2DebugCl := &L2Source{L2Client: l2Cl, DebugClient: sources.NewDebugClient(l2RPC.CallContext)}
+	l2DebugCl := &L2Source{L2Client: l2Cl, DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
 	return prefetcher.NewPrefetcher(logger, l1Cl, l1BlobFetcher, l2DebugCl, kv), nil
 }
 

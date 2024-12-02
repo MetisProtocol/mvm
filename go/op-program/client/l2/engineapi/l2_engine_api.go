@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-	l2gethcommon "github.com/ethereum/go-ethereum/common"
+	l2common "github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/log"
 
@@ -242,7 +242,7 @@ func (ea *L2EngineAPI) getPayload(_ context.Context, payloadId eth.PayloadID) (*
 
 func (ea *L2EngineAPI) forkchoiceUpdated(_ context.Context, state *eth.ForkchoiceState, attr *eth.PayloadAttributes) (*eth.ForkchoiceUpdatedResult, error) {
 	ea.log.Trace("L2Engine API request received", "method", "ForkchoiceUpdated", "head", state.HeadBlockHash, "finalized", state.FinalizedBlockHash, "safe", state.SafeBlockHash)
-	if state.HeadBlockHash == (l2gethcommon.Hash{}) {
+	if state.HeadBlockHash == (l2common.Hash{}) {
 		ea.log.Warn("Forkchoice requested update to zero hash")
 		return STATUS_INVALID, nil
 	}
@@ -258,13 +258,13 @@ func (ea *L2EngineAPI) forkchoiceUpdated(_ context.Context, state *eth.Forkchoic
 	valid := func(id *engine.PayloadID) *eth.ForkchoiceUpdatedResult {
 		return &eth.ForkchoiceUpdatedResult{
 			PayloadStatus: eth.PayloadStatusV1{Status: eth.ExecutionValid, LatestValidHash: &state.HeadBlockHash},
-			PayloadID:     id,
+			PayloadID:     (*eth.PayloadID)(id),
 		}
 	}
 	if ea.backend.GetCanonicalHash(block.NumberU64()) != common.Hash(state.HeadBlockHash) {
 		// Block is not canonical, set head.
 		if latestValid, err := ea.backend.SetCanonical(block); err != nil {
-			return &eth.ForkchoiceUpdatedResult{PayloadStatus: eth.PayloadStatusV1{Status: eth.ExecutionInvalid, LatestValidHash: &latestValid}}, err
+			return &eth.ForkchoiceUpdatedResult{PayloadStatus: eth.PayloadStatusV1{Status: eth.ExecutionInvalid, LatestValidHash: (*l2common.Hash)(&latestValid)}}, err
 		}
 	} else if ea.backend.CurrentHeader().Hash() == common.Hash(state.HeadBlockHash) {
 		// If the specified head matches with our local head, do nothing and keep
@@ -274,7 +274,7 @@ func (ea *L2EngineAPI) forkchoiceUpdated(_ context.Context, state *eth.Forkchoic
 
 	// If the beacon client also advertised a finalized block, mark the local
 	// chain final and completely in PoS mode.
-	if state.FinalizedBlockHash != (l2gethcommon.Hash{}) {
+	if state.FinalizedBlockHash != (l2common.Hash{}) {
 		// If the finalized block is not in our canonical tree, somethings wrong
 		finalHeader := ea.backend.GetHeaderByHash(common.Hash(state.FinalizedBlockHash))
 		if finalHeader == nil {
@@ -288,7 +288,7 @@ func (ea *L2EngineAPI) forkchoiceUpdated(_ context.Context, state *eth.Forkchoic
 		ea.backend.SetFinalized(finalHeader)
 	}
 	// Check if the safe block hash is in our canonical tree, if not somethings wrong
-	if state.SafeBlockHash != (l2gethcommon.Hash{}) {
+	if state.SafeBlockHash != (l2common.Hash{}) {
 		safeHeader := ea.backend.GetHeaderByHash(common.Hash(state.SafeBlockHash))
 		if safeHeader == nil {
 			ea.log.Warn("Safe block not available in database")
@@ -362,7 +362,7 @@ func (ea *L2EngineAPI) newPayload(_ context.Context, payload *eth.ExecutionPaylo
 	// return a fake success.
 	if block := ea.backend.GetBlock(common.Hash(payload.BlockHash), uint64(payload.BlockNumber)); block != nil {
 		ea.log.Warn("Ignoring already known beacon payload", "number", payload.BlockNumber, "hash", payload.BlockHash, "age", common.PrettyAge(time.Unix(int64(block.Time()), 0)))
-		hash := l2gethcommon.Hash(block.Hash())
+		hash := l2common.Hash(block.Hash())
 		return &eth.PayloadStatusV1{Status: eth.ExecutionValid, LatestValidHash: &hash}, nil
 	}
 
@@ -390,18 +390,18 @@ func (ea *L2EngineAPI) newPayload(_ context.Context, payload *eth.ExecutionPaylo
 		// TODO not remembering the payload as invalid
 		return ea.invalid(err, parent.Header()), nil
 	}
-	hash := l2gethcommon.Hash(block.Hash())
+	hash := l2common.Hash(block.Hash())
 	return &eth.PayloadStatusV1{Status: eth.ExecutionValid, LatestValidHash: &hash}, nil
 }
 
 func (ea *L2EngineAPI) invalid(err error, latestValid *types.Header) *eth.PayloadStatusV1 {
-	currentHash := l2gethcommon.Hash(ea.backend.CurrentHeader().Hash())
+	currentHash := l2common.Hash(ea.backend.CurrentHeader().Hash())
 	if latestValid != nil {
 		// Set latest valid hash to 0x0 if parent is PoW block
-		currentHash = l2gethcommon.Hash{}
+		currentHash = l2common.Hash{}
 		if latestValid.Difficulty.BitLen() == 0 {
 			// Otherwise set latest valid hash to parent hash
-			currentHash = l2gethcommon.Hash(latestValid.Hash())
+			currentHash = l2common.Hash(latestValid.Hash())
 		}
 	}
 	errorMsg := err.Error()
@@ -419,8 +419,8 @@ func BlockAsPayload(bl *types.Block) (*eth.ExecutionPayload, error) {
 	}
 
 	payload := &eth.ExecutionPayload{
-		ParentHash:   l2gethcommon.Hash(bl.ParentHash()),
-		FeeRecipient: l2gethcommon.Address(bl.Coinbase()),
+		ParentHash:   l2common.Hash(bl.ParentHash()),
+		FeeRecipient: l2common.Address(bl.Coinbase()),
 		StateRoot:    eth.Bytes32(bl.Root()),
 		ReceiptsRoot: eth.Bytes32(bl.ReceiptHash()),
 		LogsBloom:    eth.Bytes256(bl.Bloom()),
@@ -430,7 +430,7 @@ func BlockAsPayload(bl *types.Block) (*eth.ExecutionPayload, error) {
 		GasUsed:      eth.Uint64Quantity(bl.GasUsed()),
 		Timestamp:    eth.Uint64Quantity(bl.Time()),
 		ExtraData:    bl.Extra(),
-		BlockHash:    l2gethcommon.Hash(bl.Hash()),
+		BlockHash:    l2common.Hash(bl.Hash()),
 		Transactions: opaqueTxs,
 	}
 
