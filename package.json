@@ -56,5 +56,6 @@
     "@changesets/cli": "^2.16.0",
     "@codechecks/client": "^0.1.11",
     "ethersv6": "npm:ethers@~6.13.4"
-  }
+  },
+  "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72"
 }

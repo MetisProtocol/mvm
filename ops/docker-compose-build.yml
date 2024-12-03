@@ -1,6 +1,6 @@
 # The compose file is only for building images
 
-version: '3.8'
+name: build
 
 services:
   dtl:
