@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 
@@ -38,13 +37,6 @@ type Config struct {
 	// If not set, an in-memory key-value store is used and fetching data must be enabled
 	DataDir string
 
-	// L1Head is the block hash of the L1 chain head block
-	L1Head      common.Hash
-	L1URL       string
-	L1BeaconURL string
-	L1TrustRPC  bool
-	L1RPCKind   sources.RPCProviderKind
-
 	// L2Head is the l2 block hash contained in the L2 Output referenced by the L2OutputRoot
 	L2Head common.Hash
 	// L2OutputRoot is the agreed L2 output root to start derivation from
@@ -73,9 +65,6 @@ func (c *Config) Check() error {
 	if c.Rollup == nil {
 		return ErrMissingRollupConfig
 	}
-	if c.L1Head == (common.Hash{}) {
-		return ErrInvalidL1Head
-	}
 	if c.L2Head == (common.Hash{}) {
 		return ErrInvalidL2Head
 	}
@@ -88,7 +77,7 @@ func (c *Config) Check() error {
 	if c.L2ChainConfig == nil {
 		return ErrMissingL2Genesis
 	}
-	if (c.L1URL != "") != (c.L2URL != "") {
+	if c.L2URL != "" {
 		return ErrL1AndL2Inconsistent
 	}
 	if !c.FetchingEnabled() && c.DataDir == "" {
@@ -102,7 +91,7 @@ func (c *Config) Check() error {
 
 func (c *Config) FetchingEnabled() bool {
 	// TODO: Include Beacon URL once cancun is active on all chains we fault prove.
-	return c.L1URL != "" && c.L2URL != ""
+	return c.L2URL != "" && c.Rollup.RollupClientHttp != ""
 }
 
 // NewConfig creates a Config with all optional values set to the CLI default value
@@ -121,12 +110,10 @@ func NewConfig(
 	return &Config{
 		Rollup:              rollupCfg,
 		L2ChainConfig:       l2Genesis,
-		L1Head:              l1Head,
 		L2Head:              l2Head,
 		L2OutputRoot:        l2OutputRoot,
 		L2Claim:             l2Claim,
 		L2ClaimBlockNumber:  l2ClaimBlockNum,
-		L1RPCKind:           sources.RPCKindStandard,
 		IsCustomChainConfig: isCustomConfig,
 	}
 }
@@ -153,10 +140,6 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 	if l2Head == (common.Hash{}) {
 		return nil, ErrInvalidL2Head
 	}
-	l2OutputRoot := common.HexToHash(ctx.String(flags.L2OutputRoot.Name))
-	if l2OutputRoot == (common.Hash{}) {
-		return nil, ErrInvalidL2OutputRoot
-	}
 	strClaim := ctx.String(flags.L2Claim.Name)
 	l2Claim := common.HexToHash(strClaim)
 	// Require a valid hash, with the zero hash explicitly allowed.
@@ -166,10 +149,6 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 		return nil, fmt.Errorf("%w: %v", ErrInvalidL2Claim, strClaim)
 	}
 	l2ClaimBlockNum := ctx.Uint64(flags.L2BlockNumber.Name)
-	l1Head := common.HexToHash(ctx.String(flags.L1Head.Name))
-	if l1Head == (common.Hash{}) {
-		return nil, ErrInvalidL1Head
-	}
 	l2GenesisPath := ctx.String(flags.L2GenesisPath.Name)
 	l2ChainConfig, err := loadChainConfigFromGenesis(l2GenesisPath)
 	if err != nil {
@@ -181,14 +160,8 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 		L2URL:              ctx.String(flags.L2NodeAddr.Name),
 		L2ChainConfig:      l2ChainConfig,
 		L2Head:             l2Head,
-		L2OutputRoot:       l2OutputRoot,
 		L2Claim:            l2Claim,
 		L2ClaimBlockNumber: l2ClaimBlockNum,
-		L1Head:             l1Head,
-		L1URL:              ctx.String(flags.L1NodeAddr.Name),
-		L1BeaconURL:        ctx.String(flags.L1BeaconAddr.Name),
-		L1TrustRPC:         ctx.Bool(flags.L1TrustRPC.Name),
-		L1RPCKind:          sources.RPCProviderKind(ctx.String(flags.L1RPCProviderKind.Name)),
 		ExecCmd:            ctx.String(flags.Exec.Name),
 		ServerMode:         ctx.Bool(flags.Server.Name),
 	}, nil
