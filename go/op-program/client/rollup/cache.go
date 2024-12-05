@@ -42,12 +42,12 @@ func (o *CachingOracle) L2BlockStateCommitment(block uint64) eth.Bytes32 {
 	return l2BlockStateCommitment
 }
 
-func (o *CachingOracle) L2BlockWithBathInfo(block uint64) *dtl.BlockResponse {
+func (o *CachingOracle) L2BlockWithBatchInfo(block uint64) *dtl.BlockResponse {
 	l2Block, ok := o.l2BlockWithBatchInfo.Get(block)
 	if ok {
 		return l2Block
 	}
-	l2Block = o.oracle.L2BlockWithBathInfo(block)
+	l2Block = o.oracle.L2BlockWithBatchInfo(block)
 	o.l2BlockWithBatchInfo.Add(block, l2Block)
 	return l2Block
 }

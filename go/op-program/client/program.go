@@ -62,7 +62,7 @@ func RunProgram(logger log.Logger, preimageOracle io.ReadWriter, preimageHinter 
 // runDerivation executes the L2 state transition, given a minimal interface to retrieve data.
 func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2OutputRoot common.Hash, l2Claim common.Hash, l2ClaimBlockNum uint64, l2Oracle l2.Oracle, rollupOracle dtl.Oracle) error {
 	// retrieve the start l2 block of current batch
-	l2BlockWithBatchInfo := rollupOracle.L2BlockWithBathInfo(l2ClaimBlockNum)
+	l2BlockWithBatchInfo := rollupOracle.L2BlockWithBatchInfo(l2ClaimBlockNum)
 	if l2BlockWithBatchInfo == nil {
 		return fmt.Errorf("failed to get target l2 block with batch info")
 	}
@@ -80,7 +80,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2OutputRoot co
 	signer := types.NewEIP155Signer(l2Cfg.ChainID)
 
 	for i := l2BatchStartBlock; i <= l2ClaimBlockNum; i++ {
-		blockResp := rollupOracle.L2BlockWithBathInfo(i)
+		blockResp := rollupOracle.L2BlockWithBatchInfo(i)
 		if blockResp == nil {
 			return fmt.Errorf("failed to get l2 block %d with batch info", i)
 		}

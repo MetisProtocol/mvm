@@ -15,7 +15,7 @@ import (
 // Oracle defines the high-level API used to retrieve rollup data.
 // The returned data is always the preimage of the requested hash.
 type Oracle interface {
-	L2BlockWithBathInfo(block uint64) *dtl.BlockResponse
+	L2BlockWithBatchInfo(block uint64) *dtl.BlockResponse
 	L2BlockStateCommitment(block uint64) eth.Bytes32
 	EnqueueTxByIndex(index uint64) *types.Transaction
 }
@@ -42,7 +42,7 @@ func (p *PreimageOracle) L2BlockStateCommitment(block uint64) eth.Bytes32 {
 	return eth.Bytes32(p.oracle.Get(preimage.L2BlockStateCommitmentKey(block)))
 }
 
-func (p *PreimageOracle) L2BlockWithBathInfo(block uint64) *dtl.BlockResponse {
+func (p *PreimageOracle) L2BlockWithBatchInfo(block uint64) *dtl.BlockResponse {
 	p.hint.Hint(L2BlockWithBatchInfo(block))
 
 	l2BlockBytes := p.oracle.Get(preimage.L2BlockWittBatchInfoKey(block))
