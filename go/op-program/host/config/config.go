@@ -6,17 +6,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-
-	opnode "github.com/ethereum-optimism/optimism/op-node"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/eth"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/host/flags"
 )
@@ -74,9 +72,6 @@ type Config struct {
 func (c *Config) Check() error {
 	if c.Rollup == nil {
 		return ErrMissingRollupConfig
-	}
-	if err := c.Rollup.Check(); err != nil {
-		return err
 	}
 	if c.L1Head == (common.Hash{}) {
 		return ErrInvalidL1Head
@@ -136,14 +131,24 @@ func NewConfig(
 	}
 }
 
+// setRollup configures the rollup
+func setRollup(ctx *cli.Context, cfg *rollup.Config) {
+	if ctx.IsSet(flags.RollupClientHttpFlag.Name) {
+		cfg.RollupClientHttp = ctx.String(flags.RollupClientHttpFlag.Name)
+	}
+	if ctx.IsSet(flags.PosClientHttpFlag.Name) {
+		cfg.PosClientHttp = ctx.String(flags.PosClientHttpFlag.Name)
+	}
+}
+
 func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 	if err := flags.CheckRequired(ctx); err != nil {
 		return nil, err
 	}
-	rollupCfg, err := opnode.NewRollupConfigFromCLI(log, ctx)
-	if err != nil {
-		return nil, err
-	}
+
+	rollupCfg := eth.DefaultConfig.Rollup
+	setRollup(ctx, &rollupCfg)
+
 	l2Head := common.HexToHash(ctx.String(flags.L2Head.Name))
 	if l2Head == (common.Hash{}) {
 		return nil, ErrInvalidL2Head
@@ -166,44 +171,26 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 		return nil, ErrInvalidL1Head
 	}
 	l2GenesisPath := ctx.String(flags.L2GenesisPath.Name)
-	var l2ChainConfig *params.ChainConfig
-	var isCustomConfig bool
-	if l2GenesisPath == "" {
-		networkName := ctx.String(flags.Network.Name)
-		ch := chaincfg.ChainByName(networkName)
-		if ch == nil {
-			return nil, fmt.Errorf("flag %s is required for network %s", flags.L2GenesisPath.Name, networkName)
-		}
-		// FIXME: comment out for testing out compilation
-		//cfg, err := params.LoadOPStackChainConfig(ch.ChainID)
-		//if err != nil {
-		//	return nil, fmt.Errorf("failed to load chain config for chain %d: %w", ch.ChainID, err)
-		//}
-		l2ChainConfig = &params.ChainConfig{} // cfg
-	} else {
-		l2ChainConfig, err = loadChainConfigFromGenesis(l2GenesisPath)
-		isCustomConfig = true
-	}
+	l2ChainConfig, err := loadChainConfigFromGenesis(l2GenesisPath)
 	if err != nil {
 		return nil, fmt.Errorf("invalid genesis: %w", err)
 	}
 	return &Config{
-		Rollup:              rollupCfg,
-		DataDir:             ctx.String(flags.DataDir.Name),
-		L2URL:               ctx.String(flags.L2NodeAddr.Name),
-		L2ChainConfig:       l2ChainConfig,
-		L2Head:              l2Head,
-		L2OutputRoot:        l2OutputRoot,
-		L2Claim:             l2Claim,
-		L2ClaimBlockNumber:  l2ClaimBlockNum,
-		L1Head:              l1Head,
-		L1URL:               ctx.String(flags.L1NodeAddr.Name),
-		L1BeaconURL:         ctx.String(flags.L1BeaconAddr.Name),
-		L1TrustRPC:          ctx.Bool(flags.L1TrustRPC.Name),
-		L1RPCKind:           sources.RPCProviderKind(ctx.String(flags.L1RPCProviderKind.Name)),
-		ExecCmd:             ctx.String(flags.Exec.Name),
-		ServerMode:          ctx.Bool(flags.Server.Name),
-		IsCustomChainConfig: isCustomConfig,
+		Rollup:             &rollupCfg,
+		DataDir:            ctx.String(flags.DataDir.Name),
+		L2URL:              ctx.String(flags.L2NodeAddr.Name),
+		L2ChainConfig:      l2ChainConfig,
+		L2Head:             l2Head,
+		L2OutputRoot:       l2OutputRoot,
+		L2Claim:            l2Claim,
+		L2ClaimBlockNumber: l2ClaimBlockNum,
+		L1Head:             l1Head,
+		L1URL:              ctx.String(flags.L1NodeAddr.Name),
+		L1BeaconURL:        ctx.String(flags.L1BeaconAddr.Name),
+		L1TrustRPC:         ctx.Bool(flags.L1TrustRPC.Name),
+		L1RPCKind:          sources.RPCProviderKind(ctx.String(flags.L1RPCProviderKind.Name)),
+		ExecCmd:            ctx.String(flags.Exec.Name),
+		ServerMode:         ctx.Bool(flags.Server.Name),
 	}, nil
 }
 

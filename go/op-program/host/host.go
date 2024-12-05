@@ -9,14 +9,13 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/client"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
-
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/ethclient"
+	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/l2sources"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
@@ -37,7 +36,6 @@ func Main(logger log.Logger, cfg *config.Config) error {
 		return fmt.Errorf("invalid config: %w", err)
 	}
 	opservice.ValidateEnvVars(flags.EnvVarPrefix, flags.Flags, logger)
-	cfg.Rollup.LogDescription(logger, chaincfg.L2ChainIDToNetworkDisplayName)
 
 	ctx := context.Background()
 	if cfg.ServerMode {
@@ -186,32 +184,28 @@ func PreimageServer(ctx context.Context, logger log.Logger, cfg *config.Config, 
 }
 
 func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *config.Config) (*prefetcher.Prefetcher, error) {
-	logger.Info("Connecting to L1 node", "l1", cfg.L1URL)
-	l1RPC, err := client.NewRPC(ctx, logger, cfg.L1URL, client.WithDialBackoff(10))
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup L1 RPC: %w", err)
-	}
-
 	logger.Info("Connecting to L2 node", "l2", cfg.L2URL)
 	l2RPC, err := client.NewRPC(ctx, logger, cfg.L2URL, client.WithDialBackoff(10))
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup L2 RPC: %w", err)
 	}
 
-	l1ClCfg := sources.L1ClientDefaultConfig(cfg.Rollup, cfg.L1TrustRPC, cfg.L1RPCKind)
-	l2ClCfg := l2sources.L2ClientDefaultConfig(cfg.Rollup, true)
-	l1Cl, err := sources.NewL1Client(l1RPC, logger, nil, l1ClCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create L1 client: %w", err)
-	}
-	l1Beacon := sources.NewBeaconHTTPClient(client.NewBasicHTTPClient(cfg.L1BeaconURL, logger))
-	l1BlobFetcher := sources.NewL1BeaconClient(l1Beacon, sources.L1BeaconClientConfig{FetchAllSidecars: false})
-	l2Cl, err := NewL2Client(l2RPC, logger, nil, &L2ClientConfig{L2ClientConfig: l2ClCfg, L2Head: cfg.L2Head})
+	l2Cl, err := ethclient.Dial(cfg.L2URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
-	l2DebugCl := &L2Source{L2Client: l2Cl, DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
-	return prefetcher.NewPrefetcher(logger, l1Cl, l1BlobFetcher, l2DebugCl, kv), nil
+
+	l2DebugCl := &L2Source{L2Client: NewL2Client(l2Cl, cfg.L2Head), DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
+
+	chainId, err := l2Cl.ChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chain ID: %w", err)
+	}
+
+	logger.Info("Connecting to L1 DTL", "dtl", cfg.Rollup.RollupClientHttp)
+	rollupFetcher := dtl.NewClient(cfg.Rollup.RollupClientHttp, chainId)
+
+	return prefetcher.NewPrefetcher(logger, l2DebugCl, rollupFetcher, kv), nil
 }
 
 func routeHints(logger log.Logger, hHostRW io.ReadWriter, hinter preimage.HintHandler) chan error {

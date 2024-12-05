@@ -42,6 +42,12 @@ const (
 	BlobKeyType KeyType = 5
 	// PrecompileKeyType is for precompile result pre-images.
 	PrecompileKeyType KeyType = 6
+	// EnqueueTxKeyType is for EnqueueTx pre-images.
+	EnqueueTxKeyType KeyType = 7
+	// L2BlockWithBatchInfoKeyType is for L2 batches pre-images.
+	L2BlockWithBatchInfoKeyType KeyType = 8
+	// L2BlockStateCommitmentKeyType is for L2 state commitment pre-images.
+	L2BlockStateCommitmentKeyType KeyType = 9
 )
 
 // LocalIndexKey is a key local to the program, indexing a special program input.
@@ -49,6 +55,33 @@ type LocalIndexKey uint64
 
 func (k LocalIndexKey) PreimageKey() (out [32]byte) {
 	out[0] = byte(LocalKeyType)
+	binary.BigEndian.PutUint64(out[24:], uint64(k))
+	return
+}
+
+// L2BlockStateCommitmentKey is a key for state commitment of L2 block in L1 DTL preimage
+type L2BlockStateCommitmentKey uint64
+
+func (k L2BlockStateCommitmentKey) PreimageKey() (out [32]byte) {
+	out[0] = byte(L2BlockStateCommitmentKeyType)
+	binary.BigEndian.PutUint64(out[24:], uint64(k))
+	return
+}
+
+// L2BlockWittBatchInfoKey is a key for L2 block with batch info in L1 DTL preimage
+type L2BlockWittBatchInfoKey uint64
+
+func (k L2BlockWittBatchInfoKey) PreimageKey() (out [32]byte) {
+	out[0] = byte(L2BlockWithBatchInfoKeyType)
+	binary.BigEndian.PutUint64(out[24:], uint64(k))
+	return
+}
+
+// EnqueueTxKey is a key for EnqueueTx pre-images.
+type EnqueueTxKey uint64
+
+func (k EnqueueTxKey) PreimageKey() (out [32]byte) {
+	out[0] = byte(EnqueueTxKeyType)
 	binary.BigEndian.PutUint64(out[24:], uint64(k))
 	return
 }

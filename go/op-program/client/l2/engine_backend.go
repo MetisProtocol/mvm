@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
@@ -27,8 +26,6 @@ type OracleBackedL2Chain struct {
 	engine     consensus.Engine
 	oracleHead *types.Header
 	head       *types.Header
-	safe       *types.Header
-	finalized  *types.Header
 	vmCfg      vm.Config
 
 	// Block by number cache
@@ -40,16 +37,9 @@ type OracleBackedL2Chain struct {
 	db     ethdb.KeyValueStore
 }
 
-var _ engineapi.EngineBackend = (*OracleBackedL2Chain)(nil)
-
-func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle engineapi.PrecompileOracle, chainCfg *params.ChainConfig, l2OutputRoot common.Hash) (*OracleBackedL2Chain, error) {
-	output := oracle.OutputByRoot(l2OutputRoot)
-	outputV0, ok := output.(*eth.OutputV0)
-	if !ok {
-		return nil, fmt.Errorf("unsupported L2 output version: %d", output.Version())
-	}
+func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle engineapi.PrecompileOracle, chainCfg *params.ChainConfig, l2Head common.Hash) (*OracleBackedL2Chain, error) {
 	db := NewOracleBackedDB(oracle)
-	head := oracle.BlockByHash(common.Hash(outputV0.BlockHash))
+	head := oracle.BlockByHash(l2Head)
 	logger.Info("Loaded L2 head", "hash", head.Hash(), "number", head.Number())
 	return &OracleBackedL2Chain{
 		log:      logger,
@@ -64,8 +54,6 @@ func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle e
 
 		// Treat the agreed starting head as finalized - nothing before it can be disputed
 		head:       head.Header(),
-		safe:       head.Header(),
-		finalized:  head.Header(),
 		oracleHead: head.Header(),
 		blocks:     make(map[common.Hash]*types.Block),
 		db:         db,
@@ -100,14 +88,6 @@ func (o *OracleBackedL2Chain) GetHeaderByNumber(n uint64) *types.Header {
 func (o *OracleBackedL2Chain) GetTd(hash common.Hash, number uint64) *big.Int {
 	// Difficulty is always 0 post-merge and bedrock starts post-merge so total difficulty also always 0
 	return common.Big0
-}
-
-func (o *OracleBackedL2Chain) CurrentSafeBlock() *types.Header {
-	return o.safe
-}
-
-func (o *OracleBackedL2Chain) CurrentFinalBlock() *types.Header {
-	return o.finalized
 }
 
 func (o *OracleBackedL2Chain) GetHeaderByHash(hash common.Hash) *types.Header {
@@ -230,12 +210,4 @@ func (o *OracleBackedL2Chain) SetCanonical(head *types.Block) (common.Hash, erro
 		h = o.GetHeaderByHash(h.ParentHash)
 	}
 	return head.Hash(), nil
-}
-
-func (o *OracleBackedL2Chain) SetFinalized(header *types.Header) {
-	o.finalized = header
-}
-
-func (o *OracleBackedL2Chain) SetSafe(header *types.Header) {
-	o.safe = header
 }

@@ -6,19 +6,18 @@ import (
 	"io"
 	"os"
 
-	l2common "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
+	dtl "github.com/ethereum-optimism/optimism/go/op-program/client/rollup"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/claim"
-	cldr "github.com/ethereum-optimism/optimism/go/op-program/client/driver"
-	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2"
 )
 
@@ -44,40 +43,72 @@ func Main(logger log.Logger) {
 func RunProgram(logger log.Logger, preimageOracle io.ReadWriter, preimageHinter io.ReadWriter) error {
 	pClient := preimage.NewOracleClient(preimageOracle)
 	hClient := preimage.NewHintWriter(preimageHinter)
-	l1PreimageOracle := l1.NewCachingOracle(l1.NewPreimageOracle(pClient, hClient))
 	l2PreimageOracle := l2.NewCachingOracle(l2.NewPreimageOracle(pClient, hClient))
+	rollupPreimageOracle := dtl.NewCachingOracle(dtl.NewPreimageOracle(pClient, hClient))
 
 	bootInfo := NewBootstrapClient(pClient).BootInfo()
 	logger.Info("Program Bootstrapped", "bootInfo", bootInfo)
 	return runDerivation(
 		logger,
-		bootInfo.RollupConfig,
 		bootInfo.L2ChainConfig,
-		bootInfo.L1Head,
 		bootInfo.L2OutputRoot,
 		bootInfo.L2Claim,
 		bootInfo.L2ClaimBlockNumber,
-		l1PreimageOracle,
 		l2PreimageOracle,
+		rollupPreimageOracle,
 	)
 }
 
 // runDerivation executes the L2 state transition, given a minimal interface to retrieve data.
-func runDerivation(logger log.Logger, cfg *rollup.Config, l2Cfg *params.ChainConfig, l1Head common.Hash, l2OutputRoot common.Hash, l2Claim common.Hash, l2ClaimBlockNum uint64, l1Oracle l1.Oracle, l2Oracle l2.Oracle) error {
-	l1Source := l1.NewOracleL1Client(logger, l1Oracle, l2common.Hash(l1Head))
-	l1BlobsSource := l1.NewBlobFetcher(logger, l1Oracle)
-	engineBackend, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, l1Oracle /* kzg oracle */, l2Cfg, l2OutputRoot)
+func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2OutputRoot common.Hash, l2Claim common.Hash, l2ClaimBlockNum uint64, l2Oracle l2.Oracle, rollupOracle dtl.Oracle) error {
+	// retrieve the start l2 block of current batch
+	l2BlockWithBatchInfo := rollupOracle.L2BlockWithBathInfo(l2ClaimBlockNum)
+	if l2BlockWithBatchInfo == nil {
+		return fmt.Errorf("failed to get target l2 block with batch info")
+	}
+
+	l2BatchStartBlock := uint64(l2BlockWithBatchInfo.Batch.PrevTotalElements)
+	if l2BatchStartBlock < l2ClaimBlockNum {
+		return fmt.Errorf("something is wrong, start block is less than the end block: %d vs %d", l2BatchStartBlock, l2ClaimBlockNum)
+
+	}
+
+	l2Chain, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, nil, l2Cfg, l2OutputRoot)
 	if err != nil {
 		return fmt.Errorf("failed to create oracle-backed L2 chain: %w", err)
 	}
-	l2Source := l2.NewOracleEngine(cfg, logger, engineBackend)
+	signer := types.NewEIP155Signer(l2Cfg.ChainID)
 
-	logger.Info("Starting derivation")
-	d := cldr.NewDriver(logger, cfg, l1Source, l1BlobsSource, l2Source, l2ClaimBlockNum)
-	if err := d.RunComplete(); err != nil {
-		return fmt.Errorf("failed to run program to completion: %w", err)
+	for i := l2BatchStartBlock; i <= l2ClaimBlockNum; i++ {
+		blockResp := rollupOracle.L2BlockWithBathInfo(i)
+		if blockResp == nil {
+			return fmt.Errorf("failed to get l2 block %d with batch info", i)
+		}
+
+		block, err := rollup.BatchedBlockToBlock(blockResp.Block, &signer)
+		if err != nil {
+			return fmt.Errorf("failed to convert batched block to block: %w", err)
+		}
+
+		if !l2Chain.HasBlockAndState(block.ParentHash(), block.Number().Uint64()-1) {
+			return fmt.Errorf("missing parent block %d", block.Number().Uint64()-1)
+		}
+
+		if l2Chain.GetBlockByHash(block.Hash()) != nil {
+			logger.Info("block already inserted, ignore", "block", block.Number().Uint64())
+			continue
+		}
+
+		if _, err := l2Chain.SetCanonical(block); err != nil {
+			return fmt.Errorf("failed to set canonical block %d: %w", i, err)
+		}
+
+		if err := l2Chain.InsertBlockWithoutSetHead(block); err != nil {
+			return fmt.Errorf("failed to insert block %d: %w", i, err)
+		}
 	}
-	return claim.ValidateClaim(logger, l2ClaimBlockNum, eth.Bytes32(l2Claim), l2Source)
+
+	return claim.ValidateClaim(logger, l2ClaimBlockNum, eth.Bytes32(l2Claim), l2Chain)
 }
 
 func CreateHinterChannel() preimage.FileChannel {

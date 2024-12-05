@@ -2,13 +2,11 @@ package prefetcher
 
 import (
 	"context"
-	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -16,17 +14,20 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
+	ethereum "github.com/MetisProtocol/mvm/l2geth"
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
 	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
 
-	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/mpt"
+	"github.com/ethereum-optimism/optimism/go/op-program/client/rollup"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
 )
 
@@ -53,27 +54,25 @@ type L1BlobSource interface {
 }
 
 type L2Source interface {
-	InfoAndTxsByHash(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, types.Transactions, error)
+	ethereum.ChainReader
+
 	NodeByHash(ctx context.Context, hash common.Hash) ([]byte, error)
-	CodeByHash(ctx context.Context, hash common.Hash) ([]byte, error)
-	OutputByRoot(ctx context.Context, root common.Hash) (eth.Output, error)
+	OutputByRoot(ctx context.Context, root common.Hash) (common.Hash, error)
 }
 
 type Prefetcher struct {
 	logger        log.Logger
-	l1Fetcher     L1Source
-	l1BlobFetcher L1BlobSource
 	l2Fetcher     L2Source
+	rollupFetcher dtl.RollupClient
 	lastHint      string
 	kvStore       kvstore.KV
 }
 
-func NewPrefetcher(logger log.Logger, l1Fetcher L1Source, l1BlobFetcher L1BlobSource, l2Fetcher L2Source, kvStore kvstore.KV) *Prefetcher {
+func NewPrefetcher(logger log.Logger, l2Fetcher L2Source, rollupFetcher dtl.RollupClient, kvStore kvstore.KV) *Prefetcher {
 	return &Prefetcher{
 		logger:        logger,
-		l1Fetcher:     NewRetryingL1Source(logger, l1Fetcher),
-		l1BlobFetcher: NewRetryingL1BlobSource(logger, l1BlobFetcher),
 		l2Fetcher:     NewRetryingL2Source(logger, l2Fetcher),
+		rollupFetcher: rollupFetcher,
 		kvStore:       kvStore,
 	}
 }
@@ -110,148 +109,16 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 	}
 	p.logger.Debug("Prefetching", "type", hintType, "bytes", hexutil.Bytes(hintBytes))
 	switch hintType {
-	case l1.HintL1BlockHeader:
-		if len(hintBytes) != 32 {
-			return fmt.Errorf("invalid L1 block hint: %x", hint)
-		}
-		hash := common.Hash(hintBytes)
-		header, err := p.l1Fetcher.InfoByHash(ctx, ethcommon.Hash(hash))
-		if err != nil {
-			return fmt.Errorf("failed to fetch L1 block %s header: %w", hash, err)
-		}
-		data, err := header.HeaderRLP()
-		if err != nil {
-			return fmt.Errorf("marshall header: %w", err)
-		}
-		return p.kvStore.Put(preimage.Keccak256Key(hash).PreimageKey(), data)
-	case l1.HintL1Transactions:
-		if len(hintBytes) != 32 {
-			return fmt.Errorf("invalid L1 transactions hint: %x", hint)
-		}
-		hash := common.Hash(hintBytes)
-		_, txs, err := p.l1Fetcher.InfoAndTxsByHash(ctx, ethcommon.Hash(hash))
-		if err != nil {
-			return fmt.Errorf("failed to fetch L1 block %s txs: %w", hash, err)
-		}
-		return p.storeL1Transactions(txs)
-	case l1.HintL1Receipts:
-		if len(hintBytes) != 32 {
-			return fmt.Errorf("invalid L1 receipts hint: %x", hint)
-		}
-		hash := common.Hash(hintBytes)
-		_, receipts, err := p.l1Fetcher.FetchReceipts(ctx, ethcommon.Hash(hash))
-		if err != nil {
-			return fmt.Errorf("failed to fetch L1 block %s receipts: %w", hash, err)
-		}
-		return p.storeL1Receipts(receipts)
-	case l1.HintL1Blob:
-		if len(hintBytes) != 48 {
-			return fmt.Errorf("invalid blob hint: %x", hint)
-		}
-
-		blobVersionHash := common.Hash(hintBytes[:32])
-		blobHashIndex := binary.BigEndian.Uint64(hintBytes[32:40])
-		refTimestamp := binary.BigEndian.Uint64(hintBytes[40:48])
-
-		// Fetch the blob sidecar for the indexed blob hash passed in the hint.
-		indexedBlobHash := eth.IndexedBlobHash{
-			Hash:  ethcommon.Hash(blobVersionHash),
-			Index: blobHashIndex,
-		}
-		// We pass an `eth.L1BlockRef`, but `GetBlobSidecars` only uses the timestamp, which we received in the hint.
-		sidecars, err := p.l1BlobFetcher.GetBlobSidecars(ctx, eth.L1BlockRef{Time: refTimestamp}, []eth.IndexedBlobHash{indexedBlobHash})
-		if err != nil || len(sidecars) != 1 {
-			return fmt.Errorf("failed to fetch blob sidecars for %s %d: %w", blobVersionHash, blobHashIndex, err)
-		}
-		sidecar := sidecars[0]
-
-		// Put the preimage for the versioned hash into the kv store
-		if err = p.kvStore.Put(preimage.Sha256Key(blobVersionHash).PreimageKey(), sidecar.KZGCommitment[:]); err != nil {
-			return err
-		}
-
-		// Put all of the blob's field elements into the kv store. There should be 4096. The preimage oracle key for
-		// each field element is the keccak256 hash of `abi.encodePacked(sidecar.KZGCommitment, uint256(i))`
-		blobKey := make([]byte, 80)
-		copy(blobKey[:48], sidecar.KZGCommitment[:])
-		for i := 0; i < params.BlobTxFieldElementsPerBlob; i++ {
-			binary.BigEndian.PutUint64(blobKey[72:], uint64(i))
-			blobKeyHash := crypto.Keccak256Hash(blobKey)
-			if err := p.kvStore.Put(preimage.Keccak256Key(blobKeyHash).PreimageKey(), blobKey); err != nil {
-				return err
-			}
-			if err = p.kvStore.Put(preimage.BlobKey(blobKeyHash).PreimageKey(), sidecar.Blob[i<<5:(i+1)<<5]); err != nil {
-				return err
-			}
-		}
-		return nil
-	case l1.HintL1Precompile:
-		if len(hintBytes) < 20 {
-			return fmt.Errorf("invalid precompile hint: %x", hint)
-		}
-		precompileAddress := common.BytesToAddress(hintBytes[:20])
-		// For extra safety, avoid accelerating unexpected precompiles
-		if !slices.Contains(acceleratedPrecompiles, precompileAddress) {
-			return fmt.Errorf("unsupported precompile address: %s", precompileAddress)
-		}
-		// NOTE: We use the precompiled contracts from Berlin because it's the latest set that we have right now.
-		// We assume the precompile Run function behavior does not change across EVM upgrades.
-		// As such, we must not rely on upgrade-specific behavior such as precompile.RequiredGas.
-		precompile := getPrecompiledContract(precompileAddress)
-
-		// KZG Point Evaluation precompile also verifies its input
-		result, err := precompile.Run(hintBytes[20:])
-		if err == nil {
-			result = append(precompileSuccess[:], result...)
-		} else {
-			result = append(precompileFailure[:], result...)
-		}
-		inputHash := crypto.Keccak256Hash(hintBytes)
-		// Put the input preimage so it can be loaded later
-		if err := p.kvStore.Put(preimage.Keccak256Key(inputHash).PreimageKey(), hintBytes); err != nil {
-			return err
-		}
-		return p.kvStore.Put(preimage.PrecompileKey(inputHash).PreimageKey(), result)
-	case l1.HintL1PrecompileV2:
-		if len(hintBytes) < 28 {
-			return fmt.Errorf("invalid precompile hint: %x", hint)
-		}
-		precompileAddress := common.BytesToAddress(hintBytes[:20])
-		// requiredGas := hintBytes[20:28] - unused by the host. Since the client already validates gas requirements.
-		// The requiredGas is only used by the L1 PreimageOracle to enforce complete precompile execution.
-
-		// For extra safety, avoid accelerating unexpected precompiles
-		if !slices.Contains(acceleratedPrecompiles, precompileAddress) {
-			return fmt.Errorf("unsupported precompile address: %s", precompileAddress)
-		}
-		// NOTE: We use the precompiled contracts from Cancun because it's the only set that contains the addresses of all accelerated precompiles
-		// We assume the precompile Run function behavior does not change across EVM upgrades.
-		// As such, we must not rely on upgrade-specific behavior such as precompile.RequiredGas.
-		precompile := getPrecompiledContract(precompileAddress)
-
-		// KZG Point Evaluation precompile also verifies its input
-		result, err := precompile.Run(hintBytes[28:])
-		if err == nil {
-			result = append(precompileSuccess[:], result...)
-		} else {
-			result = append(precompileFailure[:], result...)
-		}
-		inputHash := crypto.Keccak256Hash(hintBytes)
-		// Put the input preimage so it can be loaded later
-		if err := p.kvStore.Put(preimage.Keccak256Key(inputHash).PreimageKey(), hintBytes); err != nil {
-			return err
-		}
-		return p.kvStore.Put(preimage.PrecompileKey(inputHash).PreimageKey(), result)
 	case l2.HintL2BlockHeader, l2.HintL2Transactions:
 		if len(hintBytes) != 32 {
 			return fmt.Errorf("invalid L2 header/tx hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
-		header, txs, err := p.l2Fetcher.InfoAndTxsByHash(ctx, hash)
+		block, err := p.l2Fetcher.BlockByHash(ctx, hash)
 		if err != nil {
 			return fmt.Errorf("failed to fetch L2 block %s: %w", hash, err)
 		}
-		data, err := header.HeaderRLP()
+		data, err := rlp.EncodeToBytes(block.Header())
 		if err != nil {
 			return fmt.Errorf("failed to encode header to RLP: %w", err)
 		}
@@ -259,7 +126,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 		if err != nil {
 			return err
 		}
-		return p.storeL2Transactions(txs)
+		return p.storeL2Transactions(block.Transactions())
 	case l2.HintL2StateNode:
 		if len(hintBytes) != 32 {
 			return fmt.Errorf("invalid L2 state node hint: %x", hint)
@@ -275,7 +142,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L2 code hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
-		code, err := p.l2Fetcher.CodeByHash(ctx, hash)
+		code, err := p.l2Fetcher.NodeByHash(ctx, hash)
 		if err != nil {
 			return fmt.Errorf("failed to fetch L2 contract code %s: %w", hash, err)
 		}
@@ -289,8 +156,50 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 		if err != nil {
 			return fmt.Errorf("failed to fetch L2 output root %s: %w", hash, err)
 		}
-		return p.kvStore.Put(preimage.Keccak256Key(hash).PreimageKey(), output.Marshal())
+		return p.kvStore.Put(preimage.Keccak256Key(hash).PreimageKey(), output[:])
+	case rollup.HintL2BlockWithBatchInfo:
+		if len(hintBytes) != 8 {
+			return fmt.Errorf("invalid L2 block to L1 block hint: %x", hint)
+		}
+
+		var l2Block eth.Uint64Quantity
+		if err := l2Block.UnmarshalText(hintBytes); err != nil {
+			return fmt.Errorf("failed to unmarshal batch index: %w", err)
+		}
+
+		blockResp, err := p.rollupFetcher.GetRawBlock(uint64(l2Block), dtl.BackendL1)
+		if err != nil {
+			return fmt.Errorf("failed to fetch block %d from dtl: %w", l2Block, err)
+		}
+
+		marshaled, err := json.Marshal(blockResp)
+		if err != nil {
+			return fmt.Errorf("failed to marshal block response: %w", err)
+		}
+
+		return p.kvStore.Put(preimage.L2BlockWittBatchInfoKey(l2Block).PreimageKey(), marshaled)
+	case rollup.HintL1EnqueueTx:
+		if len(hintBytes) != 8 {
+			return fmt.Errorf("invalid l1 enqueue tx hint: %x", hint)
+		}
+
+		var enqueueIndex eth.Uint64Quantity
+		if err := enqueueIndex.UnmarshalText(hintBytes); err != nil {
+			return fmt.Errorf("failed to unmarshal enqueue index: %w", err)
+		}
+		enqueueTx, err := p.rollupFetcher.GetEnqueue(uint64(enqueueIndex))
+		if err != nil {
+			return fmt.Errorf("failed to fetch batch %d: %w", enqueueIndex, err)
+		}
+
+		opaqueTx, err := rlp.EncodeToBytes(enqueueTx)
+		if err != nil {
+			return fmt.Errorf("failed to marshal enqueue tx: %w", err)
+		}
+
+		return p.kvStore.Put(preimage.EnqueueTxKey(enqueueIndex).PreimageKey(), opaqueTx)
 	}
+
 	return fmt.Errorf("unknown hint type: %v", hintType)
 }
 

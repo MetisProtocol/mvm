@@ -2,48 +2,38 @@ package host
 
 import (
 	"context"
-
-	"github.com/ethereum-optimism/optimism/op-service/client"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/sources/caching"
-	"github.com/ethereum/go-ethereum/log"
+	"fmt"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/ethereum-optimism/optimism/go/op-program/host/l2sources"
+	"github.com/MetisProtocol/mvm/l2geth/ethclient"
 )
 
 type L2Client struct {
-	*l2sources.L2Client
-
 	// l2Head is the L2 block hash that we use to fetch L2 output
 	l2Head common.Hash
 
-	rpcClient client.RPC
+	*ethclient.Client
 }
 
-type L2ClientConfig struct {
-	*l2sources.L2ClientConfig
-	L2Head common.Hash
-}
-
-func NewL2Client(client client.RPC, log log.Logger, metrics caching.Metrics, config *L2ClientConfig) (*L2Client, error) {
-	l2Client, err := l2sources.NewL2Client(client, log, metrics, config.L2ClientConfig)
-	if err != nil {
-		return nil, err
-	}
+func NewL2Client(client *ethclient.Client, l2Head common.Hash) *L2Client {
 	return &L2Client{
-		L2Client:  l2Client,
-		l2Head:    config.L2Head,
-		rpcClient: client,
-	}, nil
+		Client: client,
+		l2Head: l2Head,
+	}
 }
 
-func (s *L2Client) OutputByRoot(ctx context.Context, l2OutputRoot common.Hash) (eth.Output, error) {
-	var outputV0 eth.OutputV0
-	err := s.rpcClient.CallContext(ctx, &outputV0, "optimism_outputByRoot", s.l2Head, l2OutputRoot)
+func (s *L2Client) OutputByRoot(ctx context.Context, l2OutputRoot common.Hash) (common.Hash, error) {
+	block, err := s.BlockByHash(ctx, s.l2Head)
 	if err != nil {
-		return nil, err
+		return common.Hash{}, err
 	}
 
-	return &outputV0, nil
+	if block.Root() != l2OutputRoot {
+		// For fault proofs, we only reference outputs at the l2 head at boot time
+		// The caller shouldn't be requesting outputs at any other block
+		// If they are, there is no chance of recovery and we should panic to avoid retrying forever
+		panic(fmt.Errorf("output root %v from specified L2 block %v does not match requested output root %v", block.Root(), s.l2Head, l2OutputRoot))
+	}
+
+	return l2OutputRoot, nil
 }

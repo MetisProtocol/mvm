@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/consensus"
 	"github.com/MetisProtocol/mvm/l2geth/core"
@@ -39,32 +37,9 @@ type BlockProcessor struct {
 	dataProvider BlockDataProvider
 }
 
-func NewBlockProcessorFromPayloadAttributes(provider BlockDataProvider, parent common.Hash, attrs *eth.PayloadAttributes) (*BlockProcessor, error) {
-	header := &types.Header{
-		ParentHash: parent,
-		Coinbase:   common.Address{},
-		Difficulty: common.Big0,
-		GasLimit:   uint64(*attrs.GasLimit),
-		Time:       uint64(attrs.Timestamp),
-		Extra:      nil,
-		MixDigest:  common.Hash(attrs.PrevRandao),
-		Nonce:      types.EncodeNonce(0),
-	}
-
-	return NewBlockProcessorFromHeader(provider, header)
-}
-
 func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*BlockProcessor, error) {
 	header := types.CopyHeader(h) // Copy to avoid mutating the original header
-
-	//if header.GasLimit > params.MaxGasLimit {
-	//	return nil, fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
-	//}
-
 	parentHeader := provider.GetHeaderByHash(header.ParentHash)
-	if header.Time <= parentHeader.Time {
-		return nil, errors.New("invalid timestamp")
-	}
 	statedb, err := provider.StateAt(parentHeader.Root)
 	if err != nil {
 		return nil, fmt.Errorf("get parent state: %w", err)

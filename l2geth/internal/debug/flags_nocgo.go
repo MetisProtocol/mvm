@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-//go:build cgo
-// +build cgo
+//go:build !cgo
+// +build !cgo
 
 package debug
 
@@ -27,7 +27,6 @@ import (
   "os"
   "runtime"
 
-  "github.com/fjl/memsize/memsizeui"
   colorable "github.com/mattn/go-colorable"
   "github.com/mattn/go-isatty"
   "gopkg.in/urfave/cli.v1"
@@ -36,8 +35,6 @@ import (
   "github.com/MetisProtocol/mvm/l2geth/metrics"
   "github.com/MetisProtocol/mvm/l2geth/metrics/exp"
 )
-
-var Memsize memsizeui.Handler
 
 var (
   verbosityFlag = cli.IntFlag{
@@ -161,7 +158,6 @@ func StartPProf(address string) {
   // Hook go-metrics into expvar on any /debug/metrics request, load all vars
   // from the registry into expvar, and execute regular expvar handler.
   exp.Exp(metrics.DefaultRegistry)
-  http.Handle("/memsize/", http.StripPrefix("/memsize", &Memsize))
   log.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", address))
   go func() {
     if err := http.ListenAndServe(address, nil); err != nil {

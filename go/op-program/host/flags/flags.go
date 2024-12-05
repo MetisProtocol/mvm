@@ -20,11 +20,6 @@ func prefixEnvVars(name string) []string {
 }
 
 var (
-	RollupConfig = &cli.StringFlag{
-		Name:    "rollup.config",
-		Usage:   "Rollup chain parameters",
-		EnvVars: prefixEnvVars("ROLLUP_CONFIG"),
-	}
 	Network = &cli.StringFlag{
 		Name:    "network",
 		Usage:   fmt.Sprintf("Predefined network selection. Available networks: %s", strings.Join(chaincfg.AvailableNetworks(), ", ")),
@@ -105,6 +100,19 @@ var (
 		Usage:   "Run in pre-image server mode without executing any client program.",
 		EnvVars: prefixEnvVars("SERVER"),
 	}
+	// metis flags
+	RollupClientHttpFlag = &cli.StringFlag{
+		Name:    "rollup.clienthttp",
+		Usage:   "HTTP endpoint for the rollup client",
+		Value:   "http://localhost:7878",
+		EnvVars: prefixEnvVars("ROLLUP_CLIENT_HTTP"),
+	}
+	PosClientHttpFlag = &cli.StringFlag{
+		Name:    "pos.clienthttp",
+		Usage:   "HTTP endpoint for the pos layer client",
+		Value:   "http://localhost:8787",
+		EnvVars: prefixEnvVars("POS_CLIENT_HTTP"),
+	}
 )
 
 // Flags contains the list of configuration options available to the binary.
@@ -116,10 +124,11 @@ var requiredFlags = []cli.Flag{
 	L2OutputRoot,
 	L2Claim,
 	L2BlockNumber,
+	RollupClientHttpFlag,
 }
 
 var programFlags = []cli.Flag{
-	RollupConfig,
+	PosClientHttpFlag,
 	Network,
 	DataDir,
 	L2NodeAddr,
@@ -139,17 +148,6 @@ func init() {
 }
 
 func CheckRequired(ctx *cli.Context) error {
-	rollupConfig := ctx.String(RollupConfig.Name)
-	network := ctx.String(Network.Name)
-	if rollupConfig == "" && network == "" {
-		return fmt.Errorf("flag %s or %s is required", RollupConfig.Name, Network.Name)
-	}
-	if rollupConfig != "" && network != "" {
-		return fmt.Errorf("cannot specify both %s and %s", RollupConfig.Name, Network.Name)
-	}
-	if network == "" && ctx.String(L2GenesisPath.Name) == "" {
-		return fmt.Errorf("flag %s is required for custom networks", L2GenesisPath.Name)
-	}
 	for _, flag := range requiredFlags {
 		if !ctx.IsSet(flag.Names()[0]) {
 			return fmt.Errorf("flag %s is required", flag.Names()[0])
