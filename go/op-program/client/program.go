@@ -51,7 +51,6 @@ func RunProgram(logger log.Logger, preimageOracle io.ReadWriter, preimageHinter 
 	return runDerivation(
 		logger,
 		bootInfo.L2ChainConfig,
-		bootInfo.L2OutputRoot,
 		bootInfo.L2Claim,
 		bootInfo.L2ClaimBlockNumber,
 		l2PreimageOracle,
@@ -60,11 +59,17 @@ func RunProgram(logger log.Logger, preimageOracle io.ReadWriter, preimageHinter 
 }
 
 // runDerivation executes the L2 state transition, given a minimal interface to retrieve data.
-func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2OutputRoot common.Hash, l2Claim common.Hash, l2ClaimBlockNum uint64, l2Oracle l2.Oracle, rollupOracle dtl.Oracle) error {
+func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.Hash, l2ClaimBlockNum uint64, l2Oracle l2.Oracle, rollupOracle dtl.Oracle) error {
 	// retrieve the start l2 block of current batch
 	l2BlockWithBatchInfo := rollupOracle.L2BlockWithBatchInfo(l2ClaimBlockNum)
 	if l2BlockWithBatchInfo == nil {
 		return fmt.Errorf("failed to get target l2 block with batch info")
+	}
+
+	signer := types.NewEIP155Signer(l2Cfg.ChainID)
+	l2StartBlock, err := rollup.BatchedBlockToBlock(l2BlockWithBatchInfo.Block, &signer)
+	if err != nil {
+		return fmt.Errorf("failed to convert batched block to block: %w", err)
 	}
 
 	l2BatchStartBlock := uint64(l2BlockWithBatchInfo.Batch.PrevTotalElements)
@@ -73,11 +78,10 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2OutputRoot co
 
 	}
 
-	l2Chain, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, nil, l2Cfg, l2OutputRoot)
+	l2Chain, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, nil, l2Cfg, l2StartBlock.Hash())
 	if err != nil {
 		return fmt.Errorf("failed to create oracle-backed L2 chain: %w", err)
 	}
-	signer := types.NewEIP155Signer(l2Cfg.ChainID)
 
 	for i := l2BatchStartBlock; i <= l2ClaimBlockNum; i++ {
 		blockResp := rollupOracle.L2BlockWithBatchInfo(i)

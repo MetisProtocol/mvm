@@ -48,6 +48,10 @@ type PrecompileOracle interface {
 }
 
 func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileOverrides {
+	if precompileOracle == nil {
+		return nil
+	}
+
 	return func(rules params.Rules, orig vm.PrecompiledContract, address common.Address) vm.PrecompiledContract {
 		if orig == nil { // Only override existing contracts. Never introduce a precompile that is not there.
 			return nil

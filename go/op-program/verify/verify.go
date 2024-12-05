@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/client"
 	"github.com/ethereum-optimism/optimism/op-service/dial"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -24,6 +23,7 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/host"
@@ -31,20 +31,17 @@ import (
 )
 
 type Runner struct {
-	l1RpcUrl    string
-	l1RpcKind   string
-	l1BeaconUrl string
-	l2RpcUrl    string
-	dataDir     string
-	network     string
-	chainCfg    *params.ChainConfig
-	l2Client    *sources.L2Client
-	logCfg      oplog.CLIConfig
-	setupLog    log.Logger
-	rollupCfg   *rollup.Config
+	l2RpcUrl  string
+	dataDir   string
+	network   string
+	chainCfg  *params.ChainConfig
+	l2Client  *sources.L2Client
+	logCfg    oplog.CLIConfig
+	setupLog  log.Logger
+	rollupCfg *rollup.Config
 }
 
-func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl string, dataDir string, network string, chainCfg *params.ChainConfig) (*Runner, error) {
+func NewRunner(l1DTLRpcURL string, l2RpcUrl string, dataDir string, network string, chainCfg *params.ChainConfig) (*Runner, error) {
 	ctx := context.Background()
 	logCfg := oplog.DefaultCLIConfig()
 	logCfg.Level = slog.LevelDebug
@@ -56,11 +53,6 @@ func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl s
 		return nil, fmt.Errorf("dial L2 client: %w", err)
 	}
 
-	rollupCfg, err := rollup.LoadOPStackRollupConfig(chainCfg.ChainID.Uint64())
-	if err != nil {
-		return nil, fmt.Errorf("failed to load rollup config: %w", err)
-	}
-
 	l2ClientCfg := sources.L2ClientDefaultConfig(rollupCfg, false)
 	l2RPC := client.NewBaseRPCClient(l2RawRpc)
 	l2Client, err := sources.NewL2Client(l2RPC, setupLog, nil, l2ClientCfg)
@@ -69,17 +61,14 @@ func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl s
 	}
 
 	return &Runner{
-		l1RpcUrl:    l1RpcUrl,
-		l1RpcKind:   l1RpcKind,
-		l1BeaconUrl: l1BeaconUrl,
-		l2RpcUrl:    l2RpcUrl,
-		dataDir:     dataDir,
-		network:     network,
-		chainCfg:    chainCfg,
-		logCfg:      logCfg,
-		setupLog:    setupLog,
-		l2Client:    l2Client,
-		rollupCfg:   rollupCfg,
+		l2RpcUrl:  l2RpcUrl,
+		dataDir:   dataDir,
+		network:   network,
+		chainCfg:  chainCfg,
+		logCfg:    logCfg,
+		setupLog:  setupLog,
+		l2Client:  l2Client,
+		rollupCfg: &rollup.Config{RollupClientHttp: l1DTLRpcURL},
 	}, nil
 }
 
@@ -207,12 +196,7 @@ func (r *Runner) run(l1Head common.Hash, agreedBlockInfo eth.BlockInfo, agreedOu
 		r.rollupCfg, r.chainCfg, l1Head, common.Hash(agreedBlockInfo.Hash()), agreedOutputRoot, claimedOutputRoot, claimedBlockInfo.NumberU64())
 	offlineCfg.DataDir = r.dataDir
 	onlineCfg := *offlineCfg
-	onlineCfg.L1URL = r.l1RpcUrl
-	onlineCfg.L1BeaconURL = r.l1BeaconUrl
 	onlineCfg.L2URL = r.l2RpcUrl
-	if r.l1RpcKind != "" {
-		onlineCfg.L1RPCKind = sources.RPCProviderKind(r.l1RpcKind)
-	}
 
 	fmt.Println("Running in online mode")
 	err = host.Main(oplog.NewLogger(os.Stderr, r.logCfg), &onlineCfg)

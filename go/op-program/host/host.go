@@ -27,7 +27,7 @@ import (
 )
 
 type L2Source struct {
-	*L2Client
+	*ethclient.Client
 	*l2sources.DebugClient
 }
 
@@ -195,8 +195,7 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
 
-	l2DebugCl := &L2Source{L2Client: NewL2Client(l2Cl, cfg.L2Head), DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
-
+	l2DebugCl := &L2Source{Client: l2Cl, DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
 	chainId, err := l2Cl.ChainID(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chain ID: %w", err)

@@ -33,7 +33,7 @@ var (
 	}
 	L2Claim = &cli.StringFlag{
 		Name:    "l2.claim",
-		Usage:   "Claimed L2 output root to validate",
+		Usage:   "Claimed L2 state root to validate",
 		EnvVars: prefixEnvVars("L2_CLAIM"),
 	}
 	L2BlockNumber = &cli.Uint64Flag{

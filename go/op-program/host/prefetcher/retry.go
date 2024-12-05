@@ -157,17 +157,6 @@ func (s *RetryingL2Source) NodeByHash(ctx context.Context, hash l2common.Hash) (
 	})
 }
 
-func (s *RetryingL2Source) OutputByRoot(ctx context.Context, root l2common.Hash) (l2common.Hash, error) {
-	return retry.Do(ctx, maxAttempts, s.strategy, func() (l2common.Hash, error) {
-		o, err := s.source.OutputByRoot(ctx, root)
-		if err != nil {
-			s.logger.Warn("Failed to fetch l2 output", "root", root, "err", err)
-			return o, err
-		}
-		return o, nil
-	})
-}
-
 func NewRetryingL2Source(logger log.Logger, source L2Source) *RetryingL2Source {
 	return &RetryingL2Source{
 		logger:   logger,
