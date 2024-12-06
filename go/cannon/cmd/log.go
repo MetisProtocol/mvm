@@ -3,20 +3,19 @@ package cmd
 import (
 	"io"
 	"log/slog"
+	"os"
 
-	"github.com/MetisProtocol/mvm/l2geth/log"
+	"golang.org/x/term"
+
+	"github.com/ethereum/go-ethereum/log"
 )
 
-func Logger(w io.Writer, lvl slog.Level, ctx ...interface{}) log.Logger {
-	logger := log.New(ctx)
-	//if term.IsTerminal(int(os.Stdout.Fd())) {
-	//	logger.SetHandler(log.LvlFilterHandler(log.Lvl(lvl), log.StreamHandler(w, log.TerminalFormat(true))))
-	//} else {
-	//	logger.SetHandler(log.LvlFilterHandler(log.Lvl(lvl), log.StreamHandler(w, log.LogfmtFormat())))
-	//}
-	logger.SetHandler(log.StreamHandler(w, log.LogfmtFormat()))
-
-	return logger
+func Logger(w io.Writer, lvl slog.Level) log.Logger {
+	if term.IsTerminal(int(os.Stdout.Fd())) {
+		return log.NewLogger(log.LogfmtHandlerWithLevel(w, lvl))
+	} else {
+		return log.NewLogger(rawLogHandler(w, lvl))
+	}
 }
 
 // rawLogHandler returns a handler that strips out the time attribute

@@ -339,7 +339,18 @@ library MIPSSyscalls {
             v1_ = uint32(0);
 
         // args: _a0 = fd, _a1 = cmd
-            if (_a1 == 3) {
+            if (_a1 == 1) {
+                // F_GETFD: get file descriptor flags
+                if (
+                    _a0 == FD_STDIN || _a0 == FD_STDOUT || _a0 == FD_STDERR || _a0 == FD_PREIMAGE_READ
+                    || _a0 == FD_HINT_READ || _a0 == FD_PREIMAGE_WRITE || _a0 == FD_HINT_WRITE
+                ) {
+                    v0_ = 0; // No flags set
+                } else {
+                    v0_ = 0xFFffFFff;
+                    v1_ = EBADF;
+                }
+            } else if (_a1 == 3) {
                 // F_GETFL: get file descriptor flags
                 if (_a0 == FD_STDIN || _a0 == FD_PREIMAGE_READ || _a0 == FD_HINT_READ) {
                     v0_ = 0; // O_RDONLY

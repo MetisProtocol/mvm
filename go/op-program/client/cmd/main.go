@@ -13,9 +13,10 @@ func main() {
 	// Default to a machine parsable but relatively human friendly log format.
 	// Don't do anything fancy to detect if color output is supported.
 	logger := oplog.NewLogger(os.Stdout, oplog.CLIConfig{
-		Level:  log.LevelInfo,
+		Level:  log.LevelDebug,
 		Format: oplog.FormatLogFmt,
 		Color:  false,
 	})
+	oplog.SetGlobalLogHandler(logger.Handler())
 	client.Main(logger)
 }

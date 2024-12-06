@@ -1,8 +1,9 @@
 package mipsevm
 
 import (
+	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
-	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // LoggingWriter is a simple util to wrap a logger,
