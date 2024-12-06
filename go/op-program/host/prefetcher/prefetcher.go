@@ -77,13 +77,13 @@ func NewPrefetcher(logger log.Logger, l2Fetcher L2Source, rollupFetcher dtl.Roll
 }
 
 func (p *Prefetcher) Hint(hint string) error {
-	p.logger.Trace("Received hint", "hint", hint)
+	p.logger.Debug("Received hint", "hint", hint)
 	p.lastHint = hint
 	return nil
 }
 
 func (p *Prefetcher) GetPreimage(ctx context.Context, key common.Hash) ([]byte, error) {
-	p.logger.Trace("Pre-image requested", "key", key)
+	p.logger.Debug("Pre-image requested", "key", key)
 	pre, err := p.kvStore.Get(key)
 	// Use a loop to keep retrying the prefetch as long as the key is not found
 	// This handles the case where the prefetch downloads a preimage, but it is then deleted unexpectedly
