@@ -41,6 +41,12 @@ func WithVerification(source PreimageGetter) PreimageGetter {
 		case PrecompileKeyType:
 			// Can't verify precompile result without knowing the input preimage
 			return data, nil
+		case EnqueueTxKeyType:
+			return data, nil
+		case L2BlockWithBatchInfoKeyType:
+			return data, nil
+		case L2BlockStateCommitmentKeyType:
+			return data, nil
 		default:
 			return nil, fmt.Errorf("%w: %v", ErrUnsupportedKeyType, key[0])
 		}
