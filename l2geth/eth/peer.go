@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -113,6 +114,12 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 // and transaction broadcasts into the remote peer. The goal is to have an async
 // writer that does not lock up node internals.
 func (p *peer) broadcast() {
+	defer func() {
+		if r := recover(); r != nil {
+			p.Log().Error("Recovered from panic in broadcast", "peer", p.id, "error", r, "stack", string(debug.Stack()))
+		}
+	}()
+
 	for {
 		select {
 		case txs := <-p.queuedTxs:
