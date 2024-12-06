@@ -3,20 +3,18 @@ package cmd
 import (
 	"io"
 	"log/slog"
-	"os"
-
-	"golang.org/x/term"
 
 	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 func Logger(w io.Writer, lvl slog.Level, ctx ...interface{}) log.Logger {
 	logger := log.New(ctx)
-	if term.IsTerminal(int(os.Stdout.Fd())) {
-		logger.SetHandler(log.LvlFilterHandler(log.Lvl(lvl), log.StreamHandler(w, log.TerminalFormat(true))))
-	} else {
-		logger.SetHandler(log.LvlFilterHandler(log.Lvl(lvl), log.StreamHandler(w, log.LogfmtFormat())))
-	}
+	//if term.IsTerminal(int(os.Stdout.Fd())) {
+	//	logger.SetHandler(log.LvlFilterHandler(log.Lvl(lvl), log.StreamHandler(w, log.TerminalFormat(true))))
+	//} else {
+	//	logger.SetHandler(log.LvlFilterHandler(log.Lvl(lvl), log.StreamHandler(w, log.LogfmtFormat())))
+	//}
+	logger.SetHandler(log.StreamHandler(w, log.LogfmtFormat()))
 
 	return logger
 }

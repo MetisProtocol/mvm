@@ -68,16 +68,13 @@ func (c *Config) Check() error {
 	if c.L2Head == (common.Hash{}) {
 		return ErrInvalidL2Head
 	}
-	if c.L2OutputRoot == (common.Hash{}) {
-		return ErrInvalidL2OutputRoot
-	}
 	if c.L2ClaimBlockNumber == 0 {
 		return ErrInvalidL2ClaimBlock
 	}
 	if c.L2ChainConfig == nil {
 		return ErrMissingL2Genesis
 	}
-	if c.L2URL != "" {
+	if (c.L2URL != "") != (c.Rollup.RollupClientHttp != "") {
 		return ErrL1AndL2Inconsistent
 	}
 	if !c.FetchingEnabled() && c.DataDir == "" {

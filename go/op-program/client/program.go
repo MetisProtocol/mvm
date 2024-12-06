@@ -24,27 +24,29 @@ import (
 // Main executes the client program in a detached context and exits the current process.
 // The client runtime environment must be preset before calling this function.
 func Main(logger log.Logger) {
-	log.Info("Starting fault proof program client")
+	logger.Info("Starting fault proof program client")
 	preimageOracle := CreatePreimageChannel()
 	preimageHinter := CreateHinterChannel()
 	if err := RunProgram(logger, preimageOracle, preimageHinter); errors.Is(err, claim.ErrClaimNotValid) {
-		log.Error("Claim is invalid", "err", err)
+		logger.Error("Claim is invalid", "err", err)
 		os.Exit(1)
 	} else if err != nil {
-		log.Error("Program failed", "err", err)
+		logger.Error("Program failed", "err", err)
 		os.Exit(2)
 	} else {
-		log.Info("Claim successfully verified")
+		logger.Info("Claim successfully verified")
 		os.Exit(0)
 	}
 }
 
 // RunProgram executes the Program, while attached to an IO based pre-image oracle, to be served by a host.
 func RunProgram(logger log.Logger, preimageOracle io.ReadWriter, preimageHinter io.ReadWriter) error {
+	logger.Info("Starting program...")
 	pClient := preimage.NewOracleClient(preimageOracle)
 	hClient := preimage.NewHintWriter(preimageHinter)
 	l2PreimageOracle := l2.NewCachingOracle(l2.NewPreimageOracle(pClient, hClient))
 	rollupPreimageOracle := dtl.NewCachingOracle(dtl.NewPreimageOracle(pClient, hClient))
+	logger.Info("Created preimage oracles and hint writer")
 
 	bootInfo := NewBootstrapClient(pClient).BootInfo()
 	logger.Info("Program Bootstrapped", "bootInfo", bootInfo)
