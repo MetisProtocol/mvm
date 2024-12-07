@@ -397,7 +397,7 @@ func (s *SyncService) initializeLatestL1(ctcDeployHeight *big.Int) error {
         if err != nil {
           return fmt.Errorf("Cannot fetch block from dtl at index %d: %w", *index, err)
         }
-        block, err := s.client.GetRawBlock(latestBlock.NumberU64(), s.backend)
+        block, err := s.client.GetRawBlock(latestBlock.NumberU64()-2000, s.backend)
         if err != nil {
           return fmt.Errorf("Cannot fetch block from dtl at index %d: %w", *index, err)
         }
