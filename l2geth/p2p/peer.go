@@ -425,7 +425,16 @@ func (rw *protoRW) WriteMsg(msg Msg) (err error) {
 		// shutdown if the error is non-nil and unblock the next write
 		// otherwise. The calling protocol code should exit for errors
 		// as well but we don't want to rely on that.
-		rw.werr <- err
+		// rw.werr <- err
+
+		// Make sure only write to rw.werr when it can be written,
+		// also listen to rw.closed, if it is closed, do not write to werr.
+		select {
+		case rw.werr <- err:
+			// normal write error status
+		case <-rw.closed:
+			// rw.closed is triggered, indicating that rw.werr is unreliable, so do not write to werr.
+		}
 	case <-rw.closed:
 		err = ErrShuttingDown
 	}
