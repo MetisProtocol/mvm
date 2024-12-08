@@ -101,9 +101,6 @@ func NewConfig(
 	l2Claim common.Hash,
 	l2ClaimBlockNum uint64,
 ) *Config {
-	// FIXME: comment out for testing out compilation
-	//_, err := params.LoadOPStackChainConfig(l2Genesis.ChainID.Uint64())
-	isCustomConfig := true // err != nil
 	return &Config{
 		Rollup:              rollupCfg,
 		L2ChainConfig:       l2Genesis,
@@ -111,7 +108,7 @@ func NewConfig(
 		L2OutputRoot:        l2OutputRoot,
 		L2Claim:             l2Claim,
 		L2ClaimBlockNumber:  l2ClaimBlockNum,
-		IsCustomChainConfig: isCustomConfig,
+		IsCustomChainConfig: true,
 	}
 }
 

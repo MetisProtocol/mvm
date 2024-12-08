@@ -34,6 +34,8 @@ type StateOracle interface {
 type Oracle interface {
 	StateOracle
 
+	BlockHeaderByNumber(blockNumber uint64) *types.Header
+
 	// BlockByHash retrieves the block with the given hash.
 	BlockByHash(blockHash common.Hash) *types.Block
 
@@ -71,6 +73,16 @@ func (p *PreimageOracle) BlockByHash(blockHash common.Hash) *types.Block {
 	txs := p.LoadTransactions(blockHash, header.TxHash)
 
 	return types.NewBlockWithHeader(header).WithBody(txs, nil)
+}
+
+func (p *PreimageOracle) BlockHeaderByNumber(blockNumber uint64) *types.Header {
+	var blockHeader types.Header
+	p.hint.Hint(BlockNumberHint(blockNumber))
+	if err := rlp.DecodeBytes(p.oracle.Get(preimage.BlockNumberKey(blockNumber)), &blockHeader); err != nil {
+		panic(fmt.Errorf("invalid block hash %d: %w", blockNumber, err))
+	}
+
+	return &blockHeader
 }
 
 func (p *PreimageOracle) LoadTransactions(blockHash common.Hash, txHash common.Hash) []*types.Transaction {

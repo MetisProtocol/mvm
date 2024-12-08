@@ -44,7 +44,7 @@ type Batch struct {
 }
 
 // EthContext represents the L1 EVM context that is injected into
-// the OVM at runtime. It is updated with each `enqueue` transaction
+// the OVM at runtime. It is updated with each `enqueue` Transaction
 // and needs to be fetched from a remote server to be updated when
 // too much time has passed between `enqueue` transactions.
 type EthContext struct {
@@ -67,9 +67,9 @@ type L1GasPrice struct {
 	GasPrice string `json:"gasPrice"`
 }
 
-// transaction represents the return result of the remote server.
+// Transaction represents the return result of the remote server.
 // It either came from a batch or was replicated from the sequencer.
-type transaction struct {
+type Transaction struct {
 	Index       uint64          `json:"index"`
 	BatchIndex  uint64          `json:"batchIndex"`
 	BlockNumber uint64          `json:"blockNumber"`
@@ -81,11 +81,11 @@ type transaction struct {
 	Data        hexutil.Bytes   `json:"data"`
 	QueueOrigin string          `json:"queueOrigin"`
 	QueueIndex  *uint64         `json:"queueIndex"`
-	Decoded     *decoded        `json:"decoded"`
+	Decoded     *Decoded        `json:"Decoded"`
 	SeqSign     string          `json:"seqSign"`
 }
 
-// Enqueue represents an `enqueue` transaction or a L1 to L2 transaction.
+// Enqueue represents an `enqueue` Transaction or a L1 to L2 Transaction.
 type Enqueue struct {
 	Index       *uint64         `json:"ctcIndex"`
 	Target      *common.Address `json:"target"`
@@ -97,18 +97,18 @@ type Enqueue struct {
 	QueueIndex  *uint64         `json:"index"`
 }
 
-// signature represents a secp256k1 ECDSA signature
-type signature struct {
+// Signature represents a secp256k1 ECDSA Signature
+type Signature struct {
 	R hexutil.Bytes `json:"r"`
 	S hexutil.Bytes `json:"s"`
 	V uint          `json:"v"`
 }
 
-// decoded represents the decoded transaction from the batch.
+// Decoded represents the Decoded Transaction from the batch.
 // When this struct exists in other structs and is set to `nil`,
 // it means that the decoding failed.
-type decoded struct {
-	Signature signature       `json:"sig"`
+type Decoded struct {
+	Signature Signature       `json:"sig"`
 	Value     *hexutil.Big    `json:"value"`
 	GasLimit  uint64          `json:"gasLimit,string"`
 	GasPrice  uint64          `json:"gasPrice,string"`
@@ -124,7 +124,7 @@ type Block struct {
 	Index        uint64         `json:"index"`
 	BatchIndex   uint64         `json:"batchIndex"`
 	Timestamp    uint64         `json:"timestamp"`
-	Transactions []*transaction `json:"transactions"`
+	Transactions []*Transaction `json:"transactions"`
 	Confirmed    bool           `json:"confirmed"`
 }
 
@@ -170,7 +170,7 @@ type Client struct {
 // TransactionResponse represents the response from the remote server when
 // querying transactions.
 type TransactionResponse struct {
-	Transaction *transaction `json:"transaction"`
+	Transaction *Transaction `json:"Transaction"`
 	Batch       *Batch       `json:"batch"`
 }
 
@@ -178,7 +178,7 @@ type TransactionResponse struct {
 // when querying batches.
 type TransactionBatchResponse struct {
 	Batch        *Batch         `json:"batch"`
-	Transactions []*transaction `json:"transactions"`
+	Transactions []*Transaction `json:"transactions"`
 }
 
 // TransactionResponse represents the response from the remote server when
@@ -232,7 +232,7 @@ func NewClient(url string, chainID *big.Int) *Client {
 	}
 }
 
-// GetEnqueue fetches an `enqueue` transaction by queue index
+// GetEnqueue fetches an `enqueue` Transaction by queue index
 func (c *Client) GetEnqueue(index uint64) (*types.Transaction, error) {
 	str := strconv.FormatUint(index, 10)
 	response, err := c.client.R().
@@ -266,7 +266,7 @@ func enqueueToTransaction(enqueue *Enqueue) (*types.Transaction, error) {
 	if enqueue == nil {
 		return nil, errElementNotFound
 	}
-	// When the queue index is nil, is means that the enqueue'd transaction
+	// When the queue index is nil, is means that the enqueue'd Transaction
 	// does not exist.
 	if enqueue.QueueIndex == nil {
 		return nil, errElementNotFound
@@ -306,7 +306,7 @@ func enqueueToTransaction(enqueue *Enqueue) (*types.Transaction, error) {
 	tx := types.NewTransaction(nonce, target, value, gasLimit, big.NewInt(0), data)
 
 	// The index does not get a check as it is allowed to be nil in the context
-	// of an enqueue transaction that has yet to be included into the CTC
+	// of an enqueue Transaction that has yet to be included into the CTC
 	txMeta := types.NewTransactionMeta(
 		blockNumber,
 		timestamp,
@@ -322,7 +322,7 @@ func enqueueToTransaction(enqueue *Enqueue) (*types.Transaction, error) {
 }
 
 // GetLatestEnqueue fetches the latest `enqueue`, meaning the `enqueue`
-// transaction with the greatest queue index.
+// Transaction with the greatest queue index.
 func (c *Client) GetLatestEnqueue() (*types.Transaction, error) {
 	response, err := c.client.R().
 		SetPathParams(map[string]string{
@@ -372,7 +372,7 @@ func (c *Client) GetLatestTransactionIndex(backend Backend) (*uint64, error) {
 	return index, nil
 }
 
-// GetLatestTransactionBatchIndex returns the latest transaction batch index
+// GetLatestTransactionBatchIndex returns the latest Transaction batch index
 func (c *Client) GetLatestTransactionBatchIndex() (*uint64, error) {
 	var batch *Batch
 	var err error
@@ -417,9 +417,9 @@ func BatchedBlockToBlock(res *Block, signerChain *types.EIP155Signer) (*types.Bl
 	return block, nil
 }
 
-// BatchedTransactionToTransaction converts a transaction into a
+// BatchedTransactionToTransaction converts a Transaction into a
 // types.Transaction that can be consumed by the SyncService
-func BatchedTransactionToTransaction(res *transaction, signerChain *types.EIP155Signer) (*types.Transaction, error) {
+func BatchedTransactionToTransaction(res *Transaction, signerChain *types.EIP155Signer) (*types.Transaction, error) {
 	// `nil` transactions are not found
 	if res == nil {
 		return nil, errElementNotFound
@@ -435,14 +435,14 @@ func BatchedTransactionToTransaction(res *transaction, signerChain *types.EIP155
 	default:
 		return nil, fmt.Errorf("Unknown queue origin: %s", res.QueueOrigin)
 	}
-	// Transactions that have been decoded are
+	// Transactions that have been Decoded are
 	// Queue Origin Sequencer transactions
 	if res.Decoded != nil {
 		nonce := res.Decoded.Nonce
 		to := res.Decoded.Target
 		value := (*big.Int)(res.Decoded.Value)
 		// Note: there are two gas limits, one top level and
-		// another on the raw transaction itself. Maybe maxGasLimit
+		// another on the raw Transaction itself. Maybe maxGasLimit
 		// for the top level?
 		gasLimit := res.Decoded.GasLimit
 		gasPrice := new(big.Int).SetUint64(res.Decoded.GasPrice)
@@ -482,7 +482,7 @@ func BatchedTransactionToTransaction(res *transaction, signerChain *types.EIP155
 
 		tx, err := tx.WithSignature(signer, sig[:])
 		if err != nil {
-			return nil, fmt.Errorf("Cannot add signature to transaction: %w", err)
+			return nil, fmt.Errorf("Cannot add Signature to Transaction: %w", err)
 		}
 
 		// restore sequencer sign
@@ -509,7 +509,7 @@ func BatchedTransactionToTransaction(res *transaction, signerChain *types.EIP155
 		return tx, nil
 	}
 
-	// The transaction is  either an L1 to L2 transaction or it does not have a
+	// The Transaction is  either an L1 to L2 Transaction or it does not have a
 	// known deserialization
 	nonce := uint64(0)
 	if res.QueueOrigin == l1 {
@@ -537,7 +537,7 @@ func BatchedTransactionToTransaction(res *transaction, signerChain *types.EIP155
 	return tx, nil
 }
 
-// GetTransaction will get a transaction by Canonical Transaction Chain index
+// GetTransaction will get a Transaction by Canonical Transaction Chain index
 func (c *Client) GetRawTransaction(index uint64, backend Backend) (*TransactionResponse, error) {
 	str := strconv.FormatUint(index, 10)
 	response, err := c.client.R().
@@ -549,10 +549,10 @@ func (c *Client) GetRawTransaction(index uint64, backend Backend) (*TransactionR
 			"backend": backend.String(),
 		}).
 		SetResult(&TransactionResponse{}).
-		Get("/transaction/index/{index}/{chainId}")
+		Get("/Transaction/index/{index}/{chainId}")
 
 	if err != nil {
-		return nil, fmt.Errorf("cannot fetch transaction: %w", err)
+		return nil, fmt.Errorf("cannot fetch Transaction: %w", err)
 	}
 	res, ok := response.Result().(*TransactionResponse)
 	if !ok {
@@ -561,7 +561,7 @@ func (c *Client) GetRawTransaction(index uint64, backend Backend) (*TransactionR
 	return res, nil
 }
 
-// GetTransaction will get a transaction by Canonical Transaction Chain index
+// GetTransaction will get a Transaction by Canonical Transaction Chain index
 func (c *Client) GetTransaction(index uint64, backend Backend) (*types.Transaction, error) {
 	res, err := c.GetRawTransaction(index, backend)
 	if err != nil {
@@ -570,7 +570,7 @@ func (c *Client) GetTransaction(index uint64, backend Backend) (*types.Transacti
 	return BatchedTransactionToTransaction(res.Transaction, c.signer)
 }
 
-// GetLatestTransaction will get the latest transaction, meaning the transaction
+// GetLatestTransaction will get the latest Transaction, meaning the Transaction
 // with the greatest Canonical Transaction Chain index
 func (c *Client) GetLatestTransaction(backend Backend) (*types.Transaction, error) {
 	response, err := c.client.R().
@@ -581,14 +581,14 @@ func (c *Client) GetLatestTransaction(backend Backend) (*types.Transaction, erro
 		SetQueryParams(map[string]string{
 			"backend": backend.String(),
 		}).
-		Get("/transaction/latest/{chainId}")
+		Get("/Transaction/latest/{chainId}")
 
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch latest transactions: %w", err)
 	}
 	res, ok := response.Result().(*TransactionResponse)
 	if !ok {
-		return nil, errors.New("Cannot get latest transaction")
+		return nil, errors.New("Cannot get latest Transaction")
 	}
 
 	return BatchedTransactionToTransaction(res.Transaction, c.signer)
@@ -634,7 +634,7 @@ func (c *Client) GetLatestEthContext() (*EthContext, error) {
 	return context, nil
 }
 
-// GetLastConfirmedEnqueue will get the last `enqueue` transaction that has been
+// GetLastConfirmedEnqueue will get the last `enqueue` Transaction that has been
 // batched up
 func (c *Client) GetLastConfirmedEnqueue() (*types.Transaction, error) {
 	enqueue, err := c.GetLatestEnqueue()
@@ -647,7 +647,7 @@ func (c *Client) GetLastConfirmedEnqueue() (*types.Transaction, error) {
 	}
 	// Work backwards looking for the first enqueue
 	// to have an index, which means it has been included
-	// in the canonical transaction chain.
+	// in the canonical Transaction chain.
 	for {
 		meta := enqueue.GetMeta()
 		// The enqueue has an index so it has been confirmed
@@ -694,30 +694,30 @@ func (c *Client) SyncStatus(backend Backend) (*SyncStatus, error) {
 	return status, nil
 }
 
-// GetLatestTransactionBatch will return the latest transaction batch
+// GetLatestTransactionBatch will return the latest Transaction batch
 func (c *Client) GetLatestTransactionBatch() (*Batch, []*types.Transaction, error) {
 	response, err := c.client.R().
 		SetPathParams(map[string]string{
 			"chainId": c.chainID,
 		}).
 		SetResult(&TransactionBatchResponse{}).
-		Get("/batch/transaction/latest/{chainId}")
+		Get("/batch/Transaction/latest/{chainId}")
 
 	if err != nil {
 		errStr := err.Error()
 		if response != nil {
 			errStr = response.String()
 		}
-		return nil, nil, fmt.Errorf("Cannot get latest transaction batch: %s", errStr)
+		return nil, nil, fmt.Errorf("Cannot get latest Transaction batch: %s", errStr)
 	}
 	txBatch, ok := response.Result().(*TransactionBatchResponse)
 	if !ok {
-		return nil, nil, fmt.Errorf("Cannot parse transaction batch response")
+		return nil, nil, fmt.Errorf("Cannot parse Transaction batch response")
 	}
 	return parseTransactionBatchResponse(txBatch, c.signer)
 }
 
-// GetTransactionBatch will return the transaction batch by batch index
+// GetTransactionBatch will return the Transaction batch by batch index
 func (c *Client) GetTransactionBatch(index uint64) (*Batch, []*types.Transaction, error) {
 	str := strconv.FormatUint(index, 10)
 	response, err := c.client.R().
@@ -726,18 +726,18 @@ func (c *Client) GetTransactionBatch(index uint64) (*Batch, []*types.Transaction
 			"index":   str,
 			"chainId": c.chainID,
 		}).
-		Get("/batch/transaction/index/{index}/{chainId}")
+		Get("/batch/Transaction/index/{index}/{chainId}")
 
 	if err != nil {
 		errStr := err.Error()
 		if response != nil {
 			errStr = response.String()
 		}
-		return nil, nil, fmt.Errorf("Cannot get transaction batch %d: %s", index, errStr)
+		return nil, nil, fmt.Errorf("Cannot get Transaction batch %d: %s", index, errStr)
 	}
 	txBatch, ok := response.Result().(*TransactionBatchResponse)
 	if !ok {
-		return nil, nil, fmt.Errorf("Cannot parse transaction batch response")
+		return nil, nil, fmt.Errorf("Cannot parse Transaction batch response")
 	}
 	return parseTransactionBatchResponse(txBatch, c.signer)
 }
@@ -753,7 +753,7 @@ func parseTransactionBatchResponse(txBatch *TransactionBatchResponse, signer *ty
 	for i, tx := range txBatch.Transactions {
 		transaction, err := BatchedTransactionToTransaction(tx, signer)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Cannot parse transaction batch: %w", err)
+			return nil, nil, fmt.Errorf("Cannot parse Transaction batch: %w", err)
 		}
 		txs[i] = transaction
 	}
@@ -841,7 +841,7 @@ func (c *Client) Signer() types.Signer {
 	return c.signer
 }
 
-// GetLatestBlock will get the latest transaction, meaning the transaction
+// GetLatestBlock will get the latest Transaction, meaning the Transaction
 // with the greatest Canonical Transaction Chain index
 func (c *Client) GetLatestBlock(backend Backend) (*types.Block, error) {
 	response, err := c.client.R().

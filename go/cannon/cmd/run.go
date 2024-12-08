@@ -300,6 +300,14 @@ func Run(ctx *cli.Context) error {
 			stopAtPreimageKeyPrefix = []byte{byte(preimage.BlobKeyType)}
 		case "precompile":
 			stopAtPreimageKeyPrefix = []byte{byte(preimage.PrecompileKeyType)}
+		case "rollupBlockMeta":
+			stopAtPreimageKeyPrefix = []byte{byte(preimage.RollupBlockMetaKeyType)}
+		case "rollupBatch":
+			stopAtPreimageKeyPrefix = []byte{byte(preimage.RollupBatchKeyType)}
+		case "rollupBatchTransaction":
+			stopAtPreimageKeyPrefix = []byte{byte(preimage.RollupBatchTransactionKeyType)}
+		case "rollupStateCommitment":
+			stopAtPreimageKeyPrefix = []byte{byte(preimage.RollupBlockStateCommitmentKeyType)}
 		case "any":
 			stopAtAnyPreimage = true
 		case "":

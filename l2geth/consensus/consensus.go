@@ -111,6 +111,9 @@ type Engine interface {
 	// than one result may also be returned depending on the consensus algorithm.
 	Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error
 
+	// SyncSeal seals a block
+	SyncSeal(chain ChainReader, block *types.Block) error
+
 	// SealHash returns the hash of a block prior to it being sealed.
 	SealHash(header *types.Header) common.Hash
 

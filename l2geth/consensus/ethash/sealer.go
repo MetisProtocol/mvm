@@ -46,6 +46,18 @@ var (
 	errInvalidSealResult = errors.New("invalid or stale proof-of-work solution")
 )
 
+func (ethash *Ethash) SyncSeal(_ consensus.ChainReader, block *types.Block) error {
+	// If we're running a fake PoW, simply return a 0 nonce immediately
+	if ethash.config.PowMode == ModeFake || ethash.config.PowMode == ModeFullFake {
+		header := block.Header()
+		header.Nonce, header.MixDigest = types.BlockNonce{}, common.Hash{}
+		block.WithSeal(header)
+		return nil
+	}
+
+	panic("real eth hash does not support sync seal")
+}
+
 // Seal implements consensus.Engine, attempting to find a nonce that satisfies
 // the block's difficulty requirements.
 func (ethash *Ethash) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {

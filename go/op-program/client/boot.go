@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"math"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )

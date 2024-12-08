@@ -3,35 +3,50 @@ package rollup
 import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 const (
-	HintL2BlockWithBatchInfo   = "l2-block-with-batch-info"
-	HintL2BlockStateCommitment = "l2-block-state-commitment"
-	HintL1EnqueueTx            = "l1-enqueue-tx"
+	HintRollupBatchOfBlock         = "rollup-batch-of-block"
+	HintRollupBlockMeta            = "rollup-block-meta"
+	HintRollupBatchTransaction     = "rollup-batch-transaction"
+	HintRollupBlockStateCommitment = "rollup-block-state-commitment"
 )
 
-type L2BlockStateCommitment eth.Uint64Quantity
+type RollupBatchOfBlock uint64
 
-var _ preimage.Hint = L2BlockStateCommitment(0)
+var _ preimage.Hint = RollupBatchOfBlock(0)
 
-func (l L2BlockStateCommitment) Hint() string {
-	return HintL2BlockStateCommitment + " " + (eth.Uint64Quantity)(l).String()
+func (l RollupBatchOfBlock) Hint() string {
+	return HintRollupBatchOfBlock + " " + (eth.Uint64Quantity)(l).String()
 }
 
-type L2BlockWithBatchInfo eth.Uint64Quantity
+type RollupBlockMeta uint64
 
-var _ preimage.Hint = L2BlockWithBatchInfo(0)
+var _ preimage.Hint = RollupBlockMeta(0)
 
-func (l L2BlockWithBatchInfo) Hint() string {
-	return HintL2BlockWithBatchInfo + " " + (eth.Uint64Quantity)(l).String()
+func (l RollupBlockMeta) Hint() string {
+	return HintRollupBlockMeta + " " + (eth.Uint64Quantity)(l).String()
 }
 
-type L1EnqueueTxHint eth.Uint64Quantity
+type RollupBatchTransaction struct {
+	BlockIndex uint64
+	TxIndex    uint64
+}
 
-var _ preimage.Hint = L1EnqueueTxHint(0)
+var _ preimage.Hint = RollupBatchTransaction{}
 
-func (l L1EnqueueTxHint) Hint() string {
-	return HintL1EnqueueTx + " " + (eth.Uint64Quantity)(l).String()
+func (l RollupBatchTransaction) Hint() string {
+	rlpEncoded, _ := rlp.EncodeToBytes(l)
+	return HintRollupBatchTransaction + " " + hexutil.Encode(rlpEncoded)
+}
+
+type RollupBlockStateCommitment eth.Uint64Quantity
+
+var _ preimage.Hint = RollupBlockStateCommitment(0)
+
+func (l RollupBlockStateCommitment) Hint() string {
+	return HintRollupBlockStateCommitment + " " + (eth.Uint64Quantity)(l).String()
 }

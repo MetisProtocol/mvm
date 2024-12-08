@@ -2,9 +2,9 @@ package prefetcher
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -113,10 +113,13 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L2 header/tx hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
+		p.logger.Debug("Fetching L2 block", "hash", hash.Hex())
 		block, err := p.l2Fetcher.BlockByHash(ctx, hash)
 		if err != nil {
+			p.logger.Error("Failed to fetch L2 block", "hash", hash.Hex(), "error", err)
 			return fmt.Errorf("failed to fetch L2 block %s: %w", hash, err)
 		}
+		p.logger.Debug("Fetched L2 block", "block", block)
 		data, err := rlp.EncodeToBytes(block.Header())
 		if err != nil {
 			return fmt.Errorf("failed to encode header to RLP: %w", err)
@@ -146,7 +149,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("failed to fetch L2 contract code %s: %w", hash, err)
 		}
 		return p.kvStore.Put(preimage.Keccak256Key(hash).PreimageKey(), code)
-	case rollup.HintL2BlockWithBatchInfo:
+	case rollup.HintRollupBatchOfBlock:
 		if len(hintBytes) > 8 {
 			return fmt.Errorf("invalid L2 block batch key: %x", hint)
 		}
@@ -163,32 +166,113 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("failed to fetch block %d from dtl: %w", l2Block, err)
 		}
 
-		marshaled, err := json.Marshal(blockResp)
+		marshaled, err := rlp.EncodeToBytes(blockResp.Batch)
 		if err != nil {
 			return fmt.Errorf("failed to marshal block response: %w", err)
 		}
 
-		return p.kvStore.Put(preimage.L2BlockWittBatchInfoKey(l2Block).PreimageKey(), marshaled)
-	case rollup.HintL1EnqueueTx:
+		return p.kvStore.Put(preimage.RollupBlockBatchKey(l2Block).PreimageKey(), marshaled)
+	case rollup.HintRollupBlockMeta:
 		if len(hintBytes) > 8 {
-			return fmt.Errorf("invalid l1 enqueue tx hint: %x", hint)
+			return fmt.Errorf("invalid L2 block batch key: %x", hint)
 		}
 
-		var enqueueIndex eth.Uint64Quantity
-		if err := enqueueIndex.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
-			return fmt.Errorf("failed to unmarshal enqueue index: %w", err)
+		var l2Block eth.Uint64Quantity
+		if err := l2Block.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
+			return fmt.Errorf("failed to unmarshal batch index: %w", err)
 		}
-		enqueueTx, err := p.rollupFetcher.GetEnqueue(uint64(enqueueIndex))
+
+		p.logger.Debug("Fetching L2 block with batch info", "block", l2Block)
+
+		blockResp, err := p.rollupFetcher.GetRawBlock(uint64(l2Block), dtl.BackendL1)
 		if err != nil {
-			return fmt.Errorf("failed to fetch batch %d: %w", enqueueIndex, err)
+			return fmt.Errorf("failed to fetch block %d from dtl: %w", l2Block, err)
 		}
 
-		opaqueTx, err := rlp.EncodeToBytes(enqueueTx)
+		meta := rollup.BlockMeta{
+			Index:            blockResp.Block.Index,
+			BatchIndex:       blockResp.Block.BatchIndex,
+			Timestamp:        blockResp.Block.Timestamp,
+			TransactionCount: uint64(len(blockResp.Block.Transactions)),
+			Confirmed:        blockResp.Block.Confirmed,
+		}
+
+		marshaled, err := rlp.EncodeToBytes(&meta)
 		if err != nil {
-			return fmt.Errorf("failed to marshal enqueue tx: %w", err)
+			return fmt.Errorf("failed to marshal block response: %w", err)
 		}
 
-		return p.kvStore.Put(preimage.EnqueueTxKey(enqueueIndex).PreimageKey(), opaqueTx)
+		return p.kvStore.Put(preimage.RollupBlockMetaKey(l2Block).PreimageKey(), marshaled)
+	case rollup.HintRollupBatchTransaction:
+		if len(hintBytes) > 16 {
+			return fmt.Errorf("invalid L2 block batch key: %x", hint)
+		}
+
+		var txInfo rollup.RollupBatchTransaction
+		if err := rlp.DecodeBytes(hintBytes, &txInfo); err != nil {
+			return fmt.Errorf("failed to unmarshal tx info: %w", err)
+		}
+
+		p.logger.Debug("Fetching L2 block with batch info", "block", txInfo.BlockIndex, "tx", txInfo.TxIndex)
+
+		blockResp, err := p.rollupFetcher.GetRawBlock(uint64(txInfo.BlockIndex), dtl.BackendL1)
+		if err != nil {
+			return fmt.Errorf("failed to fetch block %d from dtl: %w", txInfo.BlockIndex, err)
+		}
+
+		if txInfo.TxIndex >= uint64(len(blockResp.Block.Transactions)) {
+			return fmt.Errorf("transaction index out of bounds: %d", txInfo.TxIndex)
+		}
+
+		tx := blockResp.Block.Transactions[txInfo.TxIndex]
+		marshaled, err := rlp.EncodeToBytes(tx)
+		if err != nil {
+			return fmt.Errorf("failed to marshal tx: %w", err)
+		}
+
+		return p.kvStore.Put(preimage.RollupBatchTransactionKey{
+			BlockIndex: txInfo.BlockIndex,
+			TxIndex:    txInfo.TxIndex,
+		}.PreimageKey(), marshaled)
+	case rollup.HintRollupBlockStateCommitment:
+		if len(hintBytes) > 8 {
+			return fmt.Errorf("invalid L2 block statecommitment key: %x", hint)
+		}
+
+		var l2Block eth.Uint64Quantity
+		if err := l2Block.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
+			return fmt.Errorf("failed to unmarshal batch index: %w", err)
+		}
+
+		p.logger.Debug("Fetching L2 block with state commitment", "block", l2Block)
+		scResp, err := p.rollupFetcher.GetStateRoot(uint64(l2Block) - 1)
+		if err != nil {
+			return fmt.Errorf("failed to fetch state commitment %d from dtl: %w", l2Block, err)
+		}
+
+		return p.kvStore.Put(preimage.RollupBlockStateCommitmentKey(l2Block).PreimageKey(), scResp.Bytes())
+	case l2.HintL2BlockNumber:
+		if len(hintBytes) > 8 {
+			return fmt.Errorf("invalid L2 block number hint: %x", hint)
+		}
+
+		var l2Block eth.Uint64Quantity
+		if err := l2Block.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
+			return fmt.Errorf("failed to unmarshal block number: %w", err)
+		}
+
+		p.logger.Debug("Fetching L2 block number", "block", l2Block)
+		block, err := p.l2Fetcher.BlockByNumber(ctx, big.NewInt(int64(l2Block)))
+		if err != nil {
+			return fmt.Errorf("failed to fetch block number %d: %w", l2Block, err)
+		}
+
+		headerBytes, err := rlp.EncodeToBytes(block.Header())
+		if err != nil {
+			return fmt.Errorf("failed to encode header: %w", err)
+		}
+
+		return p.kvStore.Put(preimage.BlockNumberKey(block.NumberU64()).PreimageKey(), headerBytes)
 	}
 
 	return fmt.Errorf("unknown hint type: %v", hintType)

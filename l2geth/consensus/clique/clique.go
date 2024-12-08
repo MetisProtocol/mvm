@@ -599,6 +599,65 @@ func (c *Clique) Authorize(signer common.Address, signFn SignerFn) {
 	c.signFn = signFn
 }
 
+// SyncSeal seals a block synchronously, avoid concurrent sealing attempts which might break the mips execution.
+func (c *Clique) SyncSeal(chain consensus.ChainReader, block *types.Block) error {
+	header := block.Header()
+
+	// Sealing the genesis block is not supported
+	number := header.Number.Uint64()
+	if number == 0 {
+		return errUnknownBlock
+	}
+	// For 0-period chains, refuse to seal empty blocks (no reward but would spin sealing)
+	if c.config.Period == 0 && len(block.Transactions()) == 0 {
+		log.Info("Sealing paused, waiting for transactions")
+		return nil
+	}
+	signer, signFn := c.signer, c.signFn
+
+	// Bail out if we're unauthorized to sign a block
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
+	if err != nil {
+		return err
+	}
+	if _, authorized := snap.Signers[signer]; !authorized {
+		return errUnauthorizedSigner
+	}
+	// If we're amongst the recent signers, wait for the next block
+	for seen, recent := range snap.Recents {
+		if recent == signer {
+			// Signer is among recents, only wait if the current block doesn't shift it out
+			if limit := uint64(len(snap.Signers)/2 + 1); number < limit || seen > number-limit {
+				log.Info("Signed recently, must wait for others")
+				return nil
+			}
+		}
+	}
+	// Sweet, the protocol permits us to sign the block, wait for our time
+	delay := time.Unix(int64(header.Time), 0).Sub(time.Now()) // nolint: gosimple
+	if header.Difficulty.Cmp(diffNoTurn) == 0 {
+		// It's not our turn explicitly to sign, delay it a bit
+		wiggle := time.Duration(len(snap.Signers)/2+1) * wiggleTime
+		delay += time.Duration(rand.Int63n(int64(wiggle)))
+
+		log.Trace("Out-of-turn signing requested", "wiggle", common.PrettyDuration(wiggle))
+	}
+	// Set the delay to 0 when using the OVM so that blocks are always
+	// produced instantly. When running in a non-OVM network, the delay prevents
+	// the creation of invalid blocks.
+	if rcfg.UsingOVM {
+		delay = 0
+	}
+	// Sign all the things!
+	sighash, err := signFn(accounts.Account{Address: signer}, accounts.MimetypeClique, CliqueRLP(header))
+	if err != nil {
+		return err
+	}
+	copy(header.Extra[len(header.Extra)-extraSeal:], sighash)
+
+	return nil
+}
+
 // Seal implements consensus.Engine, attempting to create a sealed block using
 // the local signing credentials.
 func (c *Clique) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {

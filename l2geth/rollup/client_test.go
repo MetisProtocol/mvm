@@ -50,7 +50,7 @@ func TestDecodedJSON(t *testing.T) {
 		"queueOrigin": "sequencer",
 		"value": "0x1a055690d9db80000",
 		"queueIndex": null,
-		"decoded": {
+		"Decoded": {
 			"nonce": "2",
 			"gasPrice": "15000000",
 			"gasLimit": "4451000",
@@ -66,7 +66,7 @@ func TestDecodedJSON(t *testing.T) {
 		"confirmed": true
 	}`)
 
-	tx := new(transaction)
+	tx := new(Transaction)
 	json.Unmarshal(str, tx)
 	cmp, _ := new(big.Int).SetString("1a055690d9db80000", 16)
 	if tx.Value.ToInt().Cmp(cmp) != 0 {

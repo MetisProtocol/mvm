@@ -190,7 +190,7 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 		return nil, fmt.Errorf("failed to setup L2 RPC: %w", err)
 	}
 
-	l2Cl, err := ethclient.Dial(cfg.L2URL)
+	l2Cl, err := ethclient.DialContext(ctx, cfg.L2URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
@@ -200,7 +200,7 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chain ID: %w", err)
 	}
-
+	logger.Info("Connected to L2 node", "chainId", chainId.Uint64())
 	logger.Info("Connecting to L1 DTL", "dtl", cfg.Rollup.RollupClientHttp)
 	rollupFetcher := dtl.NewClient(cfg.Rollup.RollupClientHttp, chainId)
 

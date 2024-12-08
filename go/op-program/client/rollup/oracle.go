@@ -1,23 +1,28 @@
 package rollup
 
 import (
-	"encoding/json"
-
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
-	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
-
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
+
+type BlockMeta struct {
+	Index            uint64
+	BatchIndex       uint64
+	Timestamp        uint64
+	TransactionCount uint64
+	Confirmed        bool
+}
 
 // Oracle defines the high-level API used to retrieve rollup data.
 // The returned data is always the preimage of the requested hash.
 type Oracle interface {
-	L2BlockWithBatchInfo(block uint64) *dtl.BlockResponse
-	L2BlockStateCommitment(block uint64) eth.Bytes32
-	EnqueueTxByIndex(index uint64) *types.Transaction
+	L2BatchOfBlock(block uint64) *dtl.Batch
+	L2BlockMeta(block uint64) *BlockMeta
+	L2StateCommitment(block uint64) eth.Bytes32
+	L2BatchTransaction(block uint64, txIndex uint64) *dtl.Transaction
 }
 
 // PreimageOracle implements Oracle using by interfacing with the pure preimage.Oracle
@@ -36,32 +41,45 @@ func NewPreimageOracle(raw preimage.Oracle, hint preimage.Hinter) *PreimageOracl
 	}
 }
 
-func (p *PreimageOracle) L2BlockStateCommitment(block uint64) eth.Bytes32 {
-	p.hint.Hint(L2BlockStateCommitment(block))
+func (p *PreimageOracle) L2BatchOfBlock(block uint64) *dtl.Batch {
+	p.hint.Hint(RollupBatchOfBlock(block))
 
-	return eth.Bytes32(p.oracle.Get(preimage.L2BlockStateCommitmentKey(block)))
-}
+	l2BatchBytes := p.oracle.Get(preimage.RollupBlockBatchKey(block))
 
-func (p *PreimageOracle) L2BlockWithBatchInfo(block uint64) *dtl.BlockResponse {
-	p.hint.Hint(L2BlockWithBatchInfo(block))
-
-	l2BlockBytes := p.oracle.Get(preimage.L2BlockWittBatchInfoKey(block))
-
-	var l2BlockWithBathInfo dtl.BlockResponse
-	if err := json.Unmarshal(l2BlockBytes, &l2BlockWithBathInfo); err != nil {
+	var batchInfo dtl.Batch
+	if err := rlp.DecodeBytes(l2BatchBytes, &batchInfo); err != nil {
 		panic("failed to unmarshal l2BlockBytes, err: " + err.Error())
 	}
 
-	return &l2BlockWithBathInfo
+	return &batchInfo
 }
 
-func (p *PreimageOracle) EnqueueTxByIndex(index uint64) *types.Transaction {
-	p.hint.Hint(L1EnqueueTxHint(index))
+func (p *PreimageOracle) L2BlockMeta(block uint64) *BlockMeta {
+	p.hint.Hint(RollupBlockMeta(block))
 
-	opaqueTx := p.oracle.Get(preimage.EnqueueTxKey(index))
+	blockMetaBytes := p.oracle.Get(preimage.RollupBlockMetaKey(block))
 
-	var tx types.Transaction
-	rlp.DecodeBytes(opaqueTx, &tx)
+	var blockMeta BlockMeta
+	rlp.DecodeBytes(blockMetaBytes, &blockMeta)
+
+	return &blockMeta
+}
+
+func (p *PreimageOracle) L2StateCommitment(block uint64) eth.Bytes32 {
+	p.hint.Hint(RollupBlockStateCommitment(block))
+
+	l2BlockStateCommitment := p.oracle.Get(preimage.RollupBlockStateCommitmentKey(block))
+
+	return eth.Bytes32(l2BlockStateCommitment)
+}
+
+func (p *PreimageOracle) L2BatchTransaction(block uint64, txIndex uint64) *dtl.Transaction {
+	p.hint.Hint(RollupBatchTransaction{BlockIndex: block, TxIndex: txIndex})
+
+	txBytes := p.oracle.Get(preimage.RollupBatchTransactionKey{BlockIndex: block, TxIndex: txIndex})
+
+	var tx dtl.Transaction
+	rlp.DecodeBytes(txBytes, &tx)
 
 	return &tx
 }

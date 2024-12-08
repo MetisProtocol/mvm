@@ -1,10 +1,11 @@
 package l2
 
 import (
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/hashicorp/golang-lru/v2/simplelru"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
 )
 
 // blockCacheSize should be set large enough to handle the pipeline reset process of walking back from L2 head to find
@@ -16,6 +17,7 @@ const codeCacheSize = 10_000
 type CachingOracle struct {
 	oracle  Oracle
 	blocks  *simplelru.LRU[common.Hash, *types.Block]
+	headers *simplelru.LRU[uint64, *types.Header]
 	nodes   *simplelru.LRU[common.Hash, []byte]
 	codes   *simplelru.LRU[common.Hash, []byte]
 	outputs *simplelru.LRU[common.Hash, eth.Output]
@@ -26,13 +28,25 @@ func NewCachingOracle(oracle Oracle) *CachingOracle {
 	nodeLRU, _ := simplelru.NewLRU[common.Hash, []byte](nodeCacheSize, nil)
 	codeLRU, _ := simplelru.NewLRU[common.Hash, []byte](codeCacheSize, nil)
 	outputLRU, _ := simplelru.NewLRU[common.Hash, eth.Output](codeCacheSize, nil)
+	headersLRU, _ := simplelru.NewLRU[uint64, *types.Header](blockCacheSize, nil)
 	return &CachingOracle{
 		oracle:  oracle,
 		blocks:  blockLRU,
+		headers: headersLRU,
 		nodes:   nodeLRU,
 		codes:   codeLRU,
 		outputs: outputLRU,
 	}
+}
+
+func (o *CachingOracle) BlockHeaderByNumber(blockNumber uint64) *types.Header {
+	header, ok := o.headers.Get(blockNumber)
+	if ok {
+		return header
+	}
+	header = o.oracle.BlockHeaderByNumber(blockNumber)
+	o.headers.Add(blockNumber, header)
+	return header
 }
 
 func (o *CachingOracle) NodeByHash(nodeHash common.Hash) []byte {

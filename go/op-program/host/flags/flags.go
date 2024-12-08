@@ -28,7 +28,7 @@ var (
 	}
 	L2Head = &cli.StringFlag{
 		Name:    "l2.head",
-		Usage:   "Hash of the L2 block at l2.outputroot",
+		Usage:   "Hash of the L2 block",
 		EnvVars: prefixEnvVars("L2_HEAD"),
 	}
 	L2Claim = &cli.StringFlag{
