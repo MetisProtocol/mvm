@@ -37,7 +37,6 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/accounts"
 	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
-	bparams "github.com/MetisProtocol/mvm/l2geth/beacon/params"
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/fdlimit"
 	"github.com/MetisProtocol/mvm/l2geth/consensus"
@@ -955,23 +954,6 @@ var (
 		Usage:  "seq bridge url set to enable RPC only node role",
 		Value:  "",
 		EnvVar: "SEQ_BRIDGE_URL",
-	}
-
-	// beacon chain flags
-	// Beacon client light sync settings
-	BeaconApiFlag = &cli.StringSliceFlag{
-		Name:  "beacon.api",
-		Usage: "Beacon node (CL) light client API URL. This flag can be given multiple times.",
-	}
-
-	BeaconApiHeaderFlag = &cli.StringSliceFlag{
-		Name:  "beacon.api.header",
-		Usage: "Pass custom HTTP header fields to the remote beacon node API in \"key:value\" format. This flag can be given multiple times.",
-	}
-	BeaconThresholdFlag = &cli.IntFlag{
-		Name:  "beacon.threshold",
-		Usage: "Beacon sync committee participation threshold",
-		Value: bparams.SyncCommitteeSupermajority,
 	}
 )
 

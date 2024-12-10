@@ -95,6 +95,8 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 		return fmt.Errorf("failed to create oracle-backed L2 chain: %w", err)
 	}
 
+	logger.Info("Created L2 chain", "head", l2Chain.CurrentHeader().Number.Uint64(), "headHash", l2Chain.CurrentHeader().Hash().Hex())
+
 	for l2Block := l2StartBlock; l2Block.NumberU64() <= l2ClaimBlockNum; l2Block = getBatchBlockFromDTLOracle(logger, l2Block.NumberU64()+1, l2Cfg.ChainID, rollupOracle) {
 		logger.Info("Processing L2 block", "block", l2Block.Number().Uint64())
 		logger.Info("Checking parent state availability",

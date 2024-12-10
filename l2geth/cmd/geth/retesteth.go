@@ -196,6 +196,10 @@ type NoRewardEngine struct {
 	rewardsOn bool
 }
 
+func (e *NoRewardEngine) SyncSeal(_ consensus.ChainReader, _ *types.Block) error {
+	panic("retesteth does not support sync sealing")
+}
+
 func (e *NoRewardEngine) Author(header *types.Header) (common.Address, error) {
 	return e.inner.Author(header)
 }

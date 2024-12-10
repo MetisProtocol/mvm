@@ -32,12 +32,11 @@ func (o *OracleClient) Get(key Key) []byte {
 	if err := binary.Read(o.rw, binary.BigEndian, &length); err != nil {
 		panic(fmt.Errorf("failed to read pre-image length of key %s (%T) from pre-image oracle: %w", key, key, err))
 	}
-	fmt.Printf("Read length: %v\n", length)
+	
 	payload := make([]byte, length)
 	if _, err := io.ReadFull(o.rw, payload); err != nil {
 		panic(fmt.Errorf("failed to read pre-image payload (length %d) of key %s (%T) from pre-image oracle: %w", length, key, key, err))
 	}
-	fmt.Printf("Read payload: %s\n", string(payload))
 
 	return payload
 }

@@ -205,6 +205,10 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	return err
 }
 
+func (t *Transaction) L2Tx() uint {
+	return t.l2tx
+}
+
 func (t *Transaction) SetL2Tx(l2tx uint) {
 	t.l2tx = l2tx
 }

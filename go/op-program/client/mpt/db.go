@@ -1,6 +1,6 @@
 package mpt
 
-import "github.com/MetisProtocol/mvm/l2geth/ethdb"
+import "github.com/ethereum/go-ethereum/ethdb"
 
 type Hooks struct {
 	Get    func(key []byte) []byte
@@ -11,36 +11,6 @@ type Hooks struct {
 // DB implements the ethdb.Database to back the StateDB of Geth.
 type DB struct {
 	db Hooks
-}
-
-func (p *DB) AppendAncient(number uint64, hash, header, body, receipt, td []byte) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *DB) TruncateAncients(n uint64) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *DB) NewIterator() ethdb.Iterator {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *DB) NewIteratorWithStart(start []byte) ethdb.Iterator {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *DB) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *DB) Stat(property string) (string, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (p *DB) Has(key []byte) (bool, error) {
@@ -61,11 +31,19 @@ func (p DB) Delete(key []byte) error {
 	return nil
 }
 
+func (p DB) Stat() (string, error) {
+	panic("not supported")
+}
+
 func (p DB) NewBatch() ethdb.Batch {
 	panic("not supported")
 }
 
 func (p DB) NewBatchWithSize(size int) ethdb.Batch {
+	panic("not supported")
+}
+
+func (p DB) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 	panic("not supported")
 }
 
@@ -101,6 +79,14 @@ func (p *DB) Tail() (uint64, error) {
 }
 
 func (p *DB) AncientSize(kind string) (uint64, error) {
+	panic("not supported")
+}
+
+func (p *DB) ReadAncients(fn func(ethdb.AncientReaderOp) error) (err error) {
+	panic("not supported")
+}
+
+func (p *DB) ModifyAncients(f func(ethdb.AncientWriteOp) error) (int64, error) {
 	panic("not supported")
 }
 

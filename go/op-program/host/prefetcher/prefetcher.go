@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
@@ -83,7 +82,7 @@ func (p *Prefetcher) Hint(hint string) error {
 }
 
 func (p *Prefetcher) GetPreimage(ctx context.Context, key common.Hash) ([]byte, error) {
-	p.logger.Debug("Pre-image requested", "key", key)
+	p.logger.Info("Pre-image requested", "key", key)
 	pre, err := p.kvStore.Get(key)
 	// Use a loop to keep retrying the prefetch as long as the key is not found
 	// This handles the case where the prefetch downloads a preimage, but it is then deleted unexpectedly
@@ -93,7 +92,9 @@ func (p *Prefetcher) GetPreimage(ctx context.Context, key common.Hash) ([]byte, 
 		if err := p.prefetch(ctx, hint); err != nil {
 			return nil, fmt.Errorf("prefetch failed: %w", err)
 		}
+		p.logger.Info("🐸 Prefetched, and start getting key", "hint", hint, "key", key.Hex())
 		pre, err = p.kvStore.Get(key)
+		p.logger.Info("🐸 Got key", "key", key.Hex(), "preimage-length", len(pre), "err", err)
 		if err != nil {
 			p.logger.Error("Fetched pre-images for last hint but did not find required key", "hint", hint, "key", key)
 		}
@@ -119,7 +120,12 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			p.logger.Error("Failed to fetch L2 block", "hash", hash.Hex(), "error", err)
 			return fmt.Errorf("failed to fetch L2 block %s: %w", hash, err)
 		}
-		p.logger.Debug("Fetched L2 block", "block", block)
+		p.logger.Debug("Fetched L2 block",
+			"blockNumber", block.NumberU64(),
+			"hash", block.Hash().Hex(),
+			"txRoot", block.TxHash().Hex(),
+			"txCount", len(block.Transactions()),
+		)
 		data, err := rlp.EncodeToBytes(block.Header())
 		if err != nil {
 			return fmt.Errorf("failed to encode header to RLP: %w", err)
@@ -128,27 +134,18 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 		if err != nil {
 			return err
 		}
+		p.logger.Debug("We are now storing txs for block", "block", block.NumberU64(), "tx-count", len(block.Transactions()))
 		return p.storeL2Transactions(block.Transactions())
-	case l2.HintL2StateNode:
+	case l2.HintL2StateNode, l2.HintL2Code:
 		if len(hintBytes) != 32 {
-			return fmt.Errorf("invalid L2 state node hint: %x", hint)
+			return fmt.Errorf("invalid L2 state node / code hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
 		node, err := p.l2Fetcher.NodeByHash(ctx, hash)
 		if err != nil {
-			return fmt.Errorf("failed to fetch L2 state node %s: %w", hash, err)
+			return fmt.Errorf("failed to fetch L2 state node / code %s: %w", hash, err)
 		}
 		return p.kvStore.Put(preimage.Keccak256Key(hash).PreimageKey(), node)
-	case l2.HintL2Code:
-		if len(hintBytes) != 32 {
-			return fmt.Errorf("invalid L2 code hint: %x", hint)
-		}
-		hash := common.Hash(hintBytes)
-		code, err := p.l2Fetcher.NodeByHash(ctx, hash)
-		if err != nil {
-			return fmt.Errorf("failed to fetch L2 contract code %s: %w", hash, err)
-		}
-		return p.kvStore.Put(preimage.Keccak256Key(hash).PreimageKey(), code)
 	case rollup.HintRollupBatchOfBlock:
 		if len(hintBytes) > 8 {
 			return fmt.Errorf("invalid L2 block batch key: %x", hint)
@@ -278,55 +275,21 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 	return fmt.Errorf("unknown hint type: %v", hintType)
 }
 
-func (p *Prefetcher) storeL1Receipts(receipts ethtypes.Receipts) error {
-	data, err := eth.EncodeReceipts(receipts)
-	if err != nil {
-		return fmt.Errorf("failed to encode receipts: %w", err)
-	}
-
-	return p.storeTrieNodes(data)
-}
-
-func (p *Prefetcher) storeL2Receipts(receipts types.Receipts) error {
-	opaqueReceipts := make([]ethhex.Bytes, len(receipts))
-	for i, el := range receipts {
-		dat, err := rlp.EncodeToBytes(el)
-		if err != nil {
-			return fmt.Errorf("failed to marshal receipt %d: %w", i, err)
-		}
-		opaqueReceipts[i] = dat
-	}
-
-	return p.storeTrieNodes(opaqueReceipts)
-}
-
-func (p *Prefetcher) storeL1Transactions(txs ethtypes.Transactions) error {
-	data, err := eth.EncodeTransactions(txs)
-	if err != nil {
-		return fmt.Errorf("failed to encode transactions: %w", err)
-	}
-
-	return p.storeTrieNodes(data)
-}
-
 func (p *Prefetcher) storeL2Transactions(txs types.Transactions) error {
-	opaqueTxs := make([]ethhex.Bytes, len(txs))
-	for i, el := range txs {
-		dat, err := rlp.EncodeToBytes(el)
-		if err != nil {
-			return fmt.Errorf("failed to marshal tx %d: %w", i, err)
-		}
-		opaqueTxs[i] = dat
+	opaqueTxs := make([]hexutil.Bytes, len(txs))
+	for i := range txs {
+		opaqueTxs[i] = txs.GetRlp(i)
+		p.logger.Debug("Storing tx", "index", i, "tx", txs[i].Hash().Hex(), "l2Tx", txs[i].L2Tx(), "rlpHash", crypto.Keccak256Hash(opaqueTxs[i]).Hex())
 	}
 
 	return p.storeTrieNodes(opaqueTxs)
 }
 
-func (p *Prefetcher) storeTrieNodes(values []ethhex.Bytes) error {
-	_, nodes := mpt.WriteTrie(values)
+func (p *Prefetcher) storeTrieNodes(values []hexutil.Bytes) error {
+	root, nodes := mpt.WriteTrie(values)
+	p.logger.Debug("Wrote MPT", "root", root.Hex())
 	for _, node := range nodes {
-		key := preimage.Keccak256Key(crypto.Keccak256Hash(node)).PreimageKey()
-		if err := p.kvStore.Put(key, node); err != nil {
+		if err := p.kvStore.Put(preimage.Keccak256Key(crypto.Keccak256Hash(node)).PreimageKey(), node); err != nil {
 			return fmt.Errorf("failed to store node: %w", err)
 		}
 	}

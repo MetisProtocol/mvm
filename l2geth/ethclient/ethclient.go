@@ -32,6 +32,11 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
+var (
+	zero                   = uint64(0)
+	defaultL1MessageSender = &common.Address{}
+)
+
 // Client defines typed wrappers for the Ethereum RPC API.
 type Client struct {
 	c *rpc.Client
@@ -154,12 +159,30 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 		if tx.From != nil {
 			setSenderFromServer(tx.tx, *tx.From, body.Hash)
 		}
+
+		// Note: must assign the default values to the meta fields,
+		//       otherwise tx root will be different from the node
+		if tx.meta.L1MessageSender == nil {
+			tx.meta.L1MessageSender = defaultL1MessageSender
+		}
+		if tx.meta.QueueIndex == nil {
+			tx.meta.QueueIndex = &zero
+		}
+
 		meta := types.NewTransactionMeta(
 			tx.meta.L1BlockNumber, tx.meta.L1Timestamp,
 			tx.meta.L1MessageSender, tx.meta.QueueOrigin,
 			tx.meta.Index, tx.meta.QueueIndex,
 			tx.meta.RawTransaction,
 		)
+
+		// Note: must copy over the seq signature fields, otherwise tx root will be different from the node
+		if tx.meta != nil && tx.meta.R != nil {
+			meta.R = tx.meta.R
+			meta.S = tx.meta.S
+			meta.V = tx.meta.V
+		}
+
 		tx.tx.SetTransactionMeta(meta)
 		txs[i] = tx.tx
 	}
