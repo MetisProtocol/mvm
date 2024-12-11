@@ -196,23 +196,23 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 		headerJSON, _ := json.Marshal(l2Block.Header())
 		logger.Info("Finalized L2 Block header", "block", l2Block.Number().Uint64(), "header", string(headerJSON))
 
-		if err := consEngine.SyncSeal(l2Chain, l2Block); err != nil {
-			return fmt.Errorf("failed to sync seal block %d: %w", l2Block.Number().Uint64(), err)
-		}
-
-		logger.Debug("Block sealed", "block", l2Block.Number().Uint64())
-
 		if _, err := l2Chain.SetCanonical(l2Block); err != nil {
 			return fmt.Errorf("failed to set canonical block %d: %w", l2Block, err)
 		}
 
 		logger.Debug("Canonical block set", "block", l2Block.Number().Uint64())
 
-		if err := l2Chain.InsertBlockWithoutSetHead(l2Block); err != nil {
-			return fmt.Errorf("failed to insert block %d: %w", l2Block, err)
+		// commit the state
+		root, err := state.Commit(l2Chain.Config().IsEIP158(l2Chain.CurrentHeader().Number))
+		if err != nil {
+			return fmt.Errorf("state write error: %w", err)
 		}
 
-		logger.Debug("Block inserted", "block", l2Block.Number().Uint64())
+		if err := state.Database().TrieDB().Commit(root, true); err != nil {
+			return fmt.Errorf("trie write error: %w", err)
+		}
+
+		logger.Debug("State commited", "block", l2Block.Number().Uint64())
 
 		parentHeader = l2Block.Header()
 
