@@ -41,6 +41,8 @@ var acceleratedPrecompiles = []common.Address{
 	common.BytesToAddress([]byte{0x0a}), // KZG Point Evaluation
 }
 
+var zero uint64 = 0
+
 type L1Source interface {
 	InfoByHash(ctx context.Context, blockHash ethcommon.Hash) (eth.BlockInfo, error)
 	InfoAndTxsByHash(ctx context.Context, blockHash ethcommon.Hash) (eth.BlockInfo, ethtypes.Transactions, error)
@@ -64,14 +66,17 @@ type Prefetcher struct {
 	rollupFetcher dtl.RollupClient
 	lastHint      string
 	kvStore       kvstore.KV
+
+	signer types.EIP155Signer
 }
 
-func NewPrefetcher(logger log.Logger, l2Fetcher L2Source, rollupFetcher dtl.RollupClient, kvStore kvstore.KV) *Prefetcher {
+func NewPrefetcher(logger log.Logger, chainId *big.Int, l2Fetcher L2Source, rollupFetcher dtl.RollupClient, kvStore kvstore.KV) *Prefetcher {
 	return &Prefetcher{
 		logger:        logger,
 		l2Fetcher:     NewRetryingL2Source(logger, l2Fetcher),
 		rollupFetcher: rollupFetcher,
 		kvStore:       kvStore,
+		signer:        types.NewEIP155Signer(chainId),
 	}
 }
 
@@ -146,7 +151,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("failed to fetch L2 state node / code %s: %w", hash, err)
 		}
 		return p.kvStore.Put(preimage.Keccak256Key(hash).PreimageKey(), node)
-	case rollup.HintRollupBatchOfBlock:
+	case rollup.HintRollupBlockMeta, rollup.HintRollupBatchOfBlock, rollup.HintRollupBatchTransactions:
 		if len(hintBytes) > 8 {
 			return fmt.Errorf("invalid L2 block batch key: %x", hint)
 		}
@@ -155,12 +160,19 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 		if err := l2Block.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
 			return fmt.Errorf("failed to unmarshal batch index: %w", err)
 		}
+		if l2Block < 1 {
+			return fmt.Errorf("invalid index: %d, need to me at least 1", l2Block)
+		}
 
-		p.logger.Debug("Fetching L2 block with batch info", "block", l2Block)
+		// index is always less than 1 to the block
+		block := uint64(l2Block)
+		index := uint64(l2Block) - 1
 
-		blockResp, err := p.rollupFetcher.GetRawBlock(uint64(l2Block), dtl.BackendL1)
+		p.logger.Debug("Fetching L2 block with batch info", "index", index)
+
+		blockResp, err := p.rollupFetcher.GetRawBlock(index, dtl.BackendL1)
 		if err != nil {
-			return fmt.Errorf("failed to fetch block %d from dtl: %w", l2Block, err)
+			return fmt.Errorf("failed to fetch index %d from dtl: %w", index, err)
 		}
 
 		marshaled, err := rlp.EncodeToBytes(blockResp.Batch)
@@ -168,22 +180,8 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("failed to marshal block response: %w", err)
 		}
 
-		return p.kvStore.Put(preimage.RollupBlockBatchKey(l2Block).PreimageKey(), marshaled)
-	case rollup.HintRollupBlockMeta:
-		if len(hintBytes) > 8 {
-			return fmt.Errorf("invalid L2 block batch key: %x", hint)
-		}
-
-		var l2Block eth.Uint64Quantity
-		if err := l2Block.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
-			return fmt.Errorf("failed to unmarshal batch index: %w", err)
-		}
-
-		p.logger.Debug("Fetching L2 block with batch info", "block", l2Block)
-
-		blockResp, err := p.rollupFetcher.GetRawBlock(uint64(l2Block), dtl.BackendL1)
-		if err != nil {
-			return fmt.Errorf("failed to fetch block %d from dtl: %w", l2Block, err)
+		if err := p.kvStore.Put(preimage.RollupBlockBatchKey(block).PreimageKey(), marshaled); err != nil {
+			return err
 		}
 
 		meta := rollup.BlockMeta{
@@ -194,43 +192,48 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			Confirmed:        blockResp.Block.Confirmed,
 		}
 
-		marshaled, err := rlp.EncodeToBytes(&meta)
+		marshaled, err = rlp.EncodeToBytes(&meta)
 		if err != nil {
 			return fmt.Errorf("failed to marshal block response: %w", err)
 		}
 
-		return p.kvStore.Put(preimage.RollupBlockMetaKey(l2Block).PreimageKey(), marshaled)
-	case rollup.HintRollupBatchTransaction:
-		if len(hintBytes) > 16 {
-			return fmt.Errorf("invalid L2 block batch key: %x", hint)
+		if err := p.kvStore.Put(preimage.RollupBlockMetaKey(block).PreimageKey(), marshaled); err != nil {
+			return err
 		}
 
-		var txInfo rollup.RollupBatchTransaction
-		if err := rlp.DecodeBytes(hintBytes, &txInfo); err != nil {
-			return fmt.Errorf("failed to unmarshal tx info: %w", err)
-		}
-
-		p.logger.Debug("Fetching L2 block with batch info", "block", txInfo.BlockIndex, "tx", txInfo.TxIndex)
-
-		blockResp, err := p.rollupFetcher.GetRawBlock(uint64(txInfo.BlockIndex), dtl.BackendL1)
+		parsedBlock, err := dtl.BatchedBlockToBlock(blockResp.Block, &p.signer)
 		if err != nil {
-			return fmt.Errorf("failed to fetch block %d from dtl: %w", txInfo.BlockIndex, err)
+			return fmt.Errorf("failed to parse block from DTL: %w", err)
 		}
 
-		if txInfo.TxIndex >= uint64(len(blockResp.Block.Transactions)) {
-			return fmt.Errorf("transaction index out of bounds: %d", txInfo.TxIndex)
+		// Note(@dumdumgoose): need to parse the tx for the second time, since we are missing some fields in the first parse,
+		// need to insert the default values to the txs, otherwise tx root will be different
+		for _, tx := range parsedBlock.Transactions() {
+			meta := tx.GetMeta()
+			// set default value for l1 message sender
+			if meta.L1MessageSender == nil {
+				meta.L1MessageSender = &common.Address{}
+			}
+			// set default value for queue index
+			if meta.QueueIndex == nil {
+				meta.QueueIndex = &zero
+			}
+			// set default values for seq sign
+			if meta.R == nil {
+				meta.R = new(big.Int)
+				meta.S = new(big.Int)
+				meta.V = new(big.Int)
+			}
 		}
 
-		tx := blockResp.Block.Transactions[txInfo.TxIndex]
-		marshaled, err := rlp.EncodeToBytes(tx)
-		if err != nil {
-			return fmt.Errorf("failed to marshal tx: %w", err)
+		if marshaled, err = rlp.EncodeToBytes(parsedBlock.Transactions()); err != nil {
+			return fmt.Errorf("failed to marshal txs: %w", err)
+		}
+		if err := p.kvStore.Put(preimage.RollupBatchTransactionsKey(block).PreimageKey(), marshaled); err != nil {
+			return err
 		}
 
-		return p.kvStore.Put(preimage.RollupBatchTransactionKey{
-			BlockIndex: txInfo.BlockIndex,
-			TxIndex:    txInfo.TxIndex,
-		}.PreimageKey(), marshaled)
+		return nil
 	case rollup.HintRollupBlockStateCommitment:
 		if len(hintBytes) > 8 {
 			return fmt.Errorf("invalid L2 block statecommitment key: %x", hint)

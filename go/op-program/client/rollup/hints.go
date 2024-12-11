@@ -3,15 +3,13 @@ package rollup
 import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
-	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
-	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 const (
 	HintRollupBatchOfBlock         = "rollup-batch-of-block"
 	HintRollupBlockMeta            = "rollup-block-meta"
-	HintRollupBatchTransaction     = "rollup-batch-transaction"
+	HintRollupBatchTransactions    = "rollup-batch-transactions"
 	HintRollupBlockStateCommitment = "rollup-block-state-commitment"
 )
 
@@ -31,16 +29,12 @@ func (l RollupBlockMeta) Hint() string {
 	return HintRollupBlockMeta + " " + (eth.Uint64Quantity)(l).String()
 }
 
-type RollupBatchTransaction struct {
-	BlockIndex uint64
-	TxIndex    uint64
-}
+type RollupBatchTransactions uint64
 
-var _ preimage.Hint = RollupBatchTransaction{}
+var _ preimage.Hint = RollupBatchTransactions(0)
 
-func (l RollupBatchTransaction) Hint() string {
-	rlpEncoded, _ := rlp.EncodeToBytes(l)
-	return HintRollupBatchTransaction + " " + hexutil.Encode(rlpEncoded)
+func (l RollupBatchTransactions) Hint() string {
+	return HintRollupBatchTransactions + " " + (eth.Uint64Quantity)(l).String()
 }
 
 type RollupBlockStateCommitment eth.Uint64Quantity

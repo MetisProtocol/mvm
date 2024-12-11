@@ -3,6 +3,7 @@ package rollup
 import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
@@ -22,7 +23,7 @@ type Oracle interface {
 	L2BatchOfBlock(block uint64) *dtl.Batch
 	L2BlockMeta(block uint64) *BlockMeta
 	L2StateCommitment(block uint64) eth.Bytes32
-	L2BatchTransaction(block uint64, txIndex uint64) *dtl.Transaction
+	L2BatchTransactions(block uint64) types.Transactions
 }
 
 // PreimageOracle implements Oracle using by interfacing with the pure preimage.Oracle
@@ -73,13 +74,13 @@ func (p *PreimageOracle) L2StateCommitment(block uint64) eth.Bytes32 {
 	return eth.Bytes32(l2BlockStateCommitment)
 }
 
-func (p *PreimageOracle) L2BatchTransaction(block uint64, txIndex uint64) *dtl.Transaction {
-	p.hint.Hint(RollupBatchTransaction{BlockIndex: block, TxIndex: txIndex})
+func (p *PreimageOracle) L2BatchTransactions(block uint64) types.Transactions {
+	p.hint.Hint(RollupBatchTransactions(block))
 
-	txBytes := p.oracle.Get(preimage.RollupBatchTransactionKey{BlockIndex: block, TxIndex: txIndex})
+	txsBytes := p.oracle.Get(preimage.RollupBatchTransactionsKey(block))
 
-	var tx dtl.Transaction
-	rlp.DecodeBytes(txBytes, &tx)
+	var txs types.Transactions
+	rlp.DecodeBytes(txsBytes, &txs)
 
-	return &tx
+	return txs
 }

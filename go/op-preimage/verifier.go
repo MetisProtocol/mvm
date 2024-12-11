@@ -44,7 +44,7 @@ func WithVerification(source PreimageGetter) PreimageGetter {
 		case RollupBlockMetaKeyType:
 			// no need to re-verify the data from DTL
 			return data, nil
-		case RollupBatchTransactionKeyType:
+		case RollupBatchTransactionsKeyType:
 			// no need to re-verify the data from DTL
 			return data, nil
 		case RollupBatchKeyType:

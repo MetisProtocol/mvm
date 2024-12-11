@@ -204,7 +204,7 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 	logger.Info("Connecting to L1 DTL", "dtl", cfg.Rollup.RollupClientHttp)
 	rollupFetcher := dtl.NewClient(cfg.Rollup.RollupClientHttp, chainId)
 
-	return prefetcher.NewPrefetcher(logger, l2DebugCl, rollupFetcher, kv), nil
+	return prefetcher.NewPrefetcher(logger, chainId, l2DebugCl, rollupFetcher, kv), nil
 }
 
 func routeHints(logger log.Logger, hHostRW io.ReadWriter, hinter preimage.HintHandler) chan error {

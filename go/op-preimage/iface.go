@@ -48,8 +48,8 @@ const (
 	RollupBatchKeyType KeyType = 8
 	// RollupBlockStateCommitmentKeyType is for L2 state commitment pre-images.
 	RollupBlockStateCommitmentKeyType KeyType = 9
-	// RollupBatchTransactionKeyType is for L2 batch transaction pre-images.
-	RollupBatchTransactionKeyType KeyType = 10
+	// RollupBatchTransactionsKeyType is for L2 batch transaction pre-images.
+	RollupBatchTransactionsKeyType KeyType = 10
 	// BlockNumberKeyType is for L2 block number pre-images.
 	BlockNumberKeyType KeyType = 11
 )
@@ -81,16 +81,12 @@ func (k RollupBlockBatchKey) PreimageKey() (out [32]byte) {
 	return
 }
 
-// RollupBatchTransactionKey is a key for retrieving L2 batch transaction of given L2 block in L1 DTL preimage
-type RollupBatchTransactionKey struct {
-	BlockIndex uint64
-	TxIndex    uint64
-}
+// RollupBatchTransactionsKey is a key for retrieving L2 batch transactions of given L2 block in L1 DTL preimage
+type RollupBatchTransactionsKey uint64
 
-func (k RollupBatchTransactionKey) PreimageKey() (out [32]byte) {
-	out[0] = byte(RollupBatchTransactionKeyType)
-	binary.BigEndian.PutUint64(out[24:], k.BlockIndex)
-	binary.BigEndian.PutUint64(out[16:], k.TxIndex)
+func (k RollupBatchTransactionsKey) PreimageKey() (out [32]byte) {
+	out[0] = byte(RollupBatchTransactionsKeyType)
+	binary.BigEndian.PutUint64(out[24:], uint64(k))
 	return
 }
 

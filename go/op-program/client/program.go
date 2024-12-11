@@ -13,9 +13,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	l2eth "github.com/MetisProtocol/mvm/l2geth/eth"
 	"github.com/MetisProtocol/mvm/l2geth/params"
-	"github.com/MetisProtocol/mvm/l2geth/rollup"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 	dtl "github.com/ethereum-optimism/optimism/go/op-program/client/rollup"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -54,6 +53,10 @@ func RunProgram(logger log.Logger, preimageOracle io.ReadWriter, preimageHinter 
 
 	bootInfo := NewBootstrapClient(pClient).BootInfo()
 	logger.Info("Program Bootstrapped", "bootInfo", bootInfo)
+
+	// force ovm to true
+	rcfg.UsingOVM = true
+
 	return runDerivation(
 		logger,
 		bootInfo.L2ChainConfig,
@@ -79,14 +82,14 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 		return fmt.Errorf("something is wrong, start block is less than the end block: %d vs %d", l2BatchStartBlock, l2ClaimBlockNum)
 	}
 
-	l2StartBlock := getBatchBlockFromDTLOracle(logger, l2BatchStartBlock, l2Cfg.ChainID, rollupOracle)
+	l2StartBlock := getBatchBlockFromDTLOracle(logger, l2BatchStartBlock, rollupOracle)
 	if l2StartBlock == nil {
 		return fmt.Errorf("failed to get start block")
 	}
 
 	logger.Info("Starting process L2 blocks", "start", l2StartBlock.Number().Uint64(), "end", l2ClaimBlockNum)
 
-	parentHeader := l2Oracle.BlockHeaderByNumber(uint64(l2Batch.PrevTotalElements))
+	parentHeader := l2Oracle.BlockHeaderByNumber(l2StartBlock.Number().Uint64() - 1)
 	parentHeaderJSON, _ := json.Marshal(parentHeader)
 	logger.Info("Parent header", "header", string(parentHeaderJSON))
 
@@ -97,7 +100,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 
 	logger.Info("Created L2 chain", "head", l2Chain.CurrentHeader().Number.Uint64(), "headHash", l2Chain.CurrentHeader().Hash().Hex())
 
-	for l2Block := l2StartBlock; l2Block.NumberU64() <= l2ClaimBlockNum; l2Block = getBatchBlockFromDTLOracle(logger, l2Block.NumberU64()+1, l2Cfg.ChainID, rollupOracle) {
+	for l2Block := l2StartBlock; l2Block.NumberU64() <= l2ClaimBlockNum; l2Block = getBatchBlockFromDTLOracle(logger, l2Block.NumberU64()+1, rollupOracle) {
 		logger.Info("Processing L2 block", "block", l2Block.Number().Uint64())
 		logger.Info("Checking parent state availability",
 			"block", parentHeader.Number.Uint64(),
@@ -105,32 +108,53 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 		if !l2Chain.HasBlockAndState(parentHeader.Hash(), parentHeader.Number.Uint64()) {
 			logger.Error("missing parent block or state", "block", parentHeader.Number.Uint64())
 			return fmt.Errorf("missing parent block %d", l2Block.Number().Uint64()-1)
+		} else {
+			logger.Debug("Parent block and state available", "block", parentHeader.Number.Uint64())
+		}
+
+		// Note(@dumdumgoose): We will retrieve the data from l1 DTL as much as possible, but in some cases,
+		// to avoid large state, we will need to retrieve the l2 block header from the l2 oracle,
+		// since the most important to us are the transaction and state correctness.
+		l2Header := l2Oracle.BlockHeaderByNumber(l2Block.Number().Uint64())
+
+		if l2Block.Header().TxHash != l2Header.TxHash {
+			logger.Error("l2 block header tx hash mismatch", "block", l2Block.Number().Uint64(), "l2geth", l2Header.TxHash, "dtl", l2Block.Header().TxHash)
+			panic("l2 block header tx hash mismatch")
 		}
 
 		consEngine := l2Chain.Engine()
 		blockHeader := &types.Header{
 			ParentHash: parentHeader.Hash(),
 			Number:     l2Block.Number(),
-			GasLimit:   l2eth.DefaultConfig.Miner.GasFloor,
-			Extra:      l2eth.DefaultConfig.Miner.ExtraData,
+			GasLimit:   parentHeader.GasLimit,
+			Extra:      l2Header.Extra,
 			Time:       l2Block.Time(),
-			Difficulty: consEngine.CalcDifficulty(l2Chain, l2Block.Time(), parentHeader),
-		}
-		if err := consEngine.Prepare(l2Chain, blockHeader); err != nil {
-			return fmt.Errorf("failed to prepare block %d: %w", l2Block.Number().Uint64(), err)
+			// Note(@dumdumgoose): Our difficulty is always 2, hardcode the difficulty here, because
+			// if we calculate the difficulty with clique, it will traverse the blocks back at most an epoch,
+			// which will make our state very large.
+			Difficulty: big.NewInt(2),
+			Coinbase:   l2Header.Coinbase,
+			Nonce:      l2Header.Nonce,
+			MixDigest:  l2Header.MixDigest,
 		}
 
+		logger.Debug("Block header created", "block", l2Block.Number().Uint64(), "header", blockHeader)
 		state, err := l2Chain.StateAt(parentHeader.Root)
 		if err != nil {
 			return fmt.Errorf("failed to get state at %d: %w", l2Block.Number().Uint64()-1, err)
 		}
 
+		logger.Debug("State retrieved", "block", l2Block.Number().Uint64())
+
 		txs := l2Block.Transactions()
+
+		logger.Debug("Transactions retrieved", "block", l2Block.Number().Uint64(), "txs", len(txs))
+
 		gasUsed := uint64(0)
 		emptyAddress := common.Address{}
 		receipts := make(types.Receipts, 0, len(txs))
 		logs := make([]*types.Log, 0)
-		if len(txs) > 0 {
+		if txs.Len() > 0 {
 			firstTx := txs[0]
 			gp := new(core.GasPool).AddGas(parentHeader.GasLimit)
 			for i, tx := range txs {
@@ -139,46 +163,67 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 				tx.SetL1Timestamp(firstTx.L1Timestamp())
 
 				state.Prepare(tx.Hash(), common.Hash{}, i)
+
+				logger.Debug("Applying transaction", "block", l2Block.Number().Uint64(), "tx", i, "hash", tx.Hash())
+
 				revid := state.Snapshot()
 				receipt, err := core.ApplyTransaction(l2Chain.Config(), l2Chain, &emptyAddress, gp, state, blockHeader, tx, &gasUsed, *l2Chain.GetVMConfig())
 				if err != nil {
 					// not collecting log for failed tx
+					logger.Error("Failed to apply transaction", "block", l2Block.Number().Uint64(), "tx", i, "hash", tx.Hash(), "err", err)
 					state.RevertToSnapshot(revid)
 				} else if receipt.Logs != nil {
 					logs = append(logs, receipt.Logs...)
 				}
 				gasUsed += receipt.GasUsed
 				receipts = append(receipts, receipt)
+
+				receiptJSON, _ := json.Marshal(receipt)
+
+				logger.Debug("Transaction applied", "block", l2Block.Number().Uint64(), "tx", i, "hash", tx.Hash(), "receipt", string(receiptJSON))
 			}
 		}
+
+		logger.Debug("Transactions applied", "block", l2Block.Number().Uint64())
 
 		l2Block, err = consEngine.FinalizeAndAssemble(l2Chain, blockHeader, state, txs, nil, receipts)
 		if err != nil {
 			return fmt.Errorf("failed to finalize block %d: %w", l2Block.Number().Uint64(), err)
 		}
 
+		logger.Debug("Block finalized", "block", l2Block.Number().Uint64())
+
 		headerJSON, _ := json.Marshal(l2Block.Header())
-		logger.Info("L2 Block header", "block", l2Block.Number().Uint64(), "header", string(headerJSON))
+		logger.Info("Finalized L2 Block header", "block", l2Block.Number().Uint64(), "header", string(headerJSON))
 
 		if err := consEngine.SyncSeal(l2Chain, l2Block); err != nil {
 			return fmt.Errorf("failed to sync seal block %d: %w", l2Block.Number().Uint64(), err)
 		}
 
+		logger.Debug("Block sealed", "block", l2Block.Number().Uint64())
+
 		if _, err := l2Chain.SetCanonical(l2Block); err != nil {
 			return fmt.Errorf("failed to set canonical block %d: %w", l2Block, err)
 		}
+
+		logger.Debug("Canonical block set", "block", l2Block.Number().Uint64())
 
 		if err := l2Chain.InsertBlockWithoutSetHead(l2Block); err != nil {
 			return fmt.Errorf("failed to insert block %d: %w", l2Block, err)
 		}
 
+		logger.Debug("Block inserted", "block", l2Block.Number().Uint64())
+
 		parentHeader = l2Block.Header()
+
+		logger.Debug("Block processing finished", "block", l2Block.Number().Uint64())
 	}
 
+	logger.Info("Finished processing L2 blocks", "start", l2StartBlock.Number().Uint64(), "end", l2ClaimBlockNum)
 	return claim.ValidateClaim(logger, l2ClaimBlockNum, eth.Bytes32(l2Claim), l2Chain)
 }
 
-func getBatchBlockFromDTLOracle(logger log.Logger, l2BlockNumber uint64, chainId *big.Int, rollupOracle dtl.Oracle) *types.Block {
+func getBatchBlockFromDTLOracle(logger log.Logger, l2BlockNumber uint64, rollupOracle dtl.Oracle) *types.Block {
 	// transmit the data piece by piece to avoid data cutoff by oracle
 	l2BlockMeta := rollupOracle.L2BlockMeta(l2BlockNumber)
 	if l2BlockMeta == nil {
@@ -186,32 +231,13 @@ func getBatchBlockFromDTLOracle(logger log.Logger, l2BlockNumber uint64, chainId
 		return nil
 	}
 
-	var txs []*rollup.Transaction
-	if l2BlockMeta.TransactionCount > 0 {
-		for i := uint64(0); i < l2BlockMeta.TransactionCount; i++ {
-			tx := rollupOracle.L2BatchTransaction(l2BlockNumber, i)
-			if tx == nil {
-				logger.Error("failed to get transaction", "index", i, "block", l2BlockNumber)
-				return nil
-			}
-			txs = append(txs, tx)
-		}
+	txs := rollupOracle.L2BatchTransactions(l2BlockNumber)
+	header := &types.Header{
+		Time:   l2BlockMeta.Timestamp,
+		Number: big.NewInt(int64(l2BlockMeta.Index + 1)),
 	}
 
-	signer := types.NewEIP155Signer(chainId)
-	l2Block, err := rollup.BatchedBlockToBlock(&rollup.Block{
-		Index:        l2BlockMeta.Index,
-		BatchIndex:   l2BlockMeta.BatchIndex,
-		Timestamp:    l2BlockMeta.Timestamp,
-		Transactions: txs,
-		Confirmed:    l2BlockMeta.Confirmed,
-	}, &signer)
-	if err != nil {
-		logger.Error("failed to convert batched block to block", "err", err)
-		return nil
-	}
-
-	return l2Block
+	return types.NewBlock(header, txs, nil, nil)
 }
 
 func CreateHinterChannel() preimage.FileChannel {

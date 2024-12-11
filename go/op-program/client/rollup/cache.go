@@ -4,7 +4,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/hashicorp/golang-lru/v2/simplelru"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
 )
 
@@ -18,14 +18,14 @@ type CachingOracle struct {
 	oracle                     Oracle
 	rollupBlockStateCommitment *simplelru.LRU[uint64, eth.Bytes32]
 	rollupBatches              *simplelru.LRU[uint64, *dtl.Batch]
-	rollupBatchTxs             *simplelru.LRU[common.Hash, *dtl.Transaction]
+	rollupBatchTxs             *simplelru.LRU[uint64, types.Transactions]
 	rollupBlockMetas           *simplelru.LRU[uint64, *BlockMeta]
 }
 
 func NewCachingOracle(oracle Oracle) *CachingOracle {
 	rollupBatches, _ := simplelru.NewLRU[uint64, *dtl.Batch](blockCacheSize, nil)
 	rollupStateCommitment, _ := simplelru.NewLRU[uint64, eth.Bytes32](blockCacheSize, nil)
-	rollupBatchTxs, _ := simplelru.NewLRU[common.Hash, *dtl.Transaction](blockCacheSize, nil)
+	rollupBatchTxs, _ := simplelru.NewLRU[uint64, types.Transactions](blockCacheSize, nil)
 	rollupBlockMetas, _ := simplelru.NewLRU[uint64, *BlockMeta](blockCacheSize, nil)
 	return &CachingOracle{
 		oracle:                     oracle,
@@ -69,13 +69,13 @@ func (o *CachingOracle) L2StateCommitment(block uint64) eth.Bytes32 {
 	return l2StateCommitment
 }
 
-func (o *CachingOracle) L2BatchTransaction(block uint64, txIndex uint64) *dtl.Transaction {
-	batchTx, ok := o.rollupBatchTxs.Get(common.Hash{})
+func (o *CachingOracle) L2BatchTransactions(block uint64) types.Transactions {
+	batchTxs, ok := o.rollupBatchTxs.Get(block)
 	if ok {
-		return batchTx
+		return batchTxs
 	}
 
-	batchTx = o.oracle.L2BatchTransaction(block, txIndex)
-	o.rollupBatchTxs.Add(common.Hash{}, batchTx)
-	return batchTx
+	batchTxs = o.oracle.L2BatchTransactions(block)
+	o.rollupBatchTxs.Add(block, batchTxs)
+	return batchTxs
 }
