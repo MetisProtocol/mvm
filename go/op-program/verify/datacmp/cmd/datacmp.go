@@ -163,7 +163,7 @@ func isBlockBlockBatchValid(startBlock, endBlock int, l2gethClient *ethclient.Cl
 			tx0 := block0.Transactions()[j]
 
 			if tx0.Hash() != tx.Hash() {
-				fmt.Println(fmt.Errorf("Block: %d -> Transaction hash mismatch: %s != %s", j, tx0.Hash().Hex(), tx.Hash().Hex()))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d  -> Transaction hash mismatch: %s != %s", i, j, tx0.Hash().Hex(), tx.Hash().Hex()))
 				return false
 			}
 
@@ -189,43 +189,43 @@ func isBlockBlockBatchValid(startBlock, endBlock int, l2gethClient *ethclient.Cl
 			//fmt.Printf("tx %d: %s\n", i, tx.Hash().Hex())
 
 			if *meta.QueueIndex != *meta2.QueueIndex {
-				fmt.Println(fmt.Errorf("Block: %d -> QueueIndex mismatch: %d != %d", i, *meta.QueueIndex, *meta2.QueueIndex))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> QueueIndex mismatch: %d != %d", i, j, *meta.QueueIndex, *meta2.QueueIndex))
 				return false
 			}
 			if meta.L1BlockNumber.Cmp(meta2.L1BlockNumber) != 0 {
-				fmt.Println(fmt.Errorf("Block: %d -> L1BlockNumber mismatch: %d != %d", i, meta.L1BlockNumber, meta2.L1BlockNumber))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> L1BlockNumber mismatch: %d != %d", i, j, meta.L1BlockNumber, meta2.L1BlockNumber))
 				return false
 			}
 			if meta.L1Timestamp != meta2.L1Timestamp {
-				fmt.Println(fmt.Errorf("Block: %d -> L1Timestamp mismatch: %d != %d", i, meta.L1Timestamp, meta2.L1Timestamp))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> L1Timestamp mismatch: %d != %d", i, j, meta.L1Timestamp, meta2.L1Timestamp))
 				return false
 			}
 			if meta.L1MessageSender.Hex() != meta.L1MessageSender.Hex() {
-				fmt.Println(fmt.Errorf("Block: %d -> L1MessageSender mismatch: %s != %s", i, meta.L1MessageSender.Hex(), meta2.L1MessageSender.Hex()))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> L1MessageSender mismatch: %s != %s", i, j, meta.L1MessageSender.Hex(), meta2.L1MessageSender.Hex()))
 				return false
 			}
 			if meta.QueueOrigin != meta2.QueueOrigin {
-				fmt.Println(fmt.Errorf("Block: %d -> QueueOrigin mismatch: %d != %d", i, meta.QueueOrigin, meta2.QueueOrigin))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> QueueOrigin mismatch: %d != %d", i, j, meta.QueueOrigin, meta2.QueueOrigin))
 				return false
 			}
 			if *meta.Index != *meta2.Index {
-				fmt.Println(fmt.Errorf("Block: %d -> Index mismatch: %d != %d", i, *meta.Index, *meta2.Index))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> Index mismatch: %d != %d", i, j, *meta.Index, *meta2.Index))
 				return false
 			}
 			if bytes.Compare(meta.RawTransaction, meta2.RawTransaction) != 0 {
-				fmt.Println(fmt.Errorf("Block: %d -> RawTransaction mismatch: %s != %s", i, meta.RawTransaction, meta2.RawTransaction))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> RawTransaction mismatch: %s != %s", i, j, meta.RawTransaction, meta2.RawTransaction))
 				return false
 			}
 			if meta.R.Cmp(meta2.R) != 0 {
-				fmt.Println(fmt.Errorf("Block: %d -> R mismatch: %s != %s", i, meta.R.String(), meta2.R.String()))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> R mismatch: %s != %s", i, j, meta.R.String(), meta2.R.String()))
 				return false
 			}
 			if meta.S.Cmp(meta2.S) != 0 {
-				fmt.Println(fmt.Errorf("Block: %d -> S mismatch: %s != %s", i, meta.S.String(), meta2.S.String()))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> S mismatch: %s != %s", i, j, meta.S.String(), meta2.S.String()))
 				return false
 			}
 			if meta.V.Cmp(meta2.V) != 0 {
-				fmt.Println(fmt.Errorf("Block: %d -> V mismatch: %s != %s", i, meta.V.String(), meta2.V.String()))
+				fmt.Println(fmt.Errorf("Block: %d, Tx: %d -> V mismatch: %s != %s", i, j, meta.V.String(), meta2.V.String()))
 				return false
 			}
 		}
@@ -233,7 +233,7 @@ func isBlockBlockBatchValid(startBlock, endBlock int, l2gethClient *ethclient.Cl
 		root := types.DeriveSha(block.Transactions())
 
 		if block0TxRoot != root {
-			fmt.Println(fmt.Errorf("Transaction root mismatch: %s != %s", block0TxRoot.Hex(), root.Hex()))
+			fmt.Println(fmt.Errorf("Block: %d, Transaction root mismatch: %s != %s", i, block0TxRoot.Hex(), root.Hex()))
 			return false
 		}
 	}
