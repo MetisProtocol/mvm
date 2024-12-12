@@ -156,6 +156,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 		if txs.Len() > 0 {
 			firstTx := txs[0]
 			gp := new(core.GasPool).AddGas(parentHeader.GasLimit)
+			// Apply the transactions to the state
 			for i, tx := range txs {
 				tx.SetL1BlockNumber(firstTx.L1BlockNumber().Uint64())
 				tx.SetIndex(*firstTx.GetMeta().Index)
@@ -184,6 +185,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 
 		logger.Debug("Transactions applied", "block", l2Block.Number().Uint64(), "gasUsed", blockHeader.GasUsed)
 
+		// Finalize the block
 		l2Block, err = consEngine.FinalizeAndAssemble(l2Chain, blockHeader, state, txs, nil, receipts)
 		if err != nil {
 			return fmt.Errorf("failed to finalize block %d: %w", l2Block.Number().Uint64(), err)
@@ -191,15 +193,14 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 
 		logger.Debug("Block finalized", "block", l2Block.Number().Uint64())
 
-		headerJSON, _ := json.Marshal(l2Block.Header())
-		logger.Info("Finalized L2 Block header", "block", l2Block.Number().Uint64(), "header", string(headerJSON))
-
+		// Set head
 		if _, err := l2Chain.SetCanonical(l2Block); err != nil {
 			return fmt.Errorf("failed to set canonical block %d: %w", l2Block, err)
 		}
 
 		logger.Debug("Canonical block set", "block", l2Block.Number().Uint64())
 
+		// Add block
 		l2Chain.InsertBlockWithoutSetHead(l2Block)
 
 		logger.Debug("Block inserted", "block", l2Block.Number().Uint64())
