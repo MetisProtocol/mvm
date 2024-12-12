@@ -150,7 +150,6 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 
 		logger.Debug("Transactions retrieved", "block", l2Block.Number().Uint64(), "txs", len(txs))
 
-		gasUsed := uint64(0)
 		emptyAddress := common.Address{}
 		receipts := make(types.Receipts, 0, len(txs))
 		logs := make([]*types.Log, 0)
@@ -167,7 +166,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 				logger.Debug("Applying transaction", "block", l2Block.Number().Uint64(), "tx", i, "hash", tx.Hash())
 
 				revid := state.Snapshot()
-				receipt, err := core.ApplyTransaction(l2Chain.Config(), l2Chain, &emptyAddress, gp, state, blockHeader, tx, &gasUsed, *l2Chain.GetVMConfig())
+				receipt, err := core.ApplyTransaction(l2Chain.Config(), l2Chain, &emptyAddress, gp, state, blockHeader, tx, &blockHeader.GasUsed, *l2Chain.GetVMConfig())
 				if err != nil {
 					// not collecting log for failed tx
 					logger.Error("Failed to apply transaction", "block", l2Block.Number().Uint64(), "tx", i, "hash", tx.Hash(), "err", err)
@@ -175,7 +174,6 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 				} else if receipt.Logs != nil {
 					logs = append(logs, receipt.Logs...)
 				}
-				gasUsed += receipt.GasUsed
 				receipts = append(receipts, receipt)
 
 				receiptJSON, _ := json.Marshal(receipt)
@@ -184,7 +182,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 			}
 		}
 
-		logger.Debug("Transactions applied", "block", l2Block.Number().Uint64())
+		logger.Debug("Transactions applied", "block", l2Block.Number().Uint64(), "gasUsed", blockHeader.GasUsed)
 
 		l2Block, err = consEngine.FinalizeAndAssemble(l2Chain, blockHeader, state, txs, nil, receipts)
 		if err != nil {
@@ -216,7 +214,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 
 		parentHeader = l2Block.Header()
 
-		logger.Debug("Block processing finished", "block", l2Block.Number().Uint64())
+		logger.Debug("Block processing finished", "block", l2Block.Number().Uint64(), "hash", l2Block.Hash().Hex())
 	}
 
 	logger.Info("Finished processing L2 blocks", "start", l2StartBlock.Number().Uint64(), "end", l2ClaimBlockNum)
