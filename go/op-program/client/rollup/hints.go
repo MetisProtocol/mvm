@@ -4,6 +4,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	"github.com/ethereum-optimism/optimism/go/op-program/common"
 )
 
 const (
@@ -18,7 +19,7 @@ type RollupBatchOfBlock uint64
 var _ preimage.Hint = RollupBatchOfBlock(0)
 
 func (l RollupBatchOfBlock) Hint() string {
-	return HintRollupBatchOfBlock + " " + (eth.Uint64Quantity)(l).String()
+	return HintRollupBatchOfBlock + " " + (common.Uint64)(l).EncodeHex()
 }
 
 type RollupBlockMeta uint64
@@ -26,7 +27,7 @@ type RollupBlockMeta uint64
 var _ preimage.Hint = RollupBlockMeta(0)
 
 func (l RollupBlockMeta) Hint() string {
-	return HintRollupBlockMeta + " " + (eth.Uint64Quantity)(l).String()
+	return HintRollupBlockMeta + " " + (common.Uint64)(l).EncodeHex()
 }
 
 type RollupBatchTransactions uint64
@@ -34,7 +35,7 @@ type RollupBatchTransactions uint64
 var _ preimage.Hint = RollupBatchTransactions(0)
 
 func (l RollupBatchTransactions) Hint() string {
-	return HintRollupBatchTransactions + " " + (eth.Uint64Quantity)(l).String()
+	return HintRollupBatchTransactions + " " + (common.Uint64)(l).EncodeHex()
 }
 
 type RollupBlockStateCommitment eth.Uint64Quantity
@@ -42,5 +43,5 @@ type RollupBlockStateCommitment eth.Uint64Quantity
 var _ preimage.Hint = RollupBlockStateCommitment(0)
 
 func (l RollupBlockStateCommitment) Hint() string {
-	return HintRollupBlockStateCommitment + " " + (eth.Uint64Quantity)(l).String()
+	return HintRollupBlockStateCommitment + " " + (common.Uint64)(l).EncodeHex()
 }

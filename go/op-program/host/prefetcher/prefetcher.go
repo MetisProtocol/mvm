@@ -2,6 +2,7 @@ package prefetcher
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -21,6 +22,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
+	progcommon "github.com/ethereum-optimism/optimism/go/op-program/common"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 
@@ -156,17 +158,17 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L2 block batch key: %x", hint)
 		}
 
-		var l2Block eth.Uint64Quantity
-		if err := l2Block.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
+		l2Block, err := progcommon.DecodeUint64Hint(hex.EncodeToString(hintBytes))
+		if err != nil {
 			return fmt.Errorf("failed to unmarshal batch index: %w", err)
 		}
 		if l2Block < 1 {
-			return fmt.Errorf("invalid index: %d, need to me at least 1", l2Block)
+			return fmt.Errorf("invalid index: %d, need to be at least 1", l2Block)
 		}
 
 		// index is always less than 1 to the block
-		block := uint64(l2Block)
-		index := uint64(l2Block) - 1
+		block := l2Block
+		index := l2Block - 1
 
 		p.logger.Debug("Fetching L2 block with batch info", "index", index)
 
@@ -239,9 +241,9 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L2 block statecommitment key: %x", hint)
 		}
 
-		var l2Block eth.Uint64Quantity
-		if err := l2Block.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
-			return fmt.Errorf("failed to unmarshal batch index: %w", err)
+		l2Block, err := progcommon.DecodeUint64Hint(hex.EncodeToString(hintBytes))
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal block number: %w", err)
 		}
 
 		p.logger.Debug("Fetching L2 block with state commitment", "block", l2Block)
@@ -256,8 +258,8 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L2 block number hint: %x", hint)
 		}
 
-		var l2Block eth.Uint64Quantity
-		if err := l2Block.UnmarshalText([]byte(hexutil.Encode(hintBytes))); err != nil {
+		l2Block, err := progcommon.DecodeUint64Hint(hex.EncodeToString(hintBytes))
+		if err != nil {
 			return fmt.Errorf("failed to unmarshal block number: %w", err)
 		}
 

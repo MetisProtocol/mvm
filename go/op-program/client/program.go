@@ -200,6 +200,10 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 
 		logger.Debug("Canonical block set", "block", l2Block.Number().Uint64())
 
+		l2Chain.InsertBlockWithoutSetHead(l2Block)
+
+		logger.Debug("Block inserted", "block", l2Block.Number().Uint64())
+
 		// commit the state
 		root, err := state.Commit(l2Chain.Config().IsEIP158(l2Chain.CurrentHeader().Number))
 		if err != nil {

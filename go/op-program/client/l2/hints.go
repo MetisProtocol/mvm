@@ -1,9 +1,8 @@
 package l2
 
 import (
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-
 	"github.com/MetisProtocol/mvm/l2geth/common"
+	progcommon "github.com/ethereum-optimism/optimism/go/op-program/common"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
@@ -62,5 +61,5 @@ type BlockNumberHint uint64
 var _ preimage.Hint = BlockNumberHint(0)
 
 func (l BlockNumberHint) Hint() string {
-	return HintL2BlockNumber + " " + eth.Uint64Quantity(l).String()
+	return HintL2BlockNumber + " " + (progcommon.Uint64)(l).EncodeHex()
 }

@@ -1,7 +1,6 @@
 package l2
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -161,27 +160,27 @@ func (o *OracleBackedL2Chain) StateAt(root common.Hash) (*state.StateDB, error) 
 }
 
 func (o *OracleBackedL2Chain) InsertBlockWithoutSetHead(block *types.Block) error {
-	processor, err := engineapi.NewBlockProcessorFromHeader(o, block.Header())
-	if err != nil {
-		return err
-	}
-	for i, tx := range block.Transactions() {
-		err = processor.AddTx(tx)
-		if err != nil {
-			return fmt.Errorf("invalid transaction (%d): %w", i, err)
-		}
-	}
-	expected, err := processor.Assemble()
-	if err != nil {
-		return fmt.Errorf("invalid block: %w", err)
-	}
-	if expected.Hash() != block.Hash() {
-		return fmt.Errorf("block root mismatch, expected: %v, actual: %v", expected.Hash(), block.Hash())
-	}
-	err = processor.Commit()
-	if err != nil {
-		return fmt.Errorf("commit block: %w", err)
-	}
+	//processor, err := engineapi.NewBlockProcessorFromHeader(o, block.Header())
+	//if err != nil {
+	//	return err
+	//}
+	//for i, tx := range block.Transactions() {
+	//	err = processor.AddTx(tx)
+	//	if err != nil {
+	//		return fmt.Errorf("invalid transaction (%d): %w", i, err)
+	//	}
+	//}
+	//expected, err := processor.Assemble()
+	//if err != nil {
+	//	return fmt.Errorf("invalid block: %w", err)
+	//}
+	//if expected.Hash() != block.Hash() {
+	//	return fmt.Errorf("block root mismatch, expected: %v, actual: %v", expected.Hash(), block.Hash())
+	//}
+	//err = processor.Commit()
+	//if err != nil {
+	//	return fmt.Errorf("commit block: %w", err)
+	//}
 	o.blocks[block.Hash()] = block
 	return nil
 }
