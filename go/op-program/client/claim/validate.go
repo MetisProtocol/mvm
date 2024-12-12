@@ -29,7 +29,7 @@ func ValidateClaim(log log.Logger, l2ClaimBlockNum uint64, claimedOutputRoot eth
 	}
 
 	outputRootHex := l2Head.Root.Hex()
-	log.Info("Validating claim", "head", l2Head, "output", outputRootHex, "claim", claimedOutputRoot)
+	log.Info("Validating claim", "output", outputRootHex, "claim", claimedOutputRoot.String())
 
 	if claimedOutputRoot != eth.Bytes32(l2Head.Root) {
 		return fmt.Errorf("%w: claim: %v actual: %v", ErrClaimNotValid, claimedOutputRoot, outputRootHex)
