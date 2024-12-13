@@ -12,7 +12,7 @@ import {
   encodeAppendSequencerBatch,
   EncodeSequencerBatchOptions,
   remove0x,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 import { Promise } from 'bluebird'
 
 interface AppendSequencerBatchParams {

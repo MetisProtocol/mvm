@@ -6,7 +6,7 @@ import { SpanBatch } from './span-batch'
 import { SingularBatch } from './singular-batch'
 import { BatchToInboxElement, Frame } from './types'
 import { CHANNEL_FULL_ERR, FRAME_OVERHEAD_SIZE } from './consts'
-import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
+import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
 import { Logger } from '@eth-optimism/common-ts'
 
 export class SpanChannelOut {
@@ -103,35 +103,10 @@ export class SpanChannelOut {
     this.ensureOpenSpanBatch()
 
     await this.spanBatch.appendSingularBatch(batch)
-    const rawSpanBatch = this.spanBatch.toRawSpanBatch()
 
-    // this.rlp = await rawSpanBatch.encode()
     this.logger.info('Appended singular batch', {
       l2Block: batch.blockNumber,
     })
-
-    // if (this.rlp.length > MAX_RLP_BYTES_PER_CHANNEL) {
-    //   this.logger.error(`Channel is too large: ${this.rlp.length}`)
-    //   throw new Error(
-    //     `ErrTooManyRLPBytes: could not take ${this.rlp.length} bytes, max is ${MAX_RLP_BYTES_PER_CHANNEL}`
-    //   )
-    // }
-    //
-    // // TODO: might need to optimize this, no need to compress the data everytime.
-    // await this.compress(this.rlp)
-    //
-    // if (this.full) {
-    //   if (this.sealedRLPBytes === 0 && this.spanBatch.batches.length === 1) {
-    //     return
-    //   }
-    //
-    //   if (this.compressor.len() === this.target) {
-    //     return
-    //   }
-    //
-    //   this.logger.info('channel is full')
-    //   throw this.full
-    // }
   }
 
   private ensureOpenSpanBatch(): void {

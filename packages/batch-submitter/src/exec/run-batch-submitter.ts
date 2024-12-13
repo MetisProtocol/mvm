@@ -1,5 +1,5 @@
 /* External Imports */
-import { Bcfg, L2Provider, MinioConfig } from '@metis.io/core-utils'
+import { Bcfg, L2Provider, MinioConfig } from '@localtest911/core-utils'
 import * as Sentry from '@sentry/node'
 import { createMetricsServer, Logger, Metrics } from '@eth-optimism/common-ts'
 import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethersv6'

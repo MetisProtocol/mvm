@@ -3,7 +3,7 @@ import * as https from 'https'
 import { URL } from 'url'
 import { ethers, toBigInt, toNumber } from 'ethersv6'
 import { randomUUID } from 'crypto'
-import '@metis.io/core-utils'
+import '@localtest911/core-utils'
 import * as kzg from 'c-kzg'
 
 export class MpcClient {
