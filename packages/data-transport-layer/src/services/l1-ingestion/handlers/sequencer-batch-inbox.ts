@@ -31,6 +31,7 @@ import {
 import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
 import { BlobDataExpiredError, MissingElementError } from './errors'
 import { fetchBatches } from '../../../da/blob'
+import { toHex } from 'hardhat/internal/util/bigint'
 
 export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
   SequencerBatchAppendedExtraData,
@@ -347,7 +348,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                     origin: isSequencerTx ? ethers.ZeroAddress : tx.l1TxOrigin,
                     data: isSequencerTx ? tx.rawTransaction : tx.data,
                     queueOrigin: isSequencerTx ? 'sequencer' : 'l1',
-                    value: isSequencerTx ? toBeHex(tx.value) : '0x0',
+                    value: isSequencerTx ? toHex(tx.value) : '0x0',
                     queueIndex: isSequencerTx ? null : tx.queueIndex,
                     decoded: isSequencerTx
                       ? decodeSequencerBatchTransaction(
@@ -446,11 +447,11 @@ const decodeSequencerBatchTransaction = (
     nonce: decodedTx.nonce.toString(),
     gasPrice: decodedTx.gasPrice.toString(),
     gasLimit: decodedTx.gasLimit.toString(),
-    value: toBeHex(decodedTx.value),
+    value: toHex(decodedTx.value),
     target: decodedTx.to ? toHexString(decodedTx.to) : null,
     data: toHexString(decodedTx.data),
     sig: {
-      v: parseSignatureVParam(decodedTx.signature.v, l2ChainId),
+      v: parseSignatureVParam(decodedTx.signature.networkV, l2ChainId),
       r: toHexString(decodedTx.signature.r),
       s: toHexString(decodedTx.signature.s),
     },
