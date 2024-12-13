@@ -350,7 +350,6 @@ export interface L2TransactionMeta {
   l1TxOrigin: string
   queueOrigin: string
   index: number
-  queueIndex: number
   seqV: string | undefined | null
   seqR: string | undefined | null
   seqS: string | undefined | null
@@ -435,11 +434,13 @@ export class SpanBatchTx {
       },
     })
 
+    const isSequencerTx = this.txMeta.queueOrigin === QueueOrigin.Sequencer
+
     const txAny = tx as any
     txAny.l1BlockNumber = this.txMeta.l1BlockNumber
     txAny.l1TxOrigin = this.txMeta.l1TxOrigin
     txAny.queueOrigin = this.txMeta.queueOrigin
-    txAny.queueIndex = this.txMeta.queueIndex
+    txAny.queueIndex = isSequencerTx ? null : nonce
     txAny.rawTransaction = tx.serialized
     txAny.index = this.txMeta.index
     txAny.l1Timestamp = this.txMeta.l1Timestamp
@@ -470,7 +471,6 @@ export class SpanBatchTxs {
   // metis extra fields
   queueOriginBits: bigint // bitmap to save queue origins, 0 for sequencer, 1 for enqueue
   l1TxOrigins: string[] // l1 tx origins, only used for enqueue tx
-  queueIndices: number[] // enqueue index, only used for enqueue tx
   txSeqSigs: SpanBatchSignature[]
   seqYParityBits: bigint
 
@@ -493,7 +493,6 @@ export class SpanBatchTxs {
 
     this.queueOriginBits = BigInt(0)
     this.l1TxOrigins = []
-    this.queueIndices = []
     this.txSeqSigs = []
     this.seqYParityBits = BigInt(0)
 
@@ -598,9 +597,6 @@ export class SpanBatchTxs {
     for (let i = 0; i < enqueueTxCounts; i++) {
       this.l1TxOrigins.push(reader.readBytes(20).toString('hex'))
     }
-    for (let i = 0; i < enqueueTxCounts; i++) {
-      this.queueIndices.push(reader.readUvarint())
-    }
 
     this.l1BlockNumbers = l1Blocks
     this.l1Timestamps = l1Timestamps
@@ -658,24 +654,19 @@ export class SpanBatchTxs {
       ) {
         blockCounter++
       }
+      const isSequencerTx = this.getBit(this.queueOriginBits, idx) === 0
       const stx = SpanBatchTx.unmarshalBinary(this.txDatas[idx], {
         l1BlockNumber: this.l1BlockNumbers[blockCounter],
         l1Timestamp: this.l1Timestamps[blockCounter],
-        l1TxOrigin: this.l1TxOrigins[enqueueTxCounter],
+        l1TxOrigin: isSequencerTx
+          ? ethers.ZeroAddress
+          : this.l1TxOrigins[enqueueTxCounter++],
         index: startBlock + blockCounter - 1,
-        queueIndex: this.queueIndices[enqueueTxCounter],
-        queueOrigin:
-          this.getBit(this.queueOriginBits, idx) === 0
-            ? QueueOrigin.Sequencer
-            : QueueOrigin.L1ToL2,
+        queueOrigin: isSequencerTx ? QueueOrigin.Sequencer : QueueOrigin.L1ToL2,
         seqV: this.getBit(this.seqYParityBits, idx).toString(16),
         seqR: this.txSeqSigs[idx].r.toString(16),
         seqS: this.txSeqSigs[idx].s.toString(16),
       })
-
-      if (stx.txMeta.queueOrigin === QueueOrigin.L1ToL2) {
-        enqueueTxCounter++
-      }
 
       const nonce = this.txNonces[idx]
       const gas = this.txGases[idx]

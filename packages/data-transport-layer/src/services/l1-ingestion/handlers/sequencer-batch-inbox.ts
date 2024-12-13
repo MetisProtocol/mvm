@@ -349,7 +349,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                     data: isSequencerTx ? tx.rawTransaction : tx.data,
                     queueOrigin: isSequencerTx ? 'sequencer' : 'l1',
                     value: isSequencerTx ? toHex(tx.value) : '0x0',
-                    queueIndex: isSequencerTx ? null : tx.queueIndex,
+                    queueIndex: isSequencerTx ? null : tx.nonce,
                     decoded: isSequencerTx
                       ? decodeSequencerBatchTransaction(
                           Buffer.from(remove0x(tx.rawTransaction), 'hex'),
