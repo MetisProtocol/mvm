@@ -10,7 +10,7 @@ import {
   remove0x,
   toHexString,
   toRpcHexString,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 
 /* Imports: Internal */
 import {

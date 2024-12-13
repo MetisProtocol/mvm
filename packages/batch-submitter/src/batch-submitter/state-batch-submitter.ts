@@ -9,7 +9,12 @@ import {
   TransactionReceipt,
 } from 'ethersv6'
 import { getContractDefinition } from '@metis.io/contracts'
-import { Bytes32, L2Block, remove0x, RollupInfo } from '@metis.io/core-utils'
+import {
+  Bytes32,
+  L2Block,
+  remove0x,
+  RollupInfo,
+} from '@localtest911/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */

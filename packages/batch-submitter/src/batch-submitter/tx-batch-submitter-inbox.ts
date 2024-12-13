@@ -22,7 +22,7 @@ import {
   sleep,
   toHexString,
   zlibCompressHexString,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 
 /* Internal Imports */
 import { MpcClient, TransactionSubmitter } from '../utils'
@@ -653,9 +653,9 @@ export class TransactionBatchSubmitterInbox {
         if (!l2Tx.seqR) {
           batchElementTx.seqSign = ''
         } else {
-          let r = remove0x(block.l2Transactions[0].seqR)
-          let s = remove0x(block.l2Transactions[0].seqS)
-          let v = remove0x(block.l2Transactions[0].seqV)
+          let r = remove0x(l2Tx.seqR)
+          let s = remove0x(l2Tx.seqS)
+          let v = remove0x(l2Tx.seqV)
           if (r === '0') {
             r = '00'
           } else {

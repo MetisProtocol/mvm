@@ -2,7 +2,7 @@ import { getBytes, toBeArray, toBigInt, toNumber, zeroPadValue } from 'ethersv6'
 import { Writer } from './types'
 import { newSpanBatchTx } from './span-batch-tx'
 import { encodeSpanBatchBits } from './utils'
-import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
+import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
 
 export class SpanBatchTxs {
   private totalBlockTxCount: number = 0
@@ -20,6 +20,7 @@ export class SpanBatchTxs {
   // metis extra fields
   private queueOriginBits: bigint = BigInt(0) // bitmap to save queue origins, 0 for sequencer, 1 for enqueue
   private l1TxOrigins: string[] = [] // l1 tx origins, only used for enqueue tx
+  private queueIndices: number[] = [] // enqueue index, only used for enqueue tx
   private txSeqSigs: SpanBatchSequencerSignature[] = []
   private seqYParityBits: bigint = BigInt(0)
 
@@ -70,6 +71,7 @@ export class SpanBatchTxs {
       this.queueOriginBits |= BigInt(isEnqueue) << BigInt(idx + offset)
       if (isEnqueue) {
         this.l1TxOrigins.push(tx.l1TxOrigin)
+        this.queueIndices.push(tx.queueIndex)
       }
 
       this.txSeqSigs.push({
@@ -103,6 +105,7 @@ export class SpanBatchTxs {
     this.encodeSeqYParityBits(writer)
     this.encodeTxSeqSigsRS(writer)
     this.encodeL1TxOrigins(writer)
+    this.encodeQueueIndices(writer)
     return writer.getData()
   }
 
@@ -156,6 +159,12 @@ export class SpanBatchTxs {
   private encodeL1TxOrigins(writer: Writer): void {
     for (const l1TxOrigin of this.l1TxOrigins) {
       writer.writeBytes(getBytes(l1TxOrigin))
+    }
+  }
+
+  private encodeQueueIndices(writer: Writer): void {
+    for (const queueIndex of this.queueIndices) {
+      writer.writeVarInt(queueIndex)
     }
   }
 

@@ -3,7 +3,7 @@ import fs from 'fs'
 import { ChannelManager } from '../../src/da/channel-manager'
 import { BatchToInboxElement } from '../../src/da/types'
 import { CompressionAlgo } from '../../src/da/channel-compressor'
-import { L2Block, L2Provider } from '@metis.io/core-utils'
+import { L2Block, L2Provider } from '@localtest911/core-utils'
 import { loadTrustedSetup } from 'c-kzg'
 import { Logger } from '@eth-optimism/common-ts'
 

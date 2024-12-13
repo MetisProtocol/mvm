@@ -1,5 +1,5 @@
 /* Imports: Internal */
-import { EventArgsInboxSenderSet } from '@metis.io/core-utils'
+import { EventArgsInboxSenderSet } from '@localtest911/core-utils'
 import { EventHandlerSet, InboxSenderSetEntry } from '../../../types'
 import { toNumber } from 'ethersv6'
 

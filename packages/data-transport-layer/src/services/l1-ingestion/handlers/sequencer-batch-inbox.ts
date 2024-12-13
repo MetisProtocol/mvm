@@ -16,7 +16,7 @@ import {
   remove0x,
   toHexString,
   zlibDecompress,
-} from '@metis.io/core-utils'
+} from '@localtest911/core-utils'
 
 /* Imports: Internal */
 import {
@@ -330,7 +330,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
             const l2BlockNumber = spanBatch.l2StartBlock + j
             const batchElement = spanBatch.batches[j]
             blockEntries.push({
-              index: l2BlockNumber,
+              index: l2BlockNumber - 1,
               batchIndex: Number(extraData.batchIndex),
               timestamp: batchElement.timestamp,
               transactions: batchElement.transactions.map(
@@ -338,17 +338,17 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                   const isSequencerTx = tx.queueOrigin === QueueOrigin.Sequencer
                   // decode raw tx
                   return {
-                    index: l2BlockNumber,
+                    index: l2BlockNumber - 1,
                     batchIndex: Number(extraData.batchIndex),
-                    blockNumber: l2BlockNumber,
+                    blockNumber: tx.l1BlockNumber,
                     timestamp: batchElement.timestamp,
                     gasLimit: tx.gasLimit.toString(10),
                     target: ethers.ZeroAddress,
-                    origin: isSequencerTx ? null : tx.l1TxOrigin,
-                    data: isSequencerTx ? tx.data : '0x',
+                    origin: isSequencerTx ? ethers.ZeroAddress : tx.l1TxOrigin,
+                    data: isSequencerTx ? tx.rawTransaction : tx.data,
                     queueOrigin: isSequencerTx ? 'sequencer' : 'l1',
                     value: isSequencerTx ? toBeHex(tx.value) : '0x0',
-                    queueIndex: isSequencerTx ? null : tx.nonce,
+                    queueIndex: isSequencerTx ? null : tx.queueIndex,
                     decoded: isSequencerTx
                       ? decodeSequencerBatchTransaction(
                           Buffer.from(remove0x(tx.rawTransaction), 'hex'),
@@ -362,7 +362,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                         )},0x${removeLeadingZeros(
                           remove0x(tx.seqS)
                         )},0x${removeLeadingZeros(remove0x(tx.seqV))}`
-                      : '0x0,0x0,0x0',
+                      : null,
                   }
                 }
               ),
@@ -411,21 +411,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       }
     }
 
-    await db.setL2BlockToL1BlockMapping(
-      entry.transactionBatchEntry.blockNumber,
-      options.l2ChainId,
-      entry.blockEntries.map((block) => block.index)
-    )
-
     await db.putTransactionBatchEntries([entry.transactionBatchEntry])
-
-    // save the mapping of L1 block number to L2 block number
-    await db.setL1BlockToL2BlockMapping(
-      entry.transactionBatchEntry.blockNumber,
-      options.l2ChainId,
-      entry.transactionBatchEntry.prevTotalElements +
-        entry.transactionBatchEntry.size
-    )
   },
 }
 
