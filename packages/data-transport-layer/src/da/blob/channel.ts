@@ -798,18 +798,12 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     this.l1Blocks = []
     for (let i = 0; i < this.blockCount; i++) {
       const l1Block = reader.readUvarint()
-      if (l1Block > MaxSpanBatchElementCount) {
-        throw new Error('span batch size limit reached')
-      }
       this.l1Blocks.push(l1Block)
     }
     // Decode l1Timestamps
     this.l1BlockTimestamps = []
     for (let i = 0; i < this.blockCount; i++) {
       const l1Timestamp = reader.readUvarint()
-      if (l1Timestamp > MaxSpanBatchElementCount) {
-        throw new Error('span batch size limit reached')
-      }
       this.l1BlockTimestamps.push(l1Timestamp)
     }
     // Decode blockTxCounts

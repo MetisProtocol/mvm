@@ -523,7 +523,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         )
       }
 
-      this.logger.info(`Using inbox at ${block.number}`, {
+      this.logger.debug(`Using inbox at ${block.number}`, {
         inboxSenderAddress,
         inboxBlobSenderAddress,
       })
