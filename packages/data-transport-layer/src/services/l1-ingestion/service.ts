@@ -233,13 +233,16 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       await this.state.db.putHighestL2BlockNumber(totalElements - 1)
     }
 
+    const highestSyncedL1Number = await this.state.db.getHighestSyncedL1Block()
     for (const senderType of Object.values(SenderType)) {
       if (typeof senderType !== 'number') {
         continue
       }
 
+      // get inbox sender for the next syncing block
       const inboxSender =
-        await this.state.contracts.Proxy__MVM_InboxSenderManager.defaultInboxSender(
+        await this.state.contracts.Proxy__MVM_InboxSenderManager.getInboxSender(
+          highestSyncedL1Number + 1,
           senderType
         )
 
@@ -533,6 +536,13 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       )
       const txs = await Promise.all(txsPromises)
       for (const tx of txs) {
+        this.logger.debug('Checking tx is a valid inbox tx', {
+          txTo: tx.to ? tx.to.toLowerCase() : null,
+          inboxAddress: this.options.batchInboxAddress.toLowerCase(),
+          sender: tx.from.toLowerCase(),
+          inboxSenderAtBlock: inboxSenderAddress.toLowerCase(),
+          block: block.number,
+        })
         if (
           tx.to &&
           tx.to.toLowerCase() ===
@@ -553,6 +563,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             !receipt ||
             (receipt.status !== undefined && receipt.status === 0)
           ) {
+            this.logger.warn('invalid batch, tx failed')
             continue
           }
           // verify data
@@ -574,6 +585,8 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
                 inboxBlobSenderAddress: inboxBlobSenderAddress.toLowerCase(),
               }
             }
+
+            this.logger.debug('parsed inbox batch', extraData)
 
             extraMap[extraData.batchIndex] = extraData
           } catch (err) {
@@ -833,7 +846,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       blockNumber,
       senderType
     )
-    if (inboxSender && inboxSender.inboxSender) {
+    if (
+      inboxSender &&
+      inboxSender.inboxSender &&
+      inboxSender.inboxSender !== ethers.ZeroAddress
+    ) {
       return inboxSender.inboxSender
     }
 
