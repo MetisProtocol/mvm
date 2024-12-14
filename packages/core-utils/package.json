@@ -1,5 +1,5 @@
 {
-  "name": "@localtest911/core-utils",
+  "name": "@metis.io/core-utils",
   "version": "0.7.7",
   "main": "dist/index",
   "files": [

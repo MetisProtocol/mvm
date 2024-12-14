@@ -38,7 +38,7 @@
   "dependencies": {
     "@eth-optimism/common-ts": "0.1.5",
     "@metis.io/contracts": "^1.2.*",
-    "@localtest911/core-utils": "~0.7.7",
+    "@metis.io/core-utils": "~0.7.7",
     "@eth-optimism/ynatm": "^0.2.2",
     "@sentry/node": "^6.3.1",
     "bcfg": "^0.1.6",

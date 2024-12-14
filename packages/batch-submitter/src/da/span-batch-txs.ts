@@ -2,7 +2,7 @@ import { getBytes, toBeArray, toBigInt, toNumber, zeroPadValue } from 'ethersv6'
 import { Writer } from './types'
 import { newSpanBatchTx } from './span-batch-tx'
 import { encodeSpanBatchBits } from './utils'
-import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
+import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
 
 export class SpanBatchTxs {
   private totalBlockTxCount: number = 0

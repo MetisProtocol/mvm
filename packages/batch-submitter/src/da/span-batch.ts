@@ -3,7 +3,7 @@ import { SpanBatchTxs } from './span-batch-txs'
 import { SingularBatch } from './singular-batch'
 import { encodeSpanBatchBits } from './utils'
 import { Writer } from './types'
-import { L2Transaction } from '@localtest911/core-utils'
+import { L2Transaction } from '@metis.io/core-utils'
 
 export class SpanBatch {
   public originBits: bigint

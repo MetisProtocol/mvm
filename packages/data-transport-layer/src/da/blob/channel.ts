@@ -3,7 +3,7 @@ import * as zlib from 'zlib'
 import { Frame } from './frame'
 import * as RLP from 'rlp'
 import { ethers, toBigInt, toNumber } from 'ethersv6'
-import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
+import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
 
 // Constants and Enums
 const ZlibCM8 = 8

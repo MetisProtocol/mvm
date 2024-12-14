@@ -28,12 +28,7 @@ import {
   YnatmTransactionSubmitter,
 } from '../../src'
 
-import {
-  Batch,
-  QueueOrigin,
-  remove0x,
-  Signature,
-} from '@localtest911/core-utils'
+import { Batch, QueueOrigin, remove0x, Signature } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 const DUMMY_ADDRESS = '0x' + '00'.repeat(20)
