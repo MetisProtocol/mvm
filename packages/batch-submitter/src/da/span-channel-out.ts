@@ -6,7 +6,7 @@ import { SpanBatch } from './span-batch'
 import { SingularBatch } from './singular-batch'
 import { BatchToInboxElement, Frame } from './types'
 import { CHANNEL_FULL_ERR, FRAME_OVERHEAD_SIZE } from './consts'
-import { L2Transaction, QueueOrigin } from '@localtest911/core-utils'
+import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
 import { Logger } from '@eth-optimism/common-ts'
 
 export class SpanChannelOut {

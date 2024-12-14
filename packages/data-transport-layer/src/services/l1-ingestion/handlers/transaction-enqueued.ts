@@ -1,4 +1,4 @@
-import { EventArgsTransactionEnqueued } from '@localtest911/core-utils'
+import { EventArgsTransactionEnqueued } from '@metis.io/core-utils'
 import { toNumber } from 'ethersv6'
 
 /* Imports: Internal */

@@ -16,7 +16,7 @@ import {
   remove0x,
   toHexString,
   zlibDecompress,
-} from '@localtest911/core-utils'
+} from '@metis.io/core-utils'
 
 /* Imports: Internal */
 import {
