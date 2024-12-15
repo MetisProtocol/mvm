@@ -1,12 +1,5 @@
 /* Imports: External */
-import {
-  Block,
-  ethers,
-  toBeHex,
-  toBigInt,
-  toNumber,
-  TransactionResponse,
-} from 'ethersv6'
+import { Block, ethers, toNumber, TransactionResponse } from 'ethersv6'
 import {
   fromHexString,
   L2Transaction,
@@ -50,13 +43,14 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       const offset = 2
       // l2 block number - 1, in order to keep same as CTC
       batchSubmissionData.prevTotalElements =
-        toBigInt(calldata.subarray(offset + 32, offset + 64)) - toBigInt(1)
-      batchSubmissionData.batchIndex = toBigInt(
+        toNumber(calldata.subarray(offset + 32, offset + 64)) - 1
+      batchSubmissionData.batchIndex = toNumber(
         calldata.subarray(offset, offset + 32)
       )
-      batchSubmissionData.batchSize = toBigInt(
+      batchSubmissionData.batchSize = toNumber(
         calldata.subarray(offset + 64, offset + 68)
       )
+
       batchSubmissionVerified = true
     }
 
@@ -190,10 +184,10 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
     }
 
     const transactionBatchEntry: TransactionBatchEntry = {
-      index: Number(extraData.batchIndex),
+      index: toNumber(extraData.batchIndex),
       root: extraData.batchRoot,
-      size: Number(extraData.batchSize),
-      prevTotalElements: Number(extraData.prevTotalElements),
+      size: toNumber(extraData.batchSize),
+      prevTotalElements: toNumber(extraData.prevTotalElements),
       extraData: extraData.batchExtraData,
       blockNumber: extraData.blockNumber,
       timestamp: extraData.timestamp,
@@ -221,7 +215,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
 
         const blockEntry: BlockEntry = {
           index: l2Start + blockIndex - 1, // keep same rule as single tx index
-          batchIndex: Number(extraData.batchIndex),
+          batchIndex: toNumber(extraData.batchIndex),
           timestamp: blockTimestamp,
           transactions: [],
           confirmed: true,
@@ -236,7 +230,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
 
           const transactionEntry: TransactionEntry = {
             index: blockEntry.index,
-            batchIndex: Number(extraData.batchIndex),
+            batchIndex: toNumber(extraData.batchIndex),
             blockNumber: l1BlockNumber,
             timestamp: blockTimestamp,
             gasLimit: '0',
@@ -451,7 +445,10 @@ const decodeSequencerBatchTransaction = (
     target: decodedTx.to ? toHexString(decodedTx.to) : null,
     data: toHexString(decodedTx.data),
     sig: {
-      v: parseSignatureVParam(decodedTx.signature.networkV, l2ChainId),
+      v: parseSignatureVParam(
+        decodedTx.signature.networkV || decodedTx.signature.v,
+        l2ChainId
+      ),
       r: toHexString(decodedTx.signature.r),
       s: toHexString(decodedTx.signature.s),
     },

@@ -2,7 +2,14 @@
 import { FallbackProvider, fromHexString } from '@metis.io/core-utils'
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
 import { LevelUp } from 'levelup'
-import { Block, ethers, EventLog, Provider, toNumber } from 'ethersv6'
+import {
+  Block,
+  ethers,
+  EventLog,
+  Provider,
+  toNumber,
+  TransactionResponse,
+} from 'ethersv6'
 import { Counter, Gauge } from 'prom-client'
 
 /* Imports: Internal */
@@ -136,7 +143,18 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     this.l1IngestionMetrics = registerMetrics(this.metrics)
 
     if (typeof this.options.l1RpcProvider === 'string') {
-      this.state.l1RpcProvider = FallbackProvider(this.options.l1RpcProvider)
+      // FIXME: ethers v6's fallback provider has a bug that it will lost the prefetched transaction data while
+      //        converting the json rpc data to ethers transaction object, so we will only enable it when we configured
+      //        multiple rpc providers, but this will cause a significant performance downgrade. Because we need to fetch
+      //        the transactions one by one.
+      if (this.options.l1RpcProvider.indexOf(',') >= 0) {
+        this.logger.info('Using FallbackProvider for L1 RPC Provider')
+        this.state.l1RpcProvider = FallbackProvider(this.options.l1RpcProvider)
+      } else {
+        this.state.l1RpcProvider = new ethers.JsonRpcProvider(
+          this.options.l1RpcProvider
+        )
+      }
     } else {
       this.state.l1RpcProvider = this.options.l1RpcProvider
     }
@@ -531,10 +549,20 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       // we need to keep tracking the blob data index in a block in order to get the correct one for
       // our batch tx
       let blobIndex = 0
-      const txsPromises = block.transactions.map((txHash) =>
-        this.state.l1RpcProvider.getTransaction(txHash)
-      )
-      const txs = await Promise.all(txsPromises)
+      let txs: TransactionResponse[]
+      try {
+        txs = block.prefetchedTransactions
+      } catch (err) {
+        // FIXME: if the transactions are not prefetched, we need to fetch them by ourselves,
+        //        this will tremendously slow down the performance, but since ethersV6 has this issue with fallback provider,
+        //        we have to do this for now.
+        txs = await Promise.all(
+          block.transactions.map((txHash) =>
+            this.state.l1RpcProvider.getTransaction(txHash)
+          )
+        )
+      }
+
       for (const tx of txs) {
         this.logger.debug('Checking tx is a valid inbox tx', {
           txTo: tx.to ? tx.to.toLowerCase() : null,
@@ -610,31 +638,19 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     if (extraDatas.length > 0) {
       const tick = Date.now()
       for (const extraData of extraDatas) {
-        try {
-          const parsedEvent = await handlers.parseEvent(
-            null,
-            extraData,
-            this.options.l2ChainId,
-            this.options
-          )
-          this.logger.info('Storing Inbox Batch:', {
-            chainId: this.options.l2ChainId,
-          })
-          this.logger.debug('Storing Inbox Batch Data:', {
-            parsedEvent,
-          })
-          await handlers.storeEvent(
-            parsedEvent,
-            this.state.dbOfL2,
-            this.options
-          )
-        } catch (e) {
-          this.logger.error('Failed to store inbox batch:', {
-            error: e,
-            extraData,
-          })
-        }
-
+        const parsedEvent = await handlers.parseEvent(
+          null,
+          extraData,
+          this.options.l2ChainId,
+          this.options
+        )
+        this.logger.info('Storing Inbox Batch:', {
+          chainId: this.options.l2ChainId,
+        })
+        this.logger.debug('Storing Inbox Batch Data:', {
+          parsedEvent,
+        })
+        await handlers.storeEvent(parsedEvent, this.state.dbOfL2, this.options)
         // await this.state.db.setHighestSyncedL1BatchIndex(extraData.batchIndex)
       }
 
