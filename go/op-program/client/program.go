@@ -1,7 +1,6 @@
 package client
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -90,8 +89,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 	logger.Info("Starting process L2 blocks", "start", l2StartBlock.Number().Uint64(), "end", l2ClaimBlockNum)
 
 	parentHeader := l2Oracle.BlockHeaderByNumber(l2StartBlock.Number().Uint64() - 1)
-	parentHeaderJSON, _ := json.Marshal(parentHeader)
-	logger.Info("Parent header", "header", string(parentHeaderJSON))
+	logger.Info("Parent header", "parentNumber", parentHeader.Number.Uint64(), "parentHash", parentHeader.Hash().Hex())
 
 	l2Chain, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, nil, l2Cfg, parentHeader.Hash())
 	if err != nil {
@@ -177,9 +175,7 @@ func runDerivation(logger log.Logger, l2Cfg *params.ChainConfig, l2Claim common.
 				}
 				receipts = append(receipts, receipt)
 
-				receiptJSON, _ := json.Marshal(receipt)
-
-				logger.Debug("Transaction applied", "block", l2Block.Number().Uint64(), "tx", i, "hash", tx.Hash(), "receipt", string(receiptJSON))
+				logger.Debug("Transaction applied", "block", l2Block.Number().Uint64(), "tx", i, "hash", tx.Hash(), "reverted", receipt.Status != types.ReceiptStatusSuccessful)
 			}
 		}
 
