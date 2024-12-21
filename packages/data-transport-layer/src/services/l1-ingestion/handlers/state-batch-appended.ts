@@ -1,6 +1,6 @@
 /* Imports: External */
 import { getContractDefinition } from '@metis.io/contracts'
-import { Contract, Interface, toNumber } from 'ethersv6'
+import { Interface, toNumber, ethers } from 'ethersv6'
 
 /* Imports: Internal */
 import {
@@ -89,7 +89,22 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
       }
     }
 
+    const packedHeader = ethers.AbiCoder.defaultAbiCoder().encode([
+      'bytes32',
+      'uint256',
+      'uint256',
+      'bytes',
+    ], [
+      entry.stateRootBatchEntry.root,
+      entry.stateRootBatchEntry.size,
+      entry.stateRootBatchEntry.prevTotalElements,
+      entry.stateRootBatchEntry.extraData,
+    ])
+
+    const headerHash = ethers.keccak256(packedHeader)
+
     await db.putStateRootBatchEntries([entry.stateRootBatchEntry])
     await db.putStateRootEntries(entry.stateRootEntries)
+    await db.putStateRootBatchHeaderHashIndex(headerHash, entry.stateRootBatchEntry.index)
   },
 }
