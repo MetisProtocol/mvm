@@ -6,18 +6,16 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
+	"github.com/ethereum-optimism/optimism/go/op-program/host/config"
 	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 
-	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
-	"github.com/ethereum-optimism/optimism/go/op-program/host/config"
-
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
-
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/core"
 )
 
 var (
@@ -73,7 +71,7 @@ func TestDefaultCLIOptionsMatchDefaultConfig(t *testing.T) {
 	require.NoError(t, err)
 	defaultCfg := config.NewConfig(
 		rollupCfg,
-		chainconfig.MetisSepoliaChainConfig,
+		chainconfig.OPSepoliaChainConfig,
 		common.HexToHash(l1HeadValue),
 		common.HexToHash(l2HeadValue),
 		common.HexToHash(l2OutputRoot),
@@ -142,7 +140,7 @@ func TestL2Genesis(t *testing.T) {
 
 	t.Run("NotRequiredForGoerli", func(t *testing.T) {
 		cfg := configForArgs(t, replaceRequiredArg("--network", "sepolia"))
-		require.Equal(t, chainconfig.MetisSepoliaChainConfig, cfg.L2ChainConfig)
+		require.Equal(t, chainconfig.OPSepoliaChainConfig, cfg.L2ChainConfig)
 	})
 }
 

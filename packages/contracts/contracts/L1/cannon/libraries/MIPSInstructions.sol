@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {MIPSMemory} from "contracts/cannon/libraries/MIPSMemory.sol";
-import {MIPSState as st} from "contracts/cannon/libraries/MIPSState.sol";
+import {MIPSMemory} from "./MIPSMemory.sol";
+import {MIPSState as st} from "./MIPSState.sol";
 
 library MIPSInstructions {
     /// @param _pc The program counter.

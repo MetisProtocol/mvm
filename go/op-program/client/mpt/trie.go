@@ -5,13 +5,12 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/ethereum/go-ethereum/triedb/hashdb"
-
-	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 // ReadTrie takes a Merkle Patricia Trie (MPT) root of a "DerivableList", and a pre-image oracle getter,

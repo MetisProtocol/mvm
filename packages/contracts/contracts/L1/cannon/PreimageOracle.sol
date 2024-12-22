@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {LibKeccak} from "../libraries/crypto/LibKeccak.sol";
-import {ISemver} from "../universal/ISemver.sol";
-import {PreimageKeyLib} from "./PreimageKeyLib.sol";
 import {IPreimageOracle} from "./interfaces/IPreimageOracle.sol";
-import {PartOffsetOOB, InsufficientBond, NotEOA, InvalidInputSize, AlreadyInitialized, NotInitialized, AlreadyFinalized, WrongStartingBlock, TreeSizeOverflow, InvalidProof, InvalidPreimage, StatesNotContiguous, PostStateMatches, BadProposal, ActiveProposal, BondTransferFailed} from "./libraries/CannonErrors.sol";
+import {ISemver} from "contracts/universal/ISemver.sol";
+import {PreimageKeyLib} from "./PreimageKeyLib.sol";
+import {LibKeccak} from "contracts/libraries/crypto/LibKeccak.sol";
+import "contracts/L1/cannon/libraries/CannonErrors.sol";
+import "contracts/L1/cannon/libraries/CannonTypes.sol";
 
 /// @title PreimageOracle
 /// @notice A contract for storing permissioned pre-images.

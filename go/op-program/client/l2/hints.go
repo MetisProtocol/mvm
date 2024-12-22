@@ -1,8 +1,7 @@
 package l2
 
 import (
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	progcommon "github.com/ethereum-optimism/optimism/go/op-program/common"
+	"github.com/ethereum/go-ethereum/common"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
@@ -12,8 +11,6 @@ const (
 	HintL2Transactions = "l2-transactions"
 	HintL2Code         = "l2-code"
 	HintL2StateNode    = "l2-state-node"
-	HintL2Output       = "l2-output"
-	HintL2BlockNumber  = "l2-block-number"
 )
 
 type BlockHeaderHint common.Hash
@@ -46,20 +43,4 @@ var _ preimage.Hint = StateNodeHint{}
 
 func (l StateNodeHint) Hint() string {
 	return HintL2StateNode + " " + (common.Hash)(l).String()
-}
-
-type L2OutputHint common.Hash
-
-var _ preimage.Hint = L2OutputHint{}
-
-func (l L2OutputHint) Hint() string {
-	return HintL2Output + " " + (common.Hash)(l).String()
-}
-
-type BlockNumberHint uint64
-
-var _ preimage.Hint = BlockNumberHint(0)
-
-func (l BlockNumberHint) Hint() string {
-	return HintL2BlockNumber + " " + (progcommon.Uint64)(l).EncodeHex()
 }

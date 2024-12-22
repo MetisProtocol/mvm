@@ -6,20 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/stretchr/testify/require"
-
-	"github.com/MetisProtocol/mvm/l2geth/common"
-
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
-
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 	"github.com/ethereum-optimism/optimism/go/op-program/client"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/config"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
+	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServerMode(t *testing.T) {
@@ -27,7 +24,7 @@ func TestServerMode(t *testing.T) {
 
 	l1Head := common.Hash{0x11}
 	l2OutputRoot := common.Hash{0x33}
-	cfg := config.NewConfig(chaincfg.Sepolia, chainconfig.MetisSepoliaChainConfig, l1Head, common.Hash{0x22}, l2OutputRoot, common.Hash{0x44}, 1000)
+	cfg := config.NewConfig(chaincfg.Sepolia, chainconfig.OPSepoliaChainConfig, l1Head, common.Hash{0x22}, l2OutputRoot, common.Hash{0x44}, 1000)
 	cfg.DataDir = dir
 	cfg.ServerMode = true
 

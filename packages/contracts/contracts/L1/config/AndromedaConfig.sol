@@ -3,9 +3,7 @@ pragma solidity 0.8.15;
 
 import {Storage} from "../../libraries/Storage.sol";
 import {ISemver} from "../../universal/ISemver.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {Initializable} from "solady/src/utils/Initializable.sol";
 
 /// @custom:audit none This contracts is not yet audited.
 /// @title AndromedaConfig

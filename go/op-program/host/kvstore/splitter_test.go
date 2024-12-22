@@ -3,10 +3,9 @@ package kvstore
 import (
 	"testing"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/stretchr/testify/require"
-
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPreimageSourceSplitter(t *testing.T) {

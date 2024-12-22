@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {AndromedaConfig} from "../L1/config/AndromedaConfig.sol";
-import {Unauthorized} from "../libraries/errors/CommonErrors.sol";
-import {ISemver} from "../universal/ISemver.sol";
+import {AndromedaConfig} from "../config/AndromedaConfig.sol";
+import {Unauthorized} from "../../libraries/errors/CommonErrors.sol";
+import {ISemver} from "../../universal/ISemver.sol";
 import {IAnchorStateRegistry} from "./interfaces/IAnchorStateRegistry.sol";
 import {IDisputeGame} from "./interfaces/IDisputeGame.sol";
 import {IDisputeGameFactory} from "./interfaces/IDisputeGameFactory.sol";
 import {IFaultDisputeGame} from "./interfaces/IFaultDisputeGame.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UnregisteredGame, InvalidGameStatus} from "./lib/Errors.sol";
+import {OutputRoot} from "./lib/Types.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {UnregisteredGame, InvalidGameStatus} from "lib/Errors.sol";
-import {OutputRoot} from "lib/Types.sol";
-import {Initializable} from "solady/src/utils/Initializable.sol";
+
+import "contracts/L1/dispute/lib/Types.sol";
 
 /// @title AnchorStateRegistry
 /// @notice The AnchorStateRegistry is a contract that stores the latest "anchor" state for each available

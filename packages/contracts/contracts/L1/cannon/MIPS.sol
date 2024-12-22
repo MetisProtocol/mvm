@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {ISemver} from "../universal/ISemver.sol";
+import {ISemver} from "../../universal/ISemver.sol";
 import {IPreimageOracle} from "./interfaces/IPreimageOracle.sol";
+import {PreimageKeyLib} from "./PreimageKeyLib.sol";
+import {MIPSInstructions as ins} from "./libraries/MIPSInstructions.sol";
+import {MIPSSyscalls as sys} from "./libraries/MIPSSyscalls.sol";
+import {MIPSState as st} from "./libraries/MIPSState.sol";
 import {MIPSMemory} from "./libraries/MIPSMemory.sol";
 
 /// @title MIPS

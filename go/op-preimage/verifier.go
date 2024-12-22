@@ -41,20 +41,6 @@ func WithVerification(source PreimageGetter) PreimageGetter {
 		case PrecompileKeyType:
 			// Can't verify precompile result without knowing the input preimage
 			return data, nil
-		case RollupBlockMetaKeyType:
-			// no need to re-verify the data from DTL
-			return data, nil
-		case RollupBatchTransactionsKeyType:
-			// no need to re-verify the data from DTL
-			return data, nil
-		case RollupBatchKeyType:
-			// no need to re-verify the data from DTL
-			return data, nil
-		case RollupBlockStateCommitmentKeyType:
-			// no need to re-verify the data from DTL
-			return data, nil
-		case BlockNumberKeyType:
-			return data, nil
 		default:
 			return nil, fmt.Errorf("%w: %v", ErrUnsupportedKeyType, key[0])
 		}

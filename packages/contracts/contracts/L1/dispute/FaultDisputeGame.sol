@@ -2,20 +2,23 @@
 pragma solidity 0.8.15;
 
 import {IPreimageOracle} from "../cannon/interfaces/IPreimageOracle.sol";
-import {Hashing} from "../libraries/Hashing.sol";
-import {Types} from "../libraries/Types.sol";
-import {Lib_RLPReader} from "../libraries/rlp/Lib_RLPReader.sol";
-import {ISemver} from "../universal/ISemver.sol";
+import {Hashing} from "../../libraries/Hashing.sol";
+import {Types} from "../../libraries/Types.sol";
+import {Lib_RLPReader} from "../../libraries/rlp/Lib_RLPReader.sol";
+import {ISemver} from "../../universal/ISemver.sol";
 import {IAnchorStateRegistry} from "./interfaces/IAnchorStateRegistry.sol";
 import {IBigStepper} from "./interfaces/IBigStepper.sol";
 import {IDelayedWETH} from "./interfaces/IDelayedWETH.sol";
 import {IDisputeGame} from "./interfaces/IDisputeGame.sol";
 import {IFaultDisputeGame} from "./interfaces/IFaultDisputeGame.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {MaxDepthTooLarge, InvalidSplitDepth, InvalidChallengePeriod, InvalidClockExtension, AlreadyInitialized, AnchorRootNotFound, UnexpectedRootClaim, GameNotInProgress, InvalidParent, InvalidPrestate, ValidStep, DuplicateStep, InvalidDisputedClaimIndex, CannotDefendRootClaim, L2BlockNumberChallenged, GameDepthExceeded, IncorrectBondAmount, ClockTimeExceeded, ClaimAlreadyExists, InvalidLocalIdent, InvalidOutputRootProof, InvalidHeaderRLP, BlockNumberMatches, OutOfOrderResolution, ClockNotExpired, ClaimAlreadyResolved, NoCreditToClaim, BondTransferFailed, ClaimAboveSplit} from "lib/Errors.sol";
-import {OutputRoot, LocalPreimageKey, VMStatuses} from "lib/Types.sol";
+import {OutputRoot, LocalPreimageKey, VMStatuses} from "./lib/Types.sol";
 import {Clone} from "solady/src/utils/Clone.sol";
 import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
+import {IInitializable} from "contracts/L1/dispute/interfaces/IInitializable.sol";
+
+import "contracts/L1/dispute/lib/Types.sol";
+import "contracts/L1/dispute/lib/Errors.sol";
 
 /// @title FaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.

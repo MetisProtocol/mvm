@@ -1,0 +1,25 @@
+package chainconfig
+
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
+
+type InboxSenderType uint8
+
+type BatcherAddressAtHeight struct {
+	Height  uint64         `json:"height"`
+	Address common.Address `json:"address"`
+}
+
+type RollupConfig struct {
+	L1ChainId    *big.Int       `json:"l1_chain_id"`
+	InboxAddress common.Address `json:"inbox_address"`
+
+	// the address of batcher address with height must be sorted in descending order,
+	// otherwise the search might be fail.
+	// since this data must be static, it's better to sort it before using instead of sorting it in the program.
+	TxChainBatcherAddresses []BatcherAddressAtHeight `json:"tx_chain_batcher_addresses"`
+	BlobBatcherAddresses    []BatcherAddressAtHeight `json:"blob_batcher_addresses"`
+}

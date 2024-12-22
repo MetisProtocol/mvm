@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/go-resty/resty/v2"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
@@ -29,6 +30,103 @@ var errElementNotFound = errors.New("element not found")
 // errHttpError represents the error case of when the remote server
 // returns a 400 or greater error
 var errHTTPError = errors.New("http error")
+
+var (
+	bytes32Type, _ = abi.NewType("bytes32", "", nil)
+	uint256Type, _ = abi.NewType("uint256", "", nil)
+	bytesType, _   = abi.NewType("bytes", "", nil)
+
+	BatchHeaderABI = abi.Arguments{
+		{
+			Name: "BatchRoot",
+			Type: bytes32Type,
+		},
+		{
+			Name: "BatchSize",
+			Type: uint256Type,
+		},
+		{
+			Name: "PrevTotalElements",
+			Type: uint256Type,
+		},
+		{
+			Name: "ExtraData",
+			Type: bytesType,
+		},
+	}
+)
+
+type ExtraData []byte
+
+func (e ExtraData) L1Timestamp() uint64 {
+	if len(e) < 32 {
+		return 0
+	}
+
+	return big.NewInt(0).SetBytes(e[0:32]).Uint64()
+}
+
+func (e ExtraData) Submitter() common.Address {
+	if len(e) < 64 {
+		return common.Address{}
+	}
+
+	return common.BytesToAddress(e[32:64])
+}
+
+func (e ExtraData) L2Head() common.Hash {
+	if len(e) < 96 {
+		return common.Hash{}
+	}
+
+	return common.BytesToHash(e[64:96])
+}
+
+type BatchHeader struct {
+	BatchRoot         common.Hash
+	BatchSize         *big.Int
+	PrevTotalElements *big.Int
+	ExtraData         ExtraData
+}
+
+func (b *BatchHeader) Unpack(data []byte) error {
+	values, err := BatchHeaderABI.UnpackValues(data)
+	if err != nil {
+		return err
+	}
+
+	var ok bool
+	b.BatchRoot, ok = values[0].(common.Hash)
+	b.BatchSize, ok = values[1].(*big.Int)
+	b.PrevTotalElements, ok = values[2].(*big.Int)
+	b.ExtraData, ok = values[3].([]byte)
+	if !ok {
+		return errors.New("invalid batch header")
+	}
+
+	return nil
+}
+
+func (b *BatchHeader) Pack() ([]byte, error) {
+	if b.BatchSize == nil || b.PrevTotalElements == nil {
+		return nil, errors.New("nil batch size or prev total elements")
+	}
+
+	return BatchHeaderABI.Pack(
+		b.BatchRoot,
+		b.BatchSize,
+		b.PrevTotalElements,
+		b.ExtraData,
+	)
+}
+
+func (b BatchHeader) Hash() common.Hash {
+	data, err := b.Pack()
+	if err != nil {
+		return common.Hash{}
+	}
+	return crypto.Keccak256Hash(data)
+}
 
 // Batch represents the data structure that is submitted with
 // a series of transactions to layer one
@@ -146,6 +244,7 @@ type RollupClient interface {
 	GetTransactionBatch(uint64) (*Batch, []*types.Transaction, error)
 	SyncStatus(Backend) (*SyncStatus, error)
 	GetStateRoot(index uint64) (common.Hash, error)
+	GetStateBatchHeader(batchHeaderHash common.Hash) (*BatchHeader, []common.Hash, error)
 	SetLastVerifier(index uint64, stateRoot string, verifierRoot string, success bool) error
 	GetRawBlock(uint64, Backend) (*BlockResponse, error)
 	GetBlock(uint64, Backend) (*types.Block, error)
@@ -207,6 +306,11 @@ type stateRoot struct {
 type StateRootResponse struct {
 	Batch     *Batch     `json:"batch"`
 	StateRoot *stateRoot `json:"stateRoot"`
+}
+
+type StateRootBatchResponse struct {
+	Batch      *Batch       `json:"batch"`
+	StateRoots []*stateRoot `json:"stateRoots"`
 }
 
 // NewClient create a new Client given a remote HTTP url and a chain id
@@ -782,6 +886,38 @@ func (c *Client) GetStateRoot(index uint64) (common.Hash, error) {
 		return common.Hash{}, nil
 	}
 	return stateRootResp.StateRoot.Value, nil
+}
+
+// GetStateBatchHeader will return the state batch header preimage by batch header hash
+func (c *Client) GetStateBatchHeader(batchHeaderHash common.Hash) (*BatchHeader, []common.Hash, error) {
+	response, err := c.client.R().
+		SetResult(&StateRootBatchResponse{}).
+		SetPathParams(map[string]string{
+			"hash":    batchHeaderHash.Hex(),
+			"chainId": c.chainID,
+		}).
+		Get("/batch/stateroot/hash/{hash}/{chainId}")
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("Cannot get state batch header %s: %w", batchHeaderHash.Hex(), err)
+	}
+
+	batchResp, ok := response.Result().(*StateRootBatchResponse)
+	if !ok {
+		return nil, nil, fmt.Errorf("Cannot parse state batch header response")
+	}
+
+	stateRoots := make([]common.Hash, len(batchResp.StateRoots))
+	for i, stateRoot := range batchResp.StateRoots {
+		stateRoots[i] = stateRoot.Value
+	}
+
+	return &BatchHeader{
+		BatchRoot:         batchResp.Batch.Root,
+		BatchSize:         big.NewInt(int64(batchResp.Batch.Size)),
+		PrevTotalElements: big.NewInt(int64(batchResp.Batch.PrevTotalElements)),
+		ExtraData:         ExtraData(batchResp.Batch.ExtraData),
+	}, stateRoots, nil
 }
 
 // GetStateRoot will return the stateroot by batch index

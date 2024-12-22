@@ -9,21 +9,24 @@ import (
 	"os"
 	"os/exec"
 
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	oprollup "github.com/ethereum-optimism/optimism/op-node/rollup"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/client"
+	"github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/ethclient"
-	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
-	"github.com/ethereum-optimism/optimism/go/op-program/host/l2sources"
-
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	l2common "github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	cl "github.com/ethereum-optimism/optimism/go/op-program/client"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/config"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/flags"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
+	"github.com/ethereum-optimism/optimism/go/op-program/host/l2sources"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/prefetcher"
+
+	"github.com/MetisProtocol/mvm/l2geth/ethclient"
 )
 
 type L2Source struct {
@@ -47,7 +50,7 @@ func Main(logger log.Logger, cfg *config.Config) error {
 	if err := FaultProofProgram(ctx, logger, cfg); err != nil {
 		return err
 	}
-	logger.Info("Claim successfully verified")
+	log.Info("Claim successfully verified")
 	return nil
 }
 
@@ -158,7 +161,7 @@ func PreimageServer(ctx context.Context, logger log.Logger, cfg *config.Config, 
 		if err != nil {
 			return fmt.Errorf("failed to create prefetcher: %w", err)
 		}
-		getPreimage = func(key common.Hash) ([]byte, error) { return prefetch.GetPreimage(ctx, key) }
+		getPreimage = func(key common.Hash) ([]byte, error) { return prefetch.GetPreimage(ctx, l2common.Hash(key)) }
 		hinter = prefetch.Hint
 	} else {
 		logger.Info("Using offline mode. All required pre-images must be pre-populated.")
@@ -184,27 +187,36 @@ func PreimageServer(ctx context.Context, logger log.Logger, cfg *config.Config, 
 }
 
 func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *config.Config) (*prefetcher.Prefetcher, error) {
+	logger.Info("Connecting to L1 node", "l1", cfg.L1URL)
+	l1RPC, err := client.NewRPC(ctx, logger, cfg.L1URL, client.WithDialBackoff(10))
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup L1 RPC: %w", err)
+	}
+
 	logger.Info("Connecting to L2 node", "l2", cfg.L2URL)
 	l2RPC, err := client.NewRPC(ctx, logger, cfg.L2URL, client.WithDialBackoff(10))
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup L2 RPC: %w", err)
 	}
 
+	l1ClCfg := sources.L1ClientDefaultConfig(&oprollup.Config{
+		// Note: we don't have a fixed seq window here, assume we have 1 batch / hour
+		SeqWindowSize: 300,
+	}, cfg.L1TrustRPC, cfg.L1RPCKind)
+	l1Cl, err := sources.NewL1Client(l1RPC, logger, nil, l1ClCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create L1 client: %w", err)
+	}
+	l1Beacon := sources.NewBeaconHTTPClient(client.NewBasicHTTPClient(cfg.L1BeaconURL, logger))
+	l1BlobFetcher := sources.NewL1BeaconClient(l1Beacon, sources.L1BeaconClientConfig{FetchAllSidecars: false})
 	l2Cl, err := ethclient.DialContext(ctx, cfg.L2URL)
+	chainId, err := l2Cl.ChainID(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
-
 	l2DebugCl := &L2Source{Client: l2Cl, DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
-	chainId, err := l2Cl.ChainID(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get chain ID: %w", err)
-	}
-	logger.Info("Connected to L2 node", "chainId", chainId.Uint64())
-	logger.Info("Connecting to L1 DTL", "dtl", cfg.Rollup.RollupClientHttp)
-	rollupFetcher := dtl.NewClient(cfg.Rollup.RollupClientHttp, chainId)
-
-	return prefetcher.NewPrefetcher(logger, chainId, l2DebugCl, rollupFetcher, kv), nil
+	rollupFetcher := rollup.NewClient(cfg.Rollup.RollupClientHttp, chainId)
+	return prefetcher.NewPrefetcher(logger, l1Cl, l1BlobFetcher, l2DebugCl, rollupFetcher, kv), nil
 }
 
 func routeHints(logger log.Logger, hHostRW io.ReadWriter, hinter preimage.HintHandler) chan error {

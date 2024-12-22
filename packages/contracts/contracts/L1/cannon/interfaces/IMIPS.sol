@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 import {ISemver} from "contracts/universal/ISemver.sol";
-import {IPreimageOracle} from "contracts/cannon/interfaces/IPreimageOracle.sol";
+import {IPreimageOracle} from "./IPreimageOracle.sol";
 
 /// @title IMIPS
 /// @notice Interface for the MIPS contract.

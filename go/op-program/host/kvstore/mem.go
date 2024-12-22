@@ -4,7 +4,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // MemKV implements the KV store interface in memory, backed by a regular Go map.

@@ -1,6 +1,7 @@
 package l2
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -14,6 +15,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
+	dtl "github.com/ethereum-optimism/optimism/go/op-program/client/dtl"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi"
 )
@@ -36,10 +39,30 @@ type OracleBackedL2Chain struct {
 	db     ethdb.KeyValueStore
 }
 
-func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle engineapi.PrecompileOracle, chainCfg *params.ChainConfig, l2Head common.Hash) (*OracleBackedL2Chain, error) {
+func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle engineapi.PrecompileOracle,
+	dtlPreimageOracle dtl.Oracle, chainCfg *params.ChainConfig,
+	l2OutputRoot common.Hash, stateHeader *rollup.BatchHeader) (*OracleBackedL2Chain, error) {
+
+	stateRoots := dtlPreimageOracle.StateBatchesByHash(l2OutputRoot)
+	if len(stateRoots) == 0 {
+		return nil, fmt.Errorf("no state roots found for output root %v", l2OutputRoot)
+	}
+
+	l2Head := stateHeader.ExtraData.L2Head()
+	if l2Head == (common.Hash{}) {
+		return nil, fmt.Errorf("no L2 head found in state header %v", stateHeader.Hash())
+	}
+
+	// validate the l2 head against the last state root in batch
+	lastStateRoot := stateRoots[len(stateRoots)-1]
+
 	db := NewOracleBackedDB(oracle)
 	head := oracle.BlockByHash(l2Head)
 	logger.Info("Loaded L2 head", "hash", head.Hash(), "number", head.Number())
+	if head.Root() != lastStateRoot {
+		return nil, fmt.Errorf("l2 head root %v does not match last state root %v", head.Root(), lastStateRoot)
+	}
+
 	return &OracleBackedL2Chain{
 		log:      logger,
 		oracle:   oracle,
@@ -57,7 +80,6 @@ func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle e
 		blocks:     make(map[common.Hash]*types.Block),
 		db:         db,
 		vmCfg: vm.Config{
-			// TODO(@dumdumgoose): need to test whether precompiles are working properly without overrides
 			PrecompileOverrides: engineapi.CreatePrecompileOverrides(precompileOracle),
 		},
 	}, nil

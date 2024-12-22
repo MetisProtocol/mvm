@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Hashing} from "./Hashing.sol";
 import {Types} from "./Types.sol";
+import {Lib_RLPWriter as RLPWriter} from "./rlp/Lib_RLPWriter.sol";
 
 /// @title Encoding
 /// @notice Encoding handles Optimism's various different encoding schemes.

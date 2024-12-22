@@ -42,16 +42,6 @@ const (
 	BlobKeyType KeyType = 5
 	// PrecompileKeyType is for precompile result pre-images.
 	PrecompileKeyType KeyType = 6
-	// RollupBlockMetaKeyType is for block meta result pre-images.
-	RollupBlockMetaKeyType KeyType = 7
-	// RollupBatchKeyType is for L2 batches pre-images.
-	RollupBatchKeyType KeyType = 8
-	// RollupBlockStateCommitmentKeyType is for L2 state commitment pre-images.
-	RollupBlockStateCommitmentKeyType KeyType = 9
-	// RollupBatchTransactionsKeyType is for L2 batch transaction pre-images.
-	RollupBatchTransactionsKeyType KeyType = 10
-	// BlockNumberKeyType is for L2 block number pre-images.
-	BlockNumberKeyType KeyType = 11
 )
 
 // LocalIndexKey is a key local to the program, indexing a special program input.
@@ -59,51 +49,6 @@ type LocalIndexKey uint64
 
 func (k LocalIndexKey) PreimageKey() (out [32]byte) {
 	out[0] = byte(LocalKeyType)
-	binary.BigEndian.PutUint64(out[24:], uint64(k))
-	return
-}
-
-// RollupBlockStateCommitmentKey is a key for state commitment of L2 block in L1 DTL preimage
-type RollupBlockStateCommitmentKey uint64
-
-func (k RollupBlockStateCommitmentKey) PreimageKey() (out [32]byte) {
-	out[0] = byte(RollupBlockStateCommitmentKeyType)
-	binary.BigEndian.PutUint64(out[24:], uint64(k))
-	return
-}
-
-// RollupBlockBatchKey is a key for retrieving L2 batch info of given L2 block in L1 DTL preimage
-type RollupBlockBatchKey uint64
-
-func (k RollupBlockBatchKey) PreimageKey() (out [32]byte) {
-	out[0] = byte(RollupBatchKeyType)
-	binary.BigEndian.PutUint64(out[24:], uint64(k))
-	return
-}
-
-// RollupBatchTransactionsKey is a key for retrieving L2 batch transactions of given L2 block in L1 DTL preimage
-type RollupBatchTransactionsKey uint64
-
-func (k RollupBatchTransactionsKey) PreimageKey() (out [32]byte) {
-	out[0] = byte(RollupBatchTransactionsKeyType)
-	binary.BigEndian.PutUint64(out[24:], uint64(k))
-	return
-}
-
-// RollupBlockMetaKey is a key for retrieving L2 block meta info of given L2 block in L1 DTL preimage
-type RollupBlockMetaKey uint64
-
-func (k RollupBlockMetaKey) PreimageKey() (out [32]byte) {
-	out[0] = byte(RollupBlockMetaKeyType)
-	binary.BigEndian.PutUint64(out[24:], uint64(k))
-	return
-}
-
-// BlockNumberKey is a key for retrieving L2 block number in L1 DTL preimage
-type BlockNumberKey uint64
-
-func (k BlockNumberKey) PreimageKey() (out [32]byte) {
-	out[0] = byte(BlockNumberKeyType)
 	binary.BigEndian.PutUint64(out[24:], uint64(k))
 	return
 }

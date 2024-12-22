@@ -7,14 +7,13 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/retry"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
 	ethereum "github.com/MetisProtocol/mvm/l2geth"
 	l2common "github.com/MetisProtocol/mvm/l2geth/common"
 	l2types "github.com/MetisProtocol/mvm/l2geth/core/types"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 const maxAttempts = math.MaxInt // Succeed or die trying
@@ -156,7 +155,6 @@ func (s *RetryingL2Source) NodeByHash(ctx context.Context, hash l2common.Hash) (
 		return n, err
 	})
 }
-
 func NewRetryingL2Source(logger log.Logger, source L2Source) *RetryingL2Source {
 	return &RetryingL2Source{
 		logger:   logger,

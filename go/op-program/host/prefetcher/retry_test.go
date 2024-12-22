@@ -3,19 +3,19 @@ package prefetcher
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/retry"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-service/testutils"
-
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/core/types"
 )
 
 func TestRetryingL1Source(t *testing.T) {
@@ -103,7 +103,7 @@ func TestRetryingL1Source(t *testing.T) {
 }
 
 func createL1Source(t *testing.T) (*RetryingL1Source, *testutils.MockL1Source) {
-	logger := testlog.Logger(t, slog.LevelDebug)
+	logger := testlog.Logger(t, log.LevelDebug)
 	mock := &testutils.MockL1Source{}
 	source := NewRetryingL1Source(logger, mock)
 	// Avoid sleeping in tests by using a fixed retry strategy with no delay
@@ -213,7 +213,7 @@ func TestRetryingL1BlobSource(t *testing.T) {
 }
 
 func createL1BlobSource(t *testing.T) (*RetryingL1BlobSource, *testutils.MockBlobsFetcher) {
-	logger := testlog.Logger(t, slog.LevelDebug)
+	logger := testlog.Logger(t, log.LvlDebug)
 	mock := &testutils.MockBlobsFetcher{}
 	source := NewRetryingL1BlobSource(logger, mock)
 	// Avoid sleeping in tests by using a fixed retry strategy with no delay
@@ -326,7 +326,7 @@ func TestRetryingL2Source(t *testing.T) {
 }
 
 func createL2Source(t *testing.T) (*RetryingL2Source, *MockL2Source) {
-	logger := testlog.Logger(t, slog.LevelDebug)
+	logger := testlog.Logger(t, log.LevelDebug)
 	mock := &MockL2Source{}
 	source := NewRetryingL2Source(logger, mock)
 	// Avoid sleeping in tests by using a fixed retry strategy with no delay

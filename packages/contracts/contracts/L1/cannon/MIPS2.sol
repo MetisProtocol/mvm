@@ -2,9 +2,12 @@
 pragma solidity 0.8.15;
 
 import {VMStatuses} from "../dispute/lib/Types.sol";
-import {ISemver} from "../universal/ISemver.sol";
+import {ISemver} from "../../universal/ISemver.sol";
 import {IPreimageOracle} from "./interfaces/IPreimageOracle.sol";
 import {MIPSMemory} from "./libraries/MIPSMemory.sol";
+import {MIPSSyscalls as sys} from "./libraries/MIPSSyscalls.sol";
+import {MIPSState as st} from "./libraries/MIPSState.sol";
+import {MIPSInstructions as ins} from "./libraries/MIPSInstructions.sol";
 
 /// @title MIPS2
 /// @notice The MIPS2 contract emulates a single MIPS instruction.

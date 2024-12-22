@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	"github.com/stretchr/testify/require"
-
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
+	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBootstrapClient(t *testing.T) {
@@ -21,7 +20,7 @@ func TestBootstrapClient(t *testing.T) {
 		L2Claim:            common.HexToHash("0x3333"),
 		L2ClaimBlockNumber: 1,
 		L2ChainID:          chaincfg.Sepolia.L2ChainID.Uint64(),
-		L2ChainConfig:      chainconfig.MetisSepoliaChainConfig,
+		L2ChainConfig:      chainconfig.OPSepoliaChainConfig,
 		RollupConfig:       chaincfg.Sepolia,
 	}
 	mockOracle := &mockBoostrapOracle{bootInfo, false}
@@ -36,7 +35,7 @@ func TestBootstrapClient_CustomChain(t *testing.T) {
 		L2Claim:            common.HexToHash("0x3333"),
 		L2ClaimBlockNumber: 1,
 		L2ChainID:          CustomChainIDIndicator,
-		L2ChainConfig:      chainconfig.MetisSepoliaChainConfig,
+		L2ChainConfig:      chainconfig.OPSepoliaChainConfig,
 		RollupConfig:       chaincfg.Sepolia,
 	}
 	mockOracle := &mockBoostrapOracle{bootInfo, true}

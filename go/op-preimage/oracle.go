@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-
-	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 // OracleClient implements the Oracle by writing the pre-image key to the given stream,
@@ -23,7 +21,6 @@ var _ Oracle = (*OracleClient)(nil)
 
 func (o *OracleClient) Get(key Key) []byte {
 	h := key.PreimageKey()
-	fmt.Printf("Getting key in oracle: %v\n", hexutil.Encode(h[:]))
 	if _, err := o.rw.Write(h[:]); err != nil {
 		panic(fmt.Errorf("failed to write key %s (%T) to pre-image oracle: %w", key, key, err))
 	}
@@ -32,7 +29,6 @@ func (o *OracleClient) Get(key Key) []byte {
 	if err := binary.Read(o.rw, binary.BigEndian, &length); err != nil {
 		panic(fmt.Errorf("failed to read pre-image length of key %s (%T) from pre-image oracle: %w", key, key, err))
 	}
-	
 	payload := make([]byte, length)
 	if _, err := io.ReadFull(o.rw, payload); err != nil {
 		panic(fmt.Errorf("failed to read pre-image payload (length %d) of key %s (%T) from pre-image oracle: %w", length, key, key, err))

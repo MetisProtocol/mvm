@@ -4,18 +4,17 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 )
 
 var (
 	validRollupConfig    = chaincfg.Sepolia
-	validL2Genesis       = chainconfig.MetisSepoliaChainConfig
+	validL2Genesis       = chainconfig.OPSepoliaChainConfig
 	validL1Head          = common.Hash{0xaa}
 	validL2Head          = common.Hash{0xbb}
 	validL2Claim         = common.Hash{0xcc}

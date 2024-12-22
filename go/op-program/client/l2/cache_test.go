@@ -4,12 +4,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/test"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/testutils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/test"
 )
 
 // Should be an Oracle implementation

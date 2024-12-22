@@ -1,7 +1,6 @@
 package claim
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -9,17 +8,14 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
+	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/consensus"
+	dtl "github.com/ethereum-optimism/optimism/go/op-program/client/dtl"
 )
 
 var ErrClaimNotValid = errors.New("invalid claim")
 
-type L2Source interface {
-	L2BlockRefByLabel(ctx context.Context, label eth.BlockLabel) (eth.L2BlockRef, error)
-	L2OutputRoot(uint64) (eth.Bytes32, error)
-}
-
-func ValidateClaim(log log.Logger, l2ClaimBlockNum uint64, claimedOutputRoot eth.Bytes32, src consensus.ChainHeaderReader) error {
+func ValidateClaim(log log.Logger, l2ClaimBlockNum uint64, claimedOutputRoot eth.Bytes32, dtlOracle dtl.Oracle, src consensus.ChainHeaderReader) error {
 	l2Head := src.CurrentHeader()
 	if l2Head == nil {
 		return fmt.Errorf("cannot retrieve l2 head")
@@ -28,12 +24,19 @@ func ValidateClaim(log log.Logger, l2ClaimBlockNum uint64, claimedOutputRoot eth
 		return fmt.Errorf("claim block number %v does not match l2 head block number %v", l2ClaimBlockNum, l2Head.Number)
 	}
 
-	outputRootHex := l2Head.Root.Hex()
-	log.Info("Validating claim", "output", outputRootHex, "claim", claimedOutputRoot.String())
+	disputedBatchHeader := dtlOracle.StateBatchHeaderByHash(common.Hash(claimedOutputRoot))
+	disputedStateRoots := dtlOracle.StateBatchesByHash(common.Hash(claimedOutputRoot))
+	startBlockIndex := disputedBatchHeader.PrevTotalElements.Uint64()
 
-	if claimedOutputRoot != eth.Bytes32(l2Head.Root) {
-		return fmt.Errorf("%w: claim: %v actual: %v", ErrClaimNotValid, claimedOutputRoot, outputRootHex)
+	for batchOffset, disputedStateRoot := range disputedStateRoots {
+		if startBlockIndex+uint64(batchOffset)+1 == l2ClaimBlockNum {
+			if disputedStateRoots[batchOffset] != src.CurrentHeader().Root {
+				return fmt.Errorf("disputed state root %v does not match l2 head root %v", disputedStateRoot, src.CurrentHeader().Root)
+			} else {
+				return nil
+			}
+		}
 	}
 
-	return nil
+	return fmt.Errorf("claimed block number %v not found in disputed state roots", l2ClaimBlockNum)
 }

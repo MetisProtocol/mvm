@@ -3,26 +3,27 @@ package chainconfig
 import (
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 )
 
-var MetisAndromedaChainConfig, MetisSepoliaChainConfig, MetisLocalDevChainConfig *params.ChainConfig
+var OPSepoliaChainConfig, OPMainnetChainConfig *params.ChainConfig
 
 func init() {
-	// FIXME: need to figure out chain config loading in old l2geth,
-	//	      comment out for now just to test the compilation
-	//mustLoadConfig := func(chainID uint64) *params.ChainConfig {
-	//	cfg, err := params.LoadOPStackChainConfig(chainID)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	return cfg
-	//}
-	//MetisAndromedaChainConfig = mustLoadConfig(1088)
-	//MetisSepoliaChainConfig = mustLoadConfig(666)
-	//MetisLocalDevChainConfig = mustLoadConfig(108800)
+	mustLoadConfig := func(chainID uint64) *params.ChainConfig {
+		cfg, err := params.LoadOPStackChainConfig(chainID)
+		if err != nil {
+			panic(err)
+		}
+		return cfg
+	}
+	OPSepoliaChainConfig = mustLoadConfig(11155420)
+	OPMainnetChainConfig = mustLoadConfig(10)
+}
+
+var L2ChainConfigsByChainID = map[uint64]*params.ChainConfig{
+	11155420: OPSepoliaChainConfig,
+	10:       OPMainnetChainConfig,
 }
 
 func RollupConfigByChainID(chainID uint64) (*rollup.Config, error) {
@@ -34,9 +35,5 @@ func RollupConfigByChainID(chainID uint64) (*rollup.Config, error) {
 }
 
 func ChainConfigByChainID(chainID uint64) (*params.ChainConfig, error) {
-	// FIXME
-	// return params.LoadOPStackChainConfig(chainID)
-	return &params.ChainConfig{}, nil
+	return params.LoadOPStackChainConfig(chainID)
 }
-
-func newUint64(val uint64) *uint64 { return &val }

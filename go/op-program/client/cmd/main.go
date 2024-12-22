@@ -3,17 +3,17 @@ package main
 import (
 	"os"
 
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 )
 
 func main() {
 	// Default to a machine parsable but relatively human friendly log format.
 	// Don't do anything fancy to detect if color output is supported.
 	logger := oplog.NewLogger(os.Stdout, oplog.CLIConfig{
-		Level:  log.LevelDebug,
+		Level:  log.LevelInfo,
 		Format: oplog.FormatLogFmt,
 		Color:  false,
 	})

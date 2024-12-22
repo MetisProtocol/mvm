@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/ethdb"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb"
 )
 
 // Same as l2.StateOracle but need to use our own copy to avoid dependency loops
@@ -91,8 +91,7 @@ func (o *KvStateOracle) NodeByHash(nodeHash common.Hash) []byte {
 }
 
 func (o *KvStateOracle) CodeByHash(hash common.Hash) []byte {
-	code, _ := o.Source.Get(hash[:])
-	return code
+	return rawdb.ReadCode(o.Source, hash)
 }
 
 func NewStubStateOracle(t *testing.T) *StubStateOracle {

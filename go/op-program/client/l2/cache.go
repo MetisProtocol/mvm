@@ -17,7 +17,6 @@ const codeCacheSize = 10_000
 type CachingOracle struct {
 	oracle  Oracle
 	blocks  *simplelru.LRU[common.Hash, *types.Block]
-	headers *simplelru.LRU[uint64, *types.Header]
 	nodes   *simplelru.LRU[common.Hash, []byte]
 	codes   *simplelru.LRU[common.Hash, []byte]
 	outputs *simplelru.LRU[common.Hash, eth.Output]
@@ -28,25 +27,13 @@ func NewCachingOracle(oracle Oracle) *CachingOracle {
 	nodeLRU, _ := simplelru.NewLRU[common.Hash, []byte](nodeCacheSize, nil)
 	codeLRU, _ := simplelru.NewLRU[common.Hash, []byte](codeCacheSize, nil)
 	outputLRU, _ := simplelru.NewLRU[common.Hash, eth.Output](codeCacheSize, nil)
-	headersLRU, _ := simplelru.NewLRU[uint64, *types.Header](blockCacheSize, nil)
 	return &CachingOracle{
 		oracle:  oracle,
 		blocks:  blockLRU,
-		headers: headersLRU,
 		nodes:   nodeLRU,
 		codes:   codeLRU,
 		outputs: outputLRU,
 	}
-}
-
-func (o *CachingOracle) BlockHeaderByNumber(blockNumber uint64) *types.Header {
-	header, ok := o.headers.Get(blockNumber)
-	if ok {
-		return header
-	}
-	header = o.oracle.BlockHeaderByNumber(blockNumber)
-	o.headers.Add(blockNumber, header)
-	return header
 }
 
 func (o *CachingOracle) NodeByHash(nodeHash common.Hash) []byte {
@@ -59,16 +46,6 @@ func (o *CachingOracle) NodeByHash(nodeHash common.Hash) []byte {
 	return node
 }
 
-func (o *CachingOracle) CodeByHash(codeHash common.Hash) []byte {
-	code, ok := o.codes.Get(codeHash)
-	if ok {
-		return code
-	}
-	code = o.oracle.CodeByHash(codeHash)
-	o.codes.Add(codeHash, code)
-	return code
-}
-
 func (o *CachingOracle) BlockByHash(blockHash common.Hash) *types.Block {
 	block, ok := o.blocks.Get(blockHash)
 	if ok {
@@ -77,14 +54,4 @@ func (o *CachingOracle) BlockByHash(blockHash common.Hash) *types.Block {
 	block = o.oracle.BlockByHash(blockHash)
 	o.blocks.Add(blockHash, block)
 	return block
-}
-
-func (o *CachingOracle) OutputByRoot(root common.Hash) eth.Output {
-	output, ok := o.outputs.Get(root)
-	if ok {
-		return output
-	}
-	output = o.oracle.OutputByRoot(root)
-	o.outputs.Add(root, output)
-	return output
 }

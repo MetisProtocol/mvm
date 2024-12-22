@@ -3,15 +3,14 @@ package main
 import (
 	"os"
 
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/urfave/cli/v2"
-
 	"github.com/ethereum-optimism/optimism/go/op-program/host"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/config"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/flags"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/version"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/urfave/cli/v2"
 )
 
 var (

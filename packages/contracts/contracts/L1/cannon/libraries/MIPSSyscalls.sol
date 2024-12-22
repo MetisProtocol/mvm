@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {PreimageKeyLib} from "../PreimageKeyLib.sol";
-import {IPreimageOracle} from "../interfaces/IPreimageOracle.sol";
 import {MIPSMemory} from "./MIPSMemory.sol";
+import {MIPSState as st} from "./MIPSState.sol";
+import {IPreimageOracle} from "../interfaces/IPreimageOracle.sol";
+import {PreimageKeyLib} from "../PreimageKeyLib.sol";
 
 library MIPSSyscalls {
     struct SysReadParams {

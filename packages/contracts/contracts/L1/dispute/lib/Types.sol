@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
+import "./LibUDT.sol";
+
 /// @notice The current status of the dispute game.
     enum GameStatus {
         // The game is currently in progress, and has not been resolved.

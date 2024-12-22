@@ -3,10 +3,11 @@ package claim
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
@@ -48,7 +49,7 @@ func TestValidateClaim(t *testing.T) {
 		l2 := &mockL2{
 			outputRoot: expected,
 		}
-		logger := testlog.Logger(t, slog.LevelError)
+		logger := testlog.Logger(t, log.LevelError)
 		err := ValidateClaim(logger, uint64(0), expected, l2)
 		require.NoError(t, err)
 	})
@@ -61,7 +62,7 @@ func TestValidateClaim(t *testing.T) {
 				Number: 10,
 			},
 		}
-		logger := testlog.Logger(t, slog.LevelError)
+		logger := testlog.Logger(t, log.LevelError)
 		err := ValidateClaim(logger, uint64(20), expected, l2)
 		require.NoError(t, err)
 		require.Equal(t, uint64(10), l2.requestedOutputRoot)
@@ -71,7 +72,7 @@ func TestValidateClaim(t *testing.T) {
 		l2 := &mockL2{
 			outputRoot: eth.Bytes32{0x22},
 		}
-		logger := testlog.Logger(t, slog.LevelError)
+		logger := testlog.Logger(t, log.LevelError)
 		err := ValidateClaim(logger, uint64(0), eth.Bytes32{0x11}, l2)
 		require.ErrorIs(t, err, ErrClaimNotValid)
 	})
@@ -81,7 +82,7 @@ func TestValidateClaim(t *testing.T) {
 			outputRoot: eth.Bytes32{0x22},
 			safeL2:     eth.L2BlockRef{Number: 10},
 		}
-		logger := testlog.Logger(t, slog.LevelError)
+		logger := testlog.Logger(t, log.LevelError)
 		err := ValidateClaim(logger, uint64(20), eth.Bytes32{0x55}, l2)
 		require.ErrorIs(t, err, ErrClaimNotValid)
 		require.Equal(t, uint64(10), l2.requestedOutputRoot)
@@ -94,7 +95,7 @@ func TestValidateClaim(t *testing.T) {
 			safeL2:     eth.L2BlockRef{Number: 10},
 			safeL2Err:  expectedErr,
 		}
-		logger := testlog.Logger(t, slog.LevelError)
+		logger := testlog.Logger(t, log.LevelError)
 		err := ValidateClaim(logger, uint64(0), eth.Bytes32{0x11}, l2)
 		require.ErrorIs(t, err, expectedErr)
 	})
@@ -105,7 +106,7 @@ func TestValidateClaim(t *testing.T) {
 			outputRootErr: expectedErr,
 			safeL2:        eth.L2BlockRef{Number: 10},
 		}
-		logger := testlog.Logger(t, slog.LevelError)
+		logger := testlog.Logger(t, log.LevelError)
 		err := ValidateClaim(logger, uint64(0), eth.Bytes32{0x11}, l2)
 		require.ErrorIs(t, err, expectedErr)
 	})

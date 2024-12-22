@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-    using LibClaim for Claim global;
-    using LibHash for Hash global;
-    using LibDuration for Duration global;
-    using LibClock for Clock global;
-    using LibGameId for GameId global;
-    using LibTimestamp for Timestamp global;
-    using LibVMStatus for VMStatus global;
-    using LibGameType for GameType global;
+import "./LibPosition.sol";
+
+using LibClaim for Claim global;
+using LibHash for Hash global;
+using LibDuration for Duration global;
+using LibClock for Clock global;
+using LibGameId for GameId global;
+using LibTimestamp for Timestamp global;
+using LibVMStatus for VMStatus global;
+using LibGameType for GameType global;
 
 /// @notice A `Clock` represents a packed `Duration` and `Timestamp`
 /// @dev The packed layout of this type is as follows:

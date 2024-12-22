@@ -12,6 +12,7 @@ import { IStateCommitmentChain } from "../L1/rollup/IStateCommitmentChain.sol";
 // import { ICanonicalTransactionChain } from "../L1/rollup/ICanonicalTransactionChain.sol";
 import { IBondManager } from "../L1/verification/IBondManager.sol";
 import { IChainStorageContainer } from "../L1/rollup/IChainStorageContainer.sol";
+import {IMVMStateCommitmentChain} from "../L1/rollup/IMVMStateCommitmentChain.sol";
 
 /**
  * @title MVM_StateCommitmentChain
@@ -22,7 +23,7 @@ import { IChainStorageContainer } from "../L1/rollup/IChainStorageContainer.sol"
  *
  * Runtime target: EVM
  */
-contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
+contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolver {
     /*************
      * Constants *
      *************/
@@ -31,6 +32,14 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
     uint256 public SEQUENCER_PUBLISH_WINDOW;
 
     uint256 public DEFAULT_CHAINID = 1088;
+
+
+    /*****************
+     * Public States *
+     *****************/
+    // key: chain id
+    // value: [8B Timestamp][8B Index]
+    mapping(uint256 => bytes16[]) public batchTimes;
 
     /***************
      * Constructor *
@@ -58,6 +67,35 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
      ********************/
 
     /**
+     * @inheritdoc IMVMStateCommitmentChain
+     */
+    function findEarliestDisputableBatch(uint256 _chainId) public view returns (bytes32) {
+        uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
+        bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
+
+        // binary search the batch times to find the closest time of earliestDisputableTime,
+        // but the time must be larger than earliestDisputableTime
+        uint256 left = 0;
+        uint256 right = batchTimesOfChain.length - 1;
+
+        while (left < right) {
+            uint256 mid = left + (right - left) / 2;
+            uint256 time = uint256(uint128(batchTimesOfChain[mid]) >> 64);
+            if (time <= earliestDisputableTime) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+
+        if (left == 0) {
+            return bytes32(0);
+        }
+
+        return batches().getByChainId(_chainId, uint256(uint64(uint128(batchTimesOfChain[left - 1]))));
+    }
+
+    /**
      * Accesses the batch storage container.
      * @return Reference to the batch storage container.
      */
@@ -66,46 +104,46 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function getTotalElements() external view returns (uint256 _totalElements) {
         return getTotalElementsByChainId(DEFAULT_CHAINID);
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function getTotalBatches() external view returns (uint256 _totalBatches) {
         return getTotalBatchesByChainId(DEFAULT_CHAINID);
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function getLastSequencerTimestamp() external view returns (uint256 _lastSequencerTimestamp) {
         return getLastSequencerTimestampByChainId(DEFAULT_CHAINID);
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
-    function appendStateBatch(bytes32[] memory _batch, uint256 _shouldStartAtElement) external {
+    function appendStateBatch(bytes32[] memory _batch, uint256 _shouldStartAtElement, bytes32 _lastBatchBlockHash) external {
         //require (1==0, "don't use");
         string memory proposer = string(
             abi.encodePacked(Lib_Uint.uint2str(DEFAULT_CHAINID), "_MVM_Proposer")
         );
-        appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, proposer);
+        appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, proposer, _lastBatchBlockHash);
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function deleteStateBatch(Lib_OVMCodec.ChainBatchHeader memory _batchHeader) external {
         deleteStateBatchByChainId(DEFAULT_CHAINID, _batchHeader);
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function verifyStateCommitment(
         bytes32 _element,
@@ -116,7 +154,7 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function insideFraudProofWindow(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)
         public
@@ -133,15 +171,26 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
         uint256,
         Lib_OVMCodec.ChainBatchHeader memory _batchHeader
     ) public view override returns (bool _inside) {
-        (uint256 timestamp, ) = abi.decode(_batchHeader.extraData, (uint256, address));
+        (uint256 timestamp, , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32));
 
-        require(timestamp != 0, "Batch header timestamp cannot be zero");
-        return timestamp + FRAUD_PROOF_WINDOW > block.timestamp;
+        return _insideFraudProofWindowByChainId(timestamp);
     }
 
     /**********************
      * Internal Functions *
      **********************/
+
+    /**
+     * Checks whether a given batch is still inside its fraud proof window.
+     * @param _timestamp Timestamp of the batch to check.
+     * @return _inside Whether or not the batch is inside the fraud proof window.
+     */
+    function _insideFraudProofWindowByChainId(
+       uint256 _timestamp
+    ) internal view returns (bool _inside) {
+        require(_timestamp != 0, "Batch header timestamp cannot be zero");
+        return _timestamp + FRAUD_PROOF_WINDOW > block.timestamp;
+    }
 
     /**
      * Parses the batch context from the extra data.
@@ -174,7 +223,7 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function getTotalElementsByChainId(uint256 _chainId)
         public
@@ -187,7 +236,7 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function getTotalBatchesByChainId(uint256 _chainId)
         public
@@ -199,7 +248,7 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function getLastSequencerTimestampByChainId(uint256 _chainId)
         public
@@ -212,13 +261,14 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function appendStateBatchByChainId(
         uint256 _chainId,
         bytes32[] memory _batch,
         uint256 _shouldStartAtElement,
-        string memory proposer
+        string memory _proposer,
+        bytes32 _lastBatchBlockHash
     ) public override {
         // Fail fast in to make sure our batch roots aren't accidentally made fraudulent by the
         // publication of batches by some other user.
@@ -227,7 +277,7 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
             "Actual batch start index does not match expected start index."
         );
 
-        address proposerAddr = resolve(proposer);
+        address proposerAddr = resolve(_proposer);
 
         // Proposers must have previously staked at the BondManager
         require(
@@ -254,13 +304,13 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
         _appendBatchByChainId(
             _chainId,
             _batch,
-            abi.encode(block.timestamp, msg.sender),
+            abi.encode(block.timestamp, msg.sender, _lastBatchBlockHash),
             proposerAddr
         );
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function deleteStateBatchByChainId(
         uint256 _chainId,
@@ -283,7 +333,7 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
     }
 
     /**
-     * @inheritdoc IStateCommitmentChain
+     * @inheritdoc IMVMStateCommitmentChain
      */
     function verifyStateCommitmentByChainId(
         uint256 _chainId,
@@ -394,14 +444,19 @@ contract MVM_StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver 
             batchHeader.extraData
         );
 
+        bytes32 batchHeaderHash = Lib_OVMCodec.hashBatchHeader(batchHeader);
+
         batches().pushByChainId(
             _chainId,
-            Lib_OVMCodec.hashBatchHeader(batchHeader),
+            batchHeaderHash,
             _makeBatchExtraDataByChainId(
                 uint40(batchHeader.prevTotalElements + batchHeader.batchSize),
                 lastSequencerTimestamp
             )
         );
+
+        bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
+        batchTimesOfChain.push(bytes16(uint128(uint256(lastSequencerTimestamp) << 64) | uint128(batchHeader.batchIndex)));
     }
 
     /**

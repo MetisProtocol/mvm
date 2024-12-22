@@ -15,11 +15,13 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/dial"
 	"github.com/ethereum-optimism/optimism/op-service/httputil"
 	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 
+	l2client "github.com/MetisProtocol/mvm/l2geth/ethclient"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/ethereum-optimism/optimism/go/cannon/mipsevm"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/config"
@@ -74,32 +76,40 @@ func (r *Runner) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start metrics: %w", err)
 	}
 
-	rollupClient, err := dial.DialRollupClientWithTimeout(ctx, 1*time.Minute, r.log, r.cfg.RollupRpc)
+	l2Client, err := l2client.Dial(r.cfg.L2Rpc)
 	if err != nil {
-		return fmt.Errorf("failed to dial rollup client: %w", err)
+		return fmt.Errorf("failed to dial l2 client: %w", err)
 	}
 
+	chainId, err := l2Client.ChainID(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get chain id: %w", err)
+	}
+
+	rollupClient := rollup.NewClient(r.cfg.RollupRpc, chainId)
 	l1Client, err := dial.DialRPCClientWithTimeout(ctx, 1*time.Minute, r.log, r.cfg.L1EthRpc)
 	if err != nil {
 		return fmt.Errorf("failed to dial l1 client: %w", err)
 	}
+	l1RPCClient := ethclient.NewClient(l1Client)
+
 	caller := batching.NewMultiCaller(l1Client, batching.DefaultBatchSize)
 
 	for _, traceType := range r.cfg.TraceTypes {
 		r.wg.Add(1)
-		go r.loop(ctx, traceType, rollupClient, caller)
+		go r.loop(ctx, traceType, l1RPCClient, l2Client, rollupClient, caller)
 	}
 
 	r.log.Info("Runners started")
 	return nil
 }
 
-func (r *Runner) loop(ctx context.Context, traceType types.TraceType, client *sources.RollupClient, caller *batching.MultiCaller) {
+func (r *Runner) loop(ctx context.Context, traceType types.TraceType, l1RPCClient *ethclient.Client, l2RPCClient *l2client.Client, rollupClient rollup.RollupClient, caller *batching.MultiCaller) {
 	defer r.wg.Done()
 	t := time.NewTicker(1 * time.Minute)
 	defer t.Stop()
 	for {
-		if err := r.runOnce(ctx, traceType, client, caller); errors.Is(err, ErrUnexpectedStatusCode) {
+		if err := r.runOnce(ctx, traceType, l1RPCClient, l2RPCClient, rollupClient, caller); errors.Is(err, ErrUnexpectedStatusCode) {
 			r.log.Error("Incorrect status code", "type", traceType, "err", err)
 			r.m.RecordInvalid(traceType)
 		} else if err != nil {
@@ -117,13 +127,13 @@ func (r *Runner) loop(ctx context.Context, traceType types.TraceType, client *so
 	}
 }
 
-func (r *Runner) runOnce(ctx context.Context, traceType types.TraceType, client *sources.RollupClient, caller *batching.MultiCaller) error {
+func (r *Runner) runOnce(ctx context.Context, traceType types.TraceType, l1RPCClient *ethclient.Client, l2RPCClient *l2client.Client, rollupClient rollup.RollupClient, caller *batching.MultiCaller) error {
 	prestateHash, err := r.getPrestateHash(ctx, traceType, caller)
 	if err != nil {
 		return err
 	}
 
-	localInputs, err := r.createGameInputs(ctx, client)
+	localInputs, err := r.createGameInputs(ctx, l1RPCClient, l2RPCClient, rollupClient)
 	if err != nil {
 		return err
 	}
@@ -157,66 +167,79 @@ func (r *Runner) prepDatadir(traceType types.TraceType) (string, error) {
 	return dir, nil
 }
 
-func (r *Runner) createGameInputs(ctx context.Context, client *sources.RollupClient) (utils.LocalGameInputs, error) {
-	status, err := client.SyncStatus(ctx)
+func (r *Runner) createGameInputs(ctx context.Context, l1RPCClient *ethclient.Client, l2RPCClient *l2client.Client, rollupClient rollup.RollupClient) (utils.LocalGameInputs, error) {
+	batch, blocks, err := rollupClient.GetLatestBlockBatch()
 	if err != nil {
-		return utils.LocalGameInputs{}, fmt.Errorf("failed to get rollup sync status: %w", err)
+		return utils.LocalGameInputs{}, fmt.Errorf("failed to get latest L2 batch: %w", err)
 	}
 
-	if status.FinalizedL2.Number == 0 {
-		return utils.LocalGameInputs{}, errors.New("safe head is 0")
-	}
-	l1Head := status.FinalizedL1
-	if status.FinalizedL1.Number > status.CurrentL1.Number {
-		// Restrict the L1 head to a block that has actually be processed by op-node.
-		// This only matters if op-node is behind and hasn't processed all finalized L1 blocks yet.
-		l1Head = status.CurrentL1
-	}
-	blockNumber, err := r.findL2BlockNumberToDispute(ctx, client, l1Head.Number, status.FinalizedL2.Number)
+	blockNumber, err := r.findL2BlockNumberToDispute(ctx, rollupClient, batch.Index, batch.BlockNumber, blocks[len(blocks)-1].NumberU64())
 	if err != nil {
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to find l2 block number to dispute: %w", err)
 	}
-	claimOutput, err := client.OutputAtBlock(ctx, blockNumber)
+
+	rb, err := rollupClient.GetRawBlock(blockNumber-1, rollup.BackendL1)
 	if err != nil {
-		return utils.LocalGameInputs{}, fmt.Errorf("failed to get claim output: %w", err)
+		return utils.LocalGameInputs{}, fmt.Errorf("failed to get raw block: %w", err)
 	}
-	parentOutput, err := client.OutputAtBlock(ctx, blockNumber-1)
+
+	prevRb, err := rollupClient.GetRawBlock(blockNumber-2, rollup.BackendL1)
 	if err != nil {
-		return utils.LocalGameInputs{}, fmt.Errorf("failed to get claim output: %w", err)
+		return utils.LocalGameInputs{}, fmt.Errorf("failed to get raw block: %w", err)
 	}
+
+	claimOutput := rollup.BatchHeader{
+		BatchRoot:         rb.Batch.Root,
+		BatchSize:         big.NewInt(int64(rb.Batch.Size)),
+		PrevTotalElements: big.NewInt(int64(rb.Batch.PrevTotalElements)),
+		ExtraData:         rb.Batch.ExtraData,
+	}.Hash()
+
+	parentOutput := rollup.BatchHeader{
+		BatchRoot:         prevRb.Batch.Root,
+		BatchSize:         big.NewInt(int64(prevRb.Batch.Size)),
+		PrevTotalElements: big.NewInt(int64(prevRb.Batch.PrevTotalElements)),
+		ExtraData:         prevRb.Batch.ExtraData,
+	}.Hash()
+
+	l1Head, err := l1RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(batch.BlockNumber))
+	if err != nil {
+		return utils.LocalGameInputs{}, fmt.Errorf("failed to get L1 head: %w", err)
+	}
+
+	l2Head, err := l2RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(blockNumber))
+	if err != nil {
+		return utils.LocalGameInputs{}, fmt.Errorf("failed to get L2 head: %w", err)
+	}
+
 	localInputs := utils.LocalGameInputs{
-		L1Head:        l1Head.Hash,
-		L2Head:        parentOutput.BlockRef.Hash,
-		L2OutputRoot:  common.Hash(parentOutput.OutputRoot),
-		L2Claim:       common.Hash(claimOutput.OutputRoot),
+		L1Head:        l1Head.Hash(),
+		L2Head:        common.Hash(l2Head.Hash()),
+		L2OutputRoot:  common.Hash(parentOutput),
+		L2Claim:       common.Hash(claimOutput),
 		L2BlockNumber: new(big.Int).SetUint64(blockNumber),
 	}
 	return localInputs, nil
 }
 
-func (r *Runner) findL2BlockNumberToDispute(ctx context.Context, client *sources.RollupClient, l1HeadNum uint64, l2BlockNum uint64) (uint64, error) {
+func (r *Runner) findL2BlockNumberToDispute(ctx context.Context, client rollup.RollupClient, batchIndex uint64, l1HeadNum uint64, l2BlockNum uint64) (uint64, error) {
 	// Try to find a L1 block prior to the batch that make l2BlockNum safe
-	// Limits how far back we search to 10 * 32 blocks
+	// Limits how far back we search to 64 batches
 	const skipSize = uint64(32)
-	for i := 0; i < 10; i++ {
-		if l1HeadNum < skipSize {
-			// Too close to genesis, give up and just use the original block
-			r.log.Info("Failed to find prior batch.")
-			return l2BlockNum, nil
-		}
-		l1HeadNum -= skipSize
-		priorSafeHead, err := client.SafeHeadAtL1Block(ctx, l1HeadNum)
+	safeL1Head := l1HeadNum - skipSize*2
+	for i := 0; i < 64; i++ {
+		batch, blocks, err := client.GetBlockBatch(batchIndex - 1)
 		if err != nil {
-			return 0, fmt.Errorf("failed to get prior safe head at L1 block %v: %w", l1HeadNum, err)
+			return 0, fmt.Errorf("failed to get raw block: %w", err)
 		}
-		if priorSafeHead.SafeHead.Number < l2BlockNum {
-			// We walked back far enough to be before the batch that included l2BlockNum
-			// So use the first block after the prior safe head as the disputed block.
-			// It must be the first block in a batch.
-			return priorSafeHead.SafeHead.Number + 1, nil
+
+		if batch.BlockNumber < safeL1Head {
+			return blocks[len(blocks)-1].NumberU64() + 1, nil
 		}
 	}
+
 	r.log.Warn("Failed to find prior batch", "l2BlockNum", l2BlockNum, "earliestCheckL1Block", l1HeadNum)
+
 	return l2BlockNum, nil
 }
 

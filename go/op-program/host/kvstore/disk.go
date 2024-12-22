@@ -9,7 +9,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // read/write mode for user/group/other, not executable.

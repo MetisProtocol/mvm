@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {FaultDisputeGame} from "./FaultDisputeGame.sol";
-import {IAnchorStateRegistry} from "./interfaces/IAnchorStateRegistry.sol";
-import {IBigStepper} from "./interfaces/IBigStepper.sol";
-import {IDelayedWETH} from "./interfaces/IDelayedWETH.sol";
-import {PermissionedDisputeGame} from "@metis.io/contracts/contracts/dispute/PermissionedDisputeGame.sol";
-import {BadAuth} from "lib/Errors.sol";
+import { IDelayedWETH } from "contracts/L1/dispute/interfaces/IDelayedWETH.sol";
+import { IAnchorStateRegistry } from "contracts/L1/dispute/interfaces/IAnchorStateRegistry.sol";
+import { FaultDisputeGame, IFaultDisputeGame, IBigStepper, IInitializable } from "contracts/L1/dispute/FaultDisputeGame.sol";
+import "contracts/L1/dispute/lib/Types.sol";
+import "contracts/L1/dispute/lib/Errors.sol";
 
 /// @title PermissionedDisputeGame
 /// @notice PermissionedDisputeGame is a contract that inherits from `FaultDisputeGame`, and contains two roles:
