@@ -26,7 +26,7 @@ var L2ChainConfigsByChainID = map[uint64]*params.ChainConfig{
 	10:       OPMainnetChainConfig,
 }
 
-func RollupConfigByChainID(chainID uint64) (*rollup.Config, error) {
+func RollupConfigByChainID(chainID uint64) (*RollupConfig, error) {
 	config, err := rollup.LoadOPStackRollupConfig(chainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rollup config for chain ID %d: %w", chainID, err)

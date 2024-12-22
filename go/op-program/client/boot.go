@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"math"
 
-	"github.com/MetisProtocol/mvm/l2geth/params"
-	"github.com/MetisProtocol/mvm/l2geth/rollup"
-
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/MetisProtocol/mvm/l2geth/params"
 
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
@@ -37,7 +36,7 @@ type BootInfo struct {
 	L2ChainID          uint64
 
 	L2ChainConfig *params.ChainConfig
-	RollupConfig  *rollup.Config
+	RollupConfig  *chainconfig.RollupConfig
 }
 
 type oracleClient interface {
@@ -60,14 +59,14 @@ func (br *BootstrapClient) BootInfo() *BootInfo {
 	l2ChainID := binary.BigEndian.Uint64(br.r.Get(L2ChainIDLocalIndex))
 
 	var l2ChainConfig *params.ChainConfig
-	var rollupConfig *rollup.Config
+	var rollupConfig *chainconfig.RollupConfig
 	if l2ChainID == CustomChainIDIndicator {
 		l2ChainConfig = new(params.ChainConfig)
 		err := json.Unmarshal(br.r.Get(L2ChainConfigLocalIndex), &l2ChainConfig)
 		if err != nil {
 			panic("failed to bootstrap l2ChainConfig")
 		}
-		rollupConfig = new(rollup.Config)
+		rollupConfig = new(chainconfig.RollupConfig)
 		err = json.Unmarshal(br.r.Get(RollupConfigLocalIndex), rollupConfig)
 		if err != nil {
 			panic("failed to bootstrap rollup config")
