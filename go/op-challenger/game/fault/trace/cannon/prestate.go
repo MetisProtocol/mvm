@@ -27,7 +27,7 @@ func (p *CannonPrestateProvider) absolutePreState() ([]byte, common.Hash, error)
 		return nil, common.Hash{}, fmt.Errorf("cannot load absolute pre-state: %w", err)
 	}
 	witness, hash := state.EncodeWitness()
-	return witness, hash, nil
+	return witness, common.Hash(hash), nil
 }
 
 func (p *CannonPrestateProvider) AbsolutePreStateCommitment(_ context.Context) (common.Hash, error) {

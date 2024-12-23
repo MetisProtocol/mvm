@@ -173,41 +173,31 @@ func (r *Runner) createGameInputs(ctx context.Context, l1RPCClient *ethclient.Cl
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to get latest L2 batch: %w", err)
 	}
 
-	blockNumber, err := r.findL2BlockNumberToDispute(ctx, rollupClient, batch.Index, batch.BlockNumber, blocks[len(blocks)-1].NumberU64())
-	if err != nil {
-		return utils.LocalGameInputs{}, fmt.Errorf("failed to find l2 block number to dispute: %w", err)
-	}
-
-	rb, err := rollupClient.GetRawBlock(blockNumber-1, rollup.BackendL1)
-	if err != nil {
-		return utils.LocalGameInputs{}, fmt.Errorf("failed to get raw block: %w", err)
-	}
-
-	prevRb, err := rollupClient.GetRawBlock(blockNumber-2, rollup.BackendL1)
-	if err != nil {
-		return utils.LocalGameInputs{}, fmt.Errorf("failed to get raw block: %w", err)
-	}
+	// we need to dispute until the last block of the batch,
+	// since we are not like op that having a 1:N mapping for l1 -> l2 blocks
+	blockNumber := blocks[len(blocks)-1].NumberU64()
+	prevBatch, _, err := rollupClient.GetBlockBatch(batch.Index - 1)
 
 	claimOutput := rollup.BatchHeader{
-		BatchRoot:         rb.Batch.Root,
-		BatchSize:         big.NewInt(int64(rb.Batch.Size)),
-		PrevTotalElements: big.NewInt(int64(rb.Batch.PrevTotalElements)),
-		ExtraData:         rb.Batch.ExtraData,
+		BatchRoot:         batch.Root,
+		BatchSize:         big.NewInt(int64(batch.Size)),
+		PrevTotalElements: big.NewInt(int64(batch.PrevTotalElements)),
+		ExtraData:         rollup.ExtraData(batch.ExtraData),
 	}.Hash()
 
 	parentOutput := rollup.BatchHeader{
-		BatchRoot:         prevRb.Batch.Root,
-		BatchSize:         big.NewInt(int64(prevRb.Batch.Size)),
-		PrevTotalElements: big.NewInt(int64(prevRb.Batch.PrevTotalElements)),
-		ExtraData:         prevRb.Batch.ExtraData,
+		BatchRoot:         prevBatch.Root,
+		BatchSize:         big.NewInt(int64(prevBatch.Size)),
+		PrevTotalElements: big.NewInt(int64(prevBatch.PrevTotalElements)),
+		ExtraData:         rollup.ExtraData(prevBatch.ExtraData),
 	}.Hash()
 
-	l1Head, err := l1RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(batch.BlockNumber))
+	l1Head, err := l1RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(prevBatch.BlockNumber))
 	if err != nil {
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to get L1 head: %w", err)
 	}
 
-	l2Head, err := l2RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(blockNumber))
+	l2Head, err := l2RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(uint64(prevBatch.PrevTotalElements+prevBatch.Size+1)))
 	if err != nil {
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to get L2 head: %w", err)
 	}
@@ -225,17 +215,28 @@ func (r *Runner) createGameInputs(ctx context.Context, l1RPCClient *ethclient.Cl
 func (r *Runner) findL2BlockNumberToDispute(ctx context.Context, client rollup.RollupClient, batchIndex uint64, l1HeadNum uint64, l2BlockNum uint64) (uint64, error) {
 	// Try to find a L1 block prior to the batch that make l2BlockNum safe
 	// Limits how far back we search to 64 batches
-	const skipSize = uint64(32)
-	safeL1Head := l1HeadNum - skipSize*2
+	var prevBatch *rollup.Batch
 	for i := 0; i < 64; i++ {
-		batch, blocks, err := client.GetBlockBatch(batchIndex - 1)
+		batch, blocks, err := client.GetBlockBatch(batchIndex)
 		if err != nil {
 			return 0, fmt.Errorf("failed to get raw block: %w", err)
 		}
 
-		if batch.BlockNumber < safeL1Head {
+		// went too far back, batch is not disputable
+		if len(batch.ExtraData) < 128 {
+			if prevBatch == nil {
+				return 0, fmt.Errorf("no prior batch found")
+			}
+
+			// return the beginning of the next batch of the genesis batch
+			return uint64(prevBatch.PrevTotalElements+prevBatch.Size+1) + 1, nil
+		}
+
+		if batch.BlockNumber < l1HeadNum {
 			return blocks[len(blocks)-1].NumberU64() + 1, nil
 		}
+
+		prevBatch = batch
 	}
 
 	r.log.Warn("Failed to find prior batch", "l2BlockNum", l2BlockNum, "earliestCheckL1Block", l1HeadNum)

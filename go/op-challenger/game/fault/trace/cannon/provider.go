@@ -136,7 +136,7 @@ func (p *CannonTraceProvider) loadProof(ctx context.Context, i uint64) (*utils.P
 				// No execution is done, so no proof-data or oracle values are required.
 				witness, witnessHash := state.EncodeWitness()
 				proof := &utils.ProofData{
-					ClaimValue:   witnessHash,
+					ClaimValue:   common.Hash(witnessHash),
 					StateData:    hexutil.Bytes(witness),
 					ProofData:    []byte{},
 					OracleKey:    nil,
