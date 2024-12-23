@@ -3,7 +3,7 @@ package chainconfig
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 type InboxSenderType uint8

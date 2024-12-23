@@ -6,7 +6,6 @@ import {Hashing} from "../../libraries/Hashing.sol";
 import {Types} from "../../libraries/Types.sol";
 import {Lib_RLPReader} from "../../libraries/rlp/Lib_RLPReader.sol";
 import {ISemver} from "../../universal/ISemver.sol";
-import {IAnchorStateRegistry} from "./interfaces/IAnchorStateRegistry.sol";
 import {IBigStepper} from "./interfaces/IBigStepper.sol";
 import {IDelayedWETH} from "./interfaces/IDelayedWETH.sol";
 import {IDisputeGame} from "./interfaces/IDisputeGame.sol";
@@ -19,6 +18,8 @@ import {IInitializable} from "contracts/L1/dispute/interfaces/IInitializable.sol
 
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
+import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
+import {IMVMStateCommitmentChain} from "../rollup/IMVMStateCommitmentChain.sol";
 
 /// @title FaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.
@@ -50,8 +51,8 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @notice WETH contract for holding ETH.
     IDelayedWETH internal immutable WETH;
 
-    /// @notice The anchor state registry.
-    IAnchorStateRegistry internal immutable ANCHOR_STATE_REGISTRY;
+    /// @notice The address manager contract.
+    Lib_AddressManager internal immutable ADDRESS_MANAGER;
 
     /// @notice The chain ID of the L2 network this contract argues about.
     uint256 internal immutable L2_CHAIN_ID;
@@ -112,6 +113,9 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @notice The latest finalized output root, serving as the anchor for output bisection.
     OutputRoot public startingOutputRoot;
 
+    /// @notice The name of the SCC contract.
+    string internal SCC_NAME = "Proxy__MVM_StateCommitmentChain";
+
     /// @param _gameType The type ID of the game.
     /// @param _absolutePrestate The absolute prestate of the instruction trace.
     /// @param _maxGameDepth The maximum depth of bisection.
@@ -120,7 +124,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @param _maxClockDuration The maximum amount of time that may accumulate on a team's chess clock.
     /// @param _vm An onchain VM that performs single instruction steps on an FPP trace.
     /// @param _weth WETH contract for holding ETH.
-    /// @param _anchorStateRegistry The contract that stores the anchor state for each game type.
+    /// @param _addressManager The contract that stores the names and addresses of metis contracts.
     /// @param _l2ChainId Chain ID of the L2 network this contract argues about.
     constructor(
         GameType _gameType,
@@ -131,7 +135,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         Duration _maxClockDuration,
         IBigStepper _vm,
         IDelayedWETH _weth,
-        IAnchorStateRegistry _anchorStateRegistry,
+        Lib_AddressManager _addressManager,
         uint256 _l2ChainId
     ) {
         // The max game depth may not be greater than `LibPosition.MAX_POSITION_BITLEN - 1`.
@@ -173,7 +177,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         MAX_CLOCK_DURATION = _maxClockDuration;
         VM = _vm;
         WETH = _weth;
-        ANCHOR_STATE_REGISTRY = _anchorStateRegistry;
+        ADDRESS_MANAGER = _addressManager;
         L2_CHAIN_ID = _l2ChainId;
     }
 
@@ -194,7 +198,8 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         if (initialized) revert AlreadyInitialized();
 
         // Grab the latest anchor root.
-        (Hash root, uint256 rootBlockNumber) = ANCHOR_STATE_REGISTRY.anchors(GAME_TYPE);
+        (bytes32 scRoot, uint256 rootBlockNumber) = IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME)).findEarliestDisputableBatch(L2_CHAIN_ID);
+        Hash root = Hash.wrap(scRoot);
 
         // Should only happen if this is a new game type that hasn't been set up yet.
         if (root.raw() == bytes32(0)) revert AnchorRootNotFound();
@@ -591,8 +596,9 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         // Update the status and emit the resolved event, note that we're performing an assignment here.
         emit Resolved(status = status_);
 
+        // TODO: do we need to delete the batches in scc?
         // Try to update the anchor state, this should not revert.
-        ANCHOR_STATE_REGISTRY.tryUpdateAnchorState();
+        // ANCHOR_STATE_REGISTRY.tryUpdateAnchorState();
     }
 
     /// @inheritdoc IFaultDisputeGame
@@ -869,8 +875,8 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     }
 
     /// @notice Returns the anchor state registry contract.
-    function anchorStateRegistry() external view returns (IAnchorStateRegistry registry_) {
-        registry_ = ANCHOR_STATE_REGISTRY;
+    function scc() external view returns (IMVMStateCommitmentChain scc_) {
+        scc_ = IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME));
     }
 
     /// @notice Returns the chain ID of the L2 network this contract argues about.

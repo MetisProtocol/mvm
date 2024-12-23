@@ -12,7 +12,7 @@ import { IStateCommitmentChain } from "../L1/rollup/IStateCommitmentChain.sol";
 // import { ICanonicalTransactionChain } from "../L1/rollup/ICanonicalTransactionChain.sol";
 import { IBondManager } from "../L1/verification/IBondManager.sol";
 import { IChainStorageContainer } from "../L1/rollup/IChainStorageContainer.sol";
-import {IMVMStateCommitmentChain} from "../L1/rollup/IMVMStateCommitmentChain.sol";
+import { IMVMStateCommitmentChain } from "../L1/rollup/IMVMStateCommitmentChain.sol";
 
 /**
  * @title MVM_StateCommitmentChain
@@ -40,6 +40,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     // key: chain id
     // value: [8B Timestamp][8B Index]
     mapping(uint256 => bytes16[]) public batchTimes;
+    // key: state batch hash
+    // value: last L2 block number of the given batch
+    mapping(bytes32 => uint256) public batchLastL2BlockNumbers;
 
     /***************
      * Constructor *
@@ -69,30 +72,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function findEarliestDisputableBatch(uint256 _chainId) public view returns (bytes32) {
+    function findEarliestDisputableBatch(uint256 _chainId) public view returns (bytes32, uint256) {
         uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
-        bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
-
-        // binary search the batch times to find the closest time of earliestDisputableTime,
-        // but the time must be larger than earliestDisputableTime
-        uint256 left = 0;
-        uint256 right = batchTimesOfChain.length - 1;
-
-        while (left < right) {
-            uint256 mid = left + (right - left) / 2;
-            uint256 time = uint256(uint128(batchTimesOfChain[mid]) >> 64);
-            if (time <= earliestDisputableTime) {
-                left = mid + 1;
-            } else {
-                right = mid;
-            }
-        }
-
-        if (left == 0) {
-            return bytes32(0);
-        }
-
-        return batches().getByChainId(_chainId, uint256(uint64(uint128(batchTimesOfChain[left - 1]))));
+        return _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
     }
 
     /**
@@ -127,12 +109,12 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function appendStateBatch(bytes32[] memory _batch, uint256 _shouldStartAtElement, bytes32 _lastBatchBlockHash) external {
+    function appendStateBatch(bytes32[] memory _batch, uint256 _shouldStartAtElement, bytes32 _lastBatchBlockHash, uint256 _lastBatchBlockNumber) external {
         //require (1==0, "don't use");
         string memory proposer = string(
             abi.encodePacked(Lib_Uint.uint2str(DEFAULT_CHAINID), "_MVM_Proposer")
         );
-        appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, proposer, _lastBatchBlockHash);
+        appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, proposer, _lastBatchBlockHash, _lastBatchBlockNumber);
     }
 
     /**
@@ -179,6 +161,33 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**********************
      * Internal Functions *
      **********************/
+
+    function _findBatchWithinTimeWindow(uint256 _chainId, uint256 earliestTime) public view returns (bytes32, uint256) {
+        bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
+
+        // binary search the batch times to find the closest time of earliestTime,
+        // but the time must be larger than earliestTime
+        uint256 left = 0;
+        uint256 right = batchTimesOfChain.length - 1;
+
+        while (left < right) {
+            uint256 mid = left + (right - left) / 2;
+            uint256 time = uint256(uint128(batchTimesOfChain[mid]) >> 64);
+            if (time <= earliestTime) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+
+        if (left == 0) {
+            return (bytes32(0), 0);
+        }
+
+        uint256 batchIndex = uint256(uint64(uint128(batchTimesOfChain[left - 1])));
+        bytes32 batchHeaderHash = batches().getByChainId(_chainId, batchIndex);
+        return (batchHeaderHash, batchLastL2BlockNumbers[batchHeaderHash]);
+    }
 
     /**
      * Checks whether a given batch is still inside its fraud proof window.
@@ -268,7 +277,8 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         bytes32[] memory _batch,
         uint256 _shouldStartAtElement,
         string memory _proposer,
-        bytes32 _lastBatchBlockHash
+        bytes32 _lastBatchBlockHash,
+        uint256 _lastBatchBlockNumber
     ) public override {
         // Fail fast in to make sure our batch roots aren't accidentally made fraudulent by the
         // publication of batches by some other user.
@@ -304,7 +314,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         _appendBatchByChainId(
             _chainId,
             _batch,
-            abi.encode(block.timestamp, msg.sender, _lastBatchBlockHash),
+            abi.encode(block.timestamp, msg.sender, _lastBatchBlockHash, _lastBatchBlockNumber),
             proposerAddr
         );
     }
@@ -457,6 +467,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
         bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
         batchTimesOfChain.push(bytes16(uint128(uint256(lastSequencerTimestamp) << 64) | uint128(batchHeader.batchIndex)));
+        batchLastL2BlockNumbers[batchHeaderHash] = batchHeader.prevTotalElements + batchHeader.batchSize + 1;
     }
 
     /**
@@ -473,6 +484,32 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         );
 
         require(_isValidBatchHeaderByChainId(_chainId, _batchHeader), "Invalid batch header.");
+
+        // clear the fdg extra data if needed
+        if (_batchHeader.extraData.length >= 0x80) {
+            (uint256 timestamp, , , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32, uint256));
+            (bytes32 anchoredBatchHeaderHash, ) = _findBatchWithinTimeWindow(_chainId, timestamp);
+
+            bytes32 batchHeaderHash = Lib_OVMCodec.hashBatchHeader(_batchHeader);
+            require(
+                batchHeaderHash == anchoredBatchHeaderHash,
+                "Anchored batch header does not match the submitted."
+            );
+            delete batchLastL2BlockNumbers[batchHeaderHash];
+
+            bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
+            uint256 batchesToPop = 0;
+            for (uint256 i = batchTimesOfChain.length - 1; i >= 0; --i) {
+                if (uint64(uint128(batchTimesOfChain[i])) >= _batchHeader.batchIndex) {
+                    ++batchesToPop;
+                } else {
+                    break;
+                }
+            }
+            for (uint256 i = 0; i < batchesToPop; ++i) {
+                batchTimesOfChain.pop();
+            }
+        }
 
         batches().deleteElementsAfterInclusiveByChainId(
             _chainId,

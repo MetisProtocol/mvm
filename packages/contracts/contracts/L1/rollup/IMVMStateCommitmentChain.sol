@@ -33,7 +33,7 @@ interface IMVMStateCommitmentChain {
      * @param _chainId chain id for the l2 chain.
      * @return _earliestDisputableBatch Earliest disputable state root.
      */
-    function findEarliestDisputableBatch(uint256 _chainId) external view returns (bytes32 _earliestDisputableBatch);
+    function findEarliestDisputableBatch(uint256 _chainId) external view returns (bytes32 _earliestDisputableBatch, uint256 blockNumber);
 
     function batches() external view returns (IChainStorageContainer);
 
@@ -60,8 +60,9 @@ interface IMVMStateCommitmentChain {
      * @param _batch Batch of state roots.
      * @param _shouldStartAtElement Index of the element at which this batch should start.
      * @param _lastBatchBlockHash Block hash of the last batch.
+     * @param _lastBatchBlockNumber Block number of the last batch.
      */
-    function appendStateBatch(bytes32[] calldata _batch, uint256 _shouldStartAtElement, bytes32 _lastBatchBlockHash) external;
+    function appendStateBatch(bytes32[] calldata _batch, uint256 _shouldStartAtElement, bytes32 _lastBatchBlockHash, uint256 _lastBatchBlockNumber) external;
 
     /**
      * Deletes all state roots after (and including) a given batch.
@@ -132,13 +133,15 @@ interface IMVMStateCommitmentChain {
      * @param _shouldStartAtElement Index of the element at which this batch should start.
      * @param _proposer proposer of the batch
      * @param _lastBatchBlockHash Block hash of the last batch.
+     * @param _lastBatchBlockNumber Block number of the last batch.
      */
     function appendStateBatchByChainId(
         uint256 _chainId,
         bytes32[] calldata _batch,
         uint256 _shouldStartAtElement,
         string calldata _proposer,
-        bytes32 _lastBatchBlockHash
+        bytes32 _lastBatchBlockHash,
+        uint256 _lastBatchBlockNumber
     ) external;
 
     /**
