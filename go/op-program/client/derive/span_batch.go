@@ -385,13 +385,12 @@ func (b *SpanBatch) peek(n int) *SpanBatchElement { return b.Batches[len(b.Batch
 func (b *SpanBatch) DeriveL2Blocks() []*types.Block {
 	var blocks []*types.Block
 	for i := 0; i < len(b.Batches); i++ {
-		block := &types.Block{
-			Number:       new(big.Int).SetUint64(b.L2StartBlock + uint64(i)),
-			ParentHash:   common.Hash{},
-			Timestamp:    new(big.Int).SetUint64(b.Batches[i].Timestamp),
-			Transactions: b.Batches[i].Transactions,
+		header := &types.Header{
+			Number: new(big.Int).SetUint64(b.L2StartBlock + uint64(i)),
+			Time:   new(big.Int).SetUint64(b.Batches[i].Timestamp).Uint64(),
 		}
-		blocks = append(blocks, block)
+
+		blocks = append(blocks, types.NewBlock(header, blocks[i].Transactions(), nil, nil))
 	}
 	return blocks
 }

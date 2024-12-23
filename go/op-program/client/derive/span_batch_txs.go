@@ -407,10 +407,6 @@ func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Tra
 			V:               big.NewInt(int64(btx.seqYParityBits.Bit(idx))),
 		}
 		tx.SetTransactionMeta(txMeta)
-
-		// set l2 tx back
-		tx.SetL2Tx(0)
-
 		txs = append(txs, tx)
 	}
 	return txs, nil

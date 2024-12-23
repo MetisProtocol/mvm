@@ -99,13 +99,13 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 		var txChainBatcher, blobBatcher *common.Address
 		for _, batcherAddressAtHeight := range cfg.TxChainBatcherAddresses {
 			if l1Header.NumberU64() >= batcherAddressAtHeight.Height {
-				txChainBatcher = &batcherAddressAtHeight.Address
+				txChainBatcher = (*common.Address)(&batcherAddressAtHeight.Address)
 				break
 			}
 		}
 		for _, batcherAddressAtHeight := range cfg.BlobBatcherAddresses {
 			if l1Header.NumberU64() >= batcherAddressAtHeight.Height {
-				blobBatcher = &batcherAddressAtHeight.Address
+				blobBatcher = (*common.Address)(&batcherAddressAtHeight.Address)
 				break
 			}
 		}
@@ -127,7 +127,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 				blobCounter += len(tx.BlobHashes())
 			}
 
-			if tx.To() == nil || *tx.To() != cfg.InboxAddress {
+			if tx.To() == nil || *tx.To() != common.Address(cfg.InboxAddress) {
 				// ignore invalid inbox txs
 				continue
 			}
