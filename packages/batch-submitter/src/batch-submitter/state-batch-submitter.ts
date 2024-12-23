@@ -365,7 +365,11 @@ export class StateBatchSubmitter extends BatchSubmitter {
     endBlock: number
   ): Promise<Bytes32[]> {
     const blockRange = endBlock - startBlock
-    const batch: Bytes32[] = await bPromise.map(
+    const batch: {
+      stateRoot: Bytes32,
+      blockHash: Bytes32,
+      blockNumber: number
+    }[] = await bPromise.map(
       [...Array(blockRange).keys()],
       async (i: number) => {
         this.logger.debug('Fetching L2BatchElement', {
@@ -385,32 +389,42 @@ export class StateBatchSubmitter extends BatchSubmitter {
             fraudSubmissionAddress: this.fraudSubmissionAddress,
           })
           this.fraudSubmissionAddress = 'no fraud'
-          return '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1'
+          return {
+            stateRoot: '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1',
+            blockHash: '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1',
+            blockNumber: startBlock + i
+          }
         }
-        return block.stateRoot
+        return {
+          stateRoot: block.stateRoot,
+          blockHash: block.hash,
+          blockNumber: startBlock + i
+        }
       },
       { concurrency: 100 }
     )
 
     const proposer = this.l2ChainId + '_MVM_Proposer'
+    let stateRoots = batch.map(b => b.stateRoot)
     let tx = this.chainContract.interface.encodeFunctionData(
       'appendStateBatchByChainId',
-      [this.l2ChainId, batch, startBlock, proposer]
+      [this.l2ChainId, stateRoots, startBlock, proposer, batch[batch.length - 1].blockHash, batch[batch.length - 1].blockNumber]
     )
     while (remove0x(tx).length / 2 > this.maxTxSize) {
       batch.splice(Math.ceil((batch.length * 2) / 3)) // Delete 1/3rd of all of the batch elements
       this.logger.debug('Splicing batch...', {
         batchSizeInBytes: tx.length / 2,
       })
+      stateRoots = batch.map(b => b.stateRoot)
       tx = this.chainContract.interface.encodeFunctionData(
         'appendStateBatchByChainId',
-        [this.l2ChainId, batch, startBlock, proposer]
+        [this.l2ChainId, stateRoots, startBlock, proposer, batch[batch.length - 1].blockHash, batch[batch.length - 1].blockNumber]
       )
     }
 
     this.logger.info('Generated state commitment batch', {
-      batch, // list of stateRoots
+      stateRoots, // list of stateRoots
     })
-    return batch
+    return stateRoots
   }
 }
