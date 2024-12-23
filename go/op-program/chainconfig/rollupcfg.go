@@ -14,12 +14,12 @@ type BatcherAddressAtHeight struct {
 }
 
 type RollupConfig struct {
-	L1ChainId    *big.Int       `json:"l1_chain_id"`
-	InboxAddress common.Address `json:"inbox_address"`
+	L1ChainId    *big.Int       `json:"l1ChainId"`
+	InboxAddress common.Address `json:"inboxAddress"`
 
 	// the address of batcher address with height must be sorted in descending order,
 	// otherwise the search might be fail.
 	// since this data must be static, it's better to sort it before using instead of sorting it in the program.
-	TxChainBatcherAddresses []BatcherAddressAtHeight `json:"tx_chain_batcher_addresses"`
-	BlobBatcherAddresses    []BatcherAddressAtHeight `json:"blob_batcher_addresses"`
+	TxChainBatcherAddresses []BatcherAddressAtHeight `json:"txChainBatcherAddresses"`
+	BlobBatcherAddresses    []BatcherAddressAtHeight `json:"blobBatcherAddresses"`
 }
