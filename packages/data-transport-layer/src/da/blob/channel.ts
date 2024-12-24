@@ -754,6 +754,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     this.l1BlockTimestamps = []
     this.blockTxCounts = []
     this.txs = new SpanBatchTxs()
+    this.extraDatas = []
   }
 
   get batchType(): number {
