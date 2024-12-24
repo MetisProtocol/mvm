@@ -6,18 +6,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-
 	"github.com/ethereum-optimism/optimism/op-service/sources"
+
+	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
+	"github.com/ethereum-optimism/optimism/go/op-program/host/flags"
+
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/urfave/cli/v2"
 
-	"github.com/MetisProtocol/mvm/l2geth/eth"
-	"github.com/MetisProtocol/mvm/l2geth/rollup"
-	"github.com/ethereum-optimism/optimism/go/op-program/host/flags"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 var (
@@ -34,7 +33,8 @@ var (
 )
 
 type Config struct {
-	Rollup *rollup.Config
+	RollupURL string
+	Rollup    *chainconfig.RollupConfig
 	// DataDir is the directory to read/write pre-image data from/to.
 	// If not set, an in-memory key-value store is used and fetching data must be enabled
 	DataDir string
@@ -108,7 +108,7 @@ func (c *Config) FetchingEnabled() bool {
 
 // NewConfig creates a Config with all optional values set to the CLI default value
 func NewConfig(
-	rollupCfg *rollup.Config,
+	rollupCfg *chainconfig.RollupConfig,
 	l2Genesis *params.ChainConfig,
 	l1Head common.Hash,
 	l2Head common.Hash,
@@ -116,8 +116,9 @@ func NewConfig(
 	l2Claim common.Hash,
 	l2ClaimBlockNum uint64,
 ) *Config {
-	_, err := params.LoadOPStackChainConfig(l2Genesis.ChainID.Uint64())
+	_, err := chainconfig.ChainConfigByChainID(l2Genesis.ChainID.Uint64())
 	isCustomConfig := err != nil
+
 	return &Config{
 		Rollup:              rollupCfg,
 		L2ChainConfig:       l2Genesis,
@@ -131,21 +132,11 @@ func NewConfig(
 	}
 }
 
-// setRollup configures the rollup
-func setRollup(ctx *cli.Context, cfg *rollup.Config) {
-	if ctx.IsSet(flags.RollupAPIFlag.Name) {
-		cfg.RollupClientHttp = ctx.String(flags.RollupAPIFlag.Name)
-	}
-}
-
 func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 	var err error
 	if err = flags.CheckRequired(ctx); err != nil {
 		return nil, err
 	}
-
-	rollupCfg := eth.DefaultConfig.Rollup
-	setRollup(ctx, &rollupCfg)
 
 	l2Head := common.HexToHash(ctx.String(flags.L2Head.Name))
 	if l2Head == (common.Hash{}) {
@@ -169,28 +160,34 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 		return nil, ErrInvalidL1Head
 	}
 	l2GenesisPath := ctx.String(flags.L2GenesisPath.Name)
-	var l2ChainConfig *params.ChainConfig
+	rollupCfgPath := ctx.String(flags.RollupConfig.Name)
+	var (
+		l2ChainConfig *params.ChainConfig
+		rollupConfig  *chainconfig.RollupConfig
+	)
 	var isCustomConfig bool
 	if l2GenesisPath == "" {
 		networkName := ctx.String(flags.Network.Name)
-		ch := chaincfg.ChainByName(networkName)
-		if ch == nil {
+		cfg := chainconfig.ChainByName(networkName)
+		if cfg == nil {
 			return nil, fmt.Errorf("flag %s is required for network %s", flags.L2GenesisPath.Name, networkName)
 		}
-		cfg, err := params.LoadOPStackChainConfig(ch.ChainID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load chain config for chain %d: %w", ch.ChainID, err)
-		}
 		l2ChainConfig = cfg
+		rollupConfig, err = chainconfig.RollupConfigByChainID(cfg.ChainID.Uint64())
 	} else {
 		l2ChainConfig, err = loadChainConfigFromGenesis(l2GenesisPath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid genesis: %w", err)
+		}
+		rollupConfig, err = loadRollupConfig(rollupCfgPath)
 		isCustomConfig = true
 	}
 	if err != nil {
-		return nil, fmt.Errorf("invalid genesis: %w", err)
+		return nil, fmt.Errorf("invalid genesis or rollup config: %w", err)
 	}
+
 	return &Config{
-		Rollup:              &rollupCfg,
+		Rollup:              rollupConfig,
 		DataDir:             ctx.String(flags.DataDir.Name),
 		L2URL:               ctx.String(flags.L2NodeAddr.Name),
 		L2ChainConfig:       l2ChainConfig,
@@ -199,6 +196,7 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 		L2Claim:             l2Claim,
 		L2ClaimBlockNumber:  l2ClaimBlockNum,
 		L1Head:              l1Head,
+		RollupURL:           ctx.String(flags.RollupAPIFlag.Name),
 		L1URL:               ctx.String(flags.L1NodeAddr.Name),
 		L1BeaconURL:         ctx.String(flags.L1BeaconAddr.Name),
 		L1TrustRPC:          ctx.Bool(flags.L1TrustRPC.Name),
@@ -220,4 +218,17 @@ func loadChainConfigFromGenesis(path string) (*params.ChainConfig, error) {
 		return nil, fmt.Errorf("parse l2 genesis file: %w", err)
 	}
 	return genesis.Config, nil
+}
+
+func loadRollupConfig(path string) (*chainconfig.RollupConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read rollup config file: %w", err)
+	}
+	var cfg chainconfig.RollupConfig
+	err = json.Unmarshal(data, &cfg)
+	if err != nil {
+		return nil, fmt.Errorf("parse rollup config file: %w", err)
+	}
+	return &cfg, nil
 }

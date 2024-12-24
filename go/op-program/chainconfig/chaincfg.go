@@ -101,6 +101,33 @@ var l2RollupConfigsByChainID = map[uint64]*RollupConfig{
 	1088:  MetisAndromedaRollupConfig,
 }
 
+func handleLegacyName(name string) string {
+	switch name {
+	case "mainnet":
+		return "metis-andromeda"
+	case "sepolia":
+		return "metis-sepolia"
+	default:
+		return name
+	}
+}
+
+// ChainByName returns a chain, from known available configurations, by name.
+// ChainByName returns nil when the chain name is unknown.
+func ChainByName(name string) *params.ChainConfig {
+	// Handle legacy name aliases
+	name = handleLegacyName(name)
+
+	switch name {
+	case "metis-sepolia":
+		return MetisSepoliaChainConfig
+	case "metis-andromeda":
+		return MetisAndromedaChainConfig
+	}
+
+	return nil
+}
+
 func RollupConfigByChainID(chainID uint64) (*RollupConfig, error) {
 	rollupCfg, ok := l2RollupConfigsByChainID[chainID]
 	if !ok {

@@ -122,10 +122,10 @@ var requiredFlags = []cli.Flag{
 	L2OutputRoot,
 	L2Claim,
 	L2BlockNumber,
-	RollupAPIFlag,
 }
 
 var programFlags = []cli.Flag{
+	RollupAPIFlag,
 	RollupConfig,
 	Network,
 	DataDir,

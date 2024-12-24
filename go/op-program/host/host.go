@@ -9,13 +9,14 @@ import (
 	"os"
 	"os/exec"
 
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	oprollup "github.com/ethereum-optimism/optimism/op-node/rollup"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/client"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 
 	l2common "github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/rollup"
@@ -215,7 +216,7 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
 	l2DebugCl := &L2Source{Client: l2Cl, DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
-	rollupFetcher := rollup.NewClient(cfg.Rollup.RollupClientHttp, chainId)
+	rollupFetcher := rollup.NewClient(cfg.RollupURL, chainId)
 	return prefetcher.NewPrefetcher(logger, l1Cl, l1BlobFetcher, l2DebugCl, rollupFetcher, kv), nil
 }
 

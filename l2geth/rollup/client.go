@@ -116,7 +116,7 @@ func (b *BatchHeader) Pack() ([]byte, error) {
 		b.BatchRoot,
 		b.BatchSize,
 		b.PrevTotalElements,
-		b.ExtraData,
+		[]byte(b.ExtraData),
 	)
 }
 
