@@ -81,6 +81,7 @@ export class SpanBatch {
       this.originBits,
       this.batches.map((b) => b.epochNum),
       this.batches.map((b) => b.timestamp),
+      this.batches.map((b) => getBytes(b.extraData)),
       this.blockTxCounts,
       this.sbtxs
     )
@@ -96,6 +97,7 @@ export class SpanBatch {
     return {
       epochNum: singularBatch.epochNum,
       timestamp: singularBatch.timestamp,
+      extraData: singularBatch.extraData,
       transactions: singularBatch.transactions,
     }
   }
@@ -104,6 +106,7 @@ export class SpanBatch {
 export interface SpanBatchElement {
   epochNum: number
   timestamp: number
+  extraData: string
   transactions: L2Transaction[]
 }
 
@@ -112,7 +115,7 @@ export interface SpanBatchElement {
 // SpanBatchType := 1
 // spanBatch := SpanBatchType ++ prefix ++ payload
 // prefix := l2_start_block ++ parent_check ++ l1_origin_check
-// payload := block_count ++ origin_bits ++ l1_block_numbers ++ l1_block_timestamps ++ block_tx_counts ++ txs
+// payload := block_count ++ origin_bits ++ l1_block_numbers ++ l1_block_timestamps ++ block_tx_counts ++ block_extra_data ++ txs
 // txs := contract_creation_bits ++ y_parity_bits(v) ++ tx_sigs(r & s) ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits
 //        ++ queue_origin_bits ++ seq_y_parity_bits(v) ++ tx_seq_sigs(r & s) ++ l1_tx_origins
 export class RawSpanBatch {
@@ -124,6 +127,7 @@ export class RawSpanBatch {
     public originBits: bigint,
     public l1Blocks: number[],
     public l1BlockTimestamps: number[],
+    public extraDatas: Uint8Array[],
     public blockTxCounts: number[],
     public txs: SpanBatchTxs
   ) {}
@@ -154,6 +158,9 @@ export class RawSpanBatch {
     }
     for (const count of this.blockTxCounts) {
       writer.writeVarInt(count)
+    }
+    for (const extraData of this.extraDatas) {
+      writer.writeBytes(extraData)
     }
     writer.writeBytes(this.txs.encode())
   }

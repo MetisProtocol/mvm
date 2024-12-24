@@ -2,7 +2,7 @@ import { PassThrough, Readable } from 'stream'
 import * as zlib from 'zlib'
 import { Frame } from './frame'
 import * as RLP from 'rlp'
-import { ethers, toBigInt, toNumber } from 'ethersv6'
+import { ethers, hexlify, toBigInt, toNumber } from 'ethersv6'
 import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
 
 // Constants and Enums
@@ -111,11 +111,13 @@ export class BatchData {
 export class SpanBatchElement {
   epochNum: bigint
   timestamp: number
+  extraData: string
   transactions: L2Transaction[]
 
   constructor() {
     this.epochNum = BigInt(0)
     this.timestamp = 0
+    this.extraData = ''
     this.transactions = []
   }
 }
@@ -738,6 +740,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
   originBits: bigint
   l1Blocks: number[]
   l1BlockTimestamps: number[]
+  extraDatas: Buffer[]
   blockTxCounts: number[]
   txs: SpanBatchTxs
 
@@ -806,6 +809,10 @@ export class RawSpanBatch implements InnerBatchData, Batch {
       }
       this.blockTxCounts.push(count)
     }
+    for (let i = 0; i < this.blockCount; i++) {
+      const extraData = reader.readBytes(97)
+      this.extraDatas.push(extraData)
+    }
     // Decode txs
     this.txs = new SpanBatchTxs()
     await this.txs.decode(
@@ -841,6 +848,7 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     let txIdx = 0
     for (let i = 0; i < this.blockCount; i++) {
       const batch = new SpanBatchElement()
+      batch.extraData = hexlify(this.extraDatas[i])
 
       batch.transactions = []
       for (let j = 0; j < this.blockTxCounts[i]; j++) {

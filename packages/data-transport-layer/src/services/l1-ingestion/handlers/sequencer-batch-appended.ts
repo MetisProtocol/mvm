@@ -1,7 +1,7 @@
 /* Imports: External */
 import { Contract, ethers, EventLog, toBigInt, toNumber } from 'ethersv6'
 import { MerkleTree } from 'merkletreejs'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 import {
   EventArgsSequencerBatchAppended,
   fromHexString,

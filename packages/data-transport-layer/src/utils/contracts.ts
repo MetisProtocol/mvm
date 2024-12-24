@@ -1,6 +1,6 @@
 /* Imports: External */
 import { Contract, Signer, Provider, ethers } from 'ethersv6'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 
 export const loadContract = (
   name: string,

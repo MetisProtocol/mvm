@@ -328,6 +328,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
               index: l2BlockNumber - 1,
               batchIndex: Number(extraData.batchIndex),
               timestamp: batchElement.timestamp,
+              extraData: batchElement.extraData,
               transactions: batchElement.transactions.map(
                 (tx: L2Transaction) => {
                   const isSequencerTx = tx.queueOrigin === QueueOrigin.Sequencer

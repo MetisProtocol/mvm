@@ -1897,6 +1897,17 @@
     tweetnacl "^1.0.3"
     tweetnacl-util "^0.15.1"
 
+"@metis.io/contracts@^1.2.*", "@metis.io/contracts@^1.2.1":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@metis.io/contracts/-/contracts-1.2.3.tgz#b8095df23c6a009624cfd74e8b6b2720bd75ec64"
+  integrity sha512-KWQQFtF3ruMYdsQGnbNkpWH0Zm9ee60TRijpmz4g9FEc6L+Lw07LSuxJOtl8kqj/k7xAvV1faNrc86if64mVMA==
+  dependencies:
+    "@eth-optimism/core-utils" "^0.6.1"
+    "@ethersproject/abstract-provider" "^5.4.1"
+    "@ethersproject/abstract-signer" "^5.4.1"
+    "@ethersproject/contracts" "^5.4.1"
+    "@ethersproject/hardware-wallets" "^5.4.0"
+
 "@metis.io/core-utils@^0.6.1":
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/@metis.io/core-utils/-/core-utils-0.6.1.tgz#0db5e95c8e75d87a7a5b37b748a303d98eca909f"

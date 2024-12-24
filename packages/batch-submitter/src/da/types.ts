@@ -150,6 +150,7 @@ export interface BatchToInboxElement {
   blockNumber: number
   hash: string
   parentHash: string
+  extraData: string
   txs: BatchToInboxRawTx[]
 }
 export declare type BatchToInbox = BatchToInboxElement[]

@@ -272,8 +272,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       inboxSender &&
       inboxSender.length === 42 &&
       inboxSender.startsWith('0x') &&
-      inboxBatchStart > 0 &&
-      batchIndex > 0 &&
+      inboxBatchStart >= 0 &&
+      batchIndex >= 0 &&
       inboxBatchStart <= batchIndex
     return useBatchInbox
   }
@@ -872,31 +872,31 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       'get',
       '/batch/stateroot/hash/:hash/:chainId',
       async (req): Promise<StateRootBatchResponse> => {
-          const chainId = toNumber(req.params.chainId)
-          const db = await this._getDb(chainId)
-          const hash = req.params.hash
-          if (!hash || !hash.startsWith('0x') || hash.length !== 66) {
-              throw new Error('Invalid batch header hash')
-          }
+        const chainId = toNumber(req.params.chainId)
+        const db = await this._getDb(chainId)
+        const hash = req.params.hash
+        if (!hash || !hash.startsWith('0x') || hash.length !== 66) {
+          throw new Error('Invalid batch header hash')
+        }
 
-          const batch = await db.getStateHeaderByHash(hash)
+        const batch = await db.getStateHeaderByHash(hash)
 
-          if (batch === null) {
-              return {
-                  batch: null,
-                  stateRoots: [],
-              }
-          }
-
-          const stateRoots = await db.getStateRootsByIndexRange(
-              toNumber(batch.prevTotalElements),
-              toNumber(batch.prevTotalElements) + toNumber(batch.size)
-          )
-
+        if (batch === null) {
           return {
-              batch,
-              stateRoots,
+            batch: null,
+            stateRoots: [],
           }
+        }
+
+        const stateRoots = await db.getStateRootsByIndexRange(
+          toNumber(batch.prevTotalElements),
+          toNumber(batch.prevTotalElements) + toNumber(batch.size)
+        )
+
+        return {
+          batch,
+          stateRoots,
+        }
       }
     )
 

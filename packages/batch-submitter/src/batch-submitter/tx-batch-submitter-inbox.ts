@@ -635,6 +635,7 @@ export class TransactionBatchSubmitterInbox {
       blockNumber: block.number,
       hash: block.hash,
       parentHash: block.parentHash,
+      extraData: block.extraData,
       txs: [],
     }
 

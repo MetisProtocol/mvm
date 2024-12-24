@@ -5,7 +5,7 @@ import { RollupInfo, sleep } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 /* Internal Imports */
 import { TxSubmissionHooks } from '..'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 
 export interface BlockRange {
   start: number

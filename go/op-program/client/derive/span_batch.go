@@ -23,7 +23,7 @@ import (
 // SpanBatchType := 1
 // spanBatch := SpanBatchType ++ prefix ++ payload
 // prefix := l1_timestamp ++ l1_origin_num ++ parent_check ++ l1_origin_check
-// payload := block_count ++ origin_bits ++ block_tx_counts ++ txs
+// payload := block_count ++ origin_bits ++ block_tx_counts ++ block_extra_data ++ txs
 // txs := contract_creation_bits ++ y_parity_bits ++ tx_sigs ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits ++ queue_origin_bits ++ seq_y_parity_bits ++ tx_seq_sigs ++ l1_tx_origins
 
 var ErrTooBigSpanBatchSize = errors.New("span batch size limit reached")
@@ -42,6 +42,7 @@ type spanBatchPayload struct {
 	l1Blocks          []uint64      // List of L1 block numbers for each L2 block
 	l1BlockTimestamps []uint64      // List of L1 block timestamps for each L2 block
 	blockTxCounts     []uint64      // List of transaction counts for each L2 block
+	extraDatas        [][]byte      // List of L2 block extra datas
 	txs               *spanBatchTxs // Transactions encoded in SpanBatch specs
 }
 
@@ -173,6 +174,20 @@ func (bp *spanBatchPayload) decodeL1BlockTimestamps(r *bytes.Reader) error {
 	return nil
 }
 
+// decodeL2BlockExtraDatas parses inner into bp.extraDatas
+func (bp *spanBatchPayload) decodeL2BlockExtraDatas(r *bytes.Reader) error {
+	var extraDatas [][]byte
+	for i := 0; i < int(bp.blockCount); i++ {
+		extraData := make([]byte, 97)
+		if _, err := io.ReadFull(r, extraData); err != nil {
+			return fmt.Errorf("failed to read l2 block extra data: %w", err)
+		}
+		extraDatas = append(extraDatas, extraData)
+	}
+	bp.extraDatas = extraDatas
+	return nil
+}
+
 // decodeTxs parses inner into bp.txs
 func (bp *spanBatchPayload) decodeTxs(r *bytes.Reader) error {
 	if bp.txs == nil {
@@ -220,6 +235,9 @@ func (bp *spanBatchPayload) decodePayload(r *bytes.Reader) error {
 	if err := bp.decodeBlockTxCounts(r); err != nil {
 		return err
 	}
+	if err := bp.decodeL2BlockExtraDatas(r); err != nil {
+		return err
+	}
 	if err := bp.decodeTxs(r); err != nil {
 		return err
 	}
@@ -258,7 +276,9 @@ func (b *RawSpanBatch) derive(chainID *big.Int) (*SpanBatch, error) {
 	}
 	txIdx := 0
 	for i := 0; i < int(b.blockCount); i++ {
-		batch := SpanBatchElement{}
+		batch := SpanBatchElement{
+			ExtraData: b.extraDatas[i],
+		}
 
 		if i == 0 {
 			batch.Timestamp = fullTxs[0].L1Timestamp()
@@ -289,6 +309,7 @@ func (b *RawSpanBatch) ToSpanBatch(chainID *big.Int) (*SpanBatch, error) {
 type SpanBatchElement struct {
 	EpochNum     rollup.Epoch // aka l1 num
 	Timestamp    uint64
+	ExtraData    []byte
 	Transactions types.Transactions
 }
 
@@ -388,6 +409,7 @@ func (b *SpanBatch) DeriveL2Blocks() []*types.Block {
 		header := &types.Header{
 			Number: new(big.Int).SetUint64(b.L2StartBlock + uint64(i)),
 			Time:   new(big.Int).SetUint64(b.Batches[i].Timestamp).Uint64(),
+			Extra:  b.Batches[i].ExtraData,
 		}
 
 		blocks = append(blocks, types.NewBlock(header, blocks[i].Transactions(), nil, nil))

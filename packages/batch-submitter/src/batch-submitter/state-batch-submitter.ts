@@ -8,7 +8,7 @@ import {
   toNumber,
   TransactionReceipt,
 } from 'ethersv6'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 import { Bytes32, L2Block, remove0x, RollupInfo } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
@@ -116,7 +116,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
 
     this.chainContract = new Contract(
       sccAddress,
-      getContractDefinition('StateCommitmentChain').abi,
+      getContractDefinition('IMVMStateCommitmentChain').abi,
       this.signer
     )
 
@@ -237,7 +237,14 @@ export class StateBatchSubmitter extends BatchSubmitter {
     const batch = await this._generateStateCommitmentBatch(startBlock, endBlock)
     const calldata = this.chainContract.interface.encodeFunctionData(
       'appendStateBatchByChainId',
-      [this.l2ChainId, batch, startBlock, proposer]
+      [
+        this.l2ChainId,
+        batch.stateRoots,
+        startBlock,
+        proposer,
+        batch.blockHash,
+        batch.blockNumber,
+      ]
     )
     const batchSizeInBytes = remove0x(calldata).length / 2
     this.logger.debug('State batch generated', {
@@ -269,9 +276,11 @@ export class StateBatchSubmitter extends BatchSubmitter {
       .getFunction('appendStateBatchByChainId')
       .populateTransaction(
         this.l2ChainId,
-        batch,
+        batch.stateRoots,
         offsetStartsAtIndex,
         proposer,
+        batch.blockHash,
+        batch.blockNumber,
         { nonce }
       )
 
@@ -363,11 +372,15 @@ export class StateBatchSubmitter extends BatchSubmitter {
   private async _generateStateCommitmentBatch(
     startBlock: number,
     endBlock: number
-  ): Promise<Bytes32[]> {
+  ): Promise<{
+    stateRoots: Bytes32[]
+    blockHash: Bytes32
+    blockNumber: number
+  }> {
     const blockRange = endBlock - startBlock
     const batch: {
-      stateRoot: Bytes32,
-      blockHash: Bytes32,
+      stateRoot: Bytes32
+      blockHash: Bytes32
       blockNumber: number
     }[] = await bPromise.map(
       [...Array(blockRange).keys()],
@@ -390,41 +403,61 @@ export class StateBatchSubmitter extends BatchSubmitter {
           })
           this.fraudSubmissionAddress = 'no fraud'
           return {
-            stateRoot: '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1',
-            blockHash: '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1',
-            blockNumber: startBlock + i
+            stateRoot:
+              '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1',
+            blockHash:
+              '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1',
+            blockNumber: startBlock + i,
           }
         }
         return {
           stateRoot: block.stateRoot,
           blockHash: block.hash,
-          blockNumber: startBlock + i
+          blockNumber: startBlock + i,
         }
       },
       { concurrency: 100 }
     )
 
     const proposer = this.l2ChainId + '_MVM_Proposer'
-    let stateRoots = batch.map(b => b.stateRoot)
+    let stateRoots = batch.map((b) => b.stateRoot)
     let tx = this.chainContract.interface.encodeFunctionData(
       'appendStateBatchByChainId',
-      [this.l2ChainId, stateRoots, startBlock, proposer, batch[batch.length - 1].blockHash, batch[batch.length - 1].blockNumber]
+      [
+        this.l2ChainId,
+        stateRoots,
+        startBlock,
+        proposer,
+        batch[batch.length - 1].blockHash,
+        batch[batch.length - 1].blockNumber,
+      ]
     )
     while (remove0x(tx).length / 2 > this.maxTxSize) {
       batch.splice(Math.ceil((batch.length * 2) / 3)) // Delete 1/3rd of all of the batch elements
       this.logger.debug('Splicing batch...', {
         batchSizeInBytes: tx.length / 2,
       })
-      stateRoots = batch.map(b => b.stateRoot)
+      stateRoots = batch.map((b) => b.stateRoot)
       tx = this.chainContract.interface.encodeFunctionData(
         'appendStateBatchByChainId',
-        [this.l2ChainId, stateRoots, startBlock, proposer, batch[batch.length - 1].blockHash, batch[batch.length - 1].blockNumber]
+        [
+          this.l2ChainId,
+          stateRoots,
+          startBlock,
+          proposer,
+          batch[batch.length - 1].blockHash,
+          batch[batch.length - 1].blockNumber,
+        ]
       )
     }
 
     this.logger.info('Generated state commitment batch', {
       stateRoots, // list of stateRoots
     })
-    return stateRoots
+    return {
+      stateRoots,
+      blockHash: batch[batch.length - 1].blockHash,
+      blockNumber: batch[batch.length - 1].blockNumber,
+    }
   }
 }

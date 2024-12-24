@@ -98,6 +98,7 @@ export interface BlockEntry {
   timestamp: number
   transactions: TransactionEntry[]
   confirmed: boolean
+  extraData?: string
 }
 
 export enum SenderType {

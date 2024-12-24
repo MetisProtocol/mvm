@@ -318,7 +318,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           inboxSender &&
           inboxSender.length === 42 &&
           inboxSender.startsWith('0x') &&
-          inboxBatchStart > 0
+          inboxBatchStart >= 0
         const useBatchInbox =
           hasInboxConfig &&
           highestSyncedL1BatchIndex > 0 &&

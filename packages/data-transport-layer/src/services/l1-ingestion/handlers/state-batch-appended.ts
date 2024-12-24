@@ -1,5 +1,5 @@
 /* Imports: External */
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 import { Interface, toNumber, ethers } from 'ethersv6'
 
 /* Imports: Internal */
@@ -40,7 +40,7 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
   },
   parseEvent: async (event, extraData) => {
     const stateRoots = new Interface(
-      getContractDefinition('StateCommitmentChain').abi
+      getContractDefinition('IMVMStateCommitmentChain').abi
     ).decodeFunctionData(
       'appendStateBatchByChainId',
       extraData.l1TransactionData
@@ -89,22 +89,23 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
       }
     }
 
-    const packedHeader = ethers.AbiCoder.defaultAbiCoder().encode([
-      'bytes32',
-      'uint256',
-      'uint256',
-      'bytes',
-    ], [
-      entry.stateRootBatchEntry.root,
-      entry.stateRootBatchEntry.size,
-      entry.stateRootBatchEntry.prevTotalElements,
-      entry.stateRootBatchEntry.extraData,
-    ])
+    const packedHeader = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['bytes32', 'uint256', 'uint256', 'bytes'],
+      [
+        entry.stateRootBatchEntry.root,
+        entry.stateRootBatchEntry.size,
+        entry.stateRootBatchEntry.prevTotalElements,
+        entry.stateRootBatchEntry.extraData,
+      ]
+    )
 
     const headerHash = ethers.keccak256(packedHeader)
 
     await db.putStateRootBatchEntries([entry.stateRootBatchEntry])
     await db.putStateRootEntries(entry.stateRootEntries)
-    await db.putStateRootBatchHeaderHashIndex(headerHash, entry.stateRootBatchEntry.index)
+    await db.putStateRootBatchHeaderHashIndex(
+      headerHash,
+      entry.stateRootBatchEntry.index
+    )
   },
 }

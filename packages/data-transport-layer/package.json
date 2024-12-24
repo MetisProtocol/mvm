@@ -28,7 +28,7 @@
   "dependencies": {
     "@eth-optimism/common-ts": "0.1.5",
     "@eth-optimism/contracts": "^0.4.13",
-    "@metis.io/contracts": "^1.2.3",
+    "@localtest911/contracts": "^1.3.3",
     "@metis.io/core-utils": "~0.7.7",
     "@sentry/node": "^6.3.1",
     "@sentry/tracing": "^6.3.1",
