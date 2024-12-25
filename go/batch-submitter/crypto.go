@@ -20,7 +20,7 @@ var (
 		"or mnemonic+hdpath")
 )
 
-// ParseAddress parses an ETH addres from a hex string. This method will fail if
+// ParseAddress parses an ETH address from a hex string. This method will fail if
 // the address is not a valid hexidecimal address.
 func ParseAddress(address string) (common.Address, error) {
 	if common.IsHexAddress(address) {
