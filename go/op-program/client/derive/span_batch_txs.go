@@ -336,18 +336,15 @@ func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Tra
 	var txs types.Transactions
 	toIdx := 0
 	enqueueTxIdx := 0
-	blockCounter := uint64(0)
+	blockIndex := uint64(0)
 	for idx := 0; idx < int(btx.totalBlockTxCount); idx++ {
-		idxBlockUpperBound := 0
-		for blockTxCountIdx := range btx.blockTxCounts {
-			idxBlockUpperBound += int(btx.blockTxCounts[blockTxCountIdx])
-			if uint64(blockTxCountIdx) >= blockCounter {
-				break
-			}
+		idxBlockUpperBound := uint64(0)
+		for i := uint64(0); i <= blockIndex; i++ {
+			idxBlockUpperBound += btx.blockTxCounts[i]
 		}
 
-		if idx >= idxBlockUpperBound {
-			blockCounter++
+		if uint64(idx) >= idxBlockUpperBound {
+			blockIndex++
 		}
 
 		var stx spanBatchTx
@@ -386,22 +383,30 @@ func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Tra
 		}
 
 		// Note: set l2 tx to encode only the data part
-		tx.SetL2Tx(2)
-		encodedTxData, err := rlp.EncodeToBytes(tx)
-		if err != nil {
-			return nil, err
+		var rawTx []byte
+		if queueOrigin == types.QueueOriginL1ToL2 {
+			rawTx = btx.txDatas[idx]
+		} else {
+			tx.SetL2Tx(2)
+			rawTx, err = rlp.EncodeToBytes(tx)
+			if err != nil {
+				return nil, err
+			}
+			tx.SetL2Tx(0)
 		}
 
-		tx.SetL2Tx(0)
-		batchBlockIndex := startBlock + blockCounter - 1
+		batchBlockIndex := startBlock + blockIndex - 1
+
+		fmt.Printf("seqY parity bit of tx: %s, %s\n", tx.Hash().Hex(), btx.seqYParityBits.String())
+
 		txMeta := &types.TransactionMeta{
-			L1BlockNumber:   new(big.Int).SetUint64(btx.l1BlockNumbers[blockCounter]),
-			L1Timestamp:     btx.l1Timestamps[blockCounter],
+			L1BlockNumber:   new(big.Int).SetUint64(btx.l1BlockNumbers[blockIndex]),
+			L1Timestamp:     btx.l1Timestamps[blockIndex],
 			L1MessageSender: &l1TxOrigin,
 			QueueOrigin:     queueOrigin,
 			Index:           &batchBlockIndex,
 			QueueIndex:      &queueIndex,
-			RawTransaction:  encodedTxData,
+			RawTransaction:  rawTx,
 			R:               btx.txSeqSigs[idx].r.ToBig(),
 			S:               btx.txSeqSigs[idx].s.ToBig(),
 			V:               big.NewInt(int64(btx.seqYParityBits.Bit(idx))),

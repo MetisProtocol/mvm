@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 	opderive "github.com/ethereum-optimism/optimism/go/op-program/client/derive"
 	opprog "github.com/ethereum-optimism/optimism/go/op-program/client/types"
@@ -79,6 +81,9 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 	l2Claim common.Hash, l2ClaimBlockNum uint64,
 	l1Oracle l1.Oracle, l2Oracle l2.Oracle, dtlPreimageOracle dtl.Oracle) error {
 
+	// must use ovm for the derivation
+	rcfg.UsingOVM = true
+
 	logger.Info("Derivation start",
 		"l1Head", l1Head.Hex(),
 		"l2OutputRoot", l2OutputRoot.Hex(),
@@ -93,7 +98,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 	// retrieve the state root for l2 safe head
 	stateHeader := dtlPreimageOracle.StateBatchHeaderByHash(l2common.Hash(l2OutputRoot))
 	// start from the last block of the safe batch
-	l2StartBlock := stateHeader.PrevTotalElements.Uint64() + stateHeader.BatchSize.Uint64() + 1
+	l2StartBlock := stateHeader.PrevTotalElements.Uint64() + stateHeader.BatchSize.Uint64()
 	// end as the claim block
 	l2EndBlock := l2ClaimBlockNum
 
@@ -191,10 +196,14 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 
 				logger.Info("Decoded tx chain data", "tx", tx.Hash().Hex(), "data", txChainData)
 
-				if l2StartBlock >= txChainData.PrevTotalElements+txChainData.BatchSize+1 {
+				if l2StartBlock >= txChainData.PrevTotalElements+txChainData.BatchSize-1 {
 					// stop when all blobs are collected
-					logger.Info("All tx chain data collected, will exist when all blobs are collected")
+					logger.Info("All tx chain data collected, will exist when all blobs are collected",
+						"lastTxChainBatchStart", txChainData.PrevTotalElements-1, "size", txChainData.BatchSize)
 					stopWhenAllBlobsCollected = true
+				} else {
+					logger.Info("Not reached the start block yet, continue searching",
+						"target", l2StartBlock, "batchStart", txChainData.PrevTotalElements-1, "batchSize", txChainData.BatchSize)
 				}
 
 				// mark blob txs to collect
@@ -309,14 +318,21 @@ BREAKOUT:
 
 				derivedBlocks := spanBatch.DeriveL2Blocks()
 
+				logger.Info("Derived blocks", "channel", channelId.String(), "blockCount", len(derivedBlocks))
+
 				// filter out the blocks that are not in the range
 				for _, block := range derivedBlocks {
-					if block.NumberU64() >= l2StartBlock && block.NumberU64() <= l2EndBlock {
+					logger.Info("Checking block", "block", block.NumberU64())
+					if block.NumberU64() > l2StartBlock && block.NumberU64() <= l2EndBlock {
 						l2Blocks = append(l2Blocks, block)
 					}
 				}
 			}
 		}
+	}
+
+	if len(l2Blocks) == 0 {
+		return errors.New("no blocks to derive")
 	}
 
 	slices.SortFunc(l2Blocks, func(i, j *types.Block) int {
@@ -332,6 +348,7 @@ BREAKOUT:
 	logger.Info("Created L2 chain, start derivation", "head", l2Chain.CurrentHeader().Number.Uint64(), "headHash", l2Chain.CurrentHeader().Hash().Hex())
 	parentHeader := l2Chain.CurrentHeader()
 
+	logger.Info("Derivation range", "start", l2Blocks[0].NumberU64(), "end", l2Blocks[len(l2Blocks)-1].NumberU64())
 	intermediateStateRoots := make([]hexutil.Bytes, 0, len(l2Blocks))
 	for _, block := range l2Blocks {
 		logger.Info("Processing L2 block", "block", block.Number().Uint64())
@@ -362,13 +379,14 @@ BREAKOUT:
 			MixDigest:  block.MixDigest(),
 		}
 
-		logger.Debug("Block header created", "block", block.Number().Uint64(), "header", blockHeader)
+		logger.Info("Block header created", "block", block.Number().Uint64(), "header", blockHeader)
+		logger.Info("Creating intermediate state at", "block", block.Number().Uint64(), "root", parentHeader.Root.Hex())
 		state, err := l2Chain.StateAt(parentHeader.Root)
 		if err != nil {
 			return fmt.Errorf("failed to get state at %d: %w", block.Number().Uint64()-1, err)
 		}
 
-		logger.Debug("State retrieved", "block", block.Number().Uint64())
+		logger.Info("State retrieved", "block", block.Number().Uint64())
 
 		txs := block.Transactions()
 		emptyAddress := l2common.Address{}
@@ -385,7 +403,21 @@ BREAKOUT:
 
 				state.Prepare(tx.Hash(), l2common.Hash{}, i)
 
-				logger.Debug("Applying transaction", "block", block.Number().Uint64(), "tx", i, "hash", tx.Hash())
+				logger.Info("Applying transaction",
+					"block", block.Number().Uint64(),
+					"tx", i,
+					"hash", tx.Hash(),
+					"l1Block", tx.GetMeta().L1BlockNumber.Uint64(),
+					"l1MessageSender", tx.GetMeta().L1MessageSender.Hex(),
+					"l1Timestamp", tx.GetMeta().L1Timestamp,
+					"index", *tx.GetMeta().Index,
+					"queueOrigin", tx.GetMeta().QueueOrigin,
+					"queueIndex", *tx.GetMeta().QueueIndex,
+					"rawTransaction", hexutil.Encode(tx.Data()),
+					"seqR", hexutil.Encode(tx.GetMeta().R.Bytes()),
+					"seqS", hexutil.Encode(tx.GetMeta().S.Bytes()),
+					"seqV", hexutil.Encode(tx.GetMeta().V.Bytes()),
+				)
 
 				revid := state.Snapshot()
 				receipt, err := core.ApplyTransaction(l2Chain.Config(), l2Chain, &emptyAddress, gp, state, blockHeader, tx, &blockHeader.GasUsed, *l2Chain.GetVMConfig())
@@ -398,11 +430,12 @@ BREAKOUT:
 				}
 				receipts = append(receipts, receipt)
 
-				logger.Debug("Transaction applied", "block", block.Number().Uint64(), "tx", i, "hash", tx.Hash(), "reverted", receipt.Status != types.ReceiptStatusSuccessful)
+				logger.Info("Transaction applied", "block", block.Number().Uint64(), "tx", i, "hash", tx.Hash(), "reverted", receipt.Status != types.ReceiptStatusSuccessful)
 			}
 		}
 
-		logger.Debug("Transactions applied", "block", block.Number().Uint64(), "gasUsed", blockHeader.GasUsed)
+		logger.Info("Transactions applied", "block", block.Number().Uint64(), "gasUsed", blockHeader.GasUsed,
+			"txCount", len(txs), "receiptCount", len(receipts))
 
 		// Finalize the block
 		block, err = consEngine.FinalizeAndAssemble(l2Chain, blockHeader, state, txs, nil, receipts)
@@ -410,7 +443,21 @@ BREAKOUT:
 			return fmt.Errorf("failed to finalize block %d: %w", block.Number().Uint64(), err)
 		}
 
-		logger.Debug("Block finalized", "block", block.Number().Uint64())
+		logger.Info("Block finalized", "block", block.Number().Uint64(),
+			"hash", block.Hash().Hex())
+
+		// commit the state
+		root, err := state.Commit(l2Chain.Config().IsEIP158(l2Chain.CurrentHeader().Number))
+		if err != nil {
+			return fmt.Errorf("state write error: %w", err)
+		}
+
+		if err := state.Database().TrieDB().Commit(root, true); err != nil {
+			return fmt.Errorf("trie write error: %w", err)
+		}
+
+		intermediateStateRoots = append(intermediateStateRoots, root.Bytes())
+		logger.Info("State commited", "block", block.Number().Uint64(), "root", root.Hex())
 
 		// Set head
 		if _, err := l2Chain.SetCanonical(block); err != nil {
@@ -424,28 +471,16 @@ BREAKOUT:
 
 		logger.Debug("Block inserted", "block", block.Number().Uint64())
 
-		// commit the state
-		root, err := state.Commit(l2Chain.Config().IsEIP158(l2Chain.CurrentHeader().Number))
-		if err != nil {
-			return fmt.Errorf("state write error: %w", err)
-		}
-
-		if err := state.Database().TrieDB().Commit(root, true); err != nil {
-			return fmt.Errorf("trie write error: %w", err)
-		}
-
-		intermediateStateRoots = append(intermediateStateRoots, root.Bytes())
-		logger.Debug("State commited", "block", block.Number().Uint64())
-
 		parentHeader = block.Header()
+		blockHeaderJSON, _ := json.Marshal(block.Header())
+		logger.Info("Block header inserted", "header", string(blockHeaderJSON))
 
 		logger.Debug("Block processing finished", "block", block.Number().Uint64(), "hash", block.Hash().Hex())
-
-		if block.NumberU64() == l2ClaimBlockNum {
-			logger.Info("Reached claim block, stop processing", "block", block.NumberU64())
-			break
-		}
 	}
+
+	logger.Info("Derivation finished, validating claim", "head", l2Chain.CurrentHeader().Number.Uint64(),
+		"headHash", l2Chain.CurrentHeader().Hash().Hex(),
+		"stateRoot", l2Chain.CurrentHeader().Root.Hex())
 
 	return claim.ValidateClaim(logger, l2ClaimBlockNum, eth.Bytes32(l2Claim), dtlPreimageOracle, l2Chain)
 }

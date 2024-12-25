@@ -275,6 +275,7 @@ func (b *RawSpanBatch) derive(chainID *big.Int) (*SpanBatch, error) {
 		ChainID:       chainID,
 		ParentCheck:   b.parentCheck,
 		L1OriginCheck: b.l1OriginCheck,
+		L2StartBlock:  b.l2StartBlock,
 		Batches:       make([]*SpanBatchElement, 0, b.blockCount),
 	}
 
