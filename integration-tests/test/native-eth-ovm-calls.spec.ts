@@ -231,7 +231,7 @@ describe('Native ETH value integration tests', () => {
       const sendAmount = initialBalance0 + 1
       const internalCalldata = ValueCalls1.interface.encodeFunctionData(
         'verifyCallValueAndReturn',
-        [sendAmount] // this would be correct and return successfuly, IF it could get here
+        [sendAmount] // this would be correct and return successfully, IF it could get here
       )
       const [success, returndata] = await ValueCalls0.callStatic.sendWithData(
         ValueCalls1.address,
