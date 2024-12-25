@@ -375,8 +375,9 @@ func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Tra
 			enqueueTxIdx++
 		}
 
-		r := btx.txSigs[idx].r.ToBig()
-		s := btx.txSigs[idx].s.ToBig()
+		r := btx.txSigs[idx].r
+		s := btx.txSigs[idx].s
+
 		tx, err := stx.convertToFullTx(nonce, gas, to, chainID, r, s, byte(getBit(btx.yParityBits, idx)))
 		if err != nil {
 			return nil, err

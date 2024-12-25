@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/holiman/uint256"
+
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
@@ -53,7 +55,7 @@ func (tx *spanBatchTx) UnmarshalBinary(b []byte) error {
 }
 
 // convertToFullTx takes values and convert spanBatchTx to types.Transaction
-func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, chainID, R, S *big.Int, yParityBit byte) (*types.Transaction, error) {
+func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, chainID *big.Int, R, S *uint256.Int, yParityBit byte) (*types.Transaction, error) {
 	batchTxInner, ok := tx.inner.(*spanBatchLegacyTxData)
 	if !ok {
 		return nil, fmt.Errorf("invalid tx type: %d", tx.Type())
@@ -68,9 +70,12 @@ func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, ch
 		fullTx = types.NewTransaction(nonce, *to, batchTxInner.Value, gas, batchTxInner.GasPrice, batchTxInner.Data)
 	}
 
+	rB32 := R.Bytes32()
+	sB32 := S.Bytes32()
+
 	rawSig := make([]byte, 65)
-	copy(rawSig[:32], R.Bytes())
-	copy(rawSig[32:64], S.Bytes())
+	copy(rawSig[:32], rB32[:])
+	copy(rawSig[32:64], sB32[:])
 
 	// the last byte of the sig should be 0 or 1, we need to use the yParity bit here
 	rawSig[64] = yParityBit

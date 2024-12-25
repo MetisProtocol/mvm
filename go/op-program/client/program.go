@@ -403,22 +403,6 @@ BREAKOUT:
 
 				state.Prepare(tx.Hash(), l2common.Hash{}, i)
 
-				logger.Info("Applying transaction",
-					"block", block.Number().Uint64(),
-					"tx", i,
-					"hash", tx.Hash(),
-					"l1Block", tx.GetMeta().L1BlockNumber.Uint64(),
-					"l1MessageSender", tx.GetMeta().L1MessageSender.Hex(),
-					"l1Timestamp", tx.GetMeta().L1Timestamp,
-					"index", *tx.GetMeta().Index,
-					"queueOrigin", tx.GetMeta().QueueOrigin,
-					"queueIndex", *tx.GetMeta().QueueIndex,
-					"rawTransaction", hexutil.Encode(tx.Data()),
-					"seqR", hexutil.Encode(tx.GetMeta().R.Bytes()),
-					"seqS", hexutil.Encode(tx.GetMeta().S.Bytes()),
-					"seqV", hexutil.Encode(tx.GetMeta().V.Bytes()),
-				)
-
 				revid := state.Snapshot()
 				receipt, err := core.ApplyTransaction(l2Chain.Config(), l2Chain, &emptyAddress, gp, state, blockHeader, tx, &blockHeader.GasUsed, *l2Chain.GetVMConfig())
 				if err != nil {
