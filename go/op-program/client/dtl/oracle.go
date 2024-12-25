@@ -59,13 +59,14 @@ func (p *PreimageOracle) StateBatchHeaderByHash(batchHash common.Hash) *dtl.Batc
 func (p *PreimageOracle) StateBatchesByHash(batchHash common.Hash) []common.Hash {
 	batchHeader := p.StateBatchHeaderByHash(batchHash)
 
-	stateRoots := merkletrie.ReadTrie(ethcommon.Hash(batchHeader.BatchRoot), func(key ethcommon.Hash) []byte {
+	totalRoots := batchHeader.BatchSize.Uint64()
+	stateRoots := merkletrie.ReadTrie(ethcommon.Hash(batchHeader.BatchRoot), int(totalRoots), func(key ethcommon.Hash) []byte {
 		return p.oracle.Get(preimage.Keccak256Key(key))
 	})
 
-	stateRootHashes := make([]common.Hash, 0, len(stateRoots))
-	for _, root := range stateRoots {
-		stateRootHashes = append(stateRootHashes, common.BytesToHash(root))
+	stateRootHashes := make([]common.Hash, len(stateRoots))
+	for i, root := range stateRoots {
+		stateRootHashes[i] = common.BytesToHash(root)
 	}
 
 	return stateRootHashes

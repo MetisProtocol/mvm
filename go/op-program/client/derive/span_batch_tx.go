@@ -63,9 +63,9 @@ func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, ch
 
 	var fullTx *types.Transaction
 	if to == nil {
-		fullTx = types.NewContractCreation(nonce, batchTxInner.Value, gas, big.NewInt(0), batchTxInner.Data)
+		fullTx = types.NewContractCreation(nonce, batchTxInner.Value, gas, batchTxInner.GasPrice, batchTxInner.Data)
 	} else {
-		fullTx = types.NewTransaction(nonce, *to, batchTxInner.Value, gas, big.NewInt(0), batchTxInner.Data)
+		fullTx = types.NewTransaction(nonce, *to, batchTxInner.Value, gas, batchTxInner.GasPrice, batchTxInner.Data)
 	}
 
 	rawSig := make([]byte, 65)

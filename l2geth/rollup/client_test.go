@@ -8,9 +8,48 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 const url = "http://localhost:9999"
+
+func TestBatchHeaderPackUnpackHash(t *testing.T) {
+	header := &BatchHeader{
+		BatchRoot:         common.HexToHash("0xceee1e2f2476f1f88dc4189211f1a04447b3d3b0d8df15d2d5d846d1be69549a"),
+		BatchSize:         big.NewInt(0x77),
+		PrevTotalElements: big.NewInt(0x5bc),
+		ExtraData:         hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000676ab5f6000000000000000000000000879cf65ca2fda7fe7152b0ec6c19282a30120921bdc1eab0f7830415ee8f92aa33ee8f735365ab52bf317c2fc64ac359f5f250db0000000000000000000000000000000000000000000000000000000000000633"),
+	}
+
+	packed, err := header.Pack()
+	if err != nil {
+		t.Errorf("Pack failed: %v", err)
+	}
+
+	newHeader := new(BatchHeader)
+	if err := newHeader.Unpack(packed); err != nil {
+		t.Errorf("Unpack failed: %v", err)
+	}
+
+	if header.BatchRoot != newHeader.BatchRoot {
+		t.Errorf("BatchRoot mismatch, expected: %s, got: %s", header.BatchRoot.Hex(), newHeader.BatchRoot.Hex())
+	}
+	if header.BatchSize.Cmp(newHeader.BatchSize) != 0 {
+		t.Errorf("BatchSize mismatch, expected: %s, got: %s", header.BatchSize.String(), newHeader.BatchSize.String())
+	}
+	if header.PrevTotalElements.Cmp(newHeader.PrevTotalElements) != 0 {
+		t.Errorf("PrevTotalElements mismatch, expected: %s, got: %s", header.PrevTotalElements.String(), newHeader.PrevTotalElements.String())
+	}
+	if fmt.Sprintf("%x", header.ExtraData) != fmt.Sprintf("%x", newHeader.ExtraData) {
+		t.Errorf("ExtraData mismatch, expected: %x, got: %x", header.ExtraData, newHeader.ExtraData)
+	}
+
+	if header.Hash() != common.HexToHash("0x7eb1d7286be43da5e6a089c253f5dfd5d2308dd5a3ae6cb4d80ac7f74e4258aa") {
+		t.Errorf("Hash mismatch, header hash is: %s", header.Hash().Hex())
+	}
+}
 
 func TestRollupClientCannotConnect(t *testing.T) {
 	endpoint := fmt.Sprintf("%s/eth/context/latest", url)

@@ -82,6 +82,14 @@ func (e ExtraData) L2Head() common.Hash {
 	return common.BytesToHash(e[64:96])
 }
 
+func (e ExtraData) L2BlockNumber() *big.Int {
+	if len(e) < 128 {
+		return nil
+	}
+
+	return new(big.Int).SetBytes(e[96:128])
+}
+
 type BatchHeader struct {
 	BatchRoot         common.Hash
 	BatchSize         *big.Int
@@ -96,7 +104,7 @@ func (b *BatchHeader) Unpack(data []byte) error {
 	}
 
 	var ok bool
-	b.BatchRoot, ok = values[0].(common.Hash)
+	b.BatchRoot, ok = values[0].([32]byte)
 	b.BatchSize, ok = values[1].(*big.Int)
 	b.PrevTotalElements, ok = values[2].(*big.Int)
 	b.ExtraData, ok = values[3].([]byte)

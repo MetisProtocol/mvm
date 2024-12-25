@@ -1123,7 +1123,7 @@ func (s *SyncService) applyHistoricalTransaction(tx *types.Transaction, fromLoca
 	// Handle the off by one
 	block := s.bc.GetBlockByNumber(*index + 1)
 	if block == nil {
-		return fmt.Errorf("Block %d is not found", *index+1, "fromLocal", fromLocal)
+		return fmt.Errorf("Block %d is not found, fromLocal %v", *index+1, fromLocal)
 	}
 	if rcfg.DeSeqBlock > 0 && *index+1 >= rcfg.DeSeqBlock {
 		return nil

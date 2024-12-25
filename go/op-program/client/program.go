@@ -79,9 +79,15 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 	l2Claim common.Hash, l2ClaimBlockNum uint64,
 	l1Oracle l1.Oracle, l2Oracle l2.Oracle, dtlPreimageOracle dtl.Oracle) error {
 
+	logger.Info("Derivation start",
+		"l1Head", l1Head.Hex(),
+		"l2OutputRoot", l2OutputRoot.Hex(),
+		"l2Claim", l2Claim.Hex(),
+		"l2ClaimBlockNum", l2ClaimBlockNum)
+
 	signer := ethtypes.NewCancunSigner(cfg.L1ChainId)
 
-	rawBatchInfos := make([]opprog.RawBatchInfo, 0)
+	rawBatchInfos := make([]*opprog.RawBatchInfo, 0)
 	blobTxReverseIndex := make(map[common.Hash]uint64)
 
 	// retrieve the state root for l2 safe head
@@ -90,6 +96,12 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 	l2StartBlock := stateHeader.PrevTotalElements.Uint64() + stateHeader.BatchSize.Uint64() + 1
 	// end as the claim block
 	l2EndBlock := l2ClaimBlockNum
+
+	if l2StartBlock > l2EndBlock {
+		return fmt.Errorf("invalid derivation range, start block %d is greater than end block %d", l2StartBlock, l2EndBlock)
+	}
+
+	logger.Info("Derivation range, start traversing L1 backwards", "start", l2StartBlock, "end", l2EndBlock)
 
 	stopWhenAllBlobsCollected := false
 	// walk back to the l1 block that contains the given tx chain data,
@@ -109,7 +121,11 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 				break
 			}
 		}
+
+		logger.Info("Processing L1 block", "block", l1Header.NumberU64(), "txChainBatcher", txChainBatcher.Hex(), "blobBatcher", blobBatcher.Hex())
+
 		if txChainBatcher == nil || blobBatcher == nil {
+			logger.Error("Batcher address not found", "block", l1Header.NumberU64())
 			return fmt.Errorf("no batcher address found for height %d", l1Header.NumberU64())
 		}
 
@@ -122,6 +138,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 
 		// Find the tx that contains the tx chain data
 		blockInfo, txs := l1Oracle.TransactionsByBlockHash(l1Header.Hash())
+		logger.Info("Loaded L1 block txs", "block", l1Header.NumberU64(), "txCount", txs.Len())
 		for txIndex, tx := range txs {
 			if len(tx.BlobHashes()) > 0 {
 				blobCounter += len(tx.BlobHashes())
@@ -129,6 +146,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 
 			if tx.To() == nil || *tx.To() != common.Address(cfg.InboxAddress) {
 				// ignore invalid inbox txs
+				logger.Info("Ignoring non-inbox tx", "tx", tx.Hash().Hex(), "to", tx.To())
 				continue
 			}
 
@@ -137,35 +155,45 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 				return fmt.Errorf("failed to recover sender of tx %s: %w", tx.Hash().Hex(), err)
 			}
 
+			logger.Info("Processing inbox tx", "tx", tx.Hash().Hex(), "from", from.Hex())
+
 			if from != *txChainBatcher && from != *blobBatcher {
 				// ignore invalid inbox txs
+				logger.Info("tx is not from tx chain batcher or blob batcher")
 				continue
 			}
 
 			// lazy load block receipts
 			if blockReceipts == nil {
+				logger.Info("Loading receipts", "block", blockInfo.NumberU64())
 				_, blockReceipts = l1Oracle.ReceiptsByBlockHash(blockInfo.Hash())
 				if blockReceipts == nil || blockReceipts.Len() != txs.Len() {
 					return fmt.Errorf("receipts not found for tx %s", tx.Hash().Hex())
 				}
+				logger.Info("Loaded receipts", "block", blockInfo.NumberU64(), "receiptCount", blockReceipts.Len())
 			}
 
 			receipt := blockReceipts[txIndex]
 			if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 				// ignore failed txs
+				logger.Info("Ignoring failed tx", "tx", tx.Hash().Hex())
 				continue
 			}
 
 			if from == *txChainBatcher {
-
+				logger.Info("Processing tx chain tx", "tx", tx.Hash().Hex())
 				// decode tx chain data
 				var txChainData opprog.BatchSubmissionData
 				if err := txChainData.Decode(tx.Data()); err != nil {
+					logger.Error("Failed to decode tx chain data", "tx", tx.Hash().Hex(), "err", err)
 					return fmt.Errorf("failed to decode tx chain data: %w", err)
 				}
 
+				logger.Info("Decoded tx chain data", "tx", tx.Hash().Hex(), "data", txChainData)
+
 				if l2StartBlock >= txChainData.PrevTotalElements+txChainData.BatchSize+1 {
 					// stop when all blobs are collected
+					logger.Info("All tx chain data collected, will exist when all blobs are collected")
 					stopWhenAllBlobsCollected = true
 				}
 
@@ -174,7 +202,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 					blobTxReverseIndex[blobTxHash] = txChainData.BatchIndex
 				}
 
-				rawBatchInfos = append(rawBatchInfos, opprog.RawBatchInfo{
+				rawBatchInfos = append(rawBatchInfos, &opprog.RawBatchInfo{
 					BatchIndex:       txChainData.BatchIndex,
 					TotalBlobTxCount: uint64(len(txChainData.BlobTxHashes)),
 					BlobTransactions: make([]*opprog.BlobTxInfo, 0, len(txChainData.BlobTxHashes)),
@@ -184,12 +212,14 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 				batchIndex, ok := blobTxReverseIndex[tx.Hash()]
 				if !ok {
 					// ignore invalid blob tx
+					logger.Error("Ignoring invalid blob tx", "tx", tx.Hash().Hex())
 					continue
 				}
 
 				// the order of blob txs is reversed, need to reverse it back when converting to frames
 				lastFoundBatch := rawBatchInfos[len(rawBatchInfos)-1]
 				if lastFoundBatch.BatchIndex != batchIndex {
+					logger.Error("Blob tx not in the same batch as tx chain", "tx", tx.Hash().Hex())
 					return fmt.Errorf("blob tx %s not in the same batch as tx chain", tx.Hash().Hex())
 				}
 
@@ -200,18 +230,24 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 						Index: uint64(blobCounter - txBlobCount + i),
 						Hash:  blobHash,
 					})
+					logger.Info("Processing blob", "tx", tx.Hash().Hex(), "blobIndex", blobCounter-txBlobCount+i, "blobHash", blobHash.Hex())
 				}
+
+				logger.Info("Proccessed inbox blob tx", "tx", tx.Hash().Hex(), "blobCount", len(blobHashes))
 
 				lastFoundBatch.BlobTransactions = append(lastFoundBatch.BlobTransactions, &opprog.BlobTxInfo{
 					BlockRef:   l1BlockRef,
 					Tx:         tx,
-					BlobHashes: nil,
+					BlobHashes: blobHashes,
 				})
 				if stopWhenAllBlobsCollected && len(lastFoundBatch.BlobTransactions) == int(lastFoundBatch.TotalBlobTxCount) {
 					// already collected all batches we need, time to break out from the searching
+					logger.Info("All blobs collected, stop searching")
 					goto BREAKOUT
 				}
 			}
+
+			logger.Info("Processed inbox tx", "tx", tx.Hash().Hex())
 		}
 	}
 
@@ -222,14 +258,10 @@ BREAKOUT:
 
 	// decode batches and rebuild l2 blocks
 	l2Blocks := make([]*types.Block, 0, int(l2EndBlock-l2StartBlock+1))
+	framesByChannelId := make(map[derive.ChannelID][]derive.Frame)
 	for _, rawBatchInfo := range rawBatchInfos {
-		// reverse the blob txs, we need to derive from the earliest blob tx
-		slices.Reverse(rawBatchInfo.BlobTransactions)
-
-		blobData := make([]eth.Data, 0, len(rawBatchInfo.BlobTransactions))
-		totalLength := 0
 		for _, blobTx := range rawBatchInfo.BlobTransactions {
-			logger.Debug("Processing blob tx", "tx", blobTx.Tx.Hash().Hex())
+			logger.Debug("Processing blob tx data", "tx", blobTx.Tx.Hash().Hex(), "blobCount", len(blobTx.BlobHashes))
 			// derive the batch
 			for _, indexedBlobHash := range blobTx.BlobHashes {
 				blob := l1Oracle.GetBlob(blobTx.BlockRef, indexedBlobHash)
@@ -241,47 +273,55 @@ BREAKOUT:
 					return fmt.Errorf("failed to convert blob to data: %w", err)
 				}
 
-				blobData = append(blobData, rawData)
-				totalLength += len(blobData)
+				// parse frames
+				frames, err := derive.ParseFrames(rawData)
+				if err != nil {
+					return fmt.Errorf("failed to parse frames: %w", err)
+				} else if len(frames) == 0 {
+					return fmt.Errorf("no frames found in blob")
+				}
+
+				framesByChannelId[frames[0].ID] = append(framesByChannelId[frames[0].ID], frames...)
+
+				logger.Info("Processed blob tx", "tx", blobTx.Tx.Hash().Hex(), "blobIndex", indexedBlobHash.Index, "blobHash", indexedBlobHash.Hash.Hex(), "frameCount", len(frames))
 			}
-		}
-
-		// concat all blob datas
-		rawData := make([]byte, 0, totalLength)
-		for _, data := range blobData {
-			rawData = append(rawData, data...)
-		}
-
-		// parse frames
-		frames, err := derive.ParseFrames(rawData)
-		if err != nil {
-			return fmt.Errorf("failed to parse frames: %w", err)
-		} else if len(frames) == 0 {
-			return fmt.Errorf("no frames found in blob")
 		}
 
 		// derive the batch
-		channel, err := opderive.ProcessFrames(l2Cfg.ChainID, frames[0].ID, frames)
-		if err != nil {
-			return fmt.Errorf("failed to process frames: %w", err)
-		}
-
-		for _, batch := range channel.Batches {
-			spanBatch, ok := batch.AsSpanBatch()
-			if !ok {
-				return fmt.Errorf("failed to convert batch to span batch: %w", err)
+		for channelId, frames := range framesByChannelId {
+			// sort the frames by number
+			slices.SortFunc(frames, func(i, j derive.Frame) int {
+				return int(i.FrameNumber - j.FrameNumber)
+			})
+			logger.Info("Processing frame", "channel", channelId.String(), "frameCount", len(frames))
+			channel, err := opderive.ProcessFrames(l2Cfg.ChainID, channelId, frames)
+			if err != nil {
+				return fmt.Errorf("failed to process frames: %w", err)
 			}
 
-			derivedBlocks := spanBatch.DeriveL2Blocks()
+			for _, batch := range channel.Batches {
+				spanBatch, ok := batch.AsSpanBatch()
+				if !ok {
+					return fmt.Errorf("failed to convert batch to span batch: %w", err)
+				}
 
-			// filter out the blocks that are not in the range
-			for _, block := range derivedBlocks {
-				if block.NumberU64() >= l2StartBlock && block.NumberU64() <= l2EndBlock {
-					l2Blocks = append(l2Blocks, block)
+				logger.Info("Deriving span batch", "channel", channelId.String(), "batch", spanBatch)
+
+				derivedBlocks := spanBatch.DeriveL2Blocks()
+
+				// filter out the blocks that are not in the range
+				for _, block := range derivedBlocks {
+					if block.NumberU64() >= l2StartBlock && block.NumberU64() <= l2EndBlock {
+						l2Blocks = append(l2Blocks, block)
+					}
 				}
 			}
 		}
 	}
+
+	slices.SortFunc(l2Blocks, func(i, j *types.Block) int {
+		return int(i.NumberU64() - j.NumberU64())
+	})
 
 	logger.Info("Building up L2 chain...")
 	l2Chain, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, l1Oracle, dtlPreimageOracle, l2Cfg, l2common.Hash(l2OutputRoot), stateHeader)

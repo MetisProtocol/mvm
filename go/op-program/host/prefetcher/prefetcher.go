@@ -304,7 +304,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 func (p *Prefetcher) storeStateBatches(stateBatches []common.Hash) error {
 	opaqueBatches := make([]hexutil.Bytes, len(stateBatches))
 	for i, hash := range stateBatches {
-		opaqueBatches[i] = hash[:]
+		opaqueBatches[i] = hash.Bytes()
 	}
 
 	_, nodes := merkletrie.WriteTrie(opaqueBatches)

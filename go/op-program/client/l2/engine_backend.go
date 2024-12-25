@@ -45,12 +45,12 @@ func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle e
 
 	stateRoots := dtlPreimageOracle.StateBatchesByHash(l2OutputRoot)
 	if len(stateRoots) == 0 {
-		return nil, fmt.Errorf("no state roots found for output root %v", l2OutputRoot)
+		return nil, fmt.Errorf("no state roots found for output root %v", l2OutputRoot.Hex())
 	}
 
 	l2Head := stateHeader.ExtraData.L2Head()
 	if l2Head == (common.Hash{}) {
-		return nil, fmt.Errorf("no L2 head found in state header %v", stateHeader.Hash())
+		return nil, fmt.Errorf("no L2 head found in state header %v", stateHeader.Hash().Hex())
 	}
 
 	// validate the l2 head against the last state root in batch
@@ -58,9 +58,9 @@ func NewOracleBackedL2Chain(logger log.Logger, oracle Oracle, precompileOracle e
 
 	db := NewOracleBackedDB(oracle)
 	head := oracle.BlockByHash(l2Head)
-	logger.Info("Loaded L2 head", "hash", head.Hash(), "number", head.Number())
+	logger.Info("Loaded L2 head", "hash", head.Hash().Hex(), "number", head.Number())
 	if head.Root() != lastStateRoot {
-		return nil, fmt.Errorf("l2 head root %v does not match last state root %v", head.Root(), lastStateRoot)
+		return nil, fmt.Errorf("l2 head root %v does not match last state root %v", head.Root(), lastStateRoot.Hex())
 	}
 
 	return &OracleBackedL2Chain{

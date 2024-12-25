@@ -105,57 +105,85 @@ func WriteTrie(values []hexutil.Bytes) (common.Hash, []hexutil.Bytes) {
 	return root, preimages
 }
 
-// ReadTrie traverses from the root to collect all leaves in BFS order (left to right).
-// This order matches the original input order if we built the tree the same way.
-func ReadTrie(root common.Hash, getPreimage func(key common.Hash) []byte) []hexutil.Bytes {
-	// default set for skipping
+// ReadTrie BFS with a known depth so we only expand (depth-1) times.
+// The final level is considered leaves, so we do not call getPreimage on them.
+func ReadTrie(
+	root common.Hash,
+	nLeaves int, // number of leaves
+	getPreimage func(common.Hash) []byte,
+) []hexutil.Bytes {
+	if (root == common.Hash{}) || nLeaves == 0 {
+		return nil
+	}
+	// we can compute the same depth
+	treeDepth := calcDepth(nLeaves)
+
 	skip := make(map[common.Hash]bool)
 	for _, dh := range defaultHashes {
 		skip[dh] = true
 	}
 
-	var result []common.Hash
-	if (root == common.Hash{}) {
-		return nil
+	// BFS queue with a "level"
+	type nodeLevel struct {
+		h     common.Hash
+		level int
 	}
-
-	// We'll use BFS (queue). This ensures we scan from left to right at each level,
-	// which reproduces the original leaf order.
-	queue := []common.Hash{root}
+	queue := []nodeLevel{
+		{root, 0},
+	}
+	var leaves []common.Hash
 
 	for len(queue) > 0 {
-		h := queue[0]
+		front := queue[0]
 		queue = queue[1:]
 
-		// skip default
-		if skip[h] {
+		if skip[front.h] {
 			continue
 		}
-		raw := getPreimage(h)
-		if raw == nil {
-			// not found => it's presumably a leaf
-			// store it in result
-			result = append(result, h)
+		// If front.level == treeDepth, that means it's a leaf-level node
+		// so do not expand further
+		if front.level == treeDepth {
+			leaves = append(leaves, front.h)
 			continue
 		}
-		// If we find 64 bytes, it's an internal node => left||right
-		if len(raw) != 64 {
-			// this shouldn't happen if all internal nodes store 64 bytes
-			panic(fmt.Errorf("invalid node data length=%d for hash=%s", len(raw), h.Hex()))
+
+		data := getPreimage(front.h)
+		// If data is not 64 bytes, treat it as leaf.
+		// (Some designs might store internal node => 64 bytes, leaf => no entry)
+		if len(data) != 64 {
+			leaves = append(leaves, front.h)
+			continue
 		}
-		left := common.BytesToHash(raw[:32])
-		right := common.BytesToHash(raw[32:])
-		// enqueue left->right
-		queue = append(queue, left, right)
+
+		// parse internal node
+		left := common.BytesToHash(data[:32])
+		right := common.BytesToHash(data[32:])
+		queue = append(queue, nodeLevel{left, front.level + 1})
+		queue = append(queue, nodeLevel{right, front.level + 1})
 	}
 
-	// Now 'result' contains the leaves in BFS order,
-	// which matches the left->right layering from the original merges.
-	out := make([]hexutil.Bytes, len(result))
-	for i, leafH := range result {
+	// leaves are in BFS order => same as original left->right merges
+	out := make([]hexutil.Bytes, len(leaves))
+	for i, lf := range leaves {
 		cp := make([]byte, 32)
-		copy(cp, leafH[:])
+		copy(cp, lf[:])
 		out[i] = cp
 	}
 	return out
+}
+
+// calcDepth counts how many merge rounds occur for n leaves
+func calcDepth(n int) int {
+	depth := 0
+	rowSize := n
+	for rowSize > 1 {
+		half := rowSize / 2
+		odd := rowSize%2 == 1
+		rowSize = half
+		if odd {
+			rowSize++
+		}
+		depth++
+	}
+	return depth
 }

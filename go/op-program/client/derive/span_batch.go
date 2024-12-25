@@ -31,12 +31,12 @@ var ErrTooBigSpanBatchSize = errors.New("span batch size limit reached")
 var ErrEmptySpanBatch = errors.New("span-batch must not be empty")
 
 type spanBatchPrefix struct {
+	l2StartBlock  uint64   // L2 block number of the first block in the span
 	parentCheck   [20]byte // First 20 bytes of the first block's parent hash
 	l1OriginCheck [20]byte // First 20 bytes of the last block's L1 origin hash
 }
 
 type spanBatchPayload struct {
-	l2StartBlock      uint64        // L2 block number of the first block in the span
 	blockCount        uint64        // Number of L2 block in the span
 	originBits        *big.Int      // Standard span-batch bitlist of blockCount bits. Each bit indicates if the L1 origin is changed at the L2 block.
 	l1Blocks          []uint64      // List of L1 block numbers for each L2 block
@@ -75,8 +75,19 @@ func (bp *spanBatchPrefix) decodeL1OriginCheck(r *bytes.Reader) error {
 	return nil
 }
 
+func (bp *spanBatchPrefix) decodeL2StartBlock(r *bytes.Reader) (err error) {
+	bp.l2StartBlock, err = binary.ReadUvarint(r)
+	if err != nil {
+		return fmt.Errorf("failed to read l2 start block: %w", err)
+	}
+	return nil
+}
+
 // decodePrefix parses inner into bp.spanBatchPrefix
 func (bp *spanBatchPrefix) decodePrefix(r *bytes.Reader) error {
+	if err := bp.decodeL2StartBlock(r); err != nil {
+		return err
+	}
 	if err := bp.decodeParentCheck(r); err != nil {
 		return err
 	}
@@ -144,11 +155,6 @@ func (bp *spanBatchPayload) decodeL1Blocks(r *bytes.Reader) error {
 		if err != nil {
 			return fmt.Errorf("failed to read l1 blocks: %w", err)
 		}
-		// number of txs in single L2 block cannot be greater than MaxSpanBatchElementCount
-		// every tx will take at least single byte
-		if l1Block > derive.MaxSpanBatchElementCount {
-			return ErrTooBigSpanBatchSize
-		}
 		l1Blocks = append(l1Blocks, l1Block)
 	}
 	bp.l1Blocks = l1Blocks
@@ -159,16 +165,11 @@ func (bp *spanBatchPayload) decodeL1Blocks(r *bytes.Reader) error {
 func (bp *spanBatchPayload) decodeL1BlockTimestamps(r *bytes.Reader) error {
 	var l1BlockTimestamps []uint64
 	for i := 0; i < int(bp.blockCount); i++ {
-		l1Block, err := binary.ReadUvarint(r)
+		l1BlockTimestamp, err := binary.ReadUvarint(r)
 		if err != nil {
 			return fmt.Errorf("failed to read l1 block timestamps: %w", err)
 		}
-		// number of txs in single L2 block cannot be greater than MaxSpanBatchElementCount
-		// every tx will take at least single byte
-		if l1Block > derive.MaxSpanBatchElementCount {
-			return ErrTooBigSpanBatchSize
-		}
-		l1BlockTimestamps = append(l1BlockTimestamps, l1Block)
+		l1BlockTimestamps = append(l1BlockTimestamps, l1BlockTimestamp)
 	}
 	bp.l1BlockTimestamps = l1BlockTimestamps
 	return nil
@@ -271,19 +272,21 @@ func (b *RawSpanBatch) derive(chainID *big.Int) (*SpanBatch, error) {
 	}
 
 	spanBatch := SpanBatch{
+		ChainID:       chainID,
 		ParentCheck:   b.parentCheck,
 		L1OriginCheck: b.l1OriginCheck,
+		Batches:       make([]*SpanBatchElement, 0, b.blockCount),
 	}
+
 	txIdx := 0
 	for i := 0; i < int(b.blockCount); i++ {
 		batch := SpanBatchElement{
-			ExtraData: b.extraDatas[i],
+			ExtraData:    b.extraDatas[i],
+			Transactions: make(types.Transactions, 0, b.blockTxCounts[i]),
+			Timestamp:    fullTxs[txIdx].L1Timestamp(),
+			EpochNum:     rollup.Epoch(fullTxs[txIdx].L1BlockNumber().Uint64()),
 		}
 
-		if i == 0 {
-			batch.Timestamp = fullTxs[0].L1Timestamp()
-			batch.EpochNum = rollup.Epoch(fullTxs[0].L1BlockNumber().Uint64())
-		}
 		for j := 0; j < int(b.blockTxCounts[i]); j++ {
 			batch.Transactions = append(batch.Transactions, fullTxs[txIdx])
 			txIdx++
@@ -404,15 +407,15 @@ func (b *SpanBatch) GetBlockCount() int {
 func (b *SpanBatch) peek(n int) *SpanBatchElement { return b.Batches[len(b.Batches)-1-n] }
 
 func (b *SpanBatch) DeriveL2Blocks() []*types.Block {
-	var blocks []*types.Block
-	for i := 0; i < len(b.Batches); i++ {
+	blocks := make([]*types.Block, 0, len(b.Batches))
+	for i, batch := range b.Batches {
 		header := &types.Header{
 			Number: new(big.Int).SetUint64(b.L2StartBlock + uint64(i)),
-			Time:   new(big.Int).SetUint64(b.Batches[i].Timestamp).Uint64(),
-			Extra:  b.Batches[i].ExtraData,
+			Time:   new(big.Int).SetUint64(batch.Timestamp).Uint64(),
+			Extra:  batch.ExtraData,
 		}
 
-		blocks = append(blocks, types.NewBlock(header, blocks[i].Transactions(), nil, nil))
+		blocks = append(blocks, types.NewBlock(header, batch.Transactions, nil, nil))
 	}
 	return blocks
 }

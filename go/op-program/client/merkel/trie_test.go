@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
 // TestWriteReadTrie tests the Merkle trie construction and BFS reading.
@@ -1333,7 +1334,7 @@ func TestWriteReadTrie(t *testing.T) {
 	// Node data can be 64 bytes (left||right). If nil => leaf.
 	// We'll populate it from preimages. If the hashed preimage matches a 64-byte raw, store it.
 	// If the hashed preimage is 32 bytes leftover from the original leaf, we won't store it, so it is recognized as leaf.
-	db := make(map[string][]byte)
+	db := make(map[[32]byte][]byte)
 
 	// putPreimage is a helper to fill our in-memory DB
 	putPreimage := func(raw []byte) {
@@ -1341,7 +1342,7 @@ func TestWriteReadTrie(t *testing.T) {
 		// If it's 64 bytes, it represents an internal node => store.
 		// If it's 32 bytes, it's a leaf => do NOT store, so getPreimage returns nil => leaf recognized.
 		if len(raw) == 64 {
-			db[string(hash)] = raw
+			db[preimage.Keccak256Key(hash[:32]).PreimageKey()] = raw
 		}
 	}
 
@@ -1354,11 +1355,11 @@ func TestWriteReadTrie(t *testing.T) {
 	// If key is found in db => return the 64-byte node data
 	// Else => we assume it's a leaf => return nil
 	getPreimage := func(key common.Hash) []byte {
-		return db[string(key[:])]
+		return db[preimage.Keccak256Key(key).PreimageKey()]
 	}
 
 	// Now read the trie in BFS order
-	recovered := ReadTrie(root, getPreimage)
+	recovered := ReadTrie(root, len(input), getPreimage)
 
 	// We expect the BFS output to match the original input order
 	if len(recovered) != len(input) {
