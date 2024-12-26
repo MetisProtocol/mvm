@@ -51,6 +51,8 @@ const deployFn: DeployFunction = async (hre) => {
       delayedWETH.address, // address of DelayedWETH contract
       addressManager.address, // address of AddressManager contract
       (hre as any).deployConfig.l2chainid, // L2 chain ID
+      proposer, // proposer
+      challenger, // challenger
     ],
   })
 

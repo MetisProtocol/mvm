@@ -1,25 +1,31 @@
 import { DeployFunction } from 'hardhat-deploy/dist/types'
-import { registerAddress } from '../src/hardhat-deploy-ethers'
-import { ethers, upgrades } from 'hardhat'
+import {
+  deployWithOZTransparentProxy,
+  registerAddress,
+} from '../src/hardhat-deploy-ethers'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
 
-  // Deploy DisputeGameFactory using upgrades plugin
-  const DisputeGameFactory = await ethers.getContractFactory(
-    'DisputeGameFactory',
-    await ethers.getSigner(deployer)
-  )
-  const factory = await upgrades.deployProxy(DisputeGameFactory, [deployer], {
-    initializer: 'initialize',
-  })
-  await factory.deployed()
-
-  await registerAddress({
+  const factory = await deployWithOZTransparentProxy({
     hre,
     name: 'DisputeGameFactory',
-    address: factory.address,
+    args: [deployer],
+    options: {
+      constructorArgs: [],
+      unsafeAllow: ['constructor'],
+    },
   })
+
+  console.log(`DisputeGameFactory deployed to: ${factory.contract.address}`)
+
+  if (factory.newDeploy) {
+    await registerAddress({
+      hre,
+      name: 'DisputeGameFactory',
+      address: factory.contract.address,
+    })
+  }
 }
 
 deployFn.tags = ['DisputeGameFactory', 'factory', 'faultproof']

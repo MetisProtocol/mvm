@@ -3,6 +3,7 @@ import { Contract, ethers } from 'ethers'
 import { Provider } from '@ethersproject/abstract-provider'
 import { Signer } from '@ethersproject/abstract-signer'
 import { sleep } from '@metis.io/core-utils'
+import { upgrades } from 'hardhat'
 export const hexStringEquals = (stringA: string, stringB: string): boolean => {
   if (!ethers.utils.isHexString(stringA)) {
     throw new Error(`input is not a hex string: ${stringA}`)
@@ -216,4 +217,60 @@ export const getDeployedContract = async (
     hre,
     contract: new Contract(deployed.address, iface, signerOrProvider),
   })
+}
+
+export const deployWithOZTransparentProxy = async ({
+  hre,
+  name,
+  args,
+  options,
+}: {
+  hre: any
+  name: string
+  args: any[]
+  options?: any
+}): Promise<{
+  contract: Contract
+  newDeploy: boolean
+}> => {
+  const { deployer } = await hre.getNamedAccounts()
+  const deployment = await hre.deployments.getOrNull(name)
+  if (deployment) {
+    console.log(`reusing "${name}" at ${deployment.address}`)
+    return {
+      contract: await getDeployedContract(hre, name, {
+        signerOrProvider: deployer,
+      }),
+      newDeploy: false,
+    }
+  }
+
+  const contractFactory = await hre.ethers.getContractFactory(
+    name,
+    await hre.ethers.getSigner(deployer)
+  )
+
+  const contract = await upgrades.deployProxy(contractFactory, args, {
+    kind: 'transparent',
+    initializer: 'initialize',
+    ...options,
+  })
+
+  await contract.deployed()
+
+  const artifact = await hre.deployments.getExtendedArtifact(name)
+
+  // receipt missing
+  const newDeployment = {
+    ...artifact,
+    address: contract.address,
+    transactionHash: contract.deployTransaction.hash,
+    receipt: await contract.deployTransaction.wait(
+      hre.deployConfig.numDeployConfirmations
+    ),
+    args,
+  }
+
+  await hre.deployments.save(name, newDeployment)
+  return { contract, newDeploy: true }
 }

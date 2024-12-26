@@ -17,7 +17,6 @@ const deployFn: DeployFunction = async (hre) => {
   })
 
   const preimageOracle = await getDeployedContract(hre, 'PreimageOracle', {
-    iface: 'IPreimageOracle',
     signerOrProvider: deployer,
   })
 

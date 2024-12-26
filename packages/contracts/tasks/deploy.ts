@@ -115,7 +115,7 @@ task('deploy')
     types.boolean
   )
   .addOptionalParam(
-    'absolutePreState',
+    'absolutePrestate',
     'absolute prestate of op-program',
     false,
     types.string
