@@ -268,7 +268,7 @@ export const deployWithOZTransparentProxy = async ({
     receipt: await contract.deployTransaction.wait(
       hre.deployConfig.numDeployConfirmations
     ),
-    args,
+    args: options.constructorArgs,
   }
 
   await hre.deployments.save(name, newDeployment)
