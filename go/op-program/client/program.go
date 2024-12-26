@@ -11,14 +11,15 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum/go-ethereum/common"
+	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
 	l2common "github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 	opderive "github.com/ethereum-optimism/optimism/go/op-program/client/derive"
@@ -79,7 +80,7 @@ func RunProgram(logger log.Logger, preimageOracle io.ReadWriter, preimageHinter 
 func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *params.ChainConfig,
 	l1Head common.Hash, l2OutputRoot common.Hash,
 	l2Claim common.Hash, l2ClaimBlockNum uint64,
-	l1Oracle l1.Oracle, l2Oracle l2.Oracle, dtlPreimageOracle dtl.Oracle) error {
+	l1Oracle l1.Oracle, l2Oracle l2.Oracle, dtlPreimageOracle dtl.Oracle) (err error) {
 
 	// must use ovm for the derivation
 	rcfg.UsingOVM = true
@@ -107,6 +108,9 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 	}
 
 	logger.Info("Derivation range, start traversing L1 backwards", "start", l2StartBlock, "end", l2EndBlock)
+
+	// batch to dispute
+	var disputedBatchHeader *rollup.BatchHeader
 
 	stopWhenAllBlobsCollected := false
 	// walk back to the l1 block that contains the given tx chain data,
@@ -149,23 +153,33 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 				blobCounter += len(tx.BlobHashes())
 			}
 
-			if tx.To() == nil || *tx.To() != common.Address(cfg.InboxAddress) {
-				// ignore invalid inbox txs
+			if tx.To() == nil {
+				// ignore contract creation
 				logger.Info("Ignoring non-inbox tx", "tx", tx.Hash().Hex(), "to", tx.To())
 				continue
 			}
 
-			from, err := signer.Sender(tx)
-			if err != nil {
-				return fmt.Errorf("failed to recover sender of tx %s: %w", tx.Hash().Hex(), err)
+			to := *tx.To()
+			if to != common.Address(cfg.InboxAddress) && to != common.Address(cfg.SCCAddress) {
+				logger.Info("Ignoring non-inbox tx", "tx", tx.Hash().Hex(), "to", to.Hex())
+				continue
 			}
 
-			logger.Info("Processing inbox tx", "tx", tx.Hash().Hex(), "from", from.Hex())
+			// check sender for inbox txs
+			var from common.Address
+			if to == common.Address(cfg.InboxAddress) {
+				from, err = signer.Sender(tx)
+				if err != nil {
+					return fmt.Errorf("failed to recover sender of tx %s: %w", tx.Hash().Hex(), err)
+				}
 
-			if from != *txChainBatcher && from != *blobBatcher {
-				// ignore invalid inbox txs
-				logger.Info("tx is not from tx chain batcher or blob batcher")
-				continue
+				logger.Info("Processing inbox tx", "tx", tx.Hash().Hex(), "from", from.Hex())
+
+				if from != *txChainBatcher && from != *blobBatcher {
+					// ignore invalid inbox txs
+					logger.Info("tx is not from tx chain batcher or blob batcher")
+					continue
+				}
 			}
 
 			// lazy load block receipts
@@ -185,7 +199,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 				continue
 			}
 
-			if from == *txChainBatcher {
+			if from == *txChainBatcher && to == common.Address(cfg.InboxAddress) {
 				logger.Info("Processing tx chain tx", "tx", tx.Hash().Hex())
 				// decode tx chain data
 				var txChainData opprog.BatchSubmissionData
@@ -216,7 +230,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 					TotalBlobTxCount: uint64(len(txChainData.BlobTxHashes)),
 					BlobTransactions: make([]*opprog.BlobTxInfo, 0, len(txChainData.BlobTxHashes)),
 				})
-			} else if from == *blobBatcher && tx.Type() == ethtypes.BlobTxType {
+			} else if from == *blobBatcher && tx.Type() == ethtypes.BlobTxType && to == common.Address(cfg.InboxAddress) {
 				// collect blob txs
 				batchIndex, ok := blobTxReverseIndex[tx.Hash()]
 				if !ok {
@@ -254,6 +268,55 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 					logger.Info("All blobs collected, stop searching")
 					goto BREAKOUT
 				}
+			} else if to == common.Address(cfg.SCCAddress) && disputedBatchHeader == nil {
+				// collect state commitment batch header
+				for _, log := range receipt.Logs {
+					if log.Address != common.Address(cfg.SCCAddress) || len(log.Topics) < 2 {
+						// ignore invalid event
+						continue
+					}
+
+					eventSignature := common.Hash(l1.SCCABI.Events["StateBatchAppended"].ID())
+					if log.Topics[0] == eventSignature {
+						// Decode non-indexed fields (from Data)
+						mapData := make(map[string]interface{})
+						if err = l1.SCCABI.UnpackIntoMap(mapData, "StateBatchAppended", log.Data); err != nil {
+							return fmt.Errorf("failed to unpack StateBatchAppended event: %w", err)
+						}
+
+						chainID, ok := mapData["_chainId"].(*big.Int)
+						batchRoot, ok := mapData["_batchRoot"].([32]byte)
+						batchSize, ok := mapData["_batchSize"].(*big.Int)
+						prevTotalElements, ok := mapData["_prevTotalElements"].(*big.Int)
+						extraData, ok := mapData["_extraData"].([]byte)
+						if !ok {
+							return errors.New("failed to decode state batch event")
+						}
+						if chainID.Cmp(l2Cfg.ChainID) != 0 {
+							// ignore non configured L2 chain events
+							continue
+						}
+
+						l2EndIndex := l2EndBlock - 1
+						stateBatchStart, stateBatchEnd := prevTotalElements.Uint64(), prevTotalElements.Uint64()+batchSize.Uint64()
+						if stateBatchStart > l2EndIndex || stateBatchEnd < l2EndIndex {
+							logger.Info("End block not in state batch range", "start", stateBatchStart, "end", stateBatchEnd, "target", l2EndIndex)
+							continue
+						}
+
+						disputedBatchHeader = &rollup.BatchHeader{
+							BatchRoot:         batchRoot,
+							BatchSize:         batchSize,
+							PrevTotalElements: prevTotalElements,
+							ExtraData:         extraData,
+						}
+
+						logger.Info("Found batch header to dispute", "hash", disputedBatchHeader.Hash().Hex())
+					}
+				}
+			} else {
+				// nothing to do
+				logger.Info("Ignoring tx", "tx", tx.Hash().Hex())
 			}
 
 			logger.Info("Processed inbox tx", "tx", tx.Hash().Hex())
@@ -335,6 +398,10 @@ BREAKOUT:
 		return errors.New("no blocks to derive")
 	}
 
+	if disputedBatchHeader == nil {
+		return fmt.Errorf("disputed batch header not found for %s", l2Claim.Hex())
+	}
+
 	slices.SortFunc(l2Blocks, func(i, j *types.Block) int {
 		return int(i.NumberU64() - j.NumberU64())
 	})
@@ -349,7 +416,7 @@ BREAKOUT:
 	parentHeader := l2Chain.CurrentHeader()
 
 	logger.Info("Derivation range", "start", l2Blocks[0].NumberU64(), "end", l2Blocks[len(l2Blocks)-1].NumberU64())
-	intermediateStateRoots := make([]hexutil.Bytes, 0, len(l2Blocks))
+	intermediateStateRoots := make([]ethhex.Bytes, 0, len(l2Blocks))
 	for _, block := range l2Blocks {
 		logger.Info("Processing L2 block", "block", block.Number().Uint64())
 
@@ -466,7 +533,7 @@ BREAKOUT:
 		"headHash", l2Chain.CurrentHeader().Hash().Hex(),
 		"stateRoot", l2Chain.CurrentHeader().Root.Hex())
 
-	return claim.ValidateClaim(logger, l2ClaimBlockNum, eth.Bytes32(l2Claim), dtlPreimageOracle, l2Chain)
+	return claim.ValidateClaim(l2common.Hash(l2Claim), intermediateStateRoots, disputedBatchHeader)
 }
 
 func CreateHinterChannel() preimage.FileChannel {
