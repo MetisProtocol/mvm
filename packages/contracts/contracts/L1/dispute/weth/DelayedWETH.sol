@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {AndromedaConfig} from "../../config/AndromedaConfig.sol";
+import {MetisConfig} from "../../config/MetisConfig.sol";
 import {ISemver} from "../../../universal/ISemver.sol";
 import {IDelayedWETH} from "../interfaces/IDelayedWETH.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
@@ -29,19 +29,19 @@ contract DelayedWETH is OwnableUpgradeable, WETH98, IDelayedWETH, ISemver {
     /// @notice Withdrawal delay in seconds.
     uint256 internal immutable DELAY_SECONDS;
 
-    /// @notice Address of the AndromedaConfig contract.
-    AndromedaConfig public config;
+    /// @notice Address of the MetisConfig contract.
+    MetisConfig public config;
 
     /// @param _delay The delay for withdrawals in seconds.
     constructor(uint256 _delay) {
         DELAY_SECONDS = _delay;
-        initialize({_owner: address(0), _config: AndromedaConfig(address(0))});
+        initialize({_owner: address(0), _config: MetisConfig(address(0))});
     }
 
     /// @notice Initializes the contract.
     /// @param _owner The address of the owner.
     /// @param _config Address of the SuperchainConfig contract.
-    function initialize(address _owner, AndromedaConfig _config) public initializer {
+    function initialize(address _owner, MetisConfig _config) public initializer {
         __Ownable_init();
         _transferOwnership(_owner);
         config = _config;

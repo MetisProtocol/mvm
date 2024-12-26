@@ -6,9 +6,9 @@ import {ISemver} from "../../universal/ISemver.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /// @custom:audit none This contracts is not yet audited.
-/// @title AndromedaConfig
-/// @notice The AndromedaConfig contract is used to manage configuration of global metis andromeda values.
-contract AndromedaConfig is Initializable, ISemver {
+/// @title MetisConfig
+/// @notice The MetisConfig contract is used to manage configuration of global metis values.
+contract MetisConfig is Initializable, ISemver {
     /// @notice Enum representing different types of updates.
     /// @custom:value GUARDIAN            Represents an update to the guardian.
     enum UpdateType {
@@ -16,11 +16,11 @@ contract AndromedaConfig is Initializable, ISemver {
     }
 
     /// @notice Whether or not the Superchain is paused.
-    bytes32 public constant PAUSED_SLOT = bytes32(uint256(keccak256("metisAndromedaConfig.paused")) - 1);
+    bytes32 public constant PAUSED_SLOT = bytes32(uint256(keccak256("metisConfig.paused")) - 1);
 
     /// @notice The address of the guardian, which can pause withdrawals from the System.
     ///         It can only be modified by an upgrade.
-    bytes32 public constant GUARDIAN_SLOT = bytes32(uint256(keccak256("metisAndromedaConfig.guardian")) - 1);
+    bytes32 public constant GUARDIAN_SLOT = bytes32(uint256(keccak256("metisConfig.guardian")) - 1);
 
     /// @notice Emitted when the pause is triggered.
     /// @param identifier A string helping to identify provenance of the pause transaction.
@@ -66,7 +66,7 @@ contract AndromedaConfig is Initializable, ISemver {
     /// @notice Pauses withdrawals.
     /// @param _identifier (Optional) A string to identify provenance of the pause transaction.
     function pause(string memory _identifier) external {
-        require(msg.sender == guardian(), "AndromedaConfig: only guardian can pause");
+        require(msg.sender == guardian(), "MetisConfig: only guardian can pause");
         _pause(_identifier);
     }
 
@@ -79,7 +79,7 @@ contract AndromedaConfig is Initializable, ISemver {
 
     /// @notice Unpauses withdrawals.
     function unpause() external {
-        require(msg.sender == guardian(), "AndromedaConfig: only guardian can unpause");
+        require(msg.sender == guardian(), "MetisConfig: only guardian can unpause");
         Storage.setBool(PAUSED_SLOT, false);
         emit Unpaused();
     }

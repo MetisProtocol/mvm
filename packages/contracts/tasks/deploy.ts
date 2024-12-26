@@ -114,6 +114,24 @@ task('deploy')
     false,
     types.boolean
   )
+  .addOptionalParam(
+    'absolutePreState',
+    'absolute prestate of op-program',
+    false,
+    types.string
+  )
+  .addOptionalParam(
+    'faultDisputeProposer',
+    'allowed proposer for fault proof',
+    false,
+    types.string
+  )
+  .addOptionalParam(
+    'faultDisputeChallenger',
+    'allowed challenger for fault proof',
+    false,
+    types.string
+  )
   .setAction(async (args, hre: any, runSuper) => {
     // Necessary because hardhat doesn't let us attach non-optional parameters to existing tasks.
     const validateAddressArg = (argName: string) => {
