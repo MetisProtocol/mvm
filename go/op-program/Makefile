@@ -35,7 +35,7 @@ op-program-client-riscv:
 	env GO111MODULE=on GOOS=linux GOARCH=riscv64 go build -v -gcflags="all=-d=softfloat" -ldflags "$(PC_LDFLAGSSTRING)" -o ./bin/op-program-client-riscv.elf ./client/cmd/main.go
 
 reproducible-prestate:
-	@docker build --output ./bin/ --progress plain -f Dockerfile.repro ../
+	@docker build --output ./bin/ --progress plain -f Dockerfile.repro ../../
 	@echo "Absolute prestate hash:"
 	@cat ./bin/prestate-proof.json | jq -r .pre
 .PHONY: reproducible-prestate
