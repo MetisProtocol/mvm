@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/trace"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/trace/cannon"
@@ -27,7 +28,7 @@ func NewOutputCannonTraceAccessor(
 	l2Client utils.L2HeaderSource,
 	prestateProvider types.PrestateProvider,
 	cannonPrestate string,
-	rollupClient OutputRollupClient,
+	rollupClient rollup.RollupClient,
 	dir string,
 	l1Head eth.BlockID,
 	splitDepth types.Depth,

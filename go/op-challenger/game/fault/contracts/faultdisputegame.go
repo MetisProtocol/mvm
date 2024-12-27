@@ -74,10 +74,11 @@ type Proposal struct {
 
 // outputRootProof is designed to match the solidity OutputRootProof struct.
 type outputRootProof struct {
-	Version                  [32]byte
-	StateRoot                [32]byte
-	MessagePasserStorageRoot [32]byte
-	LatestBlockhash          [32]byte
+	BatchIndex        *big.Int
+	BatchRoot         [32]byte
+	BatchSize         *big.Int
+	PrevTotalElements *big.Int
+	ExtraData         []byte
 }
 
 func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller) (FaultDisputeGameContract, error) {
@@ -497,10 +498,11 @@ func (f *FaultDisputeGameContractLatest) ChallengeL2BlockNumberTx(challenge *typ
 		return txmgr.TxCandidate{}, fmt.Errorf("failed to serialize header: %w", err)
 	}
 	return f.contract.Call(methodChallengeRootL2Block, outputRootProof{
-		Version:                  challenge.Output.Version,
-		StateRoot:                challenge.Output.StateRoot,
-		MessagePasserStorageRoot: challenge.Output.WithdrawalStorageRoot,
-		LatestBlockhash:          challenge.Output.BlockRef.Hash,
+		BatchIndex:        challenge.BatchIndex,
+		BatchRoot:         challenge.Output.BatchRoot,
+		BatchSize:         challenge.Output.BatchSize,
+		PrevTotalElements: challenge.Output.PrevTotalElements,
+		ExtraData:         challenge.Output.ExtraData,
 	}, headerRlp).ToTxCandidate()
 }
 

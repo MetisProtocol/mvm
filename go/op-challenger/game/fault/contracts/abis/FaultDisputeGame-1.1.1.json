@@ -127,27 +127,32 @@
       {
         "components": [
           {
-            "internalType": "bytes32",
-            "name": "version",
-            "type": "bytes32"
+            "internalType": "uint256",
+            "name": "batchIndex",
+            "type": "uint256"
           },
           {
             "internalType": "bytes32",
-            "name": "stateRoot",
+            "name": "batchRoot",
             "type": "bytes32"
           },
           {
-            "internalType": "bytes32",
-            "name": "messagePasserStorageRoot",
-            "type": "bytes32"
+            "internalType": "uint256",
+            "name": "batchSize",
+            "type": "uint256"
           },
           {
-            "internalType": "bytes32",
-            "name": "latestBlockhash",
-            "type": "bytes32"
+            "internalType": "uint256",
+            "name": "prevTotalElements",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "extraData",
+            "type": "bytes"
           }
         ],
-        "internalType": "struct Types.OutputRootProof",
+        "internalType": "struct Lib_OVMCodec.ChainBatchHeader",
         "name": "_outputRootProof",
         "type": "tuple"
       },

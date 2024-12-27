@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import {IPreimageOracle} from "../cannon/interfaces/IPreimageOracle.sol";
 import {Hashing} from "../../libraries/Hashing.sol";
 import {Types} from "../../libraries/Types.sol";
+import {Lib_OVMCodec} from "../../libraries/codec/Lib_OVMCodec.sol";
 import {Lib_RLPReader} from "../../libraries/rlp/Lib_RLPReader.sol";
 import {ISemver} from "../../universal/ISemver.sol";
 import {IBigStepper} from "./interfaces/IBigStepper.sol";
@@ -534,7 +535,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @param _outputRootProof The output root proof.
     /// @param _headerRLP The RLP-encoded L2 block header.
     function challengeRootL2Block(
-        Types.OutputRootProof calldata _outputRootProof,
+        Lib_OVMCodec.ChainBatchHeader calldata _outputRootProof,
         bytes calldata _headerRLP
     )
     external
@@ -546,10 +547,11 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         if (l2BlockNumberChallenged) revert L2BlockNumberChallenged();
 
         // Verify the output root preimage.
-        if (Hashing.hashOutputRootProof(_outputRootProof) != rootClaim().raw()) revert InvalidOutputRootProof();
+        if (Lib_OVMCodec.hashBatchHeader(_outputRootProof) != rootClaim().raw()) revert InvalidOutputRootProof();
 
         // Verify the block hash preimage.
-        if (keccak256(_headerRLP) != _outputRootProof.latestBlockhash) revert InvalidHeaderRLP();
+//        (, , bytes32 latestBlockhash, ) = abi.decode(_outputRootProof.extraData, (uint256, address, bytes32, uint256));
+//        if (keccak256(_headerRLP) != latestBlockhash) revert InvalidHeaderRLP();
 
         // Decode the header RLP to find the number of the block. In the consensus encoding, the timestamp
         // is the 9th element in the list that represents the block header.
@@ -570,6 +572,11 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
 
         // Ensure the block number does not match the block number claimed in the dispute game.
         if (blockNumber == l2BlockNumber()) revert BlockNumberMatches();
+
+        // check block number is in batch range
+        if (blockNumber < _outputRootProof.prevTotalElements + 1 || blockNumber > _outputRootProof.prevTotalElements + _outputRootProof.batchSize) {
+            revert InvalidHeaderRLP();
+        }
 
         // Issue a special counter to the root claim. This counter will always win the root claim subgame, and receive
         // the bond from the root claimant.

@@ -6,8 +6,8 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts"
 )
 
@@ -20,7 +20,7 @@ type LocalGameInputs struct {
 }
 
 type L2HeaderSource interface {
-	HeaderByNumber(context.Context, *big.Int) (*ethtypes.Header, error)
+	HeaderByNumber(context.Context, *big.Int) (*types.Header, error)
 }
 
 type L1HeadSource interface {
@@ -54,7 +54,7 @@ func FetchLocalInputsFromProposals(ctx context.Context, l1Head common.Hash, l2Cl
 
 	return LocalGameInputs{
 		L1Head:        l1Head,
-		L2Head:        l2Head,
+		L2Head:        common.Hash(l2Head),
 		L2OutputRoot:  agreedOutput.OutputRoot,
 		L2Claim:       claimedOutput.OutputRoot,
 		L2BlockNumber: claimedOutput.L2BlockNumber,

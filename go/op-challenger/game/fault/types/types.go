@@ -9,11 +9,11 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
-	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
+	l2types "github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 )
 
@@ -296,13 +296,15 @@ func NewClock(duration time.Duration, timestamp time.Time) Clock {
 }
 
 type InvalidL2BlockNumberChallenge struct {
-	Output *eth.OutputResponse
-	Header *ethTypes.Header
+	Output     *rollup.BatchHeader
+	Header     *l2types.Header
+	BatchIndex *big.Int
 }
 
-func NewInvalidL2BlockNumberProof(output *eth.OutputResponse, header *ethTypes.Header) *InvalidL2BlockNumberChallenge {
+func NewInvalidL2BlockNumberProof(batchIndex *big.Int, output *rollup.BatchHeader, header *l2types.Header) *InvalidL2BlockNumberChallenge {
 	return &InvalidL2BlockNumberChallenge{
-		Output: output,
-		Header: header,
+		Output:     output,
+		Header:     header,
+		BatchIndex: batchIndex,
 	}
 }

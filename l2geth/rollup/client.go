@@ -34,6 +34,7 @@ var errHTTPError = errors.New("http error")
 var (
 	bytes32Type, _ = abi.NewType("bytes32", "", nil)
 	uint256Type, _ = abi.NewType("uint256", "", nil)
+	addressType, _ = abi.NewType("address", "", nil)
 	bytesType, _   = abi.NewType("bytes", "", nil)
 
 	BatchHeaderABI = abi.Arguments{
@@ -54,9 +55,39 @@ var (
 			Type: bytesType,
 		},
 	}
+
+	ExtraDataABI = abi.Arguments{
+		{
+			Name: "Timestamp",
+			Type: uint256Type,
+		},
+		{
+			Name: "Submitter",
+			Type: addressType,
+		},
+		{
+			Name: "LastBlockHash",
+			Type: bytes32Type,
+		},
+		{
+			Name: "LastBlockNumber",
+			Type: uint256Type,
+		},
+	}
 )
 
 type ExtraData []byte
+
+func NewExtraData(timestamp uint64, submitter common.Address, lastBlockHash common.Hash, lastBlockNumber *big.Int) (ExtraData, error) {
+	data, err := ExtraDataABI.Pack(
+		new(big.Int).SetUint64(timestamp),
+		submitter,
+		lastBlockHash,
+		lastBlockNumber,
+	)
+
+	return data, err
+}
 
 func (e ExtraData) L1Timestamp() uint64 {
 	if len(e) < 32 {
@@ -203,6 +234,11 @@ type Enqueue struct {
 	QueueIndex  *uint64         `json:"index"`
 }
 
+// HighestSyncedResponse represents the response from the remote server
+type HighestSyncedResponse struct {
+	BlockNumber uint64 `json:"blockNumber"`
+}
+
 // Signature represents a secp256k1 ECDSA Signature
 type Signature struct {
 	R hexutil.Bytes `json:"r"`
@@ -253,6 +289,8 @@ type RollupClient interface {
 	SyncStatus(Backend) (*SyncStatus, error)
 	GetStateRoot(index uint64) (common.Hash, error)
 	GetStateBatchHeader(batchHeaderHash common.Hash) (*BatchHeader, []common.Hash, error)
+	GetStateBatchByIndex(index uint64) (*StateRootBatchResponse, error)
+	GetLatestStateBatches() (*StateRootBatchResponse, error)
 	SetLastVerifier(index uint64, stateRoot string, verifierRoot string, success bool) error
 	GetRawBlock(uint64, Backend) (*BlockResponse, error)
 	GetBlock(uint64, Backend) (*types.Block, error)
@@ -261,6 +299,7 @@ type RollupClient interface {
 	GetLatestBlockBatch() (*Batch, []*types.Block, error)
 	GetLatestBlockBatchIndex() (*uint64, error)
 	GetBlockBatch(uint64) (*Batch, []*types.Block, error)
+	GetHighestSynced() (uint64, error)
 
 	Signer() types.Signer
 }
@@ -342,6 +381,22 @@ func NewClient(url string, chainID *big.Int) *Client {
 		signer:  &signer,
 		chainID: chainID.String(),
 	}
+}
+
+func (c *Client) GetHighestSynced() (uint64, error) {
+	response, err := c.client.R().
+		SetResult(&HighestSyncedResponse{}).
+		Get("/highest/l1")
+
+	if err != nil {
+		return 0, fmt.Errorf("cannot fetch enqueue: %w", err)
+	}
+	resp, ok := response.Result().(*HighestSyncedResponse)
+	if !ok {
+		return 0, errors.New("Cannot fetch highest synced")
+	}
+
+	return resp.BlockNumber, nil
 }
 
 // GetEnqueue fetches an `enqueue` Transaction by queue index
@@ -894,6 +949,48 @@ func (c *Client) GetStateRoot(index uint64) (common.Hash, error) {
 		return common.Hash{}, nil
 	}
 	return stateRootResp.StateRoot.Value, nil
+}
+
+func (c *Client) GetLatestStateBatches() (*StateRootBatchResponse, error) {
+	response, err := c.client.R().
+		SetResult(&StateRootBatchResponse{}).
+		SetPathParams(map[string]string{
+			"chainId": c.chainID,
+		}).
+		Get("/batch/stateroot/latest/{chainId}")
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot get latest state batches: %w", err)
+	}
+
+	batchResp, ok := response.Result().(*StateRootBatchResponse)
+	if !ok {
+		return nil, errors.New("cannot parse state batch header response")
+	}
+
+	return batchResp, nil
+}
+
+func (c *Client) GetStateBatchByIndex(index uint64) (*StateRootBatchResponse, error) {
+	str := strconv.FormatUint(index, 10)
+	response, err := c.client.R().
+		SetResult(&StateRootBatchResponse{}).
+		SetPathParams(map[string]string{
+			"chainId": c.chainID,
+			"index":   str,
+		}).
+		Get("/batch/stateroot/index/{index}/{chainId}")
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot get latest state batches: %w", err)
+	}
+
+	batchResp, ok := response.Result().(*StateRootBatchResponse)
+	if !ok {
+		return nil, errors.New("cannot parse state batch header response")
+	}
+
+	return batchResp, nil
 }
 
 // GetStateBatchHeader will return the state batch header preimage by batch header hash

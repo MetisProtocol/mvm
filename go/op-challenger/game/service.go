@@ -7,11 +7,11 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/keccak"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/keccak/fetcher"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/sender"
@@ -57,7 +57,7 @@ type Service struct {
 	factoryContract *contracts.DisputeGameFactoryContract
 	registry        *registry.GameTypeRegistry
 	oracles         *registry.OracleRegistry
-	rollupClient    *sources.RollupClient
+	rollupClient    rollup.RollupClient
 
 	l1Client   *ethclient.Client
 	pollClient client.RPC
@@ -216,7 +216,17 @@ func (s *Service) initRollupClient(ctx context.Context, cfg *config.Config) erro
 	if cfg.RollupRpc == "" {
 		return nil
 	}
-	rollupClient, err := dial.DialRollupClientWithTimeout(ctx, dial.DefaultDialTimeout, s.logger, cfg.RollupRpc)
+	l2Client, err := ethclient.DialContext(ctx, cfg.L2Rpc)
+	if err != nil {
+		return err
+	}
+
+	l2ChainId, err := l2Client.ChainID(ctx)
+	if err != nil {
+		return err
+	}
+
+	rollupClient := rollup.NewClient(cfg.RollupRpc, l2ChainId)
 	if err != nil {
 		return err
 	}
@@ -306,9 +316,6 @@ func (s *Service) Stop(ctx context.Context) error {
 		s.txMgr.Close()
 	}
 
-	if s.rollupClient != nil {
-		s.rollupClient.Close()
-	}
 	if s.pollClient != nil {
 		s.pollClient.Close()
 	}

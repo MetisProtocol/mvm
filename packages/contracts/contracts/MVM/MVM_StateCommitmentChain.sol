@@ -61,7 +61,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     }
 
     function setFraudProofWindow(uint256 window) external {
-        require(msg.sender == resolve("METIS_MANAGER"), "now allowed");
+        require(msg.sender == resolve("METIS_MANAGER"), "not allowed");
         FRAUD_PROOF_WINDOW = window;
     }
 
@@ -143,7 +143,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         view
         returns (bool _inside)
     {
-        (uint256 timestamp, ) = abi.decode(_batchHeader.extraData, (uint256, address));
+        (uint256 timestamp, , , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32, uint256));
 
         require(timestamp != 0, "Batch header timestamp cannot be zero");
         return (timestamp + FRAUD_PROOF_WINDOW) > block.timestamp;
@@ -153,7 +153,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         uint256,
         Lib_OVMCodec.ChainBatchHeader memory _batchHeader
     ) public view override returns (bool _inside) {
-        (uint256 timestamp, , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32));
+        (uint256 timestamp, , , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32, uint256));
 
         return _insideFraudProofWindowByChainId(timestamp);
     }
@@ -165,26 +165,36 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     function _findBatchWithinTimeWindow(uint256 _chainId, uint256 earliestTime) public view returns (bytes32, uint256) {
         bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
 
-        // binary search the batch times to find the closest time of earliestTime,
-        // but the time must be larger than earliestTime
-        uint256 left = 0;
-        uint256 right = batchTimesOfChain.length - 1;
+        require(batchTimesOfChain.length > 0, "No batch has been appended yet");
 
-        while (left < right) {
-            uint256 mid = left + (right - left) / 2;
-            uint256 time = uint256(uint128(batchTimesOfChain[mid]) >> 64);
-            if (time <= earliestTime) {
-                left = mid + 1;
-            } else {
-                right = mid;
+        uint256 found = 0;
+        uint256 lastTimeIndex = batchTimesOfChain.length - 1;
+        uint256 lastElementTime = uint256(uint128(batchTimesOfChain[lastTimeIndex]) >> 64);
+        uint256 firstElementTime = uint256(uint128(batchTimesOfChain[0]) >> 64);
+
+        require(earliestTime <= lastElementTime, "No batch to dispute");
+
+        if (earliestTime <= firstElementTime) {
+            found = 0;
+        } else {
+            // binary search the batch times to find the closest time of earliestTime,
+            // but the time must >= earliestTime
+            uint256 left = 0;
+            uint256 right = lastTimeIndex;
+
+            while (left < right) {
+                uint256 mid = left + (right - left) / 2;
+                uint256 time = uint256(uint128(batchTimesOfChain[mid]) >> 64);
+                if (time < earliestTime) {
+                    left = mid + 1;
+                } else {
+                    right = mid;
+                }
             }
+            found = left;
         }
 
-        if (left == 0) {
-            return (bytes32(0), 0);
-        }
-
-        uint256 batchIndex = uint256(uint64(uint128(batchTimesOfChain[left - 1])));
+        uint256 batchIndex = uint256(uint64(uint128(batchTimesOfChain[found])));
         bytes32 batchHeaderHash = batches().getByChainId(_chainId, batchIndex);
         return (batchHeaderHash, batchLastL2BlockNumbers[batchHeaderHash]);
     }
@@ -467,7 +477,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
         bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
         batchTimesOfChain.push(bytes16(uint128(uint256(lastSequencerTimestamp) << 64) | uint128(batchHeader.batchIndex)));
-        batchLastL2BlockNumbers[batchHeaderHash] = batchHeader.prevTotalElements + batchHeader.batchSize + 1;
+        batchLastL2BlockNumbers[batchHeaderHash] = batchHeader.prevTotalElements + batchHeader.batchSize;
     }
 
     /**

@@ -144,6 +144,7 @@ func NewConfig(
 			L1:           l1EthRpc,
 			L1Beacon:     l1BeaconApi,
 			L2:           l2EthRpc,
+			Rollup:       l2RollupRpc,
 			SnapshotFreq: DefaultCannonSnapshotFreq,
 			InfoFreq:     DefaultCannonInfoFreq,
 			DebugInfo:    true,
@@ -151,6 +152,7 @@ func NewConfig(
 		Asterisc: vm.Config{
 			VmType:       types.TraceTypeAsterisc,
 			L1:           l1EthRpc,
+			Rollup:       l2RollupRpc,
 			L1Beacon:     l1BeaconApi,
 			L2:           l2EthRpc,
 			SnapshotFreq: DefaultAsteriscSnapshotFreq,
@@ -159,6 +161,7 @@ func NewConfig(
 		AsteriscKona: vm.Config{
 			VmType:       types.TraceTypeAsteriscKona,
 			L1:           l1EthRpc,
+			Rollup:       l2RollupRpc,
 			L1Beacon:     l1BeaconApi,
 			L2:           l2EthRpc,
 			SnapshotFreq: DefaultAsteriscSnapshotFreq,

@@ -19,6 +19,7 @@ func (s *OpProgramServerExecutor) OracleCommand(cfg Config, dataDir string, inpu
 		"--l1", cfg.L1,
 		"--l1.beacon", cfg.L1Beacon,
 		"--l2", cfg.L2,
+		"--rollup", cfg.Rollup,
 		"--datadir", dataDir,
 		"--l1.head", inputs.L1Head.Hex(),
 		"--l2.head", inputs.L2Head.Hex(),

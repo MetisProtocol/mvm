@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/config"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/claims"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts"
@@ -40,7 +41,7 @@ type RegisterTask struct {
 		l2Client utils.L2HeaderSource,
 		prestateProvider faultTypes.PrestateProvider,
 		vmPrestateProvider faultTypes.PrestateProvider,
-		rollupClient outputs.OutputRollupClient,
+		rollupClient rollup.RollupClient,
 		dir string,
 		l1Head eth.BlockID,
 		splitDepth faultTypes.Depth,
@@ -66,7 +67,7 @@ func NewCannonRegisterTask(gameType faultTypes.GameType, cfg *config.Config, m c
 			l2Client utils.L2HeaderSource,
 			prestateProvider faultTypes.PrestateProvider,
 			vmPrestateProvider faultTypes.PrestateProvider,
-			rollupClient outputs.OutputRollupClient,
+			rollupClient rollup.RollupClient,
 			dir string,
 			l1Head eth.BlockID,
 			splitDepth faultTypes.Depth,
@@ -96,7 +97,7 @@ func NewAsteriscRegisterTask(gameType faultTypes.GameType, cfg *config.Config, m
 			l2Client utils.L2HeaderSource,
 			prestateProvider faultTypes.PrestateProvider,
 			vmPrestateProvider faultTypes.PrestateProvider,
-			rollupClient outputs.OutputRollupClient,
+			rollupClient rollup.RollupClient,
 			dir string,
 			l1Head eth.BlockID,
 			splitDepth faultTypes.Depth,
@@ -120,7 +121,7 @@ func NewAlphabetRegisterTask(gameType faultTypes.GameType) *RegisterTask {
 			l2Client utils.L2HeaderSource,
 			prestateProvider faultTypes.PrestateProvider,
 			vmPrestateProvider faultTypes.PrestateProvider,
-			rollupClient outputs.OutputRollupClient,
+			rollupClient rollup.RollupClient,
 			dir string,
 			l1Head eth.BlockID,
 			splitDepth faultTypes.Depth,
@@ -159,7 +160,7 @@ func (e *RegisterTask) Register(
 	logger log.Logger,
 	m metrics.Metricer,
 	syncValidator SyncValidator,
-	rollupClient outputs.OutputRollupClient,
+	rollupClient rollup.RollupClient,
 	txSender TxSender,
 	gameFactory *contracts.DisputeGameFactoryContract,
 	caller *batching.MultiCaller,

@@ -546,6 +546,7 @@ func NewConfigFromCLI(ctx *cli.Context, logger log.Logger) (*config.Config, erro
 		Cannon: vm.Config{
 			VmType:           types.TraceTypeCannon,
 			L1:               l1EthRpc,
+			Rollup:           ctx.String(RollupRpcFlag.Name),
 			L1Beacon:         l1Beacon,
 			L2:               l2Rpc,
 			VmBin:            ctx.String(CannonBinFlag.Name),
@@ -564,6 +565,7 @@ func NewConfigFromCLI(ctx *cli.Context, logger log.Logger) (*config.Config, erro
 			VmType:           types.TraceTypeAsterisc,
 			L1:               l1EthRpc,
 			L1Beacon:         l1Beacon,
+			Rollup:           ctx.String(RollupRpcFlag.Name),
 			L2:               l2Rpc,
 			VmBin:            ctx.String(AsteriscBinFlag.Name),
 			Server:           ctx.String(AsteriscServerFlag.Name),
@@ -579,6 +581,7 @@ func NewConfigFromCLI(ctx *cli.Context, logger log.Logger) (*config.Config, erro
 			VmType:           types.TraceTypeAsteriscKona,
 			L1:               l1EthRpc,
 			L1Beacon:         l1Beacon,
+			Rollup:           ctx.String(RollupRpcFlag.Name),
 			L2:               l2Rpc,
 			VmBin:            ctx.String(AsteriscBinFlag.Name),
 			Server:           ctx.String(AsteriscKonaServerFlag.Name),

@@ -13,7 +13,6 @@ use (
 	./go/op-preimage
 	./go/op-program
 	./go/op-challenger
-	./go/op-proposer
 
 	// for cannon testing
 	go/cannon/testdata/example/alloc

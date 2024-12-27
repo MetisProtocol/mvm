@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/trace"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/trace/alphabet"
@@ -20,7 +21,7 @@ func NewOutputAlphabetTraceAccessor(
 	logger log.Logger,
 	m metrics.Metricer,
 	prestateProvider types.PrestateProvider,
-	rollupClient OutputRollupClient,
+	rollupClient rollup.RollupClient,
 	l2Client utils.L2HeaderSource,
 	l1Head eth.BlockID,
 	splitDepth types.Depth,

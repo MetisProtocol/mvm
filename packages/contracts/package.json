@@ -45,7 +45,8 @@
     "postpublish": "rimraf chugsplash L1 L2 libraries standards",
     "prepack": "yarn prepublishOnly",
     "postpack": "yarn postpublish",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged",
+    "deploy-test": "npx hardhat deploy --network devnet --num-deploy-confirmations 1 --l2chainid 57005 --l1-block-time-seconds 3 --mvm-metis-address 0x2A0668FD7D959B96aD1b64D0d066909a4250Fe28 --mvm-metis-manager 0x012347D9D1cC9df8d53289d43d84b5bCdED7F480 --ovm-address-manager-owner 0x012347D9D1cC9df8d53289d43d84b5bCdED7F480 --ovm-proposer-address 0x1001f5e463E3446D7B3D3a09e6256284dF517de0 --ovm-sequencer-address 0x100222702c050613c5b9264bBE71DfB1B6796b3F --scc-fraud-proof-window 604800 --scc-sequencer-publish-window 0 --allow-all-x-domain-senders true --inbox-sender-address 0x100222702c050613c5b9264bBE71DfB1B6796b3F --inbox-blob-sender-address 0x000575a8342247916851cE0f79fe5Dc05c8767eE --tags faultproof --absolute-prestate 0x03185913a712f95f20d135c6bf3959e476fab8cf687b6f381bfdd8e6448d874e --fault-dispute-proposer 0x012347D9D1cC9df8d53289d43d84b5bCdED7F480 --fault-dispute-challenger 0x012347D9D1cC9df8d53289d43d84b5bCdED7F480"
   },
   "dependencies": {
     "@ethersproject/abstract-provider": "^5.4.1",

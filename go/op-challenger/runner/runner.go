@@ -229,7 +229,7 @@ func (r *Runner) findL2BlockNumberToDispute(ctx context.Context, client rollup.R
 			}
 
 			// return the beginning of the next batch of the genesis batch
-			return uint64(prevBatch.PrevTotalElements+prevBatch.Size+1) + 1, nil
+			return uint64(prevBatch.PrevTotalElements + prevBatch.Size + 1), nil
 		}
 
 		if batch.BlockNumber < l1HeadNum {
