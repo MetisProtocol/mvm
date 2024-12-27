@@ -2,17 +2,21 @@
 pragma solidity ^0.8.9;
 
 /* Library Imports */
-import { Lib_OVMCodec } from "../libraries/codec/Lib_OVMCodec.sol";
-import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
-import { Lib_MerkleTree } from "../libraries/utils/Lib_MerkleTree.sol";
-import { Lib_Uint } from "../libraries/utils/Lib_Uint.sol";
+import "../L1/dispute/interfaces/IFaultDisputeGame.sol";
+import "contracts/L1/dispute/lib/Types.sol";
+import "contracts/L1/dispute/lib/Errors.sol";
+import { IBondManager } from "../L1/verification/IBondManager.sol";
+import { IChainStorageContainer } from "../L1/rollup/IChainStorageContainer.sol";
+import { IMVMStateCommitmentChain } from "../L1/rollup/IMVMStateCommitmentChain.sol";
 
 /* Interface Imports */
 import { IStateCommitmentChain } from "../L1/rollup/IStateCommitmentChain.sol";
 // import { ICanonicalTransactionChain } from "../L1/rollup/ICanonicalTransactionChain.sol";
-import { IBondManager } from "../L1/verification/IBondManager.sol";
-import { IChainStorageContainer } from "../L1/rollup/IChainStorageContainer.sol";
-import { IMVMStateCommitmentChain } from "../L1/rollup/IMVMStateCommitmentChain.sol";
+import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
+import { Lib_MerkleTree } from "../libraries/utils/Lib_MerkleTree.sol";
+import { Lib_OVMCodec } from "../libraries/codec/Lib_OVMCodec.sol";
+import { Lib_Uint } from "../libraries/utils/Lib_Uint.sol";
+import { IDisputeGameFactory } from "../L1/dispute/interfaces/IDisputeGameFactory.sol";
 
 /**
  * @title MVM_StateCommitmentChain
@@ -33,6 +37,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
     uint256 public DEFAULT_CHAINID = 1088;
 
+    IDisputeGameFactory public DISPUTE_GAME_FACTORY;
 
     /*****************
      * Public States *
@@ -44,6 +49,8 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     // value: last L2 block number of the given batch
     mapping(bytes32 => uint256) public batchLastL2BlockNumbers;
 
+    mapping(bytes32 => bool) public disputedBatches;
+
     /***************
      * Constructor *
      ***************/
@@ -54,10 +61,12 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     constructor(
         address _libAddressManager,
         uint256 _fraudProofWindow,
-        uint256 _sequencerPublishWindow
+        uint256 _sequencerPublishWindow,
+        IDisputeGameFactory _disputeGameFactory
     ) Lib_AddressResolver(_libAddressManager) {
         FRAUD_PROOF_WINDOW = _fraudProofWindow;
         SEQUENCER_PUBLISH_WINDOW = _sequencerPublishWindow;
+        DISPUTE_GAME_FACTORY = _disputeGameFactory;
     }
 
     function setFraudProofWindow(uint256 window) external {
@@ -156,6 +165,35 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         (uint256 timestamp, , , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32, uint256));
 
         return _insideFraudProofWindowByChainId(timestamp);
+    }
+
+    function isDisputedBatch(bytes32 stateHeaderHash) public view returns (bool) {
+        return disputedBatches[stateHeaderHash];
+    }
+
+    function saveDisputedBatch(bytes32 stateHeaderHash) public {
+        // Grab the game and game data.
+        IFaultDisputeGame game = IFaultDisputeGame(msg.sender);
+        (GameType gameType, Claim rootClaim, bytes memory extraData) = game.gameData();
+
+        // Grab the verified address of the game based on the game data.
+        // slither-disable-next-line unused-return
+        (IDisputeGame factoryRegisteredGame,) =
+                            DISPUTE_GAME_FACTORY.games({ _gameType: gameType, _rootClaim: rootClaim, _extraData: extraData });
+
+        // Must be a valid game.
+        if (address(factoryRegisteredGame) != address(game)) revert UnregisteredGame();
+
+        require(!disputedBatches[stateHeaderHash], "already disputed");
+
+        // Must be a game that resolved in favor of the state.
+        // We are different with op, we will not actively start the game,
+        // we only defend the challenges
+        if (game.status() != GameStatus.CHALLENGER_WINS) {
+            return;
+        }
+
+        disputedBatches[stateHeaderHash] = true;
     }
 
     /**********************

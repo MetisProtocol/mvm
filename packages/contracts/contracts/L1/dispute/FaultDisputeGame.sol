@@ -21,6 +21,7 @@ import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
 import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
 import {IMVMStateCommitmentChain} from "../rollup/IMVMStateCommitmentChain.sol";
+import {StateCommitmentChain} from "../rollup/StateCommitmentChain.sol";
 
 /// @title FaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.
@@ -199,11 +200,16 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         if (initialized) revert AlreadyInitialized();
 
         // Grab the latest anchor root.
-        (bytes32 scRoot, uint256 rootBlockNumber) = IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME)).findEarliestDisputableBatch(L2_CHAIN_ID);
+        IMVMStateCommitmentChain stateCommitmentChain = IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME));
+        (bytes32 scRoot, uint256 rootBlockNumber) = stateCommitmentChain.findEarliestDisputableBatch(L2_CHAIN_ID);
+
         Hash root = Hash.wrap(scRoot);
 
         // Should only happen if this is a new game type that hasn't been set up yet.
         if (root.raw() == bytes32(0)) revert AnchorRootNotFound();
+
+        // we do not allow to dispute an already disputed batch
+        if (stateCommitmentChain.isDisputedBatch(scRoot)) revert ClaimAlreadyResolved();
 
         // Set the starting output root.
         startingOutputRoot = OutputRoot({l2BlockNumber: rootBlockNumber, root: root});
@@ -600,12 +606,11 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         status_ = claimData[0].counteredBy == address(0) ? GameStatus.DEFENDER_WINS : GameStatus.CHALLENGER_WINS;
         resolvedAt = Timestamp.wrap(uint64(block.timestamp));
 
+        // Mark batch as disputed
+        IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME)).saveDisputedBatch(startingOutputRoot.root.raw());
+
         // Update the status and emit the resolved event, note that we're performing an assignment here.
         emit Resolved(status = status_);
-
-        // TODO: do we need to delete the batches in scc?
-        // Try to update the anchor state, this should not revert.
-        // ANCHOR_STATE_REGISTRY.tryUpdateAnchorState();
     }
 
     /// @inheritdoc IFaultDisputeGame

@@ -92,6 +92,19 @@ interface IMVMStateCommitmentChain {
         view
         returns (bool _inside);
 
+    /**
+     * Saves a batch as disputed.
+     * @param stateHeaderHash Hash of the disputed state header.
+     */
+    function saveDisputedBatch(bytes32 stateHeaderHash) external;
+
+    /**
+     * Checks if a batch is disputed.
+     * @param stateHeaderHash Hash of the disputed state header.
+     * @return _disputed Whether or not the batch is disputed.
+     */
+    function isDisputedBatch(bytes32 stateHeaderHash) external view returns (bool _disputed);
+
     /********************
      * chain id added func *
      ********************/
