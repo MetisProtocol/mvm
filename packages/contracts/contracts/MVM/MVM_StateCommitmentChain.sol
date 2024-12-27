@@ -184,7 +184,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // Must be a valid game.
         if (address(factoryRegisteredGame) != address(game)) revert UnregisteredGame();
 
-        require(!disputedBatches[stateHeaderHash], "already disputed");
+        if (disputedBatches[stateHeaderHash]) revert ClaimAlreadyResolved();
 
         // Must be a game that resolved in favor of the state.
         // We are different with op, we will not actively start the game,
