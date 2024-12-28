@@ -23,11 +23,11 @@ const deployFn: DeployFunction = async (hre) => {
   console.log(`DisputeGameFactory deployed to: ${factory.contract.address}`)
 
   // link the scc with the dispute game factory
-  const sccProxy = await getDeployedContract(
+  let sccProxy = await getDeployedContract(
     hre,
     'Proxy__MVM_StateCommitmentChain',
     {
-      iface: 'MVM_StateCommitmentChain',
+      iface: 'L1ChugSplashProxy',
       signerOrProvider: deployer,
     }
   )
@@ -41,6 +41,11 @@ const deployFn: DeployFunction = async (hre) => {
       32
     )
   )
+
+  sccProxy = await getDeployedContract(hre, 'Proxy__MVM_StateCommitmentChain', {
+    iface: 'MVM_StateCommitmentChain',
+    signerOrProvider: deployer,
+  })
 
   const disputeGameFactoryAddress = await sccProxy.DISPUTE_GAME_FACTORY()
   console.log(

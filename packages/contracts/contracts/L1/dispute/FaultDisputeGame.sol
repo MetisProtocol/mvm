@@ -116,7 +116,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     OutputRoot public startingOutputRoot;
 
     /// @notice The name of the SCC contract.
-    string internal SCC_NAME = "StateCommitmentChain";
+    string internal constant SCC_NAME = "StateCommitmentChain";
 
     /// @param _gameType The type ID of the game.
     /// @param _absolutePrestate The absolute prestate of the instruction trace.

@@ -168,36 +168,36 @@ func (r *Runner) prepDatadir(traceType types.TraceType) (string, error) {
 }
 
 func (r *Runner) createGameInputs(ctx context.Context, l1RPCClient *ethclient.Client, l2RPCClient *l2client.Client, rollupClient rollup.RollupClient) (utils.LocalGameInputs, error) {
-	batch, blocks, err := rollupClient.GetLatestBlockBatch()
+	latestBatch, err := rollupClient.GetLatestStateBatches()
 	if err != nil {
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to get latest L2 batch: %w", err)
 	}
 
 	// we need to dispute until the last block of the batch,
 	// since we are not like op that having a 1:N mapping for l1 -> l2 blocks
-	blockNumber := blocks[len(blocks)-1].NumberU64()
-	prevBatch, _, err := rollupClient.GetBlockBatch(batch.Index - 1)
+	blockNumber := uint64(latestBatch.Batch.PrevTotalElements + latestBatch.Batch.Size)
+	prevBatch, err := rollupClient.GetStateBatchByIndex(latestBatch.Batch.Index - 1)
 
 	claimOutput := rollup.BatchHeader{
-		BatchRoot:         batch.Root,
-		BatchSize:         big.NewInt(int64(batch.Size)),
-		PrevTotalElements: big.NewInt(int64(batch.PrevTotalElements)),
-		ExtraData:         rollup.ExtraData(batch.ExtraData),
+		BatchRoot:         latestBatch.Batch.Root,
+		BatchSize:         big.NewInt(int64(latestBatch.Batch.Size)),
+		PrevTotalElements: big.NewInt(int64(latestBatch.Batch.PrevTotalElements)),
+		ExtraData:         rollup.ExtraData(latestBatch.Batch.ExtraData),
 	}.Hash()
 
 	parentOutput := rollup.BatchHeader{
-		BatchRoot:         prevBatch.Root,
-		BatchSize:         big.NewInt(int64(prevBatch.Size)),
-		PrevTotalElements: big.NewInt(int64(prevBatch.PrevTotalElements)),
-		ExtraData:         rollup.ExtraData(prevBatch.ExtraData),
+		BatchRoot:         prevBatch.Batch.Root,
+		BatchSize:         big.NewInt(int64(prevBatch.Batch.Size)),
+		PrevTotalElements: big.NewInt(int64(prevBatch.Batch.PrevTotalElements)),
+		ExtraData:         rollup.ExtraData(prevBatch.Batch.ExtraData),
 	}.Hash()
 
-	l1Head, err := l1RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(prevBatch.BlockNumber))
+	l1Head, err := l1RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(prevBatch.Batch.BlockNumber))
 	if err != nil {
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to get L1 head: %w", err)
 	}
 
-	l2Head, err := l2RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(uint64(prevBatch.PrevTotalElements+prevBatch.Size+1)))
+	l2Head, err := l2RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(uint64(prevBatch.Batch.PrevTotalElements+prevBatch.Batch.Size+1)))
 	if err != nil {
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to get L2 head: %w", err)
 	}

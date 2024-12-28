@@ -30,19 +30,15 @@ func (o *OutputPrestateProvider) AbsolutePreStateCommitment(_ context.Context) (
 }
 
 func (o *OutputPrestateProvider) outputAtBlock(block uint64) (common.Hash, error) {
-	txChainResp, err := o.rollupClient.GetRawBlock(block, rollup.BackendL1)
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to fetch output at block %v: %w", block, err)
-	}
-	stateBatchResp, err := o.rollupClient.GetStateBatchByIndex(txChainResp.Batch.Index)
+	stateRoot, err := o.rollupClient.GetRawStateRoot(block - 1)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to fetch state batch for block %v: %w", block, err)
 	}
 
 	return common.Hash(rollup.BatchHeader{
-		BatchRoot:         stateBatchResp.Batch.Root,
-		BatchSize:         big.NewInt(int64(stateBatchResp.Batch.Size)),
-		PrevTotalElements: big.NewInt(int64(stateBatchResp.Batch.PrevTotalElements)),
-		ExtraData:         rollup.ExtraData(stateBatchResp.Batch.ExtraData),
+		BatchRoot:         stateRoot.Batch.Root,
+		BatchSize:         big.NewInt(int64(stateRoot.Batch.Size)),
+		PrevTotalElements: big.NewInt(int64(stateRoot.Batch.PrevTotalElements)),
+		ExtraData:         rollup.ExtraData(stateRoot.Batch.ExtraData),
 	}.Hash()), nil
 }

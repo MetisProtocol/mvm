@@ -291,6 +291,7 @@ type RollupClient interface {
 	GetStateBatchHeader(batchHeaderHash common.Hash) (*BatchHeader, []common.Hash, error)
 	GetStateBatchByIndex(index uint64) (*StateRootBatchResponse, error)
 	GetLatestStateBatches() (*StateRootBatchResponse, error)
+	GetRawStateRoot(index uint64) (*StateRootResponse, error)
 	SetLastVerifier(index uint64, stateRoot string, verifierRoot string, success bool) error
 	GetRawBlock(uint64, Backend) (*BlockResponse, error)
 	GetBlock(uint64, Backend) (*types.Block, error)
@@ -949,6 +950,26 @@ func (c *Client) GetStateRoot(index uint64) (common.Hash, error) {
 		return common.Hash{}, nil
 	}
 	return stateRootResp.StateRoot.Value, nil
+}
+
+func (c *Client) GetRawStateRoot(index uint64) (*StateRootResponse, error) {
+	str := strconv.FormatUint(index, 10)
+	response, err := c.client.R().
+		SetResult(&StateRootResponse{}).
+		SetPathParams(map[string]string{
+			"index":   str,
+			"chainId": c.chainID,
+		}).
+		Get("/stateroot/index/{index}/{chainId}")
+
+	if err != nil {
+		return nil, fmt.Errorf("Cannot get stateroot %d: %w", index, err)
+	}
+	stateRootResp, ok := response.Result().(*StateRootResponse)
+	if !ok {
+		return nil, fmt.Errorf("Cannot parse stateroot response")
+	}
+	return stateRootResp, nil
 }
 
 func (c *Client) GetLatestStateBatches() (*StateRootBatchResponse, error) {

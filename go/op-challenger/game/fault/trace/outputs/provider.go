@@ -180,11 +180,7 @@ func (o *OutputTraceProvider) outputAtBlock(ctx context.Context, block uint64) (
 }
 
 func (o *OutputTraceProvider) batchHeaderAtBlock(block uint64) (uint64, *rollup.BatchHeader, error) {
-	txChainResp, err := o.rollupProvider.GetRawBlock(block, rollup.BackendL1)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to fetch output at block %v: %w", block, err)
-	}
-	stateBatchResp, err := o.getStateBatch(txChainResp.Batch.Index)
+	stateBatchResp, err := o.rollupProvider.GetRawStateRoot(block - 1)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch state batch for block %v: %w", block, err)
 	}
