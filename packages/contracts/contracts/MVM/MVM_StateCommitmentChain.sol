@@ -37,7 +37,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
     uint256 public DEFAULT_CHAINID = 1088;
 
-    IDisputeGameFactory public DISPUTE_GAME_FACTORY;
+    string constant public DISPUTE_GAME_FACTORY_NAME = "DisputeGameFactory";
 
     /*****************
      * Public States *
@@ -61,12 +61,10 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     constructor(
         address _libAddressManager,
         uint256 _fraudProofWindow,
-        uint256 _sequencerPublishWindow,
-        IDisputeGameFactory _disputeGameFactory
+        uint256 _sequencerPublishWindow
     ) Lib_AddressResolver(_libAddressManager) {
         FRAUD_PROOF_WINDOW = _fraudProofWindow;
         SEQUENCER_PUBLISH_WINDOW = _sequencerPublishWindow;
-        DISPUTE_GAME_FACTORY = _disputeGameFactory;
     }
 
     function setFraudProofWindow(uint256 window) external {
@@ -179,7 +177,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // Grab the verified address of the game based on the game data.
         // slither-disable-next-line unused-return
         (IDisputeGame factoryRegisteredGame,) =
-                            DISPUTE_GAME_FACTORY.games({ _gameType: gameType, _rootClaim: rootClaim, _extraData: extraData });
+                            IDisputeGameFactory(resolve(DISPUTE_GAME_FACTORY_NAME)).games({ _gameType: gameType, _rootClaim: rootClaim, _extraData: extraData });
 
         // Must be a valid game.
         if (address(factoryRegisteredGame) != address(game)) revert UnregisteredGame();
