@@ -78,7 +78,6 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     ) {
         require(_token != address(0), "LockingPool: invalid token");
         require(address(_disputeGameFactory) != address(0), "LockingPool: invalid factory");
-        require(_slashRatio <= 10000, "LockingPool: invalid slash ratio");
         token = IERC20(_token);
         lockPeriod = _lockPeriod;
         slashRatio = _slashRatio;
@@ -203,8 +202,6 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @notice Updates the slash ratio
     /// @param _newRatio New slash ratio (base 10000)
     function setSlashRatio(uint256 _newRatio) external onlyOwner {
-        require(_newRatio <= 10000, "LockingPool: invalid slash ratio");
-        
         uint256 oldRatio = slashRatio;
         slashRatio = _newRatio;
         emit SlashRatioUpdated(oldRatio, _newRatio);

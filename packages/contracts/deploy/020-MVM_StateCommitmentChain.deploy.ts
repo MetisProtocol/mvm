@@ -190,7 +190,6 @@ const deployFn: DeployFunction = async (hre) => {
       Lib_AddressManager.address,
       (hre as any).deployConfig.sccFraudProofWindow,
       (hre as any).deployConfig.sccSequencerPublishWindow,
-      ethers.constants.AddressZero,
     ],
   })
 }
