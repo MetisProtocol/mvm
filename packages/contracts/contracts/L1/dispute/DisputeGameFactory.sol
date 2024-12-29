@@ -18,6 +18,13 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
     /// @dev Allows for the creation of clone proxies with immutable arguments.
     using LibClone for address;
 
+    struct DisputeInfo {
+        GameType gameType;
+        address sender;
+        uint256 bond;
+        bytes32 l1Head;
+    }
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -35,6 +42,9 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
     /// @notice An append-only array of disputeGames that have been created. Used by offchain game solvers to
     ///         efficiently track dispute games.
     GameId[] internal _disputeGameList;
+
+    /// @notice An array of dispute games that have been requested.
+    mapping(bytes32 => DisputeInfo) public disputeGameCreationRequests;
 
     /// @notice Constructs a new DisputeGameFactory contract.
     constructor() OwnableUpgradeable() {
@@ -79,15 +89,7 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
     }
 
     /// @inheritdoc IDisputeGameFactory
-    function create(
-        GameType _gameType,
-        Claim _rootClaim,
-        bytes calldata _extraData
-    )
-    external
-    payable
-    returns (IDisputeGame proxy_)
-    {
+    function dispute(GameType _gameType, bytes calldata _extraData) external payable {
         // Grab the implementation contract for the given `GameType`.
         IDisputeGame impl = gameImpls[_gameType];
 
@@ -100,6 +102,43 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
         // Get the hash of the parent block.
         bytes32 parentHash = blockhash(block.number - 1);
 
+        // Save the dispute game creation request.
+        DisputeInfo memory info = DisputeInfo({
+            gameType: _gameType,
+            sender: msg.sender,
+            bond: msg.value,
+            l1Head: parentHash
+        });
+        disputeGameCreationRequests[keccak256(abi.encodePacked(_gameType, _extraData))] = info;
+
+        emit DisputeGameRequested(msg.sender, _gameType, msg.value, _extraData);
+    }
+
+    /// @inheritdoc IDisputeGameFactory
+    function create(
+        GameType _gameType,
+        Claim _rootClaim,
+        bytes calldata _extraData
+    )
+    external
+    onlyOwner
+    returns (IDisputeGame proxy_)
+    {
+        // Grab the implementation contract for the given `GameType`.
+        IDisputeGame impl = gameImpls[_gameType];
+
+        // If there is no implementation to clone for the given `GameType`, revert.
+        if (address(impl) == address(0)) revert NoImplementation(_gameType);
+
+        // find the given request
+        bytes32 requestUuid = keccak256(abi.encodePacked(_gameType, _extraData));
+        DisputeInfo memory info = disputeGameCreationRequests[requestUuid];
+
+        if (info.l1Head == bytes32(0)) revert NoDisputeGameRequests();
+
+        // If the required initialization bond is not met, revert.
+        if (info.bond != initBonds[_gameType]) revert IncorrectBondAmount();
+
         // Clone the implementation contract and initialize it with the given parameters.
         //
         // CWIA Calldata Layout:
@@ -111,8 +150,8 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
         // │ [52, 84)     │ Parent block hash at creation time │
         // │ [84, 84 + n) │ Extra data (opaque)                │
         // └──────────────┴────────────────────────────────────┘
-        proxy_ = IDisputeGame(address(impl).clone(abi.encodePacked(msg.sender, _rootClaim, parentHash, _extraData)));
-        proxy_.initialize{value: msg.value}();
+        proxy_ = IDisputeGame(address(impl).clone(abi.encodePacked(msg.sender, _rootClaim, info.l1Head, _extraData)));
+        proxy_.initialize{value: info.bond}();
 
         // Compute the unique identifier for the dispute game.
         Hash uuid = getGameUUID(_gameType, _rootClaim, _extraData);
@@ -126,6 +165,7 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
         // Store the dispute game id in the mapping & emit the `DisputeGameCreated` event.
         _disputeGames[uuid] = id;
         _disputeGameList.push(id);
+        delete disputeGameCreationRequests[requestUuid];
         emit DisputeGameCreated(address(proxy_), _gameType, _rootClaim);
     }
 

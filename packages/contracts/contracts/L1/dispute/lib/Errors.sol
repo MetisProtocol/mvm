@@ -20,6 +20,9 @@ import "./LibUDT.sol";
 /// @param rootClaim is the claim that was unexpected.
     error UnexpectedRootClaim(Claim rootClaim);
 
+/// @notice Thrown when no dispute game requested.
+    error NoDisputeGameRequests();
+
 ////////////////////////////////////////////////////////////////
 //                 `FaultDisputeGame` Errors                  //
 ////////////////////////////////////////////////////////////////

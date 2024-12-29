@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
@@ -42,4 +43,25 @@ func (g *GameCreator) CreateGame(ctx context.Context, outputRoot common.Hash, tr
 		return common.Address{}, fmt.Errorf("failed to decode game created: %w", err)
 	}
 	return gameAddr, nil
+}
+
+func (g *GameCreator) CreateDispute(ctx context.Context, traceType uint64, l2BlockNum uint64) (uint32, *big.Int, *big.Int, error) {
+	txCandidate, err := g.contract.CreateDisputeTx(ctx, uint32(traceType), l2BlockNum)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed to create tx: %w", err)
+	}
+
+	rct, err := g.txMgr.Send(ctx, txCandidate)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed to send tx: %w", err)
+	}
+	if rct.Status != types.ReceiptStatusSuccessful {
+		return 0, nil, nil, fmt.Errorf("game creation transaction (%v) reverted", rct.TxHash.Hex())
+	}
+
+	_, gameType, bond, extraData, err := g.contract.DecodeDisputeGameRequestedLog(rct)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed to decode game created: %w", err)
+	}
+	return gameType, bond, new(big.Int).SetBytes(extraData), nil
 }

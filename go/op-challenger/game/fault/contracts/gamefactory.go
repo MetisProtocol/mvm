@@ -9,25 +9,27 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
-	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/snapshots"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
+	metis "github.com/ethereum-optimism/optimism/go/op-challenger/abi"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts/metrics"
 	faultTypes "github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/types"
 )
 
 const (
-	methodGameCount   = "gameCount"
-	methodGameAtIndex = "gameAtIndex"
-	methodGameImpls   = "gameImpls"
-	methodInitBonds   = "initBonds"
-	methodCreateGame  = "create"
-	methodGames       = "games"
+	methodGameCount     = "gameCount"
+	methodGameAtIndex   = "gameAtIndex"
+	methodGameImpls     = "gameImpls"
+	methodInitBonds     = "initBonds"
+	methodCreateGame    = "create"
+	methodCreateDispute = "dispute"
+	methodGames         = "games"
 
-	eventDisputeGameCreated = "DisputeGameCreated"
+	eventDisputeGameCreated   = "DisputeGameCreated"
+	eventDisputeGameRequested = "DisputeGameRequested"
 )
 
 var (
@@ -42,7 +44,7 @@ type DisputeGameFactoryContract struct {
 }
 
 func NewDisputeGameFactoryContract(m metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller) *DisputeGameFactoryContract {
-	factoryAbi := snapshots.LoadDisputeGameFactoryABI()
+	factoryAbi := metis.LoadDisputeGameFactoryABI()
 	return &DisputeGameFactoryContract{
 		metrics:     m,
 		multiCaller: caller,
@@ -156,19 +158,49 @@ func (f *DisputeGameFactoryContract) GetAllGames(ctx context.Context, blockHash 
 	return games, nil
 }
 
-func (f *DisputeGameFactoryContract) CreateTx(ctx context.Context, traceType uint32, outputRoot common.Hash, l2BlockNum uint64) (txmgr.TxCandidate, error) {
+func (f *DisputeGameFactoryContract) CreateTx(_ context.Context, traceType uint32, outputRoot common.Hash, l2BlockNum uint64) (txmgr.TxCandidate, error) {
+	call := f.contract.Call(methodCreateGame, traceType, outputRoot, common.BigToHash(big.NewInt(int64(l2BlockNum))).Bytes())
+	candidate, err := call.ToTxCandidate()
+	if err != nil {
+		return txmgr.TxCandidate{}, err
+	}
+	return candidate, err
+}
+
+func (f *DisputeGameFactoryContract) CreateDisputeTx(ctx context.Context, traceType uint32, l2BlockNum uint64) (txmgr.TxCandidate, error) {
 	result, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, f.contract.Call(methodInitBonds, traceType))
 	if err != nil {
 		return txmgr.TxCandidate{}, fmt.Errorf("failed to fetch init bond: %w", err)
 	}
 	initBond := result.GetBigInt(0)
-	call := f.contract.Call(methodCreateGame, traceType, outputRoot, common.BigToHash(big.NewInt(int64(l2BlockNum))).Bytes())
+	call := f.contract.Call(methodCreateDispute, traceType, common.BigToHash(big.NewInt(int64(l2BlockNum))).Bytes())
 	candidate, err := call.ToTxCandidate()
 	if err != nil {
 		return txmgr.TxCandidate{}, err
 	}
 	candidate.Value = initBond
 	return candidate, err
+}
+
+func (f *DisputeGameFactoryContract) DecodeDisputeGameRequestedLog(rcpt *ethTypes.Receipt) (common.Address, uint32, *big.Int, []byte, error) {
+	for _, log := range rcpt.Logs {
+		if log.Address != f.contract.Addr() {
+			// Not from this contract
+			continue
+		}
+		name, result, err := f.contract.DecodeEvent(log)
+		if err != nil {
+			// Not a valid event
+			continue
+		}
+		if name != eventDisputeGameRequested {
+			// Not the event we're looking for
+			continue
+		}
+
+		return result.GetAddress(0), result.GetUint32(1), result.GetBigInt(2), result.GetBytes(3), nil
+	}
+	return common.Address{}, 0, nil, nil, fmt.Errorf("%w: %v", ErrEventNotFound, eventDisputeGameRequested)
 }
 
 func (f *DisputeGameFactoryContract) DecodeDisputeGameCreatedLog(rcpt *ethTypes.Receipt) (common.Address, uint32, common.Hash, error) {

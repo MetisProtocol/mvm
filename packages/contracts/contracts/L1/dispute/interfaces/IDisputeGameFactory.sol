@@ -8,6 +8,13 @@ import "contracts/L1/dispute/lib/Types.sol";
 /// @title IDisputeGameFactory
 /// @notice The interface for a DisputeGameFactory contract.
 interface IDisputeGameFactory {
+    /// @notice Emitted when a new dispute game is requested
+    /// @param requestor The address of the requestor
+    /// @param gameType The type of the dispute game
+    /// @param bond The bond (in wei) for initializing the game type
+    //. @param extraData Any extra data that should be provided to the created dispute game.
+    event DisputeGameRequested(address indexed requestor, GameType indexed gameType, uint256 bond, bytes extraData);
+
     /// @notice Emitted when a new dispute game is created
     /// @param disputeProxy The address of the dispute game proxy
     /// @param gameType The type of the dispute game proxy's implementation
@@ -79,6 +86,12 @@ interface IDisputeGameFactory {
     /// @return bond_ The required bond for initializing a dispute game of the given type.
     function initBonds(GameType _gameType) external view returns (uint256 bond_);
 
+    /// @notice Requests a new dispute game of the given type.
+    /// @dev Emits a `DisputeGameRequested` event.
+    /// @param _gameType The type of the dispute game.
+    /// @param _extraData Any extra data that should be provided to the created dispute game.
+    function dispute(GameType _gameType, bytes calldata _extraData) external payable;
+
     /// @notice Creates a new DisputeGame proxy contract.
     /// @param _gameType The type of the DisputeGame - used to decide the proxy implementation.
     /// @param _rootClaim The root claim of the DisputeGame.
@@ -90,7 +103,6 @@ interface IDisputeGameFactory {
         bytes calldata _extraData
     )
     external
-    payable
     returns (IDisputeGame proxy_);
 
     /// @notice Sets the implementation contract for a specific `GameType`.
