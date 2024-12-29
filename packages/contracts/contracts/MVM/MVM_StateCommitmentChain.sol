@@ -186,14 +186,10 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
         if (disputedBatches[stateHeaderHash]) revert ClaimAlreadyResolved();
 
-        // Must be a game that resolved in favor of the state.
-        // We are different with op, we will not actively start the game,
-        // we only defend the challenges
-        if (game.status() != GameStatus.CHALLENGER_WINS) {
-            return;
+        // We only record the disputed batch if the challenger wins.
+        if (game.status() == GameStatus.CHALLENGER_WINS) {
+            disputedBatches[stateHeaderHash] = true;
         }
-
-        disputedBatches[stateHeaderHash] = true;
     }
 
     /**********************

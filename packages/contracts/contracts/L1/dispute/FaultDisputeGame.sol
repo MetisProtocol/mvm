@@ -1,27 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IPreimageOracle} from "../cannon/interfaces/IPreimageOracle.sol";
+import "./interfaces/ILockingPool.sol";
+import "contracts/L1/dispute/lib/Errors.sol";
+import "contracts/L1/dispute/lib/Types.sol";
+import {Clone} from "solady/src/utils/Clone.sol";
+import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
 import {Hashing} from "../../libraries/Hashing.sol";
-import {Types} from "../../libraries/Types.sol";
-import {Lib_OVMCodec} from "../../libraries/codec/Lib_OVMCodec.sol";
-import {Lib_RLPReader} from "../../libraries/rlp/Lib_RLPReader.sol";
-import {ISemver} from "../../universal/ISemver.sol";
 import {IBigStepper} from "./interfaces/IBigStepper.sol";
 import {IDelayedWETH} from "./interfaces/IDelayedWETH.sol";
 import {IDisputeGame} from "./interfaces/IDisputeGame.sol";
 import {IFaultDisputeGame} from "./interfaces/IFaultDisputeGame.sol";
+import {IInitializable} from "contracts/L1/dispute/interfaces/IInitializable.sol";
+import {IMVMStateCommitmentChain} from "../rollup/IMVMStateCommitmentChain.sol";
+import {IPreimageOracle} from "../cannon/interfaces/IPreimageOracle.sol";
+import {ISemver} from "../../universal/ISemver.sol";
+import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
+
+import {Lib_OVMCodec} from "../../libraries/codec/Lib_OVMCodec.sol";
+import {Lib_RLPReader} from "../../libraries/rlp/Lib_RLPReader.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {OutputRoot, LocalPreimageKey, VMStatuses} from "./lib/Types.sol";
-import {Clone} from "solady/src/utils/Clone.sol";
-import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
-import {IInitializable} from "contracts/L1/dispute/interfaces/IInitializable.sol";
-
-import "contracts/L1/dispute/lib/Types.sol";
-import "contracts/L1/dispute/lib/Errors.sol";
-import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
-import {IMVMStateCommitmentChain} from "../rollup/IMVMStateCommitmentChain.sol";
 import {StateCommitmentChain} from "../rollup/StateCommitmentChain.sol";
+import {Types} from "../../libraries/Types.sol";
 
 /// @title FaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.
@@ -117,6 +118,9 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
 
     /// @notice The name of the SCC contract.
     string internal constant SCC_NAME = "StateCommitmentChain";
+
+    /// @notice The name of the locking pool contract.
+    string internal constant LOCKING_POOL_NAME = "FaultProofLockingPool";
 
     /// @param _gameType The type ID of the game.
     /// @param _absolutePrestate The absolute prestate of the instruction trace.
@@ -393,7 +397,8 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         }
 
         // INVARIANT: The `msg.value` must exactly equal the required bond.
-        if (getRequiredBond(nextPosition) != msg.value) revert IncorrectBondAmount();
+        //            The root game creator does not need to pay for the bond, since the reward will be slashed from the pool.
+        if (claimData[0].claimant != msg.sender && getRequiredBond(nextPosition) != msg.value) revert IncorrectBondAmount();
 
         // Compute the duration of the next clock. This is done by adding the duration of the
         // grandparent claim to the difference between the current block timestamp and the
@@ -606,8 +611,26 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         status_ = claimData[0].counteredBy == address(0) ? GameStatus.DEFENDER_WINS : GameStatus.CHALLENGER_WINS;
         resolvedAt = Timestamp.wrap(uint64(block.timestamp));
 
-        // Mark batch as disputed
-        IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME)).saveDisputedBatch(startingOutputRoot.root.raw());
+        // Handle locking pool slashing if challenger wins
+        if (status_ == GameStatus.CHALLENGER_WINS) {
+            address lockingPool = ADDRESS_MANAGER.getAddress(LOCKING_POOL_NAME);
+            if (lockingPool != address(0)) {
+                // Get the winning claimant (the one who successfully countered the root claim)
+                address winner = claimData[0].counteredBy;
+                
+                // Call slash on the locking pool
+                try ILockingPool(lockingPool).slash(winner) {
+                    // Slashing succeeded
+                } catch {
+                    // Slashing failed - we don't want to revert the whole resolution
+                    // but we should emit an event for monitoring
+                    emit SlashingFailed(winner);
+                }
+            }
+
+            // Mark batch as disputed
+            IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME)).saveDisputedBatch(claimData[0].claim.raw());
+        }
 
         // Update the status and emit the resolved event, note that we're performing an assignment here.
         emit Resolved(status = status_);
@@ -1077,4 +1100,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
             ? Hash.wrap(keccak256(abi.encode(_disputed, _disputedPos)))
             : Hash.wrap(keccak256(abi.encode(_starting, _startingPos, _disputed, _disputedPos)));
     }
+
+    /// @notice Emitted when slashing fails
+    event SlashingFailed(address indexed intendedRecipient);
 }
