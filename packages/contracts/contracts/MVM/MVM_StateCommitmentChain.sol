@@ -48,8 +48,11 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     // key: state batch hash
     // value: last L2 block number of the given batch
     mapping(bytes32 => uint256) public batchLastL2BlockNumbers;
-
+    // key: state batch hash
+    // value: whether the batch is disputed
     mapping(bytes32 => bool) public disputedBatches;
+    // the index of the first disputable batch
+    uint256 public firstDisputableBatchIndex;
 
     /***************
      * Constructor *
@@ -150,7 +153,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         view
         returns (bool _inside)
     {
-        (uint256 timestamp, , , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32, uint256));
+        (uint256 timestamp, , , ) = _decodeExtraData(_batchHeader.extraData);
 
         require(timestamp != 0, "Batch header timestamp cannot be zero");
         return (timestamp + FRAUD_PROOF_WINDOW) > block.timestamp;
@@ -160,7 +163,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         uint256,
         Lib_OVMCodec.ChainBatchHeader memory _batchHeader
     ) public view override returns (bool _inside) {
-        (uint256 timestamp, , , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32, uint256));
+        (uint256 timestamp, , , ) = _decodeExtraData(_batchHeader.extraData);
 
         return _insideFraudProofWindowByChainId(timestamp);
     }
@@ -194,6 +197,21 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
      * Internal Functions *
      **********************/
 
+    function _decodeExtraData(bytes memory _extraData) internal pure returns (uint256, address, bytes32, uint256) {
+        uint256 timestamp;
+        address sequencer;
+        bytes32 lastBlockHash;
+        uint256 lastBlockNumber;
+        if (_extraData.length == 0x40) {
+            (timestamp, sequencer) = abi.decode(_extraData, (uint256, address));
+        } else if (_extraData.length == 0x80) {
+            (timestamp, sequencer, lastBlockHash, lastBlockNumber) = abi.decode(_extraData, (uint256, address, bytes32, uint256));
+        } else {
+            revert("Invalid extra data length");
+        }
+        return (timestamp, sequencer, lastBlockHash, lastBlockNumber);
+    }
+
     function _findBatchWithinTimeWindow(uint256 _chainId, uint256 earliestTime) public view returns (bytes32, uint256) {
         bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
 
@@ -202,7 +220,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         uint256 found = 0;
         uint256 lastTimeIndex = batchTimesOfChain.length - 1;
         uint256 lastElementTime = uint256(uint128(batchTimesOfChain[lastTimeIndex]) >> 64);
-        uint256 firstElementTime = uint256(uint128(batchTimesOfChain[0]) >> 64);
+        uint256 firstElementTime = uint256(uint128(batchTimesOfChain[firstDisputableBatchIndex]) >> 64);
 
         require(earliestTime <= lastElementTime, "No batch to dispute");
 

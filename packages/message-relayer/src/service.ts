@@ -11,7 +11,7 @@ import {
   loadContract,
   loadContractFromManager,
   predeploys,
-} from '@metis.io/contracts'
+} from '@localtest911/contracts'
 import { StateRootBatchHeader, SentMessage, SentMessageProof } from './types'
 import mongoose from 'mongoose'
 import ChainStore from './store/chain-store'
@@ -122,6 +122,7 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       name: 'StateCommitmentChain',
       Lib_AddressManager: this.state.Lib_AddressManager,
       provider: this.options.l1RpcProvider,
+      ifaceName: 'MVM_StateCommitmentChain',
     })
     this.logger.info('Connected to StateCommitmentChain', {
       address: this.state.StateCommitmentChain.address,

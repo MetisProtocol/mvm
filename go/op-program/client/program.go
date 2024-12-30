@@ -333,9 +333,10 @@ BREAKOUT:
 	framesByChannelId := make(map[derive.ChannelID][]derive.Frame)
 	for _, rawBatchInfo := range rawBatchInfos {
 		for _, blobTx := range rawBatchInfo.BlobTransactions {
-			logger.Debug("Processing blob tx data", "tx", blobTx.Tx.Hash().Hex(), "blobCount", len(blobTx.BlobHashes))
+			logger.Info("Processing blob tx data", "tx", blobTx.Tx.Hash().Hex(), "blobCount", len(blobTx.BlobHashes))
 			// derive the batch
 			for _, indexedBlobHash := range blobTx.BlobHashes {
+				logger.Info("Processing blob sidecar", "block", blobTx.BlockRef.Number, "blobIndex", indexedBlobHash.Index, "blobHash", indexedBlobHash.Hash.Hex())
 				blob := l1Oracle.GetBlob(blobTx.BlockRef, indexedBlobHash)
 				if blob == nil {
 					return fmt.Errorf("blob %s not found", indexedBlobHash.Hash.Hex())
