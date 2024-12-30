@@ -48,6 +48,9 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @notice Total amount of tokens locked
     uint256 public totalLocked;
 
+    /// @notice Array of sequencer addresses
+    address[] public depositedSequencers;
+
     /// @notice Emitted when tokens are deposited
     event Deposit(address indexed user, uint256 amount);
 
@@ -102,6 +105,18 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         token.safeTransferFrom(msg.sender, address(this), _amount);
         balanceOf[msg.sender] += _amount;
         totalLocked += _amount;
+
+        bool depositedBefore = false;
+        for (uint256 i = 0; i < depositedSequencers.length; i++) {
+            if (depositedSequencers[i] == msg.sender) {
+                depositedBefore = true;
+                break;
+            }
+        }
+
+        if (!depositedBefore) {
+            depositedSequencers.push(msg.sender);
+        }
         
         emit Deposit(msg.sender, _amount);
     }
@@ -134,6 +149,17 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         wd.amount -= _amount;
         balanceOf[msg.sender] -= _amount;
         totalLocked -= _amount;
+
+        // remove sender from deposited sequencers if balance is zero
+        if (balanceOf[msg.sender] == 0) {
+            for (uint256 i = 0; i < depositedSequencers.length; i++) {
+                if (depositedSequencers[i] == msg.sender) {
+                    depositedSequencers[i] = depositedSequencers[depositedSequencers.length - 1];
+                    depositedSequencers.pop();
+                    break;
+                }
+            }
+        }
         
         token.safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
@@ -168,7 +194,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         uint256 actualSlashedAmount;
         
         // Cache users array to avoid multiple storage reads
-        address[] memory users = getUsers();
+        address[] memory users = depositedSequencers;
         uint256 usersLength = users.length;
         
         // First pass: calculate actual slashed amount
@@ -226,33 +252,5 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     {
         WithdrawalRequest memory wd = withdrawals[_user];
         return (wd.amount, wd.timestamp);
-    }
-
-    /// @notice Gets all users with non-zero balances
-    /// @return users Array of user addresses with non-zero balances
-    function getUsers() public view returns (address[] memory users) {
-        // First pass: count users with balance
-        uint256 count;
-        uint256 maxIterations = 1000; // Arbitrary limit for gas optimization
-        
-        for (uint160 i = 1; i <= maxIterations;) {
-            if (balanceOf[address(i)] > 0) {
-                unchecked { ++count; }
-            }
-            unchecked { ++i; }
-        }
-
-        // Second pass: populate array
-        users = new address[](count);
-        uint256 index;
-        
-        for (uint160 i = 1; i <= maxIterations && index < count;) {
-            address user = address(i);
-            if (balanceOf[user] > 0) {
-                users[index] = user;
-                unchecked { ++index; }
-            }
-            unchecked { ++i; }
-        }
     }
 } 
