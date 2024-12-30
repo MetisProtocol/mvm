@@ -7,10 +7,10 @@ import {
 } from './test/helpers/constants'
 
 // Hardhat plugins
-import '@openzeppelin/hardhat-upgrades'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-etherscan'
+import '@openzeppelin/hardhat-upgrades'
 import 'hardhat-deploy'
 import '@typechain/hardhat'
 import './tasks/deploy'

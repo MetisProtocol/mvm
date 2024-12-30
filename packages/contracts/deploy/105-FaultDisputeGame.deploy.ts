@@ -17,7 +17,7 @@ const deployFn: DeployFunction = async (hre) => {
   const mips = await getDeployedContract(hre, 'MIPS')
   const disputeGameFactory = await getDeployedContract(
     hre,
-    'DisputeGameFactory',
+    'Proxy__DisputeGameFactory',
     {
       iface: 'DisputeGameFactory',
       signerOrProvider: deployer,

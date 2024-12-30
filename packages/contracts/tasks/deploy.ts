@@ -2,6 +2,8 @@
 import { ethers } from 'ethers'
 import { task } from 'hardhat/config'
 import * as types from 'hardhat/internal/core/params/argumentTypes'
+import path from 'path'
+import fs from 'fs'
 
 const DEFAULT_L1_BLOCK_TIME_SECONDS = 15
 const DEFAULT_CTC_MAX_TRANSACTION_GAS_LIMIT = 11_000_000
@@ -144,6 +146,14 @@ task('deploy')
         throw new Error(
           `argument for ${argName} is not a valid address: ${args[argName]}`
         )
+      }
+    }
+
+    if (args.reset) {
+      const ozDirPath = path.join(hre.config.paths.root, '.openzeppelin')
+      if (fs.existsSync(ozDirPath)) {
+        // delete the openzeppeline upgrade cache file
+        fs.rmdirSync(ozDirPath)
       }
     }
 

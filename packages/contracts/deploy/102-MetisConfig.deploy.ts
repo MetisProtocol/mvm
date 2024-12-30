@@ -18,8 +18,6 @@ const deployFn: DeployFunction = async (hre) => {
     },
   })
 
-  console.log(`MetisConfig deployed to: ${metisConfig.contract.address}`)
-
   if (metisConfig.newDeploy) {
     await registerAddress({
       hre,

@@ -24,8 +24,6 @@ const deployFn: DeployFunction = async (hre) => {
     },
   })
 
-  console.log(`DelayedWETH deployed to: ${delayedWETH.contract.address}`)
-
   if (delayedWETH.newDeploy) {
     await registerAddress({
       hre,

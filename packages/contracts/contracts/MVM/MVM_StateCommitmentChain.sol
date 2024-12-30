@@ -51,8 +51,6 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     // key: state batch hash
     // value: whether the batch is disputed
     mapping(bytes32 => bool) public disputedBatches;
-    // the index of the first disputable batch
-    uint256 public firstDisputableBatchIndex;
 
     /***************
      * Constructor *
@@ -215,12 +213,12 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     function _findBatchWithinTimeWindow(uint256 _chainId, uint256 earliestTime) public view returns (bytes32, uint256) {
         bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
 
-        require(batchTimesOfChain.length > 0, "No batch has been appended yet");
+        require(batchTimesOfChain.length > 0, "No disputable batch has been appended yet");
 
         uint256 found = 0;
         uint256 lastTimeIndex = batchTimesOfChain.length - 1;
         uint256 lastElementTime = uint256(uint128(batchTimesOfChain[lastTimeIndex]) >> 64);
-        uint256 firstElementTime = uint256(uint128(batchTimesOfChain[firstDisputableBatchIndex]) >> 64);
+        uint256 firstElementTime = uint256(uint128(batchTimesOfChain[0]) >> 64);
 
         require(earliestTime <= lastElementTime, "No batch to dispute");
 

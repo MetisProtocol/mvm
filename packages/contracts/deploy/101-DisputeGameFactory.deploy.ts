@@ -17,8 +17,6 @@ const deployFn: DeployFunction = async (hre) => {
     },
   })
 
-  console.log(`DisputeGameFactory deployed to: ${factory.contract.address}`)
-
   if (factory.newDeploy) {
     await registerAddress({
       hre,
