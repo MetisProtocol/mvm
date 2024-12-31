@@ -153,7 +153,9 @@ task('deploy')
       const ozDirPath = path.join(hre.config.paths.root, '.openzeppelin')
       if (fs.existsSync(ozDirPath)) {
         // delete the openzeppeline upgrade cache file
-        fs.rmdirSync(ozDirPath)
+        fs.rm(ozDirPath, { recursive: true, force: true }, () => {
+          return
+        })
       }
     }
 
