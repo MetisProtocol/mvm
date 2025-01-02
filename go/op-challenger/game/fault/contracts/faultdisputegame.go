@@ -12,11 +12,11 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
-	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/snapshots"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 
+	override "github.com/ethereum-optimism/optimism/go/op-challenger/abi"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts/metrics"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 	gameTypes "github.com/ethereum-optimism/optimism/go/op-challenger/game/types"
@@ -82,7 +82,7 @@ type outputRootProof struct {
 }
 
 func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller) (FaultDisputeGameContract, error) {
-	contractAbi := snapshots.LoadFaultDisputeGameABI()
+	contractAbi := override.LoadFaultDisputeGameABI()
 
 	var builder VersionedBuilder[FaultDisputeGameContract]
 	builder.AddVersion(0, 8, func() (FaultDisputeGameContract, error) {

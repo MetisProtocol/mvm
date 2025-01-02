@@ -416,8 +416,10 @@ BREAKOUT:
 	logger.Info("Created L2 chain, start derivation", "head", l2Chain.CurrentHeader().Number.Uint64(), "headHash", l2Chain.CurrentHeader().Hash().Hex())
 	parentHeader := l2Chain.CurrentHeader()
 
+	disputedBatchStartBlock, disputedBatchEndBlock := disputedBatchHeader.PrevTotalElements.Uint64()+1, disputedBatchHeader.PrevTotalElements.Uint64()+disputedBatchHeader.BatchSize.Uint64()
+
 	logger.Info("Derivation range", "start", l2Blocks[0].NumberU64(), "end", l2Blocks[len(l2Blocks)-1].NumberU64())
-	intermediateStateRoots := make([]ethhex.Bytes, 0, len(l2Blocks))
+	intermediateStateRoots := make([]ethhex.Bytes, 0, disputedBatchHeader.BatchSize.Uint64())
 	for _, block := range l2Blocks {
 		logger.Info("Processing L2 block", "block", block.Number().Uint64())
 
@@ -508,7 +510,10 @@ BREAKOUT:
 			return fmt.Errorf("trie write error: %w", err)
 		}
 
-		intermediateStateRoots = append(intermediateStateRoots, root.Bytes())
+		// only append the state roots of the disputed batch
+		if block.NumberU64() >= disputedBatchStartBlock && block.NumberU64() <= disputedBatchEndBlock {
+			intermediateStateRoots = append(intermediateStateRoots, root.Bytes())
+		}
 		logger.Info("State commited", "block", block.Number().Uint64(), "root", root.Hex())
 
 		// Set head

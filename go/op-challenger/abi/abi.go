@@ -10,8 +10,15 @@ import (
 //go:embed override/DisputeGameFactory.json
 var disputeGameFactory []byte
 
+//go:embed override/FaultDisputeGame.json
+var faultDisputeGame []byte
+
 func LoadDisputeGameFactoryABI() *abi.ABI {
 	return loadABI(disputeGameFactory)
+}
+
+func LoadFaultDisputeGameABI() *abi.ABI {
+	return loadABI(faultDisputeGame)
 }
 
 func loadABI(json []byte) *abi.ABI {
