@@ -397,9 +397,7 @@ func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Tra
 		}
 
 		batchBlockIndex := startBlock + blockIndex - 1
-
-		fmt.Printf("seqY parity bit of tx: %s, %s\n", tx.Hash().Hex(), btx.seqYParityBits.String())
-
+		
 		txMeta := &types.TransactionMeta{
 			L1BlockNumber:   new(big.Int).SetUint64(btx.l1BlockNumbers[blockIndex]),
 			L1Timestamp:     btx.l1Timestamps[blockIndex],

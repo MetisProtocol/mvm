@@ -192,12 +192,12 @@ func (r *Runner) createGameInputs(ctx context.Context, l1RPCClient *ethclient.Cl
 		ExtraData:         rollup.ExtraData(prevBatch.Batch.ExtraData),
 	}.Hash()
 
-	l1Head, err := l1RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(prevBatch.Batch.BlockNumber))
+	l1Head, err := l1RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(latestBatch.Batch.BlockNumber))
 	if err != nil {
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to get L1 head: %w", err)
 	}
 
-	l2Head, err := l2RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(uint64(prevBatch.Batch.PrevTotalElements+prevBatch.Batch.Size+1)))
+	l2Head, err := l2RPCClient.HeaderByNumber(ctx, new(big.Int).SetUint64(uint64(prevBatch.Batch.PrevTotalElements+prevBatch.Batch.Size)))
 	if err != nil {
 		return utils.LocalGameInputs{}, fmt.Errorf("failed to get L2 head: %w", err)
 	}

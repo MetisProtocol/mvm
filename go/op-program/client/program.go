@@ -359,37 +359,37 @@ BREAKOUT:
 				logger.Info("Processed blob tx", "tx", blobTx.Tx.Hash().Hex(), "blobIndex", indexedBlobHash.Index, "blobHash", indexedBlobHash.Hash.Hex(), "frameCount", len(frames))
 			}
 		}
+	}
 
-		// derive the batch
-		for channelId, frames := range framesByChannelId {
-			// sort the frames by number
-			slices.SortFunc(frames, func(i, j derive.Frame) int {
-				return int(i.FrameNumber - j.FrameNumber)
-			})
-			logger.Info("Processing frame", "channel", channelId.String(), "frameCount", len(frames))
-			channel, err := opderive.ProcessFrames(l2Cfg.ChainID, channelId, frames)
-			if err != nil {
-				return fmt.Errorf("failed to process frames: %w", err)
+	// derive the batch
+	for channelId, frames := range framesByChannelId {
+		// sort the frames by number
+		slices.SortFunc(frames, func(i, j derive.Frame) int {
+			return int(i.FrameNumber - j.FrameNumber)
+		})
+		logger.Info("Processing frame", "channel", channelId.String(), "frameCount", len(frames))
+		channel, err := opderive.ProcessFrames(l2Cfg.ChainID, channelId, frames)
+		if err != nil {
+			return fmt.Errorf("failed to process frames: %w", err)
+		}
+
+		for _, batch := range channel.Batches {
+			spanBatch, ok := batch.AsSpanBatch()
+			if !ok {
+				return fmt.Errorf("failed to convert batch to span batch: %w", err)
 			}
 
-			for _, batch := range channel.Batches {
-				spanBatch, ok := batch.AsSpanBatch()
-				if !ok {
-					return fmt.Errorf("failed to convert batch to span batch: %w", err)
-				}
+			logger.Info("Deriving span batch", "channel", channelId.String(), "batch", spanBatch)
 
-				logger.Info("Deriving span batch", "channel", channelId.String(), "batch", spanBatch)
+			derivedBlocks := spanBatch.DeriveL2Blocks()
 
-				derivedBlocks := spanBatch.DeriveL2Blocks()
+			logger.Info("Derived blocks", "channel", channelId.String(), "blockCount", len(derivedBlocks))
 
-				logger.Info("Derived blocks", "channel", channelId.String(), "blockCount", len(derivedBlocks))
-
-				// filter out the blocks that are not in the range
-				for _, block := range derivedBlocks {
-					logger.Info("Checking block", "block", block.NumberU64())
-					if block.NumberU64() > l2StartBlock && block.NumberU64() <= l2EndBlock {
-						l2Blocks = append(l2Blocks, block)
-					}
+			// filter out the blocks that are not in the range
+			for _, block := range derivedBlocks {
+				logger.Info("Checking block", "block", block.NumberU64())
+				if block.NumberU64() > l2StartBlock && block.NumberU64() <= l2EndBlock {
+					l2Blocks = append(l2Blocks, block)
 				}
 			}
 		}
