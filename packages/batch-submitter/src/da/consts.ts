@@ -4,4 +4,3 @@ export const MAX_BLOB_SIZE = (4 * 31 + 3) * 1024 - 4
 export const MAX_BLOB_NUM_PER_TX = 5
 export const TX_GAS = 21_000
 export const CHANNEL_FULL_ERR = new Error('Channel is full')
-export const CLIQUE_EXTRA_DATA_LENGTH = 97 * 2

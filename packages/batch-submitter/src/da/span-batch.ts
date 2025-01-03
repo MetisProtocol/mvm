@@ -115,7 +115,7 @@ export interface SpanBatchElement {
 // SpanBatchType := 1
 // spanBatch := SpanBatchType ++ prefix ++ payload
 // prefix := l2_start_block ++ parent_check ++ l1_origin_check
-// payload := block_count ++ origin_bits ++ l1_block_numbers ++ l1_block_timestamps ++ block_tx_counts ++ block_extra_data ++ txs
+// payload := block_count ++ origin_bits ++ l1_block_numbers ++ l1_block_timestamps ++ block_tx_counts ++ block_extra_datas(len+data) ++ txs
 // txs := contract_creation_bits ++ y_parity_bits(v) ++ tx_sigs(r & s) ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits
 //        ++ queue_origin_bits ++ seq_y_parity_bits(v) ++ tx_seq_sigs(r & s) ++ l1_tx_origins
 export class RawSpanBatch {
@@ -160,6 +160,7 @@ export class RawSpanBatch {
       writer.writeVarInt(count)
     }
     for (const extraData of this.extraDatas) {
+      writer.writeVarInt(extraData.length)
       writer.writeBytes(extraData)
     }
     writer.writeBytes(this.txs.encode())

@@ -9,11 +9,7 @@ import {
 import { SpanChannelOut } from './span-channel-out'
 import { L2Block, remove0x } from '@metis.io/core-utils'
 import { ChannelCompressor } from './channel-compressor'
-import {
-  CHANNEL_FULL_ERR,
-  CLIQUE_EXTRA_DATA_LENGTH,
-  MAX_BLOB_SIZE,
-} from './consts'
+import { CHANNEL_FULL_ERR, MAX_BLOB_SIZE } from './consts'
 import { maxDataSize } from './utils'
 import { Logger } from '@eth-optimism/common-ts'
 
@@ -59,10 +55,6 @@ export class ChannelBuilder {
 
     if (!block.txs) {
       throw new Error('Empty block')
-    }
-
-    if (remove0x(block.extraData).length > CLIQUE_EXTRA_DATA_LENGTH) {
-      throw new Error('Clique consensus data is not as expected')
     }
 
     const firstTx = block.txs[0]

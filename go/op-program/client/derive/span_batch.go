@@ -179,7 +179,11 @@ func (bp *spanBatchPayload) decodeL1BlockTimestamps(r *bytes.Reader) error {
 func (bp *spanBatchPayload) decodeL2BlockExtraDatas(r *bytes.Reader) error {
 	var extraDatas [][]byte
 	for i := 0; i < int(bp.blockCount); i++ {
-		extraData := make([]byte, 97)
+		extraDataLen, err := binary.ReadUvarint(r)
+		if err != nil {
+			return fmt.Errorf("failed to read l2 block extra data length: %w", err)
+		}
+		extraData := make([]byte, extraDataLen)
 		if _, err := io.ReadFull(r, extraData); err != nil {
 			return fmt.Errorf("failed to read l2 block extra data: %w", err)
 		}
