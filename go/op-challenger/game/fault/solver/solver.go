@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 )
 
@@ -66,17 +68,21 @@ func (s *claimSolver) NextMove(ctx context.Context, claim types.Claim, game type
 		return nil, types.ErrGameDepthReached
 	}
 
+	log.Debug("Checking should counter", "contractIndex", claim.ContractIndex, "claim", claim.Depth())
 	if counter, err := s.shouldCounter(game, claim, honestClaims); err != nil {
 		return nil, fmt.Errorf("failed to determine if claim should be countered: %w", err)
 	} else if !counter {
 		return nil, nil
 	}
 
+	log.Debug("Checking should agree with claim", "contractIndex", claim.ContractIndex, "claim", claim.Depth())
 	if agree, err := s.agreeWithClaim(ctx, game, claim); err != nil {
 		return nil, err
 	} else if agree {
+		log.Debug("Agreeing with claim", "contractIndex", claim.ContractIndex, "claim", claim.Depth())
 		return s.defend(ctx, game, claim)
 	} else {
+		log.Debug("Disagreeing with claim", "contractIndex", claim.ContractIndex, "claim", claim.Depth())
 		return s.attack(ctx, game, claim)
 	}
 }

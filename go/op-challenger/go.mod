@@ -2,7 +2,7 @@ module github.com/ethereum-optimism/optimism/go/op-challenger
 
 go 1.21
 
-toolchain go1.22.7
+toolchain go1.21.13
 
 replace (
 	github.com/MetisProtocol/mvm/l2geth => ../../l2geth

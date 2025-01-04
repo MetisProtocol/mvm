@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"runtime"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	l2hex "github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/hashicorp/golang-lru/v2/simplelru"
 
 	l2common "github.com/MetisProtocol/mvm/l2geth/common"
 	l2types "github.com/MetisProtocol/mvm/l2geth/core/types"
@@ -20,12 +20,9 @@ import (
 	merkletrie "github.com/ethereum-optimism/optimism/go/op-program/client/merkel"
 )
 
-const (
-	// usually we have about 1 hour per batch,
-	// 500 is more than enough to cache all batches in the last 7 days
-	maxCachedStateBatches = 500
-	// assume we have 2000 blocks per batch, and we will cache headers for a single batch
-	maxCachedL2Headers = 2000
+var (
+	// l2 header fetch concurrency
+	maxL2HeaderFetchConcurrency = runtime.NumCPU()*2 + 1
 )
 
 var (
@@ -46,15 +43,9 @@ type OutputTraceProvider struct {
 	poststateBlock uint64
 	l1Head         eth.BlockID
 	gameDepth      types.Depth
-
-	stateBatchCache    *simplelru.LRU[uint64, *rollup.StateRootBatchResponse]
-	l2BlockHeaderCache *simplelru.LRU[uint64, *l2types.Header]
 }
 
 func NewTraceProvider(logger log.Logger, prestateProvider types.PrestateProvider, rollupProvider rollup.RollupClient, l2Client utils.L2HeaderSource, l1Head eth.BlockID, gameDepth types.Depth, prestateBlock, poststateBlock uint64) *OutputTraceProvider {
-	stateBatchCache, _ := simplelru.NewLRU[uint64, *rollup.StateRootBatchResponse](maxCachedStateBatches, nil)
-	l2BlockHeaderCache, _ := simplelru.NewLRU[uint64, *l2types.Header](maxCachedStateBatches, nil)
-
 	return &OutputTraceProvider{
 		PrestateProvider: prestateProvider,
 		logger:           logger,
@@ -64,9 +55,6 @@ func NewTraceProvider(logger log.Logger, prestateProvider types.PrestateProvider
 		poststateBlock:   poststateBlock,
 		l1Head:           l1Head,
 		gameDepth:        gameDepth,
-
-		stateBatchCache:    stateBatchCache,
-		l2BlockHeaderCache: l2BlockHeaderCache,
 	}
 }
 
@@ -82,6 +70,20 @@ func (o *OutputTraceProvider) ClaimedBlockNumber(pos types.Position) (uint64, er
 	if outputBlock > o.poststateBlock {
 		outputBlock = o.poststateBlock
 	}
+
+	resp, err := o.getStateRoot(outputBlock - 1)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get state root %v: %w", outputBlock, err)
+	}
+
+	// unlike only can move block by block, we need to move batch by batch
+	batchEndBlock := uint64(resp.Batch.PrevTotalElements) + uint64(resp.Batch.Size)
+	if outputBlock != batchEndBlock {
+		outputBlock = batchEndBlock
+	}
+
+	o.logger.Debug("Claimed", "outputBlock", outputBlock)
+
 	return outputBlock, nil
 }
 
@@ -93,30 +95,36 @@ func (o *OutputTraceProvider) HonestBlockNumber(_ context.Context, pos types.Pos
 	if err != nil {
 		return 0, err
 	}
-	resp, err := o.rollupProvider.GetLatestStateBatches()
+
+	claimedBatch, err := o.getStateRoot(outputBlock - 1)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get safe head at L1 block %v: %w", o.l1Head, err)
+		return 0, fmt.Errorf("failed to get state root %v: %w", outputBlock, err)
 	}
 
-	// search backwards until we found a batch that is small or equal to the given l1 head
-	for resp.Batch.BlockNumber > o.l1Head.Number {
-		prevIndex := resp.Batch.Index - 1
-		resp, err = o.getStateBatch(prevIndex)
+	// back searching for output block at target l1 head
+	for claimedBatch.Batch.BlockNumber > o.l1Head.Number {
+		claimedBatch, err = o.getStateRoot(uint64(claimedBatch.Batch.PrevTotalElements))
 		if err != nil {
-			return 0, fmt.Errorf("failed to get safe head at L1 block %v: %w", o.l1Head, err)
+			return 0, fmt.Errorf("failed to get state root %v: %w", outputBlock, err)
 		}
+
+		o.logger.Debug("Traversing back for l1 head", "target", o.l1Head.Number,
+			"current", claimedBatch.Batch.BlockNumber, "index", claimedBatch.Batch.Index)
 	}
 
-	// safe head is the last block in this batch
-	maxSafeHead := uint64(resp.Batch.PrevTotalElements + resp.Batch.Size)
+	// safe head is the last block in previous batch
+	maxSafeHead := uint64(claimedBatch.Batch.PrevTotalElements + claimedBatch.Batch.Size)
 	if outputBlock > maxSafeHead {
 		outputBlock = maxSafeHead
 	}
+
+	o.logger.Debug("Honest", "outputBlock", outputBlock)
+
 	return outputBlock, nil
 }
 
 func (o *OutputTraceProvider) Get(ctx context.Context, pos types.Position) (common.Hash, error) {
-	outputBlock, err := o.HonestBlockNumber(ctx, pos)
+	outputBlock, err := o.ClaimedBlockNumber(pos)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -154,21 +162,65 @@ func (o *OutputTraceProvider) GetL2BlockNumberChallenge(ctx context.Context) (*t
 // outputAtBlock returns the output root for a given L2 block number. Since we are not like OP which have an output
 // for each block, the returned hash will be the hash of the state batch header (same as what saves in SCC).
 func (o *OutputTraceProvider) outputAtBlock(ctx context.Context, block uint64) (common.Hash, error) {
-	_, batchHeader, err := o.batchHeaderAtBlock(block)
+	batchIndex, batchHeader, err := o.batchHeaderAtBlock(block)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
 	// we need to recalculate the state root merkle proof of the blocks in the given batch
-	// TODO: query blocks concurrently
-	stateRoots := make([]l2hex.Bytes, 0, batchHeader.BatchSize.Uint64())
-	for i := batchHeader.PrevTotalElements.Uint64() + 1; i < batchHeader.PrevTotalElements.Uint64()+batchHeader.BatchSize.Uint64()+1; i++ {
-		header, err := o.getL2Header(ctx, i)
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to get L2 header at block %v: %w", i, err)
+	batchSizeU64 := batchHeader.BatchSize.Uint64()
+	headersRequestCh := make(chan uint64, batchSizeU64)
+	headersResultCh := make(chan *l2types.Header, batchSizeU64)
+	for i := batchHeader.PrevTotalElements.Uint64() + 1; i < batchHeader.PrevTotalElements.Uint64()+batchSizeU64+1; i++ {
+		headersRequestCh <- i
+	}
+
+	for i := 0; i < maxL2HeaderFetchConcurrency; i++ {
+		go func(index int) {
+			for {
+				select {
+				case block, ok := <-headersRequestCh:
+					if !ok {
+						o.logger.Debug("header fetcher done", "index", index)
+						return
+					}
+					header, err := o.getL2Header(ctx, block)
+					if err != nil {
+						o.logger.Error("failed to get L2 header at block", "block", block, "err", err)
+					}
+
+					select {
+					case headersResultCh <- header:
+					default:
+						o.logger.Error("header fetcher result channel is full", "index", index)
+						return
+					}
+				case <-ctx.Done():
+					o.logger.Debug("header fetcher cancelled", "index", index)
+					return
+				}
+			}
+		}(i)
+	}
+
+	stateRoots := make([]l2hex.Bytes, batchSizeU64)
+	collected := uint64(0)
+	for {
+		select {
+		case <-ctx.Done():
+			return common.Hash{}, fmt.Errorf("context cancelled: %w", ctx.Err())
+		case header := <-headersResultCh:
+			offset := header.Number.Uint64() - 1 - batchHeader.PrevTotalElements.Uint64()
+			stateRoots[offset] = header.Root.Bytes()
+			collected++
 		}
 
-		stateRoots = append(stateRoots, header.Root[:])
+		if collected == batchSizeU64 {
+			// all headers fetched
+			close(headersRequestCh)
+			o.logger.Debug("all headers fetched", "collected", collected, "batchIndex", batchIndex)
+			break
+		}
 	}
 
 	// replace the root with new calculated one
@@ -180,7 +232,7 @@ func (o *OutputTraceProvider) outputAtBlock(ctx context.Context, block uint64) (
 }
 
 func (o *OutputTraceProvider) batchHeaderAtBlock(block uint64) (uint64, *rollup.BatchHeader, error) {
-	stateBatchResp, err := o.rollupProvider.GetRawStateRoot(block - 1)
+	stateBatchResp, err := o.getStateRoot(block - 1)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch state batch for block %v: %w", block, err)
 	}
@@ -194,35 +246,13 @@ func (o *OutputTraceProvider) batchHeaderAtBlock(block uint64) (uint64, *rollup.
 }
 
 func (o *OutputTraceProvider) getL2Header(ctx context.Context, block uint64) (head *l2types.Header, err error) {
-	if o.l2BlockHeaderCache.Contains(block) {
-		// load from cache if available
-		head, _ = o.l2BlockHeaderCache.Get(block)
-	}
-	if head == nil {
-		// load from dtl if cache miss
-		head, err = o.l2Client.HeaderByNumber(ctx, new(big.Int).SetUint64(block))
-		if err != nil {
-			return nil, fmt.Errorf("failed to get safe head at L1 block %v: %w", o.l1Head, err)
-		}
-		o.l2BlockHeaderCache.Add(head.Number.Uint64(), head)
-	}
+	return o.l2Client.HeaderByNumber(ctx, new(big.Int).SetUint64(block))
+}
 
-	return head, nil
+func (o *OutputTraceProvider) getStateRoot(index uint64) (root *rollup.StateRootResponse, err error) {
+	return o.rollupProvider.GetRawStateRoot(index)
 }
 
 func (o *OutputTraceProvider) getStateBatch(batchIndex uint64) (resp *rollup.StateRootBatchResponse, err error) {
-	if o.stateBatchCache.Contains(batchIndex) {
-		// load from cache if available
-		resp, _ = o.stateBatchCache.Get(batchIndex)
-	}
-	if resp == nil {
-		// load from dtl if cache miss
-		resp, err = o.rollupProvider.GetStateBatchByIndex(batchIndex)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get safe head at L1 block %v: %w", o.l1Head, err)
-		}
-		o.stateBatchCache.Add(resp.Batch.Index, resp)
-	}
-
-	return resp, nil
+	return o.rollupProvider.GetStateBatchByIndex(batchIndex)
 }

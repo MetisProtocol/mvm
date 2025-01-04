@@ -114,13 +114,17 @@ func (r *FaultResponder) PerformAction(ctx context.Context, action types.Action)
 	switch action.Type {
 	case types.ActionTypeMove:
 		if action.IsAttack {
+			r.log.Debug("Attacking", "claim", action.ParentClaim.ContractIndex, "value", action.Value)
 			candidate, err = r.contract.AttackTx(ctx, action.ParentClaim, action.Value)
 		} else {
+			r.log.Debug("Defending", "claim", action.ParentClaim.ContractIndex, "value", action.Value)
 			candidate, err = r.contract.DefendTx(ctx, action.ParentClaim, action.Value)
 		}
 	case types.ActionTypeStep:
+		r.log.Debug("Stepping", "claim", action.ParentClaim.ContractIndex, "is_attack", action.IsAttack)
 		candidate, err = r.contract.StepTx(uint64(action.ParentClaim.ContractIndex), action.IsAttack, action.PreState, action.ProofData)
 	case types.ActionTypeChallengeL2BlockNumber:
+		r.log.Debug("Challenging L2 block number")
 		candidate, err = r.contract.ChallengeL2BlockNumberTx(action.InvalidL2BlockNumberChallenge)
 	}
 	if err != nil {

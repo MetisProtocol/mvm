@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 )
@@ -54,10 +55,13 @@ func (s *GameSolver) CalculateNextActions(ctx context.Context, game types.Game) 
 		agreedClaims.AddHonestClaim(types.Claim{}, game.Claims()[0])
 	}
 	for _, claim := range game.Claims() {
+		log.Debug("Processing claim", "contractIndex", claim.ContractIndex, "claim", claim.Depth())
 		var action *types.Action
 		if claim.Depth() == game.MaxDepth() {
+			log.Debug("Claim is at max depth, attempting to step")
 			action, err = s.calculateStep(ctx, game, claim, agreedClaims)
 		} else {
+			log.Debug("Claim is not at max depth, attempting to move")
 			action, err = s.calculateMove(ctx, game, claim, agreedClaims)
 		}
 		if err != nil {
@@ -100,6 +104,9 @@ func (s *GameSolver) calculateMove(ctx context.Context, game types.Game, claim t
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate next move for claim index %v: %w", claim.ContractIndex, err)
 	}
+
+	log.Debug("Next move", "contractIndex", claim.ContractIndex, "move", move)
+
 	if move == nil {
 		return nil, nil
 	}
