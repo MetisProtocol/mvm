@@ -1,6 +1,6 @@
-go 1.22.0
+go 1.21
 
-toolchain go1.22.9
+toolchain go1.21.13
 
 use (
 	./go/batch-submitter
