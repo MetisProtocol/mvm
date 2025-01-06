@@ -404,7 +404,7 @@ func rebuildL2Blocks(logger log.Logger, l2Cfg *params.ChainConfig, l1Oracle l1.O
 				return nil, fmt.Errorf("failed to convert batch to span batch: %w", err)
 			}
 
-			logger.Info("Deriving span batch", "channel", channelId.String(), "batch", spanBatch)
+			logger.Info("Deriving span batch", "channel", channelId.String())
 
 			derivedBlocks := spanBatch.DeriveL2Blocks()
 
@@ -412,7 +412,6 @@ func rebuildL2Blocks(logger log.Logger, l2Cfg *params.ChainConfig, l1Oracle l1.O
 
 			// filter out the blocks that are not in the range
 			for _, block := range derivedBlocks {
-				logger.Info("Checking block", "block", block.NumberU64())
 				// we don't need the l2 start block, it is considered as the "safe" head,
 				// we only the blocks right after
 				if block.NumberU64() > l2StartBlock && block.NumberU64() <= l2EndBlock {
@@ -476,7 +475,6 @@ func deriveL2States(logger log.Logger,
 			MixDigest:  block.MixDigest(),
 		}
 
-		logger.Info("Block header created", "block", block.Number().Uint64(), "header", blockHeader)
 		logger.Info("Creating intermediate state at", "block", block.Number().Uint64(), "root", parentHeader.Root.Hex())
 		state, err := l2Chain.StateAt(parentHeader.Root)
 		if err != nil {
