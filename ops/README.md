@@ -56,7 +56,7 @@ user: admin
 password: optimism
 ```
 
-## Data persistance
+## Data persistence
 
 Grafana data is not currently saved. Any modifications or additions will be lost on container restart.
 
