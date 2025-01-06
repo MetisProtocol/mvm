@@ -326,7 +326,8 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 						}
 
 						stateBatchStartBlock, stateBatchEndBlock := prevTotalElements.Uint64()+1, prevTotalElements.Uint64()+batchSize.Uint64()
-						if l2StartBlock == stateBatchStartBlock && l2EndBlock == stateBatchEndBlock {
+						if l2EndBlock == stateBatchEndBlock {
+							// need to find the exact batch header for the disputed batch
 							disputedBatchHeader = &rollup.BatchHeader{
 								BatchRoot:         batchRoot,
 								BatchSize:         batchSize,
