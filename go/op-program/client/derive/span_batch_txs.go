@@ -378,7 +378,7 @@ func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Tra
 		r := btx.txSigs[idx].r
 		s := btx.txSigs[idx].s
 
-		tx, err := stx.convertToFullTx(nonce, gas, to, chainID, r, s, byte(getBit(btx.yParityBits, idx)))
+		tx, err := stx.convertToFullTx(nonce, gas, to, chainID, r, s, byte(getBit(btx.yParityBits, idx)), getBit(btx.protectedBits, idx) == 1)
 		if err != nil {
 			return nil, err
 		}
@@ -397,7 +397,7 @@ func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Tra
 		}
 
 		batchBlockIndex := startBlock + blockIndex - 1
-		
+
 		txMeta := &types.TransactionMeta{
 			L1BlockNumber:   new(big.Int).SetUint64(btx.l1BlockNumbers[blockIndex]),
 			L1Timestamp:     btx.l1Timestamps[blockIndex],

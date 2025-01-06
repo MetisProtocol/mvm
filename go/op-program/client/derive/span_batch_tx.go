@@ -55,10 +55,14 @@ func (tx *spanBatchTx) UnmarshalBinary(b []byte) error {
 }
 
 // convertToFullTx takes values and convert spanBatchTx to types.Transaction
-func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, chainID *big.Int, R, S *uint256.Int, yParityBit byte) (*types.Transaction, error) {
+func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, chainID *big.Int, R, S *uint256.Int, yParityBit byte, isProtected bool) (*types.Transaction, error) {
 	batchTxInner, ok := tx.inner.(*spanBatchLegacyTxData)
 	if !ok {
 		return nil, fmt.Errorf("invalid tx type: %d", tx.Type())
+	}
+
+	if !isProtected {
+		chainID = nil
 	}
 
 	signer := types.NewEIP155Signer(chainID)
