@@ -102,13 +102,18 @@ export const submitSignedTransactionWithYNATM = async (
     const sendTxAndWaitForReceipt = async (
       signedTx
     ): Promise<ethers.TransactionReceipt> => {
-      hooks.beforeSendTransaction(tx)
-      const txResponse = await signer.provider.broadcastTransaction(signedTx)
-      hooks.onTransactionResponse(txResponse)
-      return signer.provider.waitForTransaction(
-        txResponse.hash,
-        numConfirmations
-      )
+      try {
+        hooks.beforeSendTransaction(tx)
+        const txResponse = await signer.provider.broadcastTransaction(signedTx)
+        hooks.onTransactionResponse(txResponse)
+        return signer.provider.waitForTransaction(
+          txResponse.hash,
+          numConfirmations
+        )
+      } catch (e) {
+        console.error('Error sending transaction:', e.message.substring(0, 100))
+        throw e
+      }
     }
 
     const ynatmAsync = new YnatmAsync()
