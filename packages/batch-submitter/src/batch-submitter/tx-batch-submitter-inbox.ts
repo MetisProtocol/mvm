@@ -25,7 +25,11 @@ import {
 } from '@metis.io/core-utils'
 
 /* Internal Imports */
-import { MpcClient, TransactionSubmitter } from '../utils'
+import {
+  calculateEIP1559GasPrice,
+  MpcClient,
+  TransactionSubmitter,
+} from '../utils'
 import { InboxStorage } from '../storage'
 import { TxSubmissionHooks } from '..'
 import { ChannelManager } from '../da/channel-manager'
@@ -249,11 +253,24 @@ export class TransactionBatchSubmitterInbox {
 
         // mpc model can use ynatm
         let submitTx: () => Promise<TransactionReceipt>
+        let previousGasPrice = 0
         if (mpcUrl) {
           submitTx = (): Promise<TransactionReceipt> => {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
-              async () => {
+              async (gasPrice) => {
+                if (previousGasPrice > 0 && gasPrice > 0) {
+                  const feeScalingFactor = gasPrice
+                    ? gasPrice / toNumber(tx.maxFeePerGas)
+                    : 1
+                  await calculateEIP1559GasPrice(
+                    signer.provider,
+                    blobTx,
+                    feeScalingFactor
+                  )
+                  previousGasPrice = gasPrice
+                }
+
                 const signedTx = await mpcClient.signTx(blobTx, mpcId)
                 // need to append the blob sidecar to the signed tx
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
