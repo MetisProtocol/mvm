@@ -280,7 +280,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
 
     // Add an additional field to the enqueued transactions in the database
     // if they have already been confirmed
-    entry.blockEntries.forEach(async (block) => {
+    for (const block of entry.blockEntries) {
       if (options.deSeqBlock > 0 && block.index + 1 >= options.deSeqBlock) {
         await db.putBlockEntries([block])
       } else {
@@ -294,7 +294,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
           )
         }
       }
-    })
+    }
 
     await db.putTransactionBatchEntries([entry.transactionBatchEntry])
   },
