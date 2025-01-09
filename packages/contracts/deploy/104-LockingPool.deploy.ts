@@ -11,24 +11,22 @@ const deployFn: DeployFunction = async (hre) => {
 
   // Get required contracts
   const metisConfig = await getDeployedContract(hre, 'MetisConfig')
-  const disputeGameFactory = await getDeployedContract(
-    hre,
-    'DisputeGameFactory'
-  )
+  const addressManager = await getDeployedContract(hre, 'Lib_AddressManager')
   const metisToken = (hre as any).deployConfig.mvmMetisAddress
 
   const lockingPool = await deployWithOZTransparentProxy({
     hre,
     name: 'LockingPool',
-    args: [deployer, metisConfig.address],
+    args: [
+      deployer,
+      metisToken, // token address (Metis Token)
+      7 * 24 * 60 * 60, // lockPeriod (one-hour in seconds)
+      1000, // slashRatio (10%)
+      addressManager.address, // address manager address
+      metisConfig.address,
+    ],
     options: {
-      constructorArgs: [
-        metisToken, // token address (Metis Token)
-        7 * 24 * 60 * 60, // lockPeriod (7 days in seconds)
-        1000, // slashRatio (10%)
-        disputeGameFactory.address, // disputeGameFactory address
-      ],
-      unsafeAllow: ['constructor', 'state-variable-immutable'],
+      unsafeAllow: ['constructor'],
     },
   })
 

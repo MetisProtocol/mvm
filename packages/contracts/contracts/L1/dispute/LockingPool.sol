@@ -11,6 +11,7 @@ import {IDisputeGame} from "../dispute/interfaces/IDisputeGame.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
 import {ILockingPool} from "./interfaces/ILockingPool.sol";
+import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
 
 /// @title LockingPool
 /// @notice A locking pool contract that allows users to lock tokens with a delayed withdrawal mechanism
@@ -24,6 +25,8 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         uint256 timestamp;
     }
 
+    string public constant DISPUTE_GAME_FACTORY_NAME = "DisputeGameFactory";
+
     /// @notice The token being locked in the pool
     IERC20 public token;
 
@@ -36,8 +39,8 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @notice The MetisConfig contract
     MetisConfig public config;
 
-    /// @notice The DisputeGameFactory contract
-    IDisputeGameFactory public disputeGameFactory;
+    /// @notice The Address Manager contract
+    Lib_AddressManager public addressManager;
 
     /// @notice Mapping of user withdrawal requests
     mapping(address => WithdrawalRequest) public withdrawals;
@@ -69,31 +72,31 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @notice Emitted when lock period is updated
     event LockPeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
 
-    /// @param _token The ERC20 token contract address
-    /// @param _lockPeriod Initial lock period in seconds
-    /// @param _slashRatio Initial slash ratio (base 10000)
-    /// @param _disputeGameFactory The DisputeGameFactory contract address
-    constructor(
-        address _token,
-        uint256 _lockPeriod,
-        uint256 _slashRatio,
-        IDisputeGameFactory _disputeGameFactory
-    ) {
-        require(_token != address(0), "LockingPool: invalid token");
-        require(address(_disputeGameFactory) != address(0), "LockingPool: invalid factory");
-        token = IERC20(_token);
-        lockPeriod = _lockPeriod;
-        slashRatio = _slashRatio;
-        disputeGameFactory = _disputeGameFactory;
-        initialize(address(0), MetisConfig(address(0)));
+    constructor() {
+        initialize(address(0), address(0), 0,0,
+            Lib_AddressManager(address(0)), MetisConfig(address(0)));
     }
 
     /// @notice Initializes the contract
     /// @param _owner The owner address
+    /// @param _token The ERC20 token contract address
+    /// @param _lockPeriod Initial lock period in seconds
+    /// @param _slashRatio Initial slash ratio (base 10000)
+    /// @param _addressManager The AddressManager contract address
     /// @param _config The MetisConfig contract address
-    function initialize(address _owner, MetisConfig _config) public initializer {
+    function initialize(address _owner,
+        address _token,
+        uint256 _lockPeriod,
+        uint256 _slashRatio,
+        Lib_AddressManager _addressManager,
+        MetisConfig _config) public initializer {
         __Ownable_init();
         _transferOwnership(_owner);
+
+        token = IERC20(_token);
+        lockPeriod = _lockPeriod;
+        slashRatio = _slashRatio;
+        addressManager = _addressManager;
         config = _config;
     }
 
@@ -176,6 +179,8 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         (GameType gameType, Claim rootClaim, bytes memory extraData) = game.gameData();
 
         // Get the verified address of the game based on the game data
+        IDisputeGameFactory disputeGameFactory = IDisputeGameFactory(addressManager.getAddress(DISPUTE_GAME_FACTORY_NAME));
+        require(address(disputeGameFactory) != address(0), "LockingPool: dispute game factory not set");
         (IDisputeGame factoryRegisteredGame,) = disputeGameFactory.games({
             _gameType: gameType,
             _rootClaim: rootClaim,
