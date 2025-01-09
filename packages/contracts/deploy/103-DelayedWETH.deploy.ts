@@ -4,7 +4,6 @@ import {
   getDeployedContract,
   registerAddress,
 } from '../src/hardhat-deploy-ethers'
-import { ethers, upgrades } from 'hardhat'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()

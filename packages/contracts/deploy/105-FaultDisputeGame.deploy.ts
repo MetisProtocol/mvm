@@ -12,7 +12,7 @@ const deployFn: DeployFunction = async (hre) => {
     throw new Error('absolutePrestate is required to deploy fault dispute game')
   }
 
-  const delayedWETH = await getDeployedContract(hre, 'DelayedWETH')
+  const delayedWETH = await getDeployedContract(hre, 'Proxy__DelayedWETH')
   const addressManager = await getDeployedContract(hre, 'Lib_AddressManager')
   const mips = await getDeployedContract(hre, 'MIPS')
   const disputeGameFactory = await getDeployedContract(
