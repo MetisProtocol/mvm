@@ -611,29 +611,27 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         status_ = claimData[0].counteredBy == address(0) ? GameStatus.DEFENDER_WINS : GameStatus.CHALLENGER_WINS;
         resolvedAt = Timestamp.wrap(uint64(block.timestamp));
 
+        // Update the status and emit the resolved event, note that we're performing an assignment here.
+        emit Resolved(status = status_);
+
         // Handle locking pool slashing if challenger wins
         if (status_ == GameStatus.CHALLENGER_WINS) {
             address lockingPool = ADDRESS_MANAGER.getAddress(LOCKING_POOL_NAME);
             if (lockingPool != address(0)) {
                 // Get the winning claimant (the one who successfully countered the root claim)
                 address winner = claimData[0].counteredBy;
-                
+
                 // Call slash on the locking pool
                 try ILockingPool(lockingPool).slash(winner) {
                     // Slashing succeeded
-                } catch {
-                    // Slashing failed - we don't want to revert the whole resolution
-                    // but we should emit an event for monitoring
-                    emit SlashingFailed(winner);
+                } catch (bytes memory reason) {
+                    emit SlashingFailed(winner, reason);
                 }
             }
 
             // Mark batch as disputed
             IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME)).saveDisputedBatch(claimData[0].claim.raw());
         }
-
-        // Update the status and emit the resolved event, note that we're performing an assignment here.
-        emit Resolved(status = status_);
     }
 
     /// @inheritdoc IFaultDisputeGame
@@ -1102,5 +1100,5 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     }
 
     /// @notice Emitted when slashing fails
-    event SlashingFailed(address indexed intendedRecipient);
+    event SlashingFailed(address indexed intendedRecipient, bytes reason);
 }
