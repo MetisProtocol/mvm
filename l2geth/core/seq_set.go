@@ -3,13 +3,13 @@ package core
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/l2geth/common"
 	"github.com/ethereum-optimism/optimism/l2geth/core/state"
 	"github.com/ethereum-optimism/optimism/l2geth/core/types"
 	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 )
 
 const (
@@ -23,8 +23,6 @@ type Epoch struct {
 	StartBlock *big.Int       // uint256
 	EndBlock   *big.Int       // uint256
 }
-
-var epochCache []*Epoch = make([]*Epoch, 0, 10)
 
 func DecodeReCommitData(data []byte) (bool, common.Address, *big.Int, *big.Int) {
 	zeroBigInt := new(big.Int).SetUint64(0)
@@ -61,23 +59,6 @@ func RecoverSeqAddress(tx *types.Transaction) (common.Address, error) {
 		return common.Address{}, err
 	}
 	return crypto.PubkeyToAddress(*signer), nil
-}
-
-func updateEpochCache(currentEpochId *big.Int, epoch *Epoch, prependBeginning bool) {
-	if prependBeginning {
-		if len(epochCache) > 0 && epochCache[0].Number.Cmp(currentEpochId) == 0 {
-			if epochCache[0].Signer != epoch.Signer || epochCache[0].StartBlock.Cmp(epoch.StartBlock) != 0 || epochCache[0].EndBlock.Cmp(epoch.EndBlock) != 0 {
-				epochCache[0] = epoch
-			}
-		} else {
-			epochCache = append([]*Epoch{epoch}, epochCache...)
-		}
-	} else {
-		epochCache = append(epochCache, epoch)
-	}
-	if len(epochCache) > 10 {
-		epochCache = epochCache[:10]
-	}
 }
 
 func processSeqSetBlock(bc *BlockChain, statedb *state.StateDB, block *types.Block, parent *types.Header) error {
@@ -119,60 +100,32 @@ func processSeqSetBlock(bc *BlockChain, statedb *state.StateDB, block *types.Blo
 	currentEpochIdSlot := big.NewInt(104)
 	currentEpochId := statedb.GetState(seqsetAddr, common.BytesToHash(currentEpochIdSlot.Bytes())).Big()
 
-	// epoch id slice
-	prependBeginning := true
-	epochIds := []*big.Int{currentEpochId}
-	if len(epochCache) == 0 {
-		prependBeginning = false
-		for i := 1; i <= 10; i++ {
-			epochId := new(big.Int).Sub(currentEpochId, big.NewInt(int64(i)))
-			if epochId.Cmp(big.NewInt(0)) < 0 {
-				break
-			}
-			epochIds = append(epochIds, epochId)
-		}
-	}
-
-	// get epoch, base slot index is 103
-	for _, epochId := range epochIds {
-		epochsSlot := big.NewInt(103)
-		numberSlot := crypto.Keccak256Hash(append(common.LeftPadBytes(epochId.Bytes(), 32), common.LeftPadBytes(epochsSlot.Bytes(), 32)...)).Big()
-		signerSlot := new(big.Int).Add(numberSlot, common.Big1)
-		startBlockSlot := new(big.Int).Add(signerSlot, common.Big1)
-		endBlockSlot := new(big.Int).Add(startBlockSlot, common.Big1)
-
-		numberData := statedb.GetState(seqsetAddr, common.BytesToHash(numberSlot.Bytes())).Bytes()
-		signerData := statedb.GetState(seqsetAddr, common.BytesToHash(signerSlot.Bytes())).Bytes()
-		startBlockData := statedb.GetState(seqsetAddr, common.BytesToHash(startBlockSlot.Bytes())).Bytes()
-		endBlockData := statedb.GetState(seqsetAddr, common.BytesToHash(endBlockSlot.Bytes())).Bytes()
-
-		epoch := &Epoch{
-			Number:     new(big.Int).SetBytes(numberData),
-			Signer:     common.BytesToAddress(signerData),
-			StartBlock: new(big.Int).SetBytes(startBlockData),
-			EndBlock:   new(big.Int).SetBytes(endBlockData),
-		}
-
-		log.Debug("Read epoch from slot", "epoch", epoch)
-
-		updateEpochCache(currentEpochId, epoch, prependBeginning)
-	}
-
 	// check first tx is enough
-	currentTx := block.Transactions()[0]
-	recoverSigner, err := RecoverSeqAddress(currentTx)
+	recoverSigner, err := RecoverSeqAddress(block.Transactions()[0])
 	if err != nil {
 		return err
 	}
-	found := false
-	for _, epoch := range epochCache {
-		if epoch.Signer == recoverSigner {
-			found = true
-			break
+
+	// get epoch, base slot index is 103
+	for i, m := currentEpochId.Int64(), 15; i >= 0 && m > 0; {
+		epochId := big.NewInt(i)
+
+		epochsSlot := big.NewInt(103)
+		numberSlot := crypto.Keccak256Hash(append(common.LeftPadBytes(epochId.Bytes(), 32), common.LeftPadBytes(epochsSlot.Bytes(), 32)...)).Big()
+		signerSlot := new(big.Int).Add(numberSlot, common.Big1)
+		// startBlockSlot := new(big.Int).Add(signerSlot, common.Big1)
+		// endBlockSlot := new(big.Int).Add(startBlockSlot, common.Big1)
+
+		// numberData := statedb.GetState(seqsetAddr, common.BytesToHash(numberSlot.Bytes())).Bytes()
+		signerData := statedb.GetState(seqsetAddr, common.BytesToHash(signerSlot.Bytes())).Bytes()
+		// startBlockData := statedb.GetState(seqsetAddr, common.BytesToHash(startBlockSlot.Bytes())).Bytes()
+		// endBlockData := statedb.GetState(seqsetAddr, common.BytesToHash(endBlockSlot.Bytes())).Bytes()
+		if common.BytesToAddress(signerData) == recoverSigner {
+			return nil
 		}
+		i--
+		m--
 	}
-	if !found {
-		return ErrIncorrectSequencer
-	}
-	return nil
+	return fmt.Errorf("seqset signer not match: epoch %s signer %s",
+		currentEpochId.String(), recoverSigner.String())
 }
