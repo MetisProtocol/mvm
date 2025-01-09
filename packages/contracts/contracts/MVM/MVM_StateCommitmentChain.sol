@@ -244,6 +244,13 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
         uint256 batchIndex = uint256(uint64(uint128(batchTimesOfChain[found])));
         bytes32 batchHeaderHash = batches().getByChainId(_chainId, batchIndex);
+
+        // if batch already disputed, continue moving to the next one,
+        // until we found a disputable batch.
+        while (disputedBatches[batchHeaderHash]) {
+            batchHeaderHash = batches().getByChainId(_chainId, ++batchIndex);
+        }
+
         return (batchHeaderHash, batchLastL2BlockNumbers[batchHeaderHash]);
     }
 

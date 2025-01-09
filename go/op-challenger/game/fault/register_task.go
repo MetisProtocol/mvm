@@ -170,7 +170,7 @@ func (e *RegisterTask) Register(
 	claimants []common.Address) error {
 
 	playerCreator := func(game types.GameMetadata, dir string) (scheduler.GamePlayer, error) {
-		contract, err := contracts.NewFaultDisputeGameContract(ctx, m, game.Proxy, caller)
+		contract, err := contracts.NewFaultDisputeGameContract(ctx, m, game.Proxy, caller, txSender.From())
 		if err != nil {
 			return nil, fmt.Errorf("failed to create fault dispute game contracts: %w", err)
 		}
@@ -220,7 +220,7 @@ func (e *RegisterTask) Register(
 	registry.RegisterGameType(e.gameType, playerCreator)
 
 	contractCreator := func(game types.GameMetadata) (claims.BondContract, error) {
-		return contracts.NewFaultDisputeGameContract(ctx, m, game.Proxy, caller)
+		return contracts.NewFaultDisputeGameContract(ctx, m, game.Proxy, caller, txSender.From())
 	}
 	registry.RegisterBondContract(e.gameType, contractCreator)
 	return nil
@@ -231,7 +231,7 @@ func registerOracle(ctx context.Context, m metrics.Metricer, oracles OracleRegis
 	if err != nil {
 		return fmt.Errorf("failed to load implementation for game type %v: %w", gameType, err)
 	}
-	contract, err := contracts.NewFaultDisputeGameContract(ctx, m, implAddr, caller)
+	contract, err := contracts.NewFaultDisputeGameContract(ctx, m, implAddr, caller, common.Address{})
 	if err != nil {
 		return fmt.Errorf("failed to create fault dispute game contracts: %w", err)
 	}

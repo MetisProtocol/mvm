@@ -65,6 +65,9 @@ type FaultDisputeGameContractLatest struct {
 	metrics     metrics.ContractMetricer
 	multiCaller *batching.MultiCaller
 	contract    *batching.BoundContract
+
+	// which account to use to send calls
+	from common.Address
 }
 
 type Proposal struct {
@@ -81,7 +84,7 @@ type outputRootProof struct {
 	ExtraData         []byte
 }
 
-func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller) (FaultDisputeGameContract, error) {
+func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller, from common.Address) (FaultDisputeGameContract, error) {
 	contractAbi := override.LoadFaultDisputeGameABI()
 
 	var builder VersionedBuilder[FaultDisputeGameContract]
@@ -92,6 +95,7 @@ func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMe
 				metrics:     metrics,
 				multiCaller: caller,
 				contract:    batching.NewBoundContract(legacyAbi, addr),
+				from:        from,
 			},
 		}, nil
 	})
@@ -102,6 +106,7 @@ func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMe
 				metrics:     metrics,
 				multiCaller: caller,
 				contract:    batching.NewBoundContract(legacyAbi, addr),
+				from:        from,
 			},
 		}, nil
 	})
@@ -112,6 +117,7 @@ func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMe
 				metrics:     metrics,
 				multiCaller: caller,
 				contract:    batching.NewBoundContract(legacyAbi, addr),
+				from:        from,
 			},
 		}, nil
 	})
@@ -122,6 +128,7 @@ func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMe
 				metrics:     metrics,
 				multiCaller: caller,
 				contract:    batching.NewBoundContract(legacyAbi, addr),
+				from:        from,
 			},
 		}, nil
 	})
@@ -130,6 +137,7 @@ func NewFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMe
 			metrics:     metrics,
 			multiCaller: caller,
 			contract:    batching.NewBoundContract(contractAbi, addr),
+			from:        from,
 		}, nil
 	})
 }
@@ -277,7 +285,9 @@ func (f *FaultDisputeGameContractLatest) GetCredit(ctx context.Context, recipien
 func (f *FaultDisputeGameContractLatest) GetRequiredBonds(ctx context.Context, block rpcblock.Block, positions ...*big.Int) ([]*big.Int, error) {
 	calls := make([]batching.Call, 0, len(positions))
 	for _, position := range positions {
-		calls = append(calls, f.contract.Call(methodRequiredBond, position))
+		call := f.contract.Call(methodRequiredBond, position)
+		call.From = f.from
+		calls = append(calls, call)
 	}
 	results, err := f.multiCaller.Call(ctx, block, calls...)
 	if err != nil {
@@ -319,7 +329,9 @@ func (f *FaultDisputeGameContractLatest) ClaimCreditTx(ctx context.Context, reci
 
 func (f *FaultDisputeGameContractLatest) GetRequiredBond(ctx context.Context, position types.Position) (*big.Int, error) {
 	defer f.metrics.StartContractRequest("GetRequiredBond")()
-	bond, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, f.contract.Call(methodRequiredBond, position.ToGIndex()))
+	call := f.contract.Call(methodRequiredBond, position.ToGIndex())
+	call.From = f.from
+	bond, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, call)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve required bond: %w", err)
 	}

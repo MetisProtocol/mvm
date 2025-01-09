@@ -397,8 +397,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         }
 
         // INVARIANT: The `msg.value` must exactly equal the required bond.
-        //            The root game creator does not need to pay for the bond, since the reward will be slashed from the pool.
-        if (claimData[0].claimant != msg.sender && getRequiredBond(nextPosition) != msg.value) revert IncorrectBondAmount();
+        if (getRequiredBond(nextPosition) != msg.value) revert IncorrectBondAmount();
 
         // Compute the duration of the next clock. This is done by adding the duration of the
         // grandparent claim to the difference between the current block timestamp and the
@@ -561,8 +560,8 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         if (Lib_OVMCodec.hashBatchHeader(_outputRootProof) != rootClaim().raw()) revert InvalidOutputRootProof();
 
         // Verify the block hash preimage.
-//        (, , bytes32 latestBlockhash, ) = abi.decode(_outputRootProof.extraData, (uint256, address, bytes32, uint256));
-//        if (keccak256(_headerRLP) != latestBlockhash) revert InvalidHeaderRLP();
+        (, , bytes32 latestBlockhash, ) = abi.decode(_outputRootProof.extraData, (uint256, address, bytes32, uint256));
+        if (keccak256(_headerRLP) != latestBlockhash) revert InvalidHeaderRLP();
 
         // Decode the header RLP to find the number of the block. In the consensus encoding, the timestamp
         // is the 9th element in the list that represents the block header.
@@ -778,6 +777,12 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @param _position The position of the bonded interaction.
     /// @return requiredBond_ The required ETH bond for the given move, in wei.
     function getRequiredBond(Position _position) public view returns (uint256 requiredBond_) {
+        if (msg.sender == claimData[0].claimant) {
+            // The root claimant does not need to pay a bond. Since we already locked the prize in the pool.
+            // Only the challenger needs to pay the bond.
+            return 0;
+        }
+
         uint256 depth = uint256(_position.depth());
         if (depth > MAX_GAME_DEPTH) revert GameDepthExceeded();
 

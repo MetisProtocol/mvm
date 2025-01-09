@@ -17,7 +17,7 @@ import (
 	contractMetrics "github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts/metrics"
 )
 
-type ContractCreator[T any] func(context.Context, contractMetrics.ContractMetricer, common.Address, *batching.MultiCaller) (T, error)
+type ContractCreator[T any] func(context.Context, contractMetrics.ContractMetricer, common.Address, *batching.MultiCaller, common.Address) (T, error)
 
 func Interruptible(action cli.ActionFunc) cli.ActionFunc {
 	return func(ctx *cli.Context) error {
@@ -43,7 +43,7 @@ func NewContractWithTxMgr[T any](ctx *cli.Context, getAddr func(ctx *cli.Context
 		return contract, nil, err
 	}
 
-	created, err := newContractFromCLI(ctx, getAddr, caller, creator)
+	created, err := newContractFromCLI(ctx, getAddr, caller, creator, txMgr.From())
 	if err != nil {
 		return contract, nil, err
 	}
@@ -52,14 +52,14 @@ func NewContractWithTxMgr[T any](ctx *cli.Context, getAddr func(ctx *cli.Context
 }
 
 // newContractFromCLI creates a new contract from the CLI context.
-func newContractFromCLI[T any](ctx *cli.Context, getAddr func(ctx *cli.Context) (common.Address, error), caller *batching.MultiCaller, creator ContractCreator[T]) (T, error) {
+func newContractFromCLI[T any](ctx *cli.Context, getAddr func(ctx *cli.Context) (common.Address, error), caller *batching.MultiCaller, creator ContractCreator[T], from common.Address) (T, error) {
 	var contract T
 	gameAddr, err := getAddr(ctx)
 	if err != nil {
 		return contract, err
 	}
 
-	created, err := creator(ctx.Context, contractMetrics.NoopContractMetrics, gameAddr, caller)
+	created, err := creator(ctx.Context, contractMetrics.NoopContractMetrics, gameAddr, caller, from)
 	if err != nil {
 		return contract, fmt.Errorf("failed to create contract bindings: %w", err)
 	}

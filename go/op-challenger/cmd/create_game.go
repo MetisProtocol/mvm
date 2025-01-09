@@ -43,7 +43,7 @@ func CreateGame(ctx *cli.Context) error {
 	l2BlockNum := ctx.Uint64(L2BlockNumFlag.Name)
 
 	contract, txMgr, err := NewContractWithTxMgr[*contracts.DisputeGameFactoryContract](ctx, flags.FactoryAddress,
-		func(ctx context.Context, metricer contractMetrics.ContractMetricer, address common.Address, caller *batching.MultiCaller) (*contracts.DisputeGameFactoryContract, error) {
+		func(ctx context.Context, metricer contractMetrics.ContractMetricer, address common.Address, caller *batching.MultiCaller, from common.Address) (*contracts.DisputeGameFactoryContract, error) {
 			return contracts.NewDisputeGameFactoryContract(metricer, address, caller), nil
 		})
 	if err != nil {

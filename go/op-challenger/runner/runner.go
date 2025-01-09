@@ -253,7 +253,7 @@ func (r *Runner) getPrestateHash(ctx context.Context, traceType types.TraceType,
 	if gameImplAddr == (common.Address{}) {
 		return common.Hash{}, nil // No prestate is set, will only work if a single prestate is specified
 	}
-	gameImpl, err := contracts.NewFaultDisputeGameContract(ctx, r.m, gameImplAddr, caller)
+	gameImpl, err := contracts.NewFaultDisputeGameContract(ctx, r.m, gameImplAddr, caller, common.Address{})
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to create fault dispute game contract bindings for %v: %w", gameImplAddr, err)
 	}

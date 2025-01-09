@@ -100,7 +100,7 @@ func listGames(ctx context.Context, caller *batching.MultiCaller, factory *contr
 	infos := make([]gameInfo, len(games))
 	var wg sync.WaitGroup
 	for idx, game := range games {
-		gameContract, err := contracts.NewFaultDisputeGameContract(ctx, metrics.NoopContractMetrics, game.Proxy, caller)
+		gameContract, err := contracts.NewFaultDisputeGameContract(ctx, metrics.NoopContractMetrics, game.Proxy, caller, common.Address{})
 		if err != nil {
 			return fmt.Errorf("failed to create dispute game contract: %w", err)
 		}
