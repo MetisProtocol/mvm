@@ -252,6 +252,12 @@
         "internalType": "address",
         "name": "intendedRecipient",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "reason",
+        "type": "bytes"
       }
     ],
     "name": "SlashingFailed",
