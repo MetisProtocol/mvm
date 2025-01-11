@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 
 	metis "github.com/ethereum-optimism/optimism/go/op-challenger/abi"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts/metrics"
@@ -27,6 +28,8 @@ const (
 	methodCreateGame    = "create"
 	methodCreateDispute = "dispute"
 	methodGames         = "games"
+	methodOwner         = "owner"
+	methodGameRequests  = "disputeGameCreationRequests"
 
 	eventDisputeGameCreated   = "DisputeGameCreated"
 	eventDisputeGameRequested = "DisputeGameRequested"
@@ -36,21 +39,56 @@ var (
 	ErrEventNotFound = errors.New("event not found")
 )
 
+type DisputeInfo struct {
+	GameType uint32
+	Sender   common.Address
+	Bond     *big.Int
+	L1Head   [32]byte
+}
+
 type DisputeGameFactoryContract struct {
 	metrics     metrics.ContractMetricer
 	multiCaller *batching.MultiCaller
 	contract    *batching.BoundContract
 	abi         *abi.ABI
+
+	from common.Address
 }
 
-func NewDisputeGameFactoryContract(m metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller) *DisputeGameFactoryContract {
+func NewDisputeGameFactoryContract(m metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller, from common.Address) *DisputeGameFactoryContract {
 	factoryAbi := metis.LoadDisputeGameFactoryABI()
 	return &DisputeGameFactoryContract{
 		metrics:     m,
 		multiCaller: caller,
 		contract:    batching.NewBoundContract(factoryAbi, addr),
 		abi:         factoryAbi,
+		from:        from,
 	}
+}
+
+func (f *DisputeGameFactoryContract) GetDisputeGameRequest(ctx context.Context, gameType faultTypes.GameType, extraData []byte) (*DisputeInfo, error) {
+	defer f.metrics.StartContractRequest("GetDisputeGameRequest")()
+	requestUuid, err := metis.EncodePacked(uint32(gameType), extraData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack request uuid: %w", err)
+	}
+	request, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, f.contract.Call(methodGameRequests, [32]byte(crypto.Keccak256(requestUuid))))
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch dispute game request: %w", err)
+	}
+
+	disputeInfo := DisputeInfo{
+		GameType: request.GetUint32(0),
+		Sender:   request.GetAddress(1),
+		Bond:     request.GetBigInt(2),
+		L1Head:   request.GetBytes32(3),
+	}
+
+	if disputeInfo.Sender == (common.Address{}) {
+		return nil, fmt.Errorf("dispute game request not found")
+	}
+
+	return &disputeInfo, nil
 }
 
 func (f *DisputeGameFactoryContract) GetGameFromParameters(ctx context.Context, traceType uint32, outputRoot common.Hash, l2BlockNum uint64) (common.Address, error) {
@@ -158,7 +196,11 @@ func (f *DisputeGameFactoryContract) GetAllGames(ctx context.Context, blockHash 
 	return games, nil
 }
 
-func (f *DisputeGameFactoryContract) CreateTx(_ context.Context, traceType uint32, outputRoot common.Hash, l2BlockNum uint64) (txmgr.TxCandidate, error) {
+func (f *DisputeGameFactoryContract) CreateTx(ctx context.Context, traceType uint32, outputRoot common.Hash, l2BlockNum uint64) (txmgr.TxCandidate, error) {
+	if err := f.checkOwner(ctx); err != nil {
+		return txmgr.TxCandidate{}, err
+	}
+
 	call := f.contract.Call(methodCreateGame, traceType, outputRoot, common.BigToHash(big.NewInt(int64(l2BlockNum))).Bytes())
 	candidate, err := call.ToTxCandidate()
 	if err != nil {
@@ -222,6 +264,19 @@ func (f *DisputeGameFactoryContract) DecodeDisputeGameCreatedLog(rcpt *ethTypes.
 		return result.GetAddress(0), result.GetUint32(1), result.GetHash(2), nil
 	}
 	return common.Address{}, 0, common.Hash{}, fmt.Errorf("%w: %v", ErrEventNotFound, eventDisputeGameCreated)
+}
+
+func (f *DisputeGameFactoryContract) checkOwner(ctx context.Context) error {
+	res, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, f.contract.Call(methodOwner))
+	if err != nil {
+		return fmt.Errorf("failed to fetch owner: %w", err)
+	}
+	owner := res.GetAddress(0)
+	if owner != f.from {
+		return fmt.Errorf("owner mismatch (only owner can create game): %v != %v", owner.Hex(), f.from.Hex())
+	}
+
+	return nil
 }
 
 func (f *DisputeGameFactoryContract) decodeGame(idx uint64, result *batching.CallResult) types.GameMetadata {

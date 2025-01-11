@@ -44,7 +44,7 @@ func CreateGame(ctx *cli.Context) error {
 
 	contract, txMgr, err := NewContractWithTxMgr[*contracts.DisputeGameFactoryContract](ctx, flags.FactoryAddress,
 		func(ctx context.Context, metricer contractMetrics.ContractMetricer, address common.Address, caller *batching.MultiCaller, from common.Address) (*contracts.DisputeGameFactoryContract, error) {
-			return contracts.NewDisputeGameFactoryContract(metricer, address, caller), nil
+			return contracts.NewDisputeGameFactoryContract(metricer, address, caller, from), nil
 		})
 	if err != nil {
 		return fmt.Errorf("failed to create dispute game factory bindings: %w", err)

@@ -39,6 +39,7 @@ type Service struct {
 	logger  log.Logger
 	metrics metrics.Metricer
 	monitor *gameMonitor
+	creator *gameCreator
 	sched   *scheduler.Scheduler
 
 	faultGamesCloser fault.CloseFunc
@@ -124,6 +125,7 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 	}
 
 	s.initMonitor(cfg)
+	s.initGameCreator(cfg)
 
 	s.metrics.RecordInfo(version.SimpleWithMeta)
 	s.metrics.RecordUp()
@@ -201,7 +203,7 @@ func (s *Service) initMetricsServer(cfg *opmetrics.CLIConfig) error {
 
 func (s *Service) initFactoryContract(cfg *config.Config) error {
 	factoryContract := contracts.NewDisputeGameFactoryContract(s.metrics, cfg.GameFactoryAddress,
-		batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize))
+		batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize), s.txSender.From())
 	s.factoryContract = factoryContract
 	return nil
 }
@@ -266,11 +268,19 @@ func (s *Service) initMonitor(cfg *config.Config) {
 	s.monitor = newGameMonitor(s.logger, s.l1Clock, s.factoryContract, s.sched, s.preimages, cfg.GameWindow, s.claimer, cfg.GameAllowlist, s.pollClient)
 }
 
+func (s *Service) initGameCreator(cfg *config.Config) {
+	s.creator = newCreator(s.logger,
+		batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize),
+		s.factoryContract, s.l1Client, s.rollupClient, s.txMgr, cfg)
+}
+
 func (s *Service) Start(ctx context.Context) error {
 	s.logger.Info("starting scheduler")
 	s.sched.Start(ctx)
 	s.claimer.Start(ctx)
 	s.preimages.Start(ctx)
+	s.logger.Info("starting game creator", "mode", s.creator.Mode())
+	s.creator.StartMonitoring()
 	s.logger.Info("starting monitoring")
 	s.monitor.StartMonitoring()
 	s.logger.Info("challenger game service start completed")
@@ -292,6 +302,9 @@ func (s *Service) Stop(ctx context.Context) error {
 	}
 	if s.monitor != nil {
 		s.monitor.StopMonitoring()
+	}
+	if s.creator != nil {
+		s.creator.StopMonitoring()
 	}
 	if s.claimer != nil {
 		if err := s.claimer.Close(); err != nil {

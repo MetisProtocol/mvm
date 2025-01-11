@@ -245,7 +245,7 @@ func (r *Runner) findL2BlockNumberToDispute(ctx context.Context, client rollup.R
 }
 
 func (r *Runner) getPrestateHash(ctx context.Context, traceType types.TraceType, caller *batching.MultiCaller) (common.Hash, error) {
-	gameFactory := contracts.NewDisputeGameFactoryContract(r.m, r.cfg.GameFactoryAddress, caller)
+	gameFactory := contracts.NewDisputeGameFactoryContract(r.m, r.cfg.GameFactoryAddress, caller, common.Address{})
 	gameImplAddr, err := gameFactory.GetGameImpl(ctx, traceType.GameType())
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to load game impl: %w", err)

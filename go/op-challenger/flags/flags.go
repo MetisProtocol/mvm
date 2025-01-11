@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/flags"
 	"github.com/ethereum-optimism/superchain-registry/superchain"
@@ -237,6 +238,35 @@ var (
 		EnvVars: prefixEnvVars("UNSAFE_ALLOW_INVALID_PRESTATE"),
 		Hidden:  true, // Hidden as this is an unsafe flag added only for testing purposes
 	}
+	// Metis related flags
+	GameCreatorModeFlag = &cli.BoolFlag{
+		Name:    "game-creator",
+		Usage:   "If this is enabled, the challenger will automatically create game if there is a dispute request",
+		EnvVars: prefixEnvVars("GAME_CREATOR"),
+	}
+	GameCreationTraceTypeFlag = &cli.StringFlag{
+		Name:    "game-creation-trace-type",
+		Usage:   "The trace type to use when creating a game",
+		EnvVars: prefixEnvVars("GAME_CREATION_TRACE_TYPE"),
+		Value:   types.TraceTypeCannon.String(),
+	}
+	L1StartBlockFlag = &cli.Uint64Flag{
+		Name:    "l1-start-block",
+		Usage:   "The block number to start the challenger from",
+		EnvVars: prefixEnvVars("L1_START_BLOCK"),
+		Value:   1,
+	}
+	SyncIntervalFlag = &cli.DurationFlag{
+		Name:    "sync-interval",
+		Usage:   "The interval at which the challenger will sync with the L1 chain",
+		EnvVars: prefixEnvVars("SYNC_INTERVAL"),
+		Value:   6 * time.Second,
+	}
+	StateCommitmentChainFlag = &cli.StringFlag{
+		Name:    "scc-address",
+		Usage:   "Address of the state commitment chain contract",
+		EnvVars: prefixEnvVars("SCC_ADDRESS"),
+	}
 )
 
 // requiredFlags are checked by [CheckRequired]
@@ -283,6 +313,11 @@ var optionalFlags = []cli.Flag{
 	GameWindowFlag,
 	SelectiveClaimResolutionFlag,
 	UnsafeAllowInvalidPrestate,
+	GameCreatorModeFlag,
+	L1StartBlockFlag,
+	SyncIntervalFlag,
+	StateCommitmentChainFlag,
+	GameCreationTraceTypeFlag,
 }
 
 func init() {
@@ -529,6 +564,13 @@ func NewConfigFromCLI(ctx *cli.Context, logger log.Logger) (*config.Config, erro
 	}
 	l1EthRpc := ctx.String(L1EthRpcFlag.Name)
 	l1Beacon := ctx.String(L1BeaconFlag.Name)
+	gameCreatorMode := ctx.Bool(GameCreatorModeFlag.Name)
+	if !gameCreatorMode {
+		if !ctx.IsSet(StateCommitmentChainFlag.Name) {
+			return nil, fmt.Errorf("flag %v is required when running in verifier mode", StateCommitmentChainFlag.Name)
+		}
+	}
+
 	return &config.Config{
 		// Required Flags
 		L1EthRpc:                l1EthRpc,
@@ -543,6 +585,11 @@ func NewConfigFromCLI(ctx *cli.Context, logger log.Logger) (*config.Config, erro
 		PollInterval:            ctx.Duration(HTTPPollInterval.Name),
 		AdditionalBondClaimants: claimants,
 		RollupRpc:               ctx.String(RollupRpcFlag.Name),
+		GameCreatorMode:         ctx.Bool(GameCreatorModeFlag.Name),
+		L1StartBlock:            ctx.Uint64(L1StartBlockFlag.Name),
+		SyncInterval:            ctx.Duration(SyncIntervalFlag.Name),
+		GameCreationTraceType:   types.TraceType(ctx.String(GameCreationTraceTypeFlag.Name)),
+		SCCAddress:              common.HexToAddress(ctx.String(StateCommitmentChainFlag.Name)),
 		Cannon: vm.Config{
 			VmType:           types.TraceTypeCannon,
 			L1:               l1EthRpc,

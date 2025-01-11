@@ -106,6 +106,12 @@ type Config struct {
 
 	MaxPendingTx uint64 // Maximum number of pending transactions (0 == no limit)
 
+	GameCreatorMode       bool
+	L1StartBlock          uint64
+	SyncInterval          time.Duration
+	SCCAddress            common.Address
+	GameCreationTraceType types.TraceType
+
 	TxMgrConfig   txmgr.CLIConfig
 	MetricsConfig opmetrics.CLIConfig
 	PprofConfig   oppprof.CLIConfig
@@ -118,6 +124,7 @@ func NewConfig(
 	l2RollupRpc string,
 	l2EthRpc string,
 	datadir string,
+	gameCreatorMode bool,
 	supportedTraceTypes ...types.TraceType,
 ) Config {
 	return Config{
@@ -137,7 +144,8 @@ func NewConfig(
 		MetricsConfig: opmetrics.DefaultCLIConfig(),
 		PprofConfig:   oppprof.DefaultCLIConfig(),
 
-		Datadir: datadir,
+		Datadir:         datadir,
+		GameCreatorMode: gameCreatorMode,
 
 		Cannon: vm.Config{
 			VmType:       types.TraceTypeCannon,
