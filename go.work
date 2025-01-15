@@ -15,8 +15,8 @@ use (
 	./go/op-challenger
 
 	// for cannon testing
-	go/cannon/testdata/example/alloc
-	go/cannon/testdata/example/claim
+	./go/cannon/testdata/example/alloc
+	./go/cannon/testdata/example/claim
 )
 
 replace (
