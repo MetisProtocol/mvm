@@ -40,6 +40,7 @@ func (r *rpcTransactionMeta) UnmarshalJSON(input []byte) error {
 	type rpcTransactionMeta struct {
 		L1BlockNumber   *hexutil.Big       `json:"l1BlockNumber"`
 		L1Timestamp     *hexutil.Uint64    `json:"l1Timestamp"`
+		L1MessageSender *common.Address    `json:"l1MessageSender"`
 		QueueOrigin     *types.QueueOrigin `json:"queueOrigin"`
 		Index           *hexutil.Uint64    `json:"index"`
 		QueueIndex      *hexutil.Uint64    `json:"queueIndex"`
@@ -54,6 +55,9 @@ func (r *rpcTransactionMeta) UnmarshalJSON(input []byte) error {
 	}
 	if dec.L1Timestamp != nil {
 		r.L1Timestamp = uint64(*dec.L1Timestamp)
+	}
+	if dec.L1MessageSender != nil {
+		r.L1MessageSender = dec.L1MessageSender
 	}
 	if dec.QueueOrigin != nil {
 		r.QueueOrigin = *dec.QueueOrigin

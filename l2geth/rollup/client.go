@@ -218,7 +218,7 @@ type Transaction struct {
 	Data        hexutil.Bytes   `json:"data"`
 	QueueOrigin string          `json:"queueOrigin"`
 	QueueIndex  *uint64         `json:"queueIndex"`
-	Decoded     *Decoded        `json:"Decoded"`
+	Decoded     *Decoded        `json:"decoded"`
 	SeqSign     string          `json:"seqSign"`
 }
 
