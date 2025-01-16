@@ -29,7 +29,7 @@ type Config struct {
 	GasPriceOracleOwnerAddress common.Address
 	// Turns on checking of state for L2 gas price
 	EnableL2GasPolling bool
-	// Deployment Height of the canonical Transaction chain
+	// Deployment Height of the canonical transaction chain
 	CanonicalTransactionChainDeployHeight *big.Int
 	// Polling interval for rollup client
 	PollInterval time.Duration
@@ -41,7 +41,7 @@ type Config struct {
 	EnforceFees bool
 	// Allow fees within a buffer upwards or downwards
 	// to take fee volatility into account between being
-	// quoted and the Transaction being executed
+	// quoted and the transaction being executed
 	FeeThresholdDown *big.Float
 	FeeThresholdUp   *big.Float
 	// HTTP endpoint of the sequencer

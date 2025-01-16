@@ -89,7 +89,7 @@ func TestDecodedJSON(t *testing.T) {
 		"queueOrigin": "sequencer",
 		"value": "0x1a055690d9db80000",
 		"queueIndex": null,
-		"Decoded": {
+		"decoded": {
 			"nonce": "2",
 			"gasPrice": "15000000",
 			"gasLimit": "4451000",

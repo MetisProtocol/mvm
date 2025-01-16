@@ -36,9 +36,9 @@ var (
 	// errShortRemoteTip is an error for when the remote tip is shorter than the
 	// local tip
 	errShortRemoteTip = errors.New("unexpected remote less than tip")
-	// errZeroGasPriceTx is the error for when a user submits a Transaction
+	// errZeroGasPriceTx is the error for when a user submits a transaction
 	// with gas price zero and fees are currently enforced
-	errZeroGasPriceTx = errors.New("cannot accept 0 gas price Transaction")
+	errZeroGasPriceTx = errors.New("cannot accept 0 gas price transaction")
 	float1            = big.NewFloat(1)
 )
 
@@ -195,9 +195,9 @@ func NewSyncService(ctx context.Context, cfg Config, txpool *core.TxPool, bc *co
 	}
 
 	// The chainHeadSub is used to synchronize the SyncService with the chain.
-	// As the SyncService processes transactions, it waits until the Transaction
+	// As the SyncService processes transactions, it waits until the transaction
 	// is added to the chain. This synchronization is required for handling
-	// reorgs and also favors safety over liveliness. If a Transaction breaks
+	// reorgs and also favors safety over liveliness. If a transaction breaks
 	// things downstream, it is expected that this channel will halt ingestion
 	// of additional transactions by the SyncService.
 	service.chainHeadSub = service.bc.SubscribeChainHeadEvent(service.chainHeadCh)
@@ -307,7 +307,7 @@ func NewSyncService(ctx context.Context, cfg Config, txpool *core.TxPool, bc *co
 	return &service, nil
 }
 
-// ensureClient checks to make sure that the remote Transaction source is
+// ensureClient checks to make sure that the remote transaction source is
 // available. It will return an error if it cannot connect via HTTP
 func (s *SyncService) ensureClient() error {
 	_, err := s.client.GetLatestEthContext()
@@ -370,14 +370,14 @@ func (s *SyncService) Start() error {
 // initializeLatestL1 sets the initial values of the `L1BlockNumber`
 // and `L1Timestamp` to the deploy height of the Canonical Transaction
 // chain if the chain is empty, otherwise set it from the last
-// Transaction processed. This must complete before transactions
+// transaction processed. This must complete before transactions
 // are accepted via RPC when running as a sequencer.
 func (s *SyncService) initializeLatestL1(ctcDeployHeight *big.Int) error {
 	index := s.GetLatestIndex()
 	log.Info("initializeLatestL1", "ctcDeployHeight", ctcDeployHeight.String())
 	if index == nil {
 		if ctcDeployHeight == nil {
-			return errors.New("Must configure with canonical Transaction chain deploy height")
+			return errors.New("Must configure with canonical transaction chain deploy height")
 		}
 		log.Info("Initializing initial OVM Context", "ctc-deploy-height", ctcDeployHeight.Uint64())
 		context, err := s.client.GetEthContext(ctcDeployHeight.Uint64())
@@ -402,7 +402,7 @@ func (s *SyncService) initializeLatestL1(ctcDeployHeight *big.Int) error {
 					// if inbox batch contains old blocks and new blocks, try get block again
 					block, err2 := s.client.GetRawBlock(*index, s.backend)
 					if err2 != nil {
-						return fmt.Errorf("Cannot fetch Transaction from dtl at index %d: %w", *index, err)
+						return fmt.Errorf("Cannot fetch transaction from dtl at index %d: %w", *index, err)
 					}
 					newBatchIndex = block.Block.BatchIndex
 				} else {
@@ -463,7 +463,7 @@ func (s *SyncService) initializeLatestL1(ctcDeployHeight *big.Int) error {
 		log.Info("Found latest queue index", "queue-index", *queueIndex)
 		// The queue index is defined. Work backwards from the tip
 		// to make sure that the indexed queue index is the latest
-		// enqueued Transaction
+		// enqueued transaction
 		block := s.bc.CurrentBlock()
 		for {
 			// There are no blocks in the chain
@@ -581,7 +581,7 @@ func (s *SyncService) verify() error {
 	switch s.backend {
 	case BackendL1:
 		if err := s.syncBatchesToTip(); err != nil {
-			return fmt.Errorf("Verifier cannot sync Transaction batches to tip: %w", err)
+			return fmt.Errorf("Verifier cannot sync transaction batches to tip: %w", err)
 		}
 	case BackendL2:
 		if err := s.syncTransactionsToTip(); err != nil {
@@ -611,9 +611,9 @@ func (s *SyncService) SequencerLoop() {
 }
 
 // sequence is the main logic for the Sequencer. It will sync any `enqueue`
-// transactions it has yet to sync and then pull in Transaction batches to
+// transactions it has yet to sync and then pull in transaction batches to
 // compare against the transactions it has in its local state. The sequencer
-// should reorg based on the Transaction batches that are posted because
+// should reorg based on the transaction batches that are posted because
 // L1 is the source of truth. The sequencer concurrently accepts user
 // transactions via the RPC. When reorg logic is enabled, this should
 // also call `syncBatchesToTip`
@@ -649,7 +649,7 @@ func (s *SyncService) syncQueueToTip() error {
 
 func (s *SyncService) syncBatchesToTip() error {
 	if err := s.syncToTip(s.syncBatches, s.client.GetLatestTransactionBatchIndex); err != nil {
-		return fmt.Errorf("Cannot sync Transaction batches to tip: %w", err)
+		return fmt.Errorf("Cannot sync transaction batches to tip: %w", err)
 	}
 	return nil
 }
@@ -714,7 +714,7 @@ func (s *SyncService) waitingSequencerTip() (bool, error) {
 
 // updateL1GasPrice queries for the current L1 gas price and then stores it
 // in the L1 Gas Price Oracle. This must be called over time to properly
-// estimate the Transaction fees that the sequencer should charge.
+// estimate the transaction fees that the sequencer should charge.
 func (s *SyncService) updateL1GasPrice(statedb *state.StateDB) error {
 	value, err := s.readGPOStorageSlot(statedb, rcfg.L1GasPriceSlot)
 	if err != nil {
@@ -951,12 +951,12 @@ func (s *SyncService) SetLatestVerifiedIndex(index *uint64) {
 	}
 }
 
-// GetLatestBatchIndex reads the last processed Transaction batch
+// GetLatestBatchIndex reads the last processed transaction batch
 func (s *SyncService) GetLatestBatchIndex() *uint64 {
 	return rawdb.ReadHeadBatchIndex(s.db)
 }
 
-// GetNextBatchIndex reads the index of the next Transaction batch to process
+// GetNextBatchIndex reads the index of the next transaction batch to process
 func (s *SyncService) GetNextBatchIndex() uint64 {
 	index := s.GetLatestBatchIndex()
 	if index == nil {
@@ -965,7 +965,7 @@ func (s *SyncService) GetNextBatchIndex() uint64 {
 	return *index + 1
 }
 
-// SetLatestBatchIndex writes the last index of the Transaction batch that was processed
+// SetLatestBatchIndex writes the last index of the transaction batch that was processed
 func (s *SyncService) SetLatestBatchIndex(index *uint64) {
 	if index != nil {
 		rawdb.WriteHeadBatchIndex(s.db, *index)
@@ -994,12 +994,12 @@ func (s *SyncService) applyBlock(block *types.Block) error {
 		}
 		txsLocal := blockLocal.Transactions()
 		if len(txsLocal) != len(txs) {
-			return fmt.Errorf("Not equals Transaction length found in block %d, local length %d, dtl remote length %d", index+1, len(txsLocal), len(txs))
+			return fmt.Errorf("Not equals transaction length found in block %d, local length %d, dtl remote length %d", index+1, len(txsLocal), len(txs))
 		}
 		if !isCtcTxEqual(txs[0], txsLocal[0]) {
-			log.Error("Mismatched Transaction 0", "index", index)
+			log.Error("Mismatched transaction 0", "index", index)
 		} else {
-			log.Debug("Historical Transaction matches", "index", index, "hash local", txsLocal[0].Hash().Hex(), "hash remote", txs[0].Hash().Hex())
+			log.Debug("Historical transaction matches", "index", index, "hash local", txsLocal[0].Hash().Hex(), "hash remote", txs[0].Hash().Hex())
 		}
 		return nil
 	}
@@ -1030,14 +1030,14 @@ func (s *SyncService) applyBlock(block *types.Block) error {
 		Time:  block.Time(),
 	})
 
-	// Block until the Transaction has been added to the chain
+	// Block until the transaction has been added to the chain
 	log.Trace("Waiting for block transactions to be added to chain", "hash tx0", txs[0].Hash().Hex())
 	select {
 	case txApplyErr := <-s.txApplyErrCh:
 		log.Error("Got error when added block txs to chain", "err", txApplyErr)
 		return txApplyErr
 	case <-s.chainHeadCh:
-		// Update the cache when the Transaction is from the owner
+		// Update the cache when the transaction is from the owner
 		// of the gas price oracle
 		if owner != nil && sender == *owner {
 			if err := s.updateGasPriceOracleCache(nil); err != nil {
@@ -1059,7 +1059,7 @@ func (s *SyncService) applyBlock(block *types.Block) error {
 	}
 }
 
-// applyTransaction is a higher level API for applying a Transaction
+// applyTransaction is a higher level API for applying a transaction
 func (s *SyncService) applyTransaction(tx *types.Transaction, fromLocal bool) error {
 	if tx == nil {
 		return nil
@@ -1074,8 +1074,8 @@ func (s *SyncService) applyTransaction(tx *types.Transaction, fromLocal bool) er
 	return s.applyTransactionToTip(tx, fromLocal)
 }
 
-// applyIndexedTransaction applys a Transaction that has an index. This means
-// that the source of the Transaction was either a L1 batch or from the
+// applyIndexedTransaction applys a transaction that has an index. This means
+// that the source of the transaction was either a L1 batch or from the
 // sequencer.
 func (s *SyncService) applyIndexedTransaction(tx *types.Transaction, fromLocal bool) error {
 	if tx == nil {
@@ -1085,7 +1085,7 @@ func (s *SyncService) applyIndexedTransaction(tx *types.Transaction, fromLocal b
 	if index == nil {
 		return errors.New("No index found in applyIndexedTransaction")
 	}
-	log.Trace("Applying indexed Transaction", "index", *index)
+	log.Trace("Applying indexed transaction", "index", *index)
 	next := s.GetNextIndex()
 	if *index == next {
 		return s.applyTransactionToTip(tx, fromLocal)
@@ -1109,7 +1109,7 @@ func (s *SyncService) applyIndexedTransaction(tx *types.Transaction, fromLocal b
 	return fmt.Errorf("Received tx at index %d when looking for %d", *index, next)
 }
 
-// applyHistoricalTransaction will compare a historical Transaction against what
+// applyHistoricalTransaction will compare a historical transaction against what
 // is locally indexed. This will trigger a reorg in the future
 func (s *SyncService) applyHistoricalTransaction(tx *types.Transaction, fromLocal bool) error {
 	if tx == nil {
@@ -1123,19 +1123,19 @@ func (s *SyncService) applyHistoricalTransaction(tx *types.Transaction, fromLoca
 	// Handle the off by one
 	block := s.bc.GetBlockByNumber(*index + 1)
 	if block == nil {
-		return fmt.Errorf("Block %d is not found, fromLocal %v", *index+1, fromLocal)
+		return fmt.Errorf("Block %d is not found", *index+1, "fromLocal", fromLocal)
 	}
 	if rcfg.DeSeqBlock > 0 && *index+1 >= rcfg.DeSeqBlock {
 		return nil
 	}
 	txs := block.Transactions()
 	if len(txs) != 1 {
-		return fmt.Errorf("More than one Transaction found in block %d", *index+1)
+		return fmt.Errorf("More than one transaction found in block %d", *index+1)
 	}
 	if !isCtcTxEqual(tx, txs[0]) {
-		log.Error("Mismatched Transaction", "index", *index)
+		log.Error("Mismatched transaction", "index", *index)
 	} else {
-		log.Debug("Historical Transaction matches", "index", *index, "hash", tx.Hash().Hex())
+		log.Debug("Historical transaction matches", "index", *index, "hash", tx.Hash().Hex())
 	}
 	return nil
 }
@@ -1176,7 +1176,7 @@ func (s *SyncService) addSeqSignature(tx *types.Transaction) error {
 
 	signature, err := crypto.Sign(hash, ecdsaPri)
 	if err != nil || len(signature) != 65 {
-		return errors.New("invalid Signature")
+		return errors.New("invalid signature")
 	}
 	seqSign := &types.SeqSign{
 		R: big.NewInt(0).SetBytes(signature[0:32]),
@@ -1185,7 +1185,7 @@ func (s *SyncService) addSeqSignature(tx *types.Transaction) error {
 	}
 	tx.SetSeqSign(seqSign)
 	if tx.GetSeqSign() == nil {
-		return errors.New("set Signature failed")
+		return errors.New("set signature failed")
 	}
 	return nil
 }
@@ -1220,7 +1220,7 @@ func (s *SyncService) makeOrVerifySequencerSign(tx *types.Transaction, blockNumb
 		return isRespan, err
 	}
 	if seqModel && mpcEnabled && blockNumber >= s.seqAdapter.GetSeqValidHeight() && tx.QueueOrigin() == types.QueueOriginL1ToL2 {
-		// mpc status 2. add sequencer Signature to tx in sequencer model, QueueOriginL1ToL2 always give 0 to sign
+		// mpc status 2. add sequencer signature to tx in sequencer model, QueueOriginL1ToL2 always give 0 to sign
 		err = s.addSeqSignature(tx)
 		if err != nil {
 			log.Error("addSeqSignature err QueueOriginL1ToL2", "err", err)
@@ -1237,14 +1237,14 @@ func (s *SyncService) makeOrVerifySequencerSign(tx *types.Transaction, blockNumb
 				log.Error("applyTransactionToTip with sequencer set enabled", "err", err, "blockNumber", blockNumber, "selfSeq", s.SeqAddress)
 				return isRespan, err
 			}
-			// mpc status 2. add sequencer Signature to tx in sequencer model
+			// mpc status 2. add sequencer signature to tx in sequencer model
 			err = s.addSeqSignature(tx)
 			if err != nil {
 				log.Error("addSeqSignature err QueueOriginSequencer", "err", err)
 				return isRespan, err
 			}
 		} else {
-			// mpc status 3. check sequencer Signature in verifier model or BackendL2
+			// mpc status 3. check sequencer signature in verifier model or BackendL2
 			signature := tx.GetSeqSign()
 			if signature == nil {
 				errInfo := fmt.Sprintf("current node %v, is not expect seq %v, so don't sequence it", s.SeqAddress, expectSeq.String())
@@ -1332,7 +1332,7 @@ func (s *SyncService) applyTransactionToPool(tx *types.Transaction, fromLocal bo
 	sender, _ := types.Sender(s.signer, tx)
 	owner := s.GasPriceOracleOwnerAddress()
 	// The index was set above so it is safe to dereference
-	log.Debug("Applying Transaction to pool", "index", *tx.GetMeta().Index, "hash", tx.Hash().Hex(), "origin", tx.QueueOrigin().String())
+	log.Debug("Applying transaction to pool", "index", *tx.GetMeta().Index, "hash", tx.Hash().Hex(), "origin", tx.QueueOrigin().String())
 	if !fromLocal {
 		// mpc status 5
 		log.Info("sync from other node", "index", *tx.GetMeta().Index, "hash", tx.Hash().Hex())
@@ -1374,14 +1374,14 @@ func (s *SyncService) applyTransactionToPool(tx *types.Transaction, fromLocal bo
 		Txs:   txs,
 		ErrCh: nil,
 	})
-	// Block until the Transaction has been added to the chain
-	log.Trace("Waiting for Transaction to be added to chain", "hash", tx.Hash().Hex())
+	// Block until the transaction has been added to the chain
+	log.Trace("Waiting for transaction to be added to chain", "hash", tx.Hash().Hex())
 	select {
 	case txApplyErr := <-s.txApplyErrCh:
 		log.Error("Got error when added to chain", "err", txApplyErr)
 		return txApplyErr
 	case <-s.chainHeadCh:
-		// Update the cache when the Transaction is from the owner
+		// Update the cache when the transaction is from the owner
 		// of the gas price oracle
 		if owner != nil && sender == *owner {
 			if err := s.updateGasPriceOracleCache(nil); err != nil {
@@ -1394,22 +1394,22 @@ func (s *SyncService) applyTransactionToPool(tx *types.Transaction, fromLocal bo
 	}
 }
 
-// applyTransactionToTip will do sanity checks on the Transaction before
-// applying it to the tip. It blocks until the Transaction has been included in
+// applyTransactionToTip will do sanity checks on the transaction before
+// applying it to the tip. It blocks until the transaction has been included in
 // the chain. It is assumed that validation around the index has already
 // happened.
 func (s *SyncService) applyTransactionToTip(tx *types.Transaction, fromLocal bool) error {
 	if tx == nil {
-		return errors.New("nil Transaction passed to applyTransactionToTip")
+		return errors.New("nil transaction passed to applyTransactionToTip")
 	}
 	// Queue Origin L1 to L2 transactions must have a timestamp that is set by
-	// the L1 block that holds the Transaction. This should never happen but is
+	// the L1 block that holds the transaction. This should never happen but is
 	// a sanity check to prevent fraudulent execution.
 	// No need to unlock here as the lock is only taken when its a queue origin
-	// sequencer Transaction.
+	// sequencer transaction.
 	if tx.QueueOrigin() == types.QueueOriginL1ToL2 {
 		if tx.L1Timestamp() == 0 {
-			return fmt.Errorf("Queue origin L1 to L2 Transaction without a timestamp: %s", tx.Hash().Hex())
+			return fmt.Errorf("Queue origin L1 to L2 transaction without a timestamp: %s", tx.Hash().Hex())
 		}
 	}
 	currentBN := s.bc.CurrentBlock().NumberU64()
@@ -1419,11 +1419,11 @@ func (s *SyncService) applyTransactionToTip(tx *types.Transaction, fromLocal boo
 	if rcfg.DeSeqBlock > 0 && currentBN >= rcfg.DeSeqBlock {
 		return s.applyTransactionToPool(tx, fromLocal)
 	}
-	// If there is no L1 timestamp assigned to the Transaction, then assign a
+	// If there is no L1 timestamp assigned to the transaction, then assign a
 	// timestamp to it. The property that L1 to L2 transactions have the same
 	// timestamp as the L1 block that it was included in is removed for better
 	// UX. This functionality can be added back in during a future release. For
-	// now, the sequencer will assign a timestamp to each Transaction.
+	// now, the sequencer will assign a timestamp to each transaction.
 	ts := s.GetLatestL1Timestamp()
 	bn := s.GetLatestL1BlockNumber()
 
@@ -1552,7 +1552,7 @@ func (s *SyncService) applyTransactionToTip(tx *types.Transaction, fromLocal boo
 	}
 	// On restart, these values are repaired to handle
 	// the case where the index is updated but the
-	// Transaction isn't yet added to the chain
+	// transaction isn't yet added to the chain
 	s.SetLatestIndex(tx.GetMeta().Index)
 	s.SetLatestIndexTime(time.Now().Unix())
 	s.SetLatestVerifiedIndex(tx.GetMeta().Index)
@@ -1566,7 +1566,7 @@ func (s *SyncService) applyTransactionToTip(tx *types.Transaction, fromLocal boo
 	sender, _ := types.Sender(s.signer, tx)
 	owner := s.GasPriceOracleOwnerAddress()
 	// The index was set above so it is safe to dereference
-	log.Debug("Applying Transaction to tip", "index", *tx.GetMeta().Index, "hash", tx.Hash().Hex(), "origin", tx.QueueOrigin().String())
+	log.Debug("Applying transaction to tip", "index", *tx.GetMeta().Index, "hash", tx.Hash().Hex(), "origin", tx.QueueOrigin().String())
 	if !fromLocal {
 		// mpc status 5
 		log.Info("sync from other node", "index", *tx.GetMeta().Index, "hash", tx.Hash().Hex())
@@ -1607,8 +1607,8 @@ func (s *SyncService) applyTransactionToTip(tx *types.Transaction, fromLocal boo
 		Txs:   txs,
 		ErrCh: nil,
 	})
-	// Block until the Transaction has been added to the chain
-	log.Trace("Waiting for Transaction to be added to chain", "hash", tx.Hash().Hex())
+	// Block until the transaction has been added to the chain
+	log.Trace("Waiting for transaction to be added to chain", "hash", tx.Hash().Hex())
 	select {
 	case txApplyErr := <-s.txApplyErrCh:
 		log.Error("Got error when added to chain", "err", txApplyErr)
@@ -1618,7 +1618,7 @@ func (s *SyncService) applyTransactionToTip(tx *types.Transaction, fromLocal boo
 		s.SetLatestVerifiedIndex(index)
 		return txApplyErr
 	case <-s.chainHeadCh:
-		// Update the cache when the Transaction is from the owner
+		// Update the cache when the transaction is from the owner
 		// of the gas price oracle
 		if owner != nil && sender == *owner {
 			if err := s.updateGasPriceOracleCache(nil); err != nil {
@@ -1637,20 +1637,20 @@ func (s *SyncService) applyTransactionToTip(tx *types.Transaction, fromLocal boo
 
 // applyBatchedTransaction applies transactions that were batched to layer one.
 // The sequencer checks for batches over time to make sure that it does not
-// deviate from the L1 state and this is the main method of Transaction
+// deviate from the L1 state and this is the main method of transaction
 // ingestion for the verifier.
 func (s *SyncService) applyBatchedTransaction(tx *types.Transaction) error {
 	if tx == nil {
-		return errors.New("nil Transaction passed into applyBatchedTransaction")
+		return errors.New("nil transaction passed into applyBatchedTransaction")
 	}
 	index := tx.GetMeta().Index
 	if index == nil {
-		return errors.New("No index found on Transaction")
+		return errors.New("No index found on transaction")
 	}
-	log.Trace("Applying batched Transaction", "index", *index)
+	log.Trace("Applying batched transaction", "index", *index)
 	err := s.applyIndexedTransaction(tx, true)
 	if err != nil {
-		return fmt.Errorf("Cannot apply batched Transaction: %w", err)
+		return fmt.Errorf("Cannot apply batched transaction: %w", err)
 	}
 	// s.SetLatestVerifiedIndex(index)
 	return nil
@@ -1665,12 +1665,12 @@ func (s *SyncService) VerifyFee(tx *types.Transaction) error {
 func (s *SyncService) verifyFee(tx *types.Transaction) error {
 	from, err := types.Sender(s.signer, tx)
 	if err != nil {
-		return fmt.Errorf("invalid Transaction: %w", core.ErrInvalidSender)
+		return fmt.Errorf("invalid transaction: %w", core.ErrInvalidSender)
 	}
 
 	//MVM: l1 cost is now part of the gaslimit
 	//if state.GetBalance(from).Cmp(cost) < 0 {
-	//	return fmt.Errorf("invalid Transaction: %w", core.ErrInsufficientFunds)
+	//	return fmt.Errorf("invalid transaction: %w", core.ErrInsufficientFunds)
 	//}
 
 	// MVM: cache the owner again if the sender is coming from the supposed owner
@@ -1713,7 +1713,7 @@ func (s *SyncService) verifyFee(tx *types.Transaction) error {
 
 	// Reject user transactions that do not have large enough of a gas price.
 	// Allow for a buffer in case the gas price changes in between the user
-	// calling `eth_gasPrice` and submitting the Transaction.
+	// calling `eth_gasPrice` and submitting the transaction.
 	opts := fees.PaysEnoughOpts{
 		UserGasPrice:     tx.GasPrice(),
 		ExpectedGasPrice: l2GasPrice,
@@ -1744,7 +1744,7 @@ func (s *SyncService) ValidateAndApplySequencerTransaction(tx *types.Transaction
 		return errors.New("Verifier does not accept transactions out of band")
 	}
 	if tx == nil {
-		return errors.New("nil Transaction passed to ValidateAndApplySequencerTransaction")
+		return errors.New("nil transaction passed to ValidateAndApplySequencerTransaction")
 	}
 	s.txLock.Lock()
 	defer s.txLock.Unlock()
@@ -1755,17 +1755,17 @@ func (s *SyncService) ValidateAndApplySequencerTransaction(tx *types.Transaction
 
 	qo := tx.QueueOrigin()
 	if qo != types.QueueOriginSequencer {
-		return fmt.Errorf("invalid Transaction with queue origin %s", qo.String())
+		return fmt.Errorf("invalid transaction with queue origin %s", qo.String())
 	}
 	from, err := types.Sender(s.signer, tx)
 	if err != nil {
-		return fmt.Errorf("invalid Transaction: %w", core.ErrInvalidSender)
+		return fmt.Errorf("invalid transaction: %w", core.ErrInvalidSender)
 	}
 	gpoOwner := s.GasPriceOracleOwnerAddress()
 	local := gpoOwner != nil && from == *gpoOwner
-	log.Trace("Sequencer Transaction validation", "hash", tx.Hash().Hex(), "local", local)
+	log.Trace("Sequencer transaction validation", "hash", tx.Hash().Hex(), "local", local)
 	if err := s.txpool.ValidateTx(tx, local); err != nil {
-		return fmt.Errorf("invalid Transaction: %w", err)
+		return fmt.Errorf("invalid transaction: %w", err)
 	}
 	if err := s.applyTransaction(tx, true); err != nil {
 		return err
@@ -1788,7 +1788,7 @@ type nextGetter func() uint64
 
 // indexGetter is a type that represents a function that returns an index and an
 // error if there is a problem fetching the index. The different types of
-// indices are canonical Transaction chain indices, queue indices and batch
+// indices are canonical transaction chain indices, queue indices and batch
 // indices. It does not induce side effects on state
 type indexGetter func() (*uint64, error)
 
@@ -1910,7 +1910,7 @@ func (s *SyncService) syncBlockBatch(index uint64) error {
 // syncTransactionBatchRange will sync a range of batched transactions from
 // start to end (inclusive)
 func (s *SyncService) syncTransactionBatchRange(start, end uint64) error {
-	log.Info("Syncing Transaction batch range", "start", start, "end", end)
+	log.Info("Syncing transaction batch range", "start", start, "end", end)
 	for i := start; i <= end; i++ {
 		if rcfg.DeSeqBlock > 0 && s.bc.CurrentBlock().NumberU64()+1 >= rcfg.DeSeqBlock {
 			err := s.syncBlockBatch(i)
@@ -1919,7 +1919,7 @@ func (s *SyncService) syncTransactionBatchRange(start, end uint64) error {
 			}
 			continue
 		}
-		log.Debug("Fetching Transaction batch", "index", i)
+		log.Debug("Fetching transaction batch", "index", i)
 		batch, txs, err := s.client.GetTransactionBatch(i)
 		if err != nil {
 			if strings.Contains(err.Error(), "USE_INBOX_BATCH_INDEX") {
@@ -1929,7 +1929,7 @@ func (s *SyncService) syncTransactionBatchRange(start, end uint64) error {
 				}
 				continue
 			}
-			return fmt.Errorf("Cannot get Transaction batch: %w", err)
+			return fmt.Errorf("Cannot get transaction batch: %w", err)
 		}
 		next := s.GetNextIndex()
 		for _, tx := range txs {
@@ -1939,7 +1939,7 @@ func (s *SyncService) syncTransactionBatchRange(start, end uint64) error {
 				continue
 			}
 			if err := s.applyBatchedTransaction(tx); err != nil {
-				return fmt.Errorf("cannot apply batched Transaction: %w", err)
+				return fmt.Errorf("cannot apply batched transaction: %w", err)
 			}
 			// verifier stateroot
 			txIndex, stateRoot, verifierRoot, err := s.verifyStateRoot(tx, batch.Root)
@@ -1986,7 +1986,7 @@ func (s *SyncService) verifyStateRoot(tx *types.Transaction, batchRoot common.Ha
 }
 
 // syncQueue will sync from the local tip to the known tip of the remote
-// enqueue Transaction feed.
+// enqueue transaction feed.
 func (s *SyncService) syncQueue() (*uint64, error) {
 	index, err := s.sync(s.client.GetLatestEnqueueIndex, s.GetNextEnqueueIndex, s.syncQueueTransactionRange)
 	if err != nil {
@@ -2006,7 +2006,7 @@ func (s *SyncService) syncQueueTransactionRange(start, end uint64) error {
 		}
 		tx, err := s.client.GetEnqueue(i)
 		if err != nil {
-			return fmt.Errorf("Cannot get enqueue Transaction; %w", err)
+			return fmt.Errorf("Cannot get enqueue transaction; %w", err)
 		}
 
 		err = s.applyTransaction(tx, true)
@@ -2023,7 +2023,7 @@ func (s *SyncService) syncQueueTransactionRange(start, end uint64) error {
 						log.Error("syncQueueTransactionRange failed at zero index")
 					}
 				}
-				return fmt.Errorf("Cannot apply Transaction: %w", err)
+				return fmt.Errorf("Cannot apply transaction: %w", err)
 			}
 			continue
 		}
@@ -2090,7 +2090,7 @@ func (s *SyncService) syncTransactions(backend Backend) (*uint64, error) {
 // syncTransactionRange will sync a range of transactions from
 // start to end (inclusive) from a specific Backend
 func (s *SyncService) syncTransactionRange(start, end uint64, backend Backend) error {
-	log.Info("Syncing Transaction or block range", "start", start, "end", end, "backend", backend.String())
+	log.Info("Syncing transaction or block range", "start", start, "end", end, "backend", backend.String())
 	for i := start; i <= end; i++ {
 		// i + 1 equals the next block number
 		if rcfg.DeSeqBlock > 0 && i+1 >= rcfg.DeSeqBlock {
@@ -2104,10 +2104,10 @@ func (s *SyncService) syncTransactionRange(start, end uint64, backend Backend) e
 		} else {
 			tx, err := s.client.GetTransaction(i, backend)
 			if err != nil {
-				return fmt.Errorf("cannot fetch Transaction %d: %w", i, err)
+				return fmt.Errorf("cannot fetch transaction %d: %w", i, err)
 			}
 			if err := s.applyTransaction(tx, true); err != nil {
-				return fmt.Errorf("Cannot apply Transaction: %w", err)
+				return fmt.Errorf("Cannot apply transaction: %w", err)
 			}
 		}
 	}
@@ -2162,7 +2162,7 @@ func stringify(i *uint64) string {
 }
 
 // IngestTransaction should only be called by trusted parties as it skips all
-// validation and applies the Transaction
+// validation and applies the transaction
 func (s *SyncService) IngestTransaction(tx *types.Transaction) error {
 	return s.applyTransaction(tx, true)
 }

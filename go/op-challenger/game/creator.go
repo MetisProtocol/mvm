@@ -81,7 +81,8 @@ type gameCreator struct {
 
 	multiCaller *batching.MultiCaller
 
-	sccABI *ethabi.ABI
+	sccABI     *ethabi.ABI
+	factoryABI *ethabi.ABI
 
 	isCreator bool
 	db        *leveldb.DB
@@ -125,6 +126,7 @@ func newCreator(logger log.Logger,
 	}
 
 	sccABI := abi.LoadSCCABI()
+	factoryABI := abi.LoadDisputeGameFactoryABI()
 
 	return &gameCreator{
 		ctx:             ctx,
@@ -141,6 +143,7 @@ func newCreator(logger log.Logger,
 		db:              db,
 		cfg:             cfg,
 		sccABI:          sccABI,
+		factoryABI:      factoryABI,
 	}
 }
 
@@ -381,7 +384,7 @@ func (m *gameCreator) fetchL2HeadersInRange(start, end uint64) ([]hexutil.Bytes,
 
 // minitorStateDisputed monitors the DisputeGameRequested events
 func (m *gameCreator) minitorStateDisputed() {
-	eventID := m.sccABI.Events["DisputeGameRequested"].ID.Bytes()
+	eventID := m.factoryABI.Events["DisputeGameRequested"].ID.Bytes()
 	m.monitorEvents(eventID, m.processDisputeGameRequest)
 }
 
@@ -648,8 +651,10 @@ func (m *gameCreator) decodeStateBatchAppendedEvent(receipt *ethtypes.Receipt) *
 
 func (m *gameCreator) StartMonitoring() {
 	if m.isCreator {
+		m.logger.Info("starting monitoring as creator")
 		go m.minitorStateDisputed()
 	} else {
+		m.logger.Info("starting monitoring as verifier")
 		go m.monitorStateValidity()
 	}
 }
