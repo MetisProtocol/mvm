@@ -7,6 +7,8 @@ export interface StateRootBatchHeader {
   batchSize: BigNumber
   prevTotalElements: BigNumber
   extraData: string
+
+  blockNumber: number
 }
 
 export interface SentMessage {

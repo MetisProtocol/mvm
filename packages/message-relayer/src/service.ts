@@ -126,7 +126,6 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       name: 'StateCommitmentChain',
       Lib_AddressManager: this.state.Lib_AddressManager,
       provider: this.options.l1RpcProvider,
-      ifaceName: 'StateCommitmentChain',
     })
     this.logger.info('Connected to StateCommitmentChain', {
       address: this.state.StateCommitmentChain.address,
@@ -137,7 +136,6 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       name: 'MVM_StateCommitmentChain',
       Lib_AddressManager: this.state.Lib_AddressManager,
       provider: this.options.l1RpcProvider,
-      ifaceName: 'MVM_StateCommitmentChain',
     })
     this.logger.info('Connected to MVMStateCommitmentChain', {
       address: this.state.MVMStateCommitmentChain.address,
@@ -440,12 +438,15 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       event.transactionHash
     )
 
-    const txDataDecoder =
-      height >= this.options.fpUpgradeHeight
-        ? this.state.MVMStateCommitmentChain.interface.decodeFunctionData
-        : this.state.StateCommitmentChain.interface.decodeFunctionData
+    const contract =
+      event.blockNumber >= this.options.fpUpgradeHeight
+        ? this.state.MVMStateCommitmentChain
+        : this.state.StateCommitmentChain
 
-    const txData = txDataDecoder('appendStateBatchByChainId', transaction.data)
+    const txData = contract.interface.decodeFunctionData(
+      'appendStateBatchByChainId',
+      transaction.data
+    )
     const stateRoots = txData[1] //param in appendStateBatchByChainId is: chainId,batch,_extraData
     return {
       batch: {
@@ -454,6 +455,7 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
         batchSize: event.args._batchSize,
         prevTotalElements: event.args._prevTotalElements,
         extraData: event.args._extraData,
+        blockNumber: event.blockNumber,
       },
       stateRoots,
     }
@@ -471,7 +473,7 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
     }
 
     const fraudProofWindowChecker =
-      height >= this.options.fpUpgradeHeight
+      header.batch.blockNumber >= this.options.fpUpgradeHeight
         ? this.state.MVMStateCommitmentChain.insideFraudProofWindow
         : this.state.StateCommitmentChain.insideFraudProofWindow
 
