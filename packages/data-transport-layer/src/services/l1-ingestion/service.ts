@@ -562,7 +562,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         SenderType.Batch.valueOf()
       )
       let inboxBlobSenderAddress
-      if (this.options.blobEnabled) {
+      if (block.number >= this.options.fpBlock) {
         inboxBlobSenderAddress = await this._getInboxSender(
           block.number,
           SenderType.Blob.valueOf()

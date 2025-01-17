@@ -48,8 +48,6 @@ export interface L1DataTransportServiceOptions {
   minioAccessKey?: string
   minioSecretKey?: string
 
-  blobEnabled?: boolean
-
   trustedIndexer?: string
 
   deSeqBlock: number
