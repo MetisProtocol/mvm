@@ -29,6 +29,7 @@ import {
   calculateEIP1559GasPrice,
   MpcClient,
   TransactionSubmitter,
+  YnatmTransactionSubmitter,
 } from '../utils'
 import { InboxStorage } from '../storage'
 import { TxSubmissionHooks } from '..'
@@ -254,22 +255,36 @@ export class TransactionBatchSubmitterInbox {
 
         // mpc model can use ynatm
         let submitTx: () => Promise<TransactionReceipt>
-        let previousGasPrice = 0
         if (mpcUrl) {
           submitTx = (): Promise<TransactionReceipt> => {
+            const yntmSubmmiter =
+              transactionSubmitter as YnatmTransactionSubmitter
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
               async (gasPrice) => {
-                if (previousGasPrice > 0 && gasPrice > 0) {
-                  const feeScalingFactor = gasPrice
-                    ? gasPrice / toNumber(tx.maxFeePerGas)
-                    : 1
+                if (gasPrice > 0) {
+                  const feeScalingFactor =
+                    gasPrice / toNumber(blobTx.maxFeePerGas)
                   await calculateEIP1559GasPrice(
                     signer.provider,
                     blobTx,
                     feeScalingFactor
                   )
-                  previousGasPrice = gasPrice
+                  if (
+                    toBigInt(blobTx.maxFeePerGas) >
+                    ethers.parseUnits(
+                      yntmSubmmiter.ynatmConfig.maxGasPriceInGwei.toString(10),
+                      'gwei'
+                    )
+                  ) {
+                    this.logger.error('Gas price exceeds the cap', {
+                      max: yntmSubmmiter.ynatmConfig.maxGasPriceInGwei,
+                      current: toNumber(blobTx.maxFeePerGas),
+                    })
+                    throw new Error(
+                      `Gas price ${blobTx.maxFeePerGas} exceeds the cap ${yntmSubmmiter.ynatmConfig.maxGasPriceInGwei}`
+                    )
+                  }
                 }
 
                 const signedTx = await mpcClient.signTx(blobTx, mpcId)
