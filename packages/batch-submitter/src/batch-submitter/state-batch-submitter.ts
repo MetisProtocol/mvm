@@ -144,7 +144,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
 
     if (this.fpUpgraded) {
       this.fpChainContract = new Contract(
-        sccAddress,
+        mvmSccAddress,
         getContractDefinition('IMVMStateCommitmentChain').abi,
         this.signer
       )
