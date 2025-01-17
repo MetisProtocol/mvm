@@ -170,7 +170,7 @@ export const run = async () => {
   )
 
   const getBlobSigner = async (): Promise<Signer> => {
-    if (useHardhat && USE_BLOB) {
+    if (useHardhat) {
       if (!DEBUG_IMPERSONATE_BLOB_ADDRESS) {
         throw new Error('Must pass DEBUG_IMPERSONATE_BLOB_ADDRESS')
       }
@@ -294,7 +294,10 @@ export const run = async () => {
     env.SEQUENCER_PRIVATE_KEY
   )
   // dedicated private key for signing blob txs
-  const BLOB_PRIVATE_KEY = config.str('blob-private-key', env.BLOB_PRIVATE_KEY)
+  const BLOB_PRIVATE_KEY = config.str(
+    'blob-private-key',
+    env.BLOB_PRIVATE_KEY || ''
+  )
   // Kept for backwards compatibility
   const PROPOSER_PRIVATE_KEY = config.str(
     'proposer-private-key',
@@ -328,12 +331,6 @@ export const run = async () => {
   const VALIDATE_TX_BATCH = config.bool(
     'validate-tx-batch',
     env.VALIDATE_TX_BATCH ? env.VALIDATE_TX_BATCH === 'true' : false
-  )
-
-  // Blob DA
-  const USE_BLOB = config.bool(
-    'use-blob',
-    env.USE_BLOB ? env.USE_BLOB === 'true' : false
   )
 
   // Auto fix batch options -- TODO: Remove this very hacky config
@@ -491,16 +488,11 @@ export const run = async () => {
   const l2Provider = new L2Provider(requiredEnvVars.L2_NODE_WEB3_URL)
   const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
 
-  if (requiredEnvVars.MINIO_ENABLED && USE_BLOB) {
-    logger.error(
-      'Cannot use both Memo and Blob as DA, you can only choose one from them'
-    )
-    process.exit(1)
-  }
-
   const sequencerSigner: Signer = await getSequencerSigner()
+  const localBlobSignerConfigured =
+    BLOB_PRIVATE_KEY || (BLOB_MNEMONIC && BLOB_HD_PATH)
   let blobSigner: Signer
-  if (USE_BLOB) {
+  if (localBlobSignerConfigured) {
     blobSigner = await getBlobSigner()
   }
   let proposerSigner: Signer = await getProposerSigner()
@@ -518,11 +510,9 @@ export const run = async () => {
     addressManagerAddress: requiredEnvVars.ADDRESS_MANAGER_ADDRESS,
   })
 
-  if (USE_BLOB) {
-    logger.info('Blob DA enabled, initializing KZG trusted setup...')
-    // initialize KZG trusted setup, required for blob DA
-    loadTrustedSetup(0)
-  }
+  logger.info('Initializing KZG trusted setup...')
+  // initialize KZG trusted setup, required for blob DA
+  loadTrustedSetup(0)
 
   const resubmissionConfig: ResubmissionConfig = {
     resubmissionTimeout: requiredEnvVars.RESUBMISSION_TIMEOUT * 1_000,
@@ -536,7 +526,7 @@ export const run = async () => {
       resubmissionConfig,
       requiredEnvVars.NUM_CONFIRMATIONS
     )
-  const blobTxSubmitter: TransactionSubmitter = USE_BLOB
+  const blobTxSubmitter: TransactionSubmitter = localBlobSignerConfigured
     ? new YnatmTransactionSubmitter(
         blobSigner,
         resubmissionConfig,
