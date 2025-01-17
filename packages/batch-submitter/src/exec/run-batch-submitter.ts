@@ -456,7 +456,7 @@ export const run = async () => {
 
     FP_VALID_HEIGHT: config.uint(
       'fp-valid-height',
-      parseInt(env.FP_VALID_HEIGHT, 10) || 0
+      parseInt(env.FP_VALID_HEIGHT, 10)
     ),
   }
 
