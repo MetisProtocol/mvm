@@ -84,6 +84,9 @@ interface RequiredEnvVars {
   // seq set finalize block options
   SEQSET_VALID_HEIGHT: number
   SEQSET_CONTRACT: string
+
+  // fp settings
+  FP_VALID_HEIGHT: number
 }
 
 /* Optional Env Vars
@@ -453,6 +456,11 @@ export const run = async () => {
       parseInt(env.SEQSET_VALID_HEIGHT, 10)
     ),
     SEQSET_CONTRACT: config.str('seqset-contract', env.SEQSET_CONTRACT),
+
+    FP_VALID_HEIGHT: config.uint(
+      'fp-valid-height',
+      parseInt(env.FP_VALID_HEIGHT, 10) || 0
+    ),
   }
 
   for (const [key, val] of Object.entries(requiredEnvVars)) {
@@ -586,7 +594,7 @@ export const run = async () => {
     requiredEnvVars.SEQSET_VALID_HEIGHT,
     requiredEnvVars.SEQSET_CONTRACT,
     SEQSET_UPGRADE_ONLY,
-    USE_BLOB
+    requiredEnvVars.FP_VALID_HEIGHT
   )
 
   const stateBatchTxSubmitter: TransactionSubmitter =
@@ -617,7 +625,8 @@ export const run = async () => {
     requiredEnvVars.BATCH_INBOX_ADDRESS,
     requiredEnvVars.BATCH_INBOX_STORAGE_PATH,
     requiredEnvVars.SEQSET_VALID_HEIGHT,
-    SEQSET_UPGRADE_ONLY
+    SEQSET_UPGRADE_ONLY,
+    requiredEnvVars.FP_VALID_HEIGHT
   )
 
   let stopped = false
@@ -676,8 +685,31 @@ export const run = async () => {
       }
     }
 
+    let fpUpgraded = false
     while (!stopped) {
       try {
+        let currentL1Height = 0
+        if (!fpUpgraded) {
+          currentL1Height = await l1Provider.getBlockNumber()
+          fpUpgraded = currentL1Height >= requiredEnvVars.FP_VALID_HEIGHT
+        }
+        if (!fpUpgraded) {
+          const upgradeDistance =
+            requiredEnvVars.FP_VALID_HEIGHT - currentL1Height
+          if (upgradeDistance > 0 && upgradeDistance <= 50) {
+            logger.info(
+              'Close to FP upgrade height, to avoid missing the target, we will pause here until the upgrade height has been reached...',
+              {
+                upgradeHeight: requiredEnvVars.FP_VALID_HEIGHT,
+                currentHeight: currentL1Height,
+                blocksLeft: upgradeDistance,
+              }
+            )
+
+            continue
+          }
+        }
+
         await func()
       } catch (err) {
         switch (err.code) {

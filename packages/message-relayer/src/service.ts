@@ -60,6 +60,9 @@ interface MessageRelayerOptions {
   // user chain store mongo database url.
   storeDbUrl?: string
 
+  // fraud proof upgrade height, will switch to mvm scc at this height
+  fpUpgradeHeight?: number
+
   relayNumber?: number
 }
 
@@ -88,6 +91,7 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
     eventCache: ethers.Event[]
     Lib_AddressManager: Contract
     StateCommitmentChain: Contract
+    MVMStateCommitmentChain: Contract
     L1CrossDomainMessenger: Contract
     L2CrossDomainMessenger: Contract
     OVM_L2ToL1MessagePasser: Contract
@@ -122,10 +126,21 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       name: 'StateCommitmentChain',
       Lib_AddressManager: this.state.Lib_AddressManager,
       provider: this.options.l1RpcProvider,
-      ifaceName: 'MVM_StateCommitmentChain',
+      ifaceName: 'StateCommitmentChain',
     })
     this.logger.info('Connected to StateCommitmentChain', {
       address: this.state.StateCommitmentChain.address,
+    })
+
+    this.logger.info('Connecting to MVMStateCommitmentChain...')
+    this.state.MVMStateCommitmentChain = await loadContractFromManager({
+      name: 'MVM_StateCommitmentChain',
+      Lib_AddressManager: this.state.Lib_AddressManager,
+      provider: this.options.l1RpcProvider,
+      ifaceName: 'MVM_StateCommitmentChain',
+    })
+    this.logger.info('Connected to MVMStateCommitmentChain', {
+      address: this.state.MVMStateCommitmentChain.address,
     })
 
     this.logger.info('Connecting to L1CrossDomainMessenger...')
@@ -363,12 +378,43 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
         endBlock,
       })
 
-      const events: ethers.Event[] =
-        await this.state.StateCommitmentChain.queryFilter(
-          this.state.StateCommitmentChain.filters.StateBatchAppended(),
-          startingBlock,
-          endBlock
+      const events: ethers.Event[] = []
+      if (startingBlock >= this.options.fpUpgradeHeight) {
+        // already passed the fp upgrade height, only query mvm scc
+        events.push(
+          ...(await this.state.MVMStateCommitmentChain.queryFilter(
+            this.state.MVMStateCommitmentChain.filters.StateBatchAppended(),
+            startingBlock,
+            endBlock
+          ))
         )
+      } else if (endBlock < this.options.fpUpgradeHeight) {
+        // not yet passed the fp upgrade height, only query scc
+        events.push(
+          ...(await this.state.StateCommitmentChain.queryFilter(
+            this.state.StateCommitmentChain.filters.StateBatchAppended(),
+            startingBlock,
+            endBlock
+          ))
+        )
+      } else {
+        // inbetween the upgrade height, query both scc and mvm scc
+        events.push(
+          ...(await this.state.StateCommitmentChain.queryFilter(
+            this.state.StateCommitmentChain.filters.StateBatchAppended(),
+            startingBlock,
+            this.options.fpUpgradeHeight - 1
+          ))
+        )
+        events.push(
+          ...(await this.state.MVMStateCommitmentChain.queryFilter(
+            this.state.MVMStateCommitmentChain.filters.StateBatchAppended(),
+            this.options.fpUpgradeHeight,
+            endBlock
+          ))
+        )
+      }
+
       const filteredEvents = events.filter(
         (e) => e && e.args._chainId.toNumber() === this.options.l2ChainId
       )
@@ -394,10 +440,12 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       event.transactionHash
     )
 
-    const txData = this.state.StateCommitmentChain.interface.decodeFunctionData(
-      'appendStateBatchByChainId',
-      transaction.data
-    )
+    const txDataDecoder =
+      height >= this.options.fpUpgradeHeight
+        ? this.state.MVMStateCommitmentChain.interface.decodeFunctionData
+        : this.state.StateCommitmentChain.interface.decodeFunctionData
+
+    const txData = txDataDecoder('appendStateBatchByChainId', transaction.data)
     const stateRoots = txData[1] //param in appendStateBatchByChainId is: chainId,batch,_extraData
     return {
       batch: {
@@ -422,9 +470,12 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       this.logger.info('Got state batch header', { batch: header.batch })
     }
 
-    return !(await this.state.StateCommitmentChain.insideFraudProofWindow(
-      header.batch
-    ))
+    const fraudProofWindowChecker =
+      height >= this.options.fpUpgradeHeight
+        ? this.state.MVMStateCommitmentChain.insideFraudProofWindow
+        : this.state.StateCommitmentChain.insideFraudProofWindow
+
+    return !(await fraudProofWindowChecker(header.batch))
   }
 
   /**

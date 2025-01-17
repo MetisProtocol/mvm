@@ -58,6 +58,8 @@ export interface L1DataTransportServiceOptions {
   batchInboxBlobSender: string
   batchInboxStartIndex: number
   batchInboxL1Height: number
+
+  fpBlock: number
 }
 
 const optionSettings = {

@@ -38,9 +38,14 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
       l1TransactionData: l1Transaction.data,
     }
   },
-  parseEvent: async (event, extraData) => {
+  parseEvent: async (event, extraData, chainId, options) => {
+    const abiName =
+      event.blockNumber >= options.fpBlock
+        ? 'IMVMStateCommitmentChain'
+        : 'IStateCommitmentChain'
+
     const stateRoots = new Interface(
-      getContractDefinition('IMVMStateCommitmentChain').abi
+      getContractDefinition(abiName).abi
     ).decodeFunctionData(
       'appendStateBatchByChainId',
       extraData.l1TransactionData

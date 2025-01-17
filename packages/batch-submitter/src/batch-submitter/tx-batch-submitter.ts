@@ -98,7 +98,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     seqsetValidHeight: number,
     seqsetContractAddress: string,
     seqsetUpgradeOnly: number,
-    private useBlob: boolean
+    fpUpgradeHeight: number
   ) {
     super(
       signer,
@@ -117,7 +117,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       blockOffset,
       logger,
       metrics,
-      mpcUrl.length > 0
+      mpcUrl.length > 0,
+      fpUpgradeHeight
     )
     this.validateBatch = validateBatch
     this.autoFixBatchOptions = autoFixBatchOptions
@@ -139,8 +140,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.logger,
       this.maxTxSize,
       useMinio,
-      minioConfig,
-      this.useBlob
+      minioConfig
     )
     this.seqsetValidHeight = seqsetValidHeight
     this.seqsetContractAddress = seqsetContractAddress
@@ -411,6 +411,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         nextBatchIndex,
       })
       return this.inboxSubmitter.submitBatchToInbox(
+        this.fpUpgraded,
         startBlock,
         endBlock,
         nextBatchIndex,
@@ -439,6 +440,10 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
           )
         }
       )
+    }
+
+    if (this.fpUpgraded) {
+      throw new Error('FP upgrade must use inbox')
     }
 
     const params = await this._generateSequencerBatchParams(
@@ -497,7 +502,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     const mpcClient = new MpcClient(this.mpcUrl)
     const mpcLoadPromises = []
     mpcLoadPromises.push(mpcClient.getLatestMpc())
-    if (this.useBlob) {
+    if (this.fpUpgraded) {
       // if uses blob, also checks blob mpc balance
       mpcLoadPromises.push(mpcClient.getLatestMpc('3'))
     }
@@ -510,7 +515,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
 
     const hasEnoughBalancePromises: Promise<boolean>[] = []
 
-    if (this.useBlob) {
+    if (this.fpUpgraded) {
       const blobMpcInfo = results[1]
       if (!blobMpcInfo || !blobMpcInfo.mpc_address) {
         this.logger.error('MPC 3 info get failed')

@@ -54,6 +54,10 @@ export const loadOptimismContracts = async (
       interface: 'IStateCommitmentChain',
     },
     {
+      name: 'MVM_StateCommitmentChain',
+      interface: 'IMVMStateCommitmentChain',
+    },
+    {
       name: 'CanonicalTransactionChain',
       interface: 'ICanonicalTransactionChain',
     },

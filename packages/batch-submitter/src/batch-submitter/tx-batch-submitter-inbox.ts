@@ -58,8 +58,7 @@ export class TransactionBatchSubmitterInbox {
     readonly logger: Logger,
     readonly maxTxSize: number,
     readonly useMinio: boolean,
-    readonly minioConfig?: MinioConfig,
-    readonly useBlob?: boolean
+    readonly minioConfig?: MinioConfig
   ) {
     if (useMinio && minioConfig) {
       this.minioClient = new MinioClient(minioConfig)
@@ -67,6 +66,7 @@ export class TransactionBatchSubmitterInbox {
   }
 
   public async submitBatchToInbox(
+    useBlob: boolean,
     startBlock: number,
     endBlock: number,
     nextBatchIndex: number,
@@ -88,6 +88,7 @@ export class TransactionBatchSubmitterInbox {
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
     const params = await this._generateSequencerBatchParams(
+      useBlob,
       startBlock,
       endBlock,
       nextBatchIndex
@@ -105,7 +106,7 @@ export class TransactionBatchSubmitterInbox {
       batchSizeInBytes,
     })
 
-    if (this.useBlob) {
+    if (useBlob) {
       // when using blob txs, need to calculate the blob txs size,
       // to avoid the situation that the batch is too small,
       // we will commit until at least one blob got included
@@ -416,6 +417,7 @@ export class TransactionBatchSubmitterInbox {
   }
 
   private async _generateSequencerBatchParams(
+    useBlob: boolean,
     startBlock: number,
     endBlock: number,
     nextBatchIndex: number
@@ -437,6 +439,7 @@ export class TransactionBatchSubmitterInbox {
     const fixedMaxTxSize = this.maxTxSize
 
     let inboxBatchParams = await this._getSequencerBatchParams(
+      useBlob,
       startBlock,
       nextBatchIndex,
       batch
@@ -450,6 +453,7 @@ export class TransactionBatchSubmitterInbox {
       })
       batch.splice(Math.ceil((batch.length * 2) / 3)) // Delete 1/3rd of all of the batch elements
       inboxBatchParams = await this._getSequencerBatchParams(
+        useBlob,
         startBlock,
         nextBatchIndex,
         batch
@@ -473,6 +477,7 @@ export class TransactionBatchSubmitterInbox {
   }
 
   private async _getSequencerBatchParams(
+    useBlob: boolean,
     l2StartBlock: number,
     nextBatchIndex: number,
     blocks: BatchToInbox
@@ -490,7 +495,7 @@ export class TransactionBatchSubmitterInbox {
     let encoded = ''
     const blobTxData: TxData[] = []
 
-    if (!this.useBlob) {
+    if (!useBlob) {
       let encodeBlockData = ''
       blocks.forEach((inboxElement: BatchToInboxElement) => {
         // block encode, [3 txs count] [5 block timestamp = l1 timestamp of txs] [32 l1BlockNumber of txs, get it from tx0]
