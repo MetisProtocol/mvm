@@ -451,16 +451,19 @@ export class StateBatchSubmitter extends BatchSubmitter {
 
     const proposer = this.l2ChainId + '_MVM_Proposer'
     let stateRoots = batch.map((b) => b.stateRoot)
-    let tx = this.chainContract.interface.encodeFunctionData(
+    const sccContract = this.fpUpgraded
+      ? this.fpChainContract
+      : this.chainContract
+
+    let args = [this.l2ChainId, stateRoots, startBlock, proposer]
+    if (this.fpUpgraded) {
+      args.push(batch[batch.length - 1].blockHash)
+      args.push(batch[batch.length - 1].blockNumber)
+    }
+
+    let tx = sccContract.interface.encodeFunctionData(
       'appendStateBatchByChainId',
-      [
-        this.l2ChainId,
-        stateRoots,
-        startBlock,
-        proposer,
-        batch[batch.length - 1].blockHash,
-        batch[batch.length - 1].blockNumber,
-      ]
+      args
     )
     while (remove0x(tx).length / 2 > this.maxTxSize) {
       batch.splice(Math.ceil((batch.length * 2) / 3)) // Delete 1/3rd of all of the batch elements
@@ -468,16 +471,15 @@ export class StateBatchSubmitter extends BatchSubmitter {
         batchSizeInBytes: tx.length / 2,
       })
       stateRoots = batch.map((b) => b.stateRoot)
-      tx = this.chainContract.interface.encodeFunctionData(
+      args = [this.l2ChainId, stateRoots, startBlock, proposer]
+      if (this.fpUpgraded) {
+        args.push(batch[batch.length - 1].blockHash)
+        args.push(batch[batch.length - 1].blockNumber)
+      }
+
+      tx = sccContract.interface.encodeFunctionData(
         'appendStateBatchByChainId',
-        [
-          this.l2ChainId,
-          stateRoots,
-          startBlock,
-          proposer,
-          batch[batch.length - 1].blockHash,
-          batch[batch.length - 1].blockNumber,
-        ]
+        args
       )
     }
 
