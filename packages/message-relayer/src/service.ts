@@ -472,12 +472,12 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       this.logger.info('Got state batch header', { batch: header.batch })
     }
 
-    const fraudProofWindowChecker =
+    const sccContract =
       header.batch.blockNumber >= this.options.fpUpgradeHeight
-        ? this.state.MVMStateCommitmentChain.insideFraudProofWindow
-        : this.state.StateCommitmentChain.insideFraudProofWindow
+        ? this.state.MVMStateCommitmentChain
+        : this.state.StateCommitmentChain
 
-    return !(await fraudProofWindowChecker(header.batch))
+    return !(await sccContract.insideFraudProofWindow(header.batch))
   }
 
   /**
