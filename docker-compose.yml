@@ -102,8 +102,6 @@ services:
   l2geth:
     image: localdev/l2geth
     build:
-      platforms:
-        - linux/amd64
       context: .
       dockerfile: ./ops/docker/Dockerfile.geth
     entrypoint: sh ./geth.sh
