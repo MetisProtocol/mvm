@@ -32,7 +32,6 @@ export class StateBatchSubmitter extends BatchSubmitter {
   private inboxStorage: InboxStorage
   private seqsetValidHeight: number
   private seqsetUpgradeOnly: boolean
-  private fpValidHeight: number
   private fpChainContract: Contract
   private fpUpgraded: boolean = false
 
