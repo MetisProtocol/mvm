@@ -117,7 +117,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     OutputRoot public startingOutputRoot;
 
     /// @notice The name of the SCC contract.
-    string internal constant SCC_NAME = "MVM_StateCommitmentChain";
+    string internal constant SCC_NAME = "StateCommitmentChain";
 
     /// @notice The name of the locking pool contract.
     string internal constant LOCKING_POOL_NAME = "FaultProofLockingPool";

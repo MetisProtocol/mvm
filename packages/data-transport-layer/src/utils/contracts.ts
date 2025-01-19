@@ -54,7 +54,8 @@ export const loadOptimismContracts = async (
       interface: 'IStateCommitmentChain',
     },
     {
-      name: 'MVM_StateCommitmentChain',
+      name: 'StateCommitmentChain',
+      alias: 'MVM_StateCommitmentChain',
       interface: 'IMVMStateCommitmentChain',
     },
     {
@@ -77,7 +78,7 @@ export const loadOptimismContracts = async (
 
   const contracts = {}
   for (const input of inputs) {
-    contracts[input.name] = await loadProxyFromManager(
+    contracts[input.alias || input.name] = await loadProxyFromManager(
       input.interface,
       input.name,
       Lib_AddressManager,

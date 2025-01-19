@@ -34,6 +34,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
   private seqsetUpgradeOnly: boolean
   private fpValidHeight: number
   private fpChainContract: Contract
+  private fpUpgraded: boolean = false
 
   constructor(
     signer: Signer,
@@ -57,8 +58,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     batchInboxAddress: string,
     batchInboxStoragePath: string,
     seqsetValidHeight: number,
-    seqsetUpgradeOnly: number,
-    fpValidHeight: number
+    seqsetUpgradeOnly: number
   ) {
     super(
       signer,
@@ -77,8 +77,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       blockOffset,
       logger,
       metrics,
-      mpcUrl.length > 0,
-      fpValidHeight
+      mpcUrl.length > 0
     )
     this.fraudSubmissionAddress = fraudSubmissionAddress
     this.transactionSubmitter = transactionSubmitter
@@ -102,37 +101,24 @@ export class StateBatchSubmitter extends BatchSubmitter {
       process.exit(1)
     }
     this.syncing = info.syncing
-    const { sccAddress, ctcAddress, mvmSccAddress } =
-      await this._getChainAddresses()
+    const { sccAddress, ctcAddress } = await this._getChainAddresses()
 
     if (
       typeof this.chainContract !== 'undefined' &&
       sccAddress === (await this.chainContract.getAddress()) &&
-      ctcAddress === (await this.ctcContract.getAddress())
+      ctcAddress === (await this.ctcContract.getAddress()) &&
+      sccAddress === (await this.fpChainContract.getAddress())
     ) {
-      if (!this.fpUpgraded) {
-        this.logger.debug('Chain contract already initialized', {
-          sccAddress,
-          ctcAddress,
-        })
-        return
-      } else if (
-        this.fpUpgraded &&
-        this.fpChainContract &&
-        mvmSccAddress === (await this.fpChainContract.getAddress())
-      ) {
-        this.logger.debug('Chain contract already initialized', {
-          sccAddress,
-          ctcAddress,
-          mvmSccAddress,
-        })
-        return
-      }
+      this.logger.debug('Chain contract already initialized', {
+        sccAddress,
+        ctcAddress,
+      })
+      return
     }
 
     this.chainContract = new Contract(
       sccAddress,
-      getContractDefinition('IStateCommitmentChain').abi,
+      getContractDefinition('StateCommitmentChain').abi,
       this.signer
     )
 
@@ -142,20 +128,15 @@ export class StateBatchSubmitter extends BatchSubmitter {
       this.signer
     )
 
-    if (this.fpUpgraded) {
-      this.fpChainContract = new Contract(
-        mvmSccAddress,
-        getContractDefinition('IMVMStateCommitmentChain').abi,
-        this.signer
-      )
-    }
+    this.fpChainContract = new Contract(
+      sccAddress,
+      getContractDefinition('MVM_StateCommitmentChain').abi,
+      this.signer
+    )
 
     this.logger.info('Connected Optimism contracts', {
       stateCommitmentChain: await this.chainContract.getAddress(),
       canonicalTransactionChain: await this.ctcContract.getAddress(),
-      mvmStateCommitmentChain: this.fpUpgraded
-        ? await this.fpChainContract.getAddress()
-        : ethers.ZeroAddress,
     })
     return
   }
@@ -165,15 +146,28 @@ export class StateBatchSubmitter extends BatchSubmitter {
     return
   }
 
+  public async _updateFPUpgradeStatus(): Promise<void> {
+    if (!this.fpUpgraded) {
+      try {
+        // dry run: try to call a function that only exists on the upgraded contract
+        await this.fpChainContract.DISPUTE_GAME_FACTORY_NAME()
+        this.fpUpgraded = true
+        this.logger.info('Fraud proof upgrade enabled on SCC!')
+      } catch (e) {
+        this.logger.info('Fraud proof upgrade not enabled on SCC yet...', {
+          error: e,
+        })
+      }
+    }
+  }
+
   public async _getBatchStartAndEnd(): Promise<BlockRange> {
     this.logger.info('Getting batch start and end for state batch submitter...')
-    const sccContract = this.fpUpgraded
-      ? this.fpChainContract
-      : this.chainContract
 
     const startBlock: number =
-      toNumber(await sccContract.getTotalElementsByChainId(this.l2ChainId)) +
-      this.blockOffset
+      toNumber(
+        await this.fpChainContract.getTotalElementsByChainId(this.l2ChainId)
+      ) + this.blockOffset
     this.logger.info('Retrieved start block number from SCC', {
       startBlock,
     })

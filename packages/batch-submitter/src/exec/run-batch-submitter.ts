@@ -615,8 +615,7 @@ export const run = async () => {
     requiredEnvVars.BATCH_INBOX_ADDRESS,
     requiredEnvVars.BATCH_INBOX_STORAGE_PATH,
     requiredEnvVars.SEQSET_VALID_HEIGHT,
-    SEQSET_UPGRADE_ONLY,
-    requiredEnvVars.FP_VALID_HEIGHT
+    SEQSET_UPGRADE_ONLY
   )
 
   let stopped = false

@@ -177,7 +177,7 @@ const deployFn: DeployFunction = async (hre) => {
   // Replace StateCommitmentChain to contract.address
   await registerAddress({
     hre,
-    name: 'MVM_StateCommitmentChain',
+    name: 'StateCommitmentChain',
     address: contract.address,
   })
 

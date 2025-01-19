@@ -63,6 +63,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   private seqsetValidHeight: number
   private seqsetContractAddress: string
   private seqsetUpgradeOnly: boolean
+  private fpUpgraded: boolean = false
+  private readonly fpUpgradeHeight: number
 
   constructor(
     signer: Signer,
@@ -117,8 +119,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       blockOffset,
       logger,
       metrics,
-      mpcUrl.length > 0,
-      fpUpgradeHeight
+      mpcUrl.length > 0
     )
     this.validateBatch = validateBatch
     this.autoFixBatchOptions = autoFixBatchOptions
@@ -128,6 +129,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.useMinio = useMinio
     this.minioConfig = minioConfig
     this.mpcUrl = mpcUrl
+    this.fpUpgradeHeight = fpUpgradeHeight
 
     this.inboxAddress = batchInboxAddress
     this.inboxStartIndex = batchInboxStartIndex
@@ -230,6 +232,24 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       })
     }
     return
+  }
+
+  public async _updateFPUpgradeStatus(): Promise<void> {
+    if (!this.fpUpgraded) {
+      const currentL1Height = await this.l1Provider.getBlockNumber()
+      if (currentL1Height < this.fpUpgradeHeight) {
+        this.logger.info('Fraud proof upgrade height not reached', {
+          currentL1Height,
+          fpUpgradeHeight: this.fpUpgradeHeight,
+          upgradeBlockLeft: this.fpUpgradeHeight - currentL1Height,
+        })
+      } else {
+        this.logger.info(
+          'Fraud proof upgrade height has reached, switching to fp mode...'
+        )
+        this.fpUpgraded = true
+      }
+    }
   }
 
   public async _onSync(): Promise<TransactionReceipt> {

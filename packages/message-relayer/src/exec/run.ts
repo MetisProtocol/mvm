@@ -74,10 +74,6 @@ const main = async () => {
     'from-l2-transaction-index',
     parseInt(env.FROM_L2_TRANSACTION_INDEX, 10) || 0
   )
-  const FP_UPGRADE_HEIGHT = config.uint(
-    'fp-upgrade-height',
-    parseInt(env.FP_UPGRADE_HEIGHT, 10) || 0
-  )
 
   if (!ADDRESS_MANAGER_ADDRESS) {
     throw new Error('Must pass ADDRESS_MANAGER_ADDRESS')
@@ -127,7 +123,6 @@ const main = async () => {
     l2BlockOffset: L2_BLOCK_OFFSET,
     l1StartOffset: L1_START_OFFSET,
     getLogsInterval: GET_LOGS_INTERVAL,
-    fpUpgradeHeight: FP_UPGRADE_HEIGHT,
     logger,
     useChainStore: USE_CHAIN_STORE,
     storeDbUrl: STORE_DB_URL,

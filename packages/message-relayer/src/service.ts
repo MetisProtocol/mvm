@@ -60,9 +60,6 @@ interface MessageRelayerOptions {
   // user chain store mongo database url.
   storeDbUrl?: string
 
-  // fraud proof upgrade height, will switch to mvm scc at this height
-  fpUpgradeHeight?: number
-
   relayNumber?: number
 }
 
@@ -85,6 +82,7 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
   }
 
   private state: {
+    fpUpgraded: boolean
     lastFinalizedTxHeight: number
     nextUnfinalizedTxHeight: number
     lastQueriedL1Block: number
@@ -112,6 +110,8 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
     // Need to improve this, sorry.
     this.state = {} as any
 
+    this.state.fpUpgraded = false
+
     const address = await this.options.l1Wallet.getAddress()
     this.logger.info('Using L1 EOA', { address })
 
@@ -133,9 +133,10 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
 
     this.logger.info('Connecting to MVMStateCommitmentChain...')
     this.state.MVMStateCommitmentChain = await loadContractFromManager({
-      name: 'MVM_StateCommitmentChain',
+      name: 'StateCommitmentChain',
       Lib_AddressManager: this.state.Lib_AddressManager,
       provider: this.options.l1RpcProvider,
+      ifaceName: 'MVM_StateCommitmentChain',
     })
     this.logger.info('Connected to MVMStateCommitmentChain', {
       address: this.state.MVMStateCommitmentChain.address,
@@ -376,42 +377,12 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
         endBlock,
       })
 
-      const events: ethers.Event[] = []
-      if (startingBlock >= this.options.fpUpgradeHeight) {
-        // already passed the fp upgrade height, only query mvm scc
-        events.push(
-          ...(await this.state.MVMStateCommitmentChain.queryFilter(
-            this.state.MVMStateCommitmentChain.filters.StateBatchAppended(),
-            startingBlock,
-            endBlock
-          ))
+      const events: ethers.Event[] =
+        await this.state.MVMStateCommitmentChain.queryFilter(
+          this.state.MVMStateCommitmentChain.filters.StateBatchAppended(),
+          startingBlock,
+          endBlock
         )
-      } else if (endBlock < this.options.fpUpgradeHeight) {
-        // not yet passed the fp upgrade height, only query scc
-        events.push(
-          ...(await this.state.StateCommitmentChain.queryFilter(
-            this.state.StateCommitmentChain.filters.StateBatchAppended(),
-            startingBlock,
-            endBlock
-          ))
-        )
-      } else {
-        // inbetween the upgrade height, query both scc and mvm scc
-        events.push(
-          ...(await this.state.StateCommitmentChain.queryFilter(
-            this.state.StateCommitmentChain.filters.StateBatchAppended(),
-            startingBlock,
-            this.options.fpUpgradeHeight - 1
-          ))
-        )
-        events.push(
-          ...(await this.state.MVMStateCommitmentChain.queryFilter(
-            this.state.MVMStateCommitmentChain.filters.StateBatchAppended(),
-            this.options.fpUpgradeHeight,
-            endBlock
-          ))
-        )
-      }
 
       const filteredEvents = events.filter(
         (e) => e && e.args._chainId.toNumber() === this.options.l2ChainId
@@ -438,15 +409,32 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       event.transactionHash
     )
 
-    const contract =
-      event.blockNumber >= this.options.fpUpgradeHeight
-        ? this.state.MVMStateCommitmentChain
-        : this.state.StateCommitmentChain
+    const txDecoder = (sccContract: Contract) =>
+      sccContract.interface.decodeFunctionData(
+        'appendStateBatchByChainId',
+        transaction.data
+      )
 
-    const txData = contract.interface.decodeFunctionData(
-      'appendStateBatchByChainId',
-      transaction.data
-    )
+    let txData
+    if (this.state.fpUpgraded) {
+      txData = txDecoder(this.state.MVMStateCommitmentChain)
+    } else {
+      try {
+        // if decode success, update the local state, so next time we will not need to try catch this
+        txData = txDecoder(this.state.MVMStateCommitmentChain)
+        this.state.fpUpgraded = true
+        this.logger.info(
+          'StateCommitmentChain contract has been upgraded to FP enabled.',
+          { block: event.blockNumber }
+        )
+      } catch (e) {
+        txData = txDecoder(this.state.StateCommitmentChain)
+        this.logger.info('StateCommitmentChain contract is not FP enabled.', {
+          block: event.blockNumber,
+        })
+      }
+    }
+
     const stateRoots = txData[1] //param in appendStateBatchByChainId is: chainId,batch,_extraData
     return {
       batch: {
@@ -455,7 +443,6 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
         batchSize: event.args._batchSize,
         prevTotalElements: event.args._prevTotalElements,
         extraData: event.args._extraData,
-        blockNumber: event.blockNumber,
       },
       stateRoots,
     }
@@ -472,12 +459,9 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       this.logger.info('Got state batch header', { batch: header.batch })
     }
 
-    const sccContract =
-      header.batch.blockNumber >= this.options.fpUpgradeHeight
-        ? this.state.MVMStateCommitmentChain
-        : this.state.StateCommitmentChain
-
-    return !(await sccContract.insideFraudProofWindow(header.batch))
+    return !(await this.state.StateCommitmentChain.insideFraudProofWindow(
+      header.batch
+    ))
   }
 
   /**

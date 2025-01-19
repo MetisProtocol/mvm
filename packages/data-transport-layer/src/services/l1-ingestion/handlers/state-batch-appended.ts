@@ -39,17 +39,32 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
     }
   },
   parseEvent: async (event, extraData, chainId, options) => {
-    const abiName =
-      event.blockNumber >= options.fpBlock
-        ? 'IMVMStateCommitmentChain'
-        : 'IStateCommitmentChain'
+    const decodeTx = (abi: string) =>
+      new Interface(getContractDefinition(abi).abi).decodeFunctionData(
+        'appendStateBatchByChainId',
+        extraData.l1TransactionData
+      )[1]
 
-    const stateRoots = new Interface(
-      getContractDefinition(abiName).abi
-    ).decodeFunctionData(
-      'appendStateBatchByChainId',
-      extraData.l1TransactionData
-    )[1]
+    let stateRoots: any
+    const chainDb = await options.dbs.getTransportDbByChainId(options.l2ChainId)
+    const upgrades = await chainDb.getUpgrades()
+    if (upgrades && upgrades.fpUpgraded) {
+      stateRoots = decodeTx('IMVMStateCommitmentChain')
+    } else {
+      // decode the tx with the new interface, if it fails, try the old one
+      try {
+        stateRoots = decodeTx('IMVMStateCommitmentChain')
+        await chainDb.putUpgrades(
+          upgrades
+            ? { ...upgrades, fpUpgraded: true }
+            : {
+                fpUpgraded: true,
+              }
+        )
+      } catch (e) {
+        stateRoots = decodeTx('IStateCommitmentChain')
+      }
+    }
 
     const stateRootEntries: StateRootEntry[] = []
     for (let i = 0; i < stateRoots.length; i++) {

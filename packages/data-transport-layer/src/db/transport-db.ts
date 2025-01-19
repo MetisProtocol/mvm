@@ -16,6 +16,7 @@ import {
   BlockEntry,
   InboxSenderSetEntry,
   SenderType,
+  Upgrades,
 } from '../types/database-types'
 import { SimpleDB } from './simple-db'
 import { toBigInt, toNumber } from 'ethersv6'
@@ -42,6 +43,7 @@ const TRANSPORT_DB_KEYS = {
   MVM_CTC_INBOX_SENDER: `mvmctc:inboxsender`,
   BLOCK: `block`,
   UNCONFIRMED_BLOCK: `unconfirmed:block`,
+  UPGRADES: `upgrades`,
 
   // FDG required keys
   STATE_ROOT_BATCH_HEADER_HASH_INDEX: `batch:stateheaderhashindex`,
@@ -124,6 +126,16 @@ export class TransportDB {
         key: TRANSPORT_DB_KEYS.STATE_ROOT_BATCH_HEADER_HASH_INDEX,
         index: hash,
         value: index,
+      },
+    ])
+  }
+
+  public async putUpgrades(upgrades: any): Promise<void> {
+    await this.db.put([
+      {
+        key: TRANSPORT_DB_KEYS.UPGRADES,
+        index: 0,
+        value: upgrades,
       },
     ])
   }
@@ -537,6 +549,10 @@ export class TransportDB {
     return this.getFullTransactionByIndex(
       await this._getLatestEntryIndex(TRANSPORT_DB_KEYS.TRANSACTION)
     )
+  }
+
+  public async getUpgrades(): Promise<Upgrades> {
+    return this.db.get(TRANSPORT_DB_KEYS.UPGRADES, 0)
   }
 
   public async getFullTransactionsByIndexRange(

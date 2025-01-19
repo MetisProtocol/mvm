@@ -417,41 +417,13 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             handleEventsSequencerBatchInbox
           )
 
-          if (highestSyncedL1Block >= this.options.fpBlock) {
-            // already passed fp upgrade height
-            await this._syncEvents(
-              'MVM_StateCommitmentChain',
-              'StateBatchAppended',
-              highestSyncedL1Block,
-              targetL1Block,
-              handleEventsStateBatchAppended
-            )
-          } else if (targetL1Block < this.options.fpBlock) {
-            // not reach fp upgrade height
-            await this._syncEvents(
-              'StateCommitmentChain',
-              'StateBatchAppended',
-              highestSyncedL1Block,
-              targetL1Block,
-              handleEventsStateBatchAppended
-            )
-          } else {
-            // inbetween fp upgrade height
-            await this._syncEvents(
-              'StateCommitmentChain',
-              'StateBatchAppended',
-              highestSyncedL1Block,
-              this.options.fpBlock - 1,
-              handleEventsStateBatchAppended
-            )
-            await this._syncEvents(
-              'MVM_StateCommitmentChain',
-              'StateBatchAppended',
-              this.options.fpBlock,
-              targetL1Block,
-              handleEventsStateBatchAppended
-            )
-          }
+          await this._syncEvents(
+            'StateCommitmentChain',
+            'StateBatchAppended',
+            highestSyncedL1Block,
+            targetL1Block,
+            handleEventsStateBatchAppended
+          )
         }
 
         await this.state.db.setHighestSyncedL1Block(targetL1Block)

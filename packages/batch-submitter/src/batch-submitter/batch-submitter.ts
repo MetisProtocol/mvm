@@ -32,7 +32,6 @@ export abstract class BatchSubmitter {
   protected syncing: boolean
   protected lastBatchSubmissionTimestamp: number = 0
   protected metrics: BatchSubmitterMetrics
-  protected fpUpgraded: boolean
 
   constructor(
     readonly signer: ethers.Signer,
@@ -51,8 +50,7 @@ export abstract class BatchSubmitter {
     readonly blockOffset: number,
     readonly logger: Logger,
     readonly defaultMetrics: Metrics,
-    readonly useMpc: boolean,
-    readonly fpUpgradeHeight: number
+    readonly useMpc: boolean
   ) {
     this.metrics = this._registerMetrics(defaultMetrics)
   }
@@ -67,28 +65,15 @@ export abstract class BatchSubmitter {
   public abstract _getBatchStartAndEnd(): Promise<BlockRange>
   public abstract _updateChainInfo(): Promise<void>
   public abstract _mpcBalanceCheck(): Promise<boolean>
+  public abstract _updateFPUpgradeStatus(): Promise<void>
 
   public async submitNextBatch(): Promise<ethers.TransactionReceipt> {
-    if (!this.fpUpgraded) {
-      const currentL1Height = await this.l1Provider.getBlockNumber()
-      if (currentL1Height < this.fpUpgradeHeight) {
-        this.logger.info('Fraud proof upgrade height not reached', {
-          currentL1Height,
-          fpUpgradeHeight: this.fpUpgradeHeight,
-          upgradeBlockLeft: this.fpUpgradeHeight - currentL1Height,
-        })
-      } else {
-        this.logger.info(
-          'Fraud proof upgrade height has reached, switching to fp mode...'
-        )
-        this.fpUpgraded = true
-      }
-    }
-
     if (typeof this.l2ChainId === 'undefined') {
       this.l2ChainId = await this._getL2ChainId()
     }
     await this._updateChainInfo()
+
+    await this._updateFPUpgradeStatus()
 
     if (!this.useMpc && !(await this._hasEnoughETHToCoverGasCosts())) {
       await sleep(this.resubmissionTimeout)
@@ -168,7 +153,6 @@ export abstract class BatchSubmitter {
     ctcAddress: string
     sccAddress: string
     mvmCtcAddress: string
-    mvmSccAddress: string
   }> {
     const addressManager = new Contract(
       this.addressManagerAddress,
@@ -179,13 +163,11 @@ export abstract class BatchSubmitter {
     const getAddress = addressManager.getFunction('getAddress').staticCall
 
     const sccAddress = await getAddress('StateCommitmentChain')
-    const mvmSccAddress = await getAddress('MVM_StateCommitmentChain')
     const ctcAddress = await getAddress('CanonicalTransactionChain')
     const mvmCtcAddress = await getAddress('Proxy__MVM_CanonicalTransaction')
     return {
       ctcAddress,
       sccAddress,
-      mvmSccAddress,
       mvmCtcAddress,
     }
   }

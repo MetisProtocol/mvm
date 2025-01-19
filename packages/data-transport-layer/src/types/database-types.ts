@@ -112,3 +112,7 @@ export interface InboxSenderSetEntry {
   inboxSender: string
   senderType: SenderType
 }
+
+export interface Upgrades {
+  fpUpgraded: boolean
+}
