@@ -6,6 +6,8 @@ import (
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+
+	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
 )
 
 const (
@@ -21,7 +23,7 @@ type ChannelWithMetadata struct {
 	ComprAlgos []derive.CompressionAlgo `json:"compr_algos"`
 }
 
-func ProcessFrames(l2ChainID *big.Int, id derive.ChannelID, frames []derive.Frame) (*ChannelWithMetadata, error) {
+func ProcessFrames(l2ChainID *big.Int, id derive.ChannelID, frames []derive.Frame, enqueue map[uint64]*dtl.Enqueue) (*ChannelWithMetadata, error) {
 	ch := NewChannel(id)
 
 	for _, frame := range frames {
@@ -52,7 +54,7 @@ func ProcessFrames(l2ChainID *big.Int, id derive.ChannelID, frames []derive.Fram
 					batchTypes = append(batchTypes, int(batchType))
 					switch batchType {
 					case derive.SpanBatchType:
-						spanBatch, err := DeriveSpanBatch(batchData, l2ChainID)
+						spanBatch, err := DeriveSpanBatch(batchData, l2ChainID, enqueue)
 						if err != nil {
 							return nil, err
 						}

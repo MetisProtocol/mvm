@@ -12,6 +12,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/holiman/uint256"
@@ -272,21 +273,28 @@ func (btx *spanBatchTxs) recoverV(chainID *big.Int) error {
 	}
 	protectedBitsIdx := 0
 	for idx, txType := range btx.txTypes {
-		bit := uint64(btx.yParityBits.Bit(idx))
 		var v uint64
-		switch txType {
-		case 0:
-			protectedBit := btx.protectedBits.Bit(protectedBitsIdx)
-			protectedBitsIdx++
-			if protectedBit == 0 {
-				v = 27 + bit
-			} else {
-				// EIP-155
-				v = chainID.Uint64()*2 + 35 + bit
+		queueOrigin := btx.queueOriginBits.Bit(idx)
+		if types.QueueOrigin(queueOrigin) == types.QueueOriginL1ToL2 {
+			// for enqueue tx we do not need to parse v
+			v = 0
+		} else {
+			bit := uint64(btx.yParityBits.Bit(idx))
+			switch txType {
+			case 0:
+				protectedBit := btx.protectedBits.Bit(protectedBitsIdx)
+				protectedBitsIdx++
+				if protectedBit == 0 {
+					v = 27 + bit
+				} else {
+					// EIP-155
+					v = chainID.Uint64()*2 + 35 + bit
+				}
+			default:
+				return fmt.Errorf("invalid tx type: %d", txType)
 			}
-		default:
-			return fmt.Errorf("invalid tx type: %d", txType)
 		}
+
 		btx.txSigs[idx].v = v
 	}
 	return nil
@@ -332,7 +340,7 @@ func (btx *spanBatchTxs) decode(r *bytes.Reader) error {
 	return nil
 }
 
-func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Transactions, error) {
+func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64, enqueue map[uint64]*dtl.Enqueue) (types.Transactions, error) {
 	var txs types.Transactions
 	toIdx := 0
 	enqueueTxIdx := 0
@@ -363,30 +371,39 @@ func (btx *spanBatchTxs) fullTxs(chainID *big.Int, startBlock uint64) (types.Tra
 			toIdx++
 		}
 
-		var l1TxOrigin common.Address
+		var (
+			l1TxOrigin  common.Address
+			enqueueData []byte
+		)
 		queueIndex := uint64(0)
 		queueOrigin := types.QueueOrigin(btx.queueOriginBits.Bit(idx))
-		if queueOrigin == types.QueueOriginL1ToL2 {
+		isEnqueueTx := queueOrigin == types.QueueOriginL1ToL2
+		if isEnqueueTx {
 			if len(btx.l1TxOrigins) <= enqueueTxIdx {
 				return nil, errors.New("l1 tx origins not enough")
 			}
 			l1TxOrigin = btx.l1TxOrigins[enqueueTxIdx]
 			queueIndex = nonce
+			payload := enqueue[queueIndex]
+			if payload != nil {
+				enqueueData = *payload.Data
+			}
 			enqueueTxIdx++
 		}
 
 		r := btx.txSigs[idx].r
 		s := btx.txSigs[idx].s
 
-		tx, err := stx.convertToFullTx(nonce, gas, to, chainID, r, s, byte(getBit(btx.yParityBits, idx)), getBit(btx.protectedBits, idx) == 1)
+		tx, err := stx.convertToFullTx(nonce, gas, to, chainID, r, s, byte(getBit(btx.yParityBits, idx)),
+			getBit(btx.protectedBits, idx) == 1, isEnqueueTx, enqueueData)
 		if err != nil {
 			return nil, err
 		}
 
 		// Note: set l2 tx to encode only the data part
 		var rawTx []byte
-		if queueOrigin == types.QueueOriginL1ToL2 {
-			rawTx = btx.txDatas[idx]
+		if isEnqueueTx {
+			rawTx = enqueueData
 		} else {
 			tx.SetL2Tx(2)
 			rawTx, err = rlp.EncodeToBytes(tx)

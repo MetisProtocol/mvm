@@ -17,6 +17,7 @@ type RollupConfig struct {
 	L1ChainId    *big.Int       `json:"l1ChainId"`
 	InboxAddress common.Address `json:"inboxAddress"`
 	SCCAddress   common.Address `json:"sccAddress"`
+	CTCAddress   common.Address `json:"ctcAddress"`
 
 	// the address of batcher address with height must be sorted in descending order,
 	// otherwise the search might be fail.

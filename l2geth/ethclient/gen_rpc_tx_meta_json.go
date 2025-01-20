@@ -41,10 +41,14 @@ func (r *rpcTransactionMeta) UnmarshalJSON(input []byte) error {
 		L1BlockNumber   *hexutil.Big       `json:"l1BlockNumber"`
 		L1Timestamp     *hexutil.Uint64    `json:"l1Timestamp"`
 		L1MessageSender *common.Address    `json:"l1MessageSender"`
+		L1TxOrigin 		*common.Address    `json:"l1TxOrigin"`
 		QueueOrigin     *types.QueueOrigin `json:"queueOrigin"`
 		Index           *hexutil.Uint64    `json:"index"`
 		QueueIndex      *hexutil.Uint64    `json:"queueIndex"`
 		RawTransaction  *hexutil.Bytes     `json:"rawTransaction"`
+		SeqR            *hexutil.Big       `json:"seqR"`
+		SeqS            *hexutil.Big       `json:"seqS"`
+		SeqV            *hexutil.Big       `json:"seqV"`
 	}
 	var dec rpcTransactionMeta
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -70,6 +74,18 @@ func (r *rpcTransactionMeta) UnmarshalJSON(input []byte) error {
 	}
 	if dec.RawTransaction != nil {
 		r.RawTransaction = *dec.RawTransaction
+	}
+	if dec.L1TxOrigin != nil {
+		r.L1MessageSender = dec.L1TxOrigin
+	}
+	if dec.SeqR != nil {
+		r.R = dec.SeqR.ToInt()
+	}
+	if dec.SeqS != nil {
+		r.S = dec.SeqS.ToInt()
+	}
+	if dec.SeqV != nil {
+		r.V = dec.SeqV.ToInt()
 	}
 	return nil
 }

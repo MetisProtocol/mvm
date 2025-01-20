@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
 )
 
 // Batch format
@@ -262,7 +263,7 @@ func (b *RawSpanBatch) decode(r *bytes.Reader) error {
 
 // derive converts RawSpanBatch into SpanBatch, which has a list of SpanBatchElement.
 // We need chain config constants to derive values for making payload attributes.
-func (b *RawSpanBatch) derive(chainID *big.Int) (*SpanBatch, error) {
+func (b *RawSpanBatch) derive(chainID *big.Int, enqueue map[uint64]*dtl.Enqueue) (*SpanBatch, error) {
 	if b.blockCount == 0 {
 		return nil, ErrEmptySpanBatch
 	}
@@ -270,7 +271,7 @@ func (b *RawSpanBatch) derive(chainID *big.Int) (*SpanBatch, error) {
 	if err := b.txs.recoverV(chainID); err != nil {
 		return nil, err
 	}
-	fullTxs, err := b.txs.fullTxs(chainID, b.l2StartBlock)
+	fullTxs, err := b.txs.fullTxs(chainID, b.l2StartBlock, enqueue)
 	if err != nil {
 		return nil, err
 	}
@@ -303,8 +304,8 @@ func (b *RawSpanBatch) derive(chainID *big.Int) (*SpanBatch, error) {
 
 // ToSpanBatch converts RawSpanBatch to SpanBatch,
 // which implements a wrapper of derive method of RawSpanBatch
-func (b *RawSpanBatch) ToSpanBatch(chainID *big.Int) (*SpanBatch, error) {
-	spanBatch, err := b.derive(chainID)
+func (b *RawSpanBatch) ToSpanBatch(chainID *big.Int, enqueue map[uint64]*dtl.Enqueue) (*SpanBatch, error) {
+	spanBatch, err := b.derive(chainID, enqueue)
 	if err != nil {
 		return nil, err
 	}
@@ -426,11 +427,11 @@ func (b *SpanBatch) DeriveL2Blocks() []*types.Block {
 }
 
 // DeriveSpanBatch derives SpanBatch from BatchData.
-func DeriveSpanBatch(batchData *BatchData, chainID *big.Int) (*SpanBatch, error) {
+func DeriveSpanBatch(batchData *BatchData, chainID *big.Int, enqueueTxs map[uint64]*dtl.Enqueue) (*SpanBatch, error) {
 	rawSpanBatch, ok := batchData.inner.(*RawSpanBatch)
 	if !ok {
 		return nil, derive.NewCriticalError(errors.New("failed type assertion to SpanBatch"))
 	}
 	// If the batch type is Span batch, derive block inputs from RawSpanBatch.
-	return rawSpanBatch.ToSpanBatch(chainID)
+	return rawSpanBatch.ToSpanBatch(chainID, enqueueTxs)
 }

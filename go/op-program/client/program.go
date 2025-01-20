@@ -13,8 +13,10 @@ import (
 	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rlp"
 
 	l2common "github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/params"
@@ -106,7 +108,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 	logger.Info("Derivation range, start traversing L1 backwards", "start", l2StartBlock, "end", l2EndBlock)
 
 	// derive l1 raw batch infos
-	disputedBatchHeader, rawBatchInfos, err := deriveL1Info(logger, l1Oracle, cfg, l2Cfg, l1Head, l2StartBlock, l2EndBlock)
+	disputedBatchHeader, rawBatchInfos, enqueueTxs, lastL1Head, earliestEnqueue, err := deriveL1Info(logger, l1Oracle, cfg, l2Cfg, l1Head, l2StartBlock, l2EndBlock)
 	if err != nil {
 		return fmt.Errorf("failed to derive L1 info: %w", err)
 	}
@@ -115,12 +117,17 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 	}
 
 	// rebuild the l2 blocks from the l1 raw batch infos
-	l2Blocks, err := rebuildL2Blocks(logger, l2Cfg, l1Oracle, rawBatchInfos, l2StartBlock, l2EndBlock)
+	l2Blocks, err := rebuildL2Blocks(logger, l2Cfg, l1Oracle, rawBatchInfos, enqueueTxs, l2StartBlock, l2EndBlock)
 	if err != nil {
 		return err
 	}
 	if len(l2Blocks) == 0 {
 		return errors.New("no blocks to derive")
+	}
+
+	// collect enqueue txs if there is any missing
+	if err := collectMissingEnqueueTx(logger, l2Cfg.ChainID, cfg, lastL1Head, l2Blocks, earliestEnqueue, enqueueTxs, l1Oracle); err != nil {
+		return fmt.Errorf("failed to collect missing enqueue tx: %w", err)
 	}
 
 	// run l2 blocks and generate the state roots
@@ -137,11 +144,21 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 	rollupCfg *chainconfig.RollupConfig,
 	l2Cfg *params.ChainConfig,
 	l1Head common.Hash,
-	l2StartBlock, l2EndBlock uint64) (disputedBatchHeader *rollup.BatchHeader, rawBatchInfos []*opprog.RawBatchInfo, err error) {
+	l2StartBlock, l2EndBlock uint64) (disputedBatchHeader *rollup.BatchHeader,
+	rawBatchInfos []*opprog.RawBatchInfo,
+	enqueueTxs map[uint64]*rollup.Enqueue,
+	lastL1Head *ethtypes.Header,
+	earliestEnqueue int64,
+	err error) {
 	signer := ethtypes.NewCancunSigner(rollupCfg.L1ChainId)
 	rawBatchInfos = make([]*opprog.RawBatchInfo, 0)
 	blobTxReverseIndex := make(map[common.Hash]uint64)
 	stopWhenAllBlobsCollected := false
+	enqueueTxs = make(map[uint64]*rollup.Enqueue)
+	earliestEnqueue = -1
+
+	enqueueTxEventID := l1.CTCABI.Events["TransactionEnqueued"].ID().Bytes()
+	stateCommitmentEventID := l1.SCCABI.Events["StateBatchAppended"].ID()
 
 	// walk back to the l1 block that contains the given tx chain data,
 	// since we will only submit one tx per block, so when reverse walking the l1 chain,
@@ -165,7 +182,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 
 		if txChainBatcher == nil || blobBatcher == nil {
 			logger.Error("Batcher address not found", "block", l1Header.NumberU64())
-			return nil, nil, fmt.Errorf("no batcher address found for height %d", l1Header.NumberU64())
+			return nil, nil, nil, nil, -1, fmt.Errorf("no batcher address found for height %d", l1Header.NumberU64())
 		}
 
 		l1BlockRef := eth.InfoToL1BlockRef(l1Header)
@@ -178,6 +195,32 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 		// Find the tx that contains the tx chain data
 		blockInfo, txs := l1Oracle.TransactionsByBlockHash(l1Header.Hash())
 		logger.Info("Loaded L1 block txs", "block", l1Header.NumberU64(), "txCount", txs.Len())
+
+		// first check whether there is any enqueue tx event
+		var rawHeaderBytes []byte
+		rawHeaderBytes, err = l1Header.HeaderRLP()
+		if err != nil {
+			return nil, nil, nil, nil, -1, fmt.Errorf("failed to encode header: %w", err)
+		}
+
+		var rawHeader ethtypes.Header
+		if err = rlp.DecodeBytes(rawHeaderBytes, &rawHeader); err != nil {
+			return nil, nil, nil, nil, -1, fmt.Errorf("failed to decode header: %w", err)
+		}
+
+		lastL1Head = &rawHeader
+
+		// we need to load the receipts if the block contains the enqueue tx event
+		containsEnqueueTx := rawHeader.Bloom.Test(enqueueTxEventID)
+		if containsEnqueueTx {
+			logger.Info("Loading receipts", "block", l1Header.NumberU64())
+			_, blockReceipts = l1Oracle.ReceiptsByBlockHash(l1Header.Hash())
+			if blockReceipts == nil || blockReceipts.Len() != txs.Len() {
+				return nil, nil, nil, nil, -1, fmt.Errorf("receipts not found for block %d", blockInfo.NumberU64())
+			}
+			logger.Info("Loaded receipts", "block", blockInfo.NumberU64(), "receiptCount", blockReceipts.Len())
+		}
+
 		for txIndex, tx := range txs {
 			if len(tx.BlobHashes()) > 0 {
 				blobCounter += len(tx.BlobHashes())
@@ -189,7 +232,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 			}
 
 			to := *tx.To()
-			if to != common.Address(rollupCfg.InboxAddress) && to != common.Address(rollupCfg.SCCAddress) {
+			if to != common.Address(rollupCfg.InboxAddress) && to != common.Address(rollupCfg.SCCAddress) && !containsEnqueueTx {
 				// ignore non-batcher tx
 				continue
 			}
@@ -199,7 +242,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 			if to == common.Address(rollupCfg.InboxAddress) {
 				from, err = signer.Sender(tx)
 				if err != nil {
-					return nil, nil, fmt.Errorf("failed to recover sender of tx %s: %w", tx.Hash().Hex(), err)
+					return nil, nil, nil, nil, -1, fmt.Errorf("failed to recover sender of tx %s: %w", tx.Hash().Hex(), err)
 				}
 
 				logger.Info("Processing inbox tx", "tx", tx.Hash().Hex(), "from", from.Hex())
@@ -216,7 +259,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 				logger.Info("Loading receipts", "block", blockInfo.NumberU64())
 				_, blockReceipts = l1Oracle.ReceiptsByBlockHash(blockInfo.Hash())
 				if blockReceipts == nil || blockReceipts.Len() != txs.Len() {
-					return nil, nil, fmt.Errorf("receipts not found for tx %s", tx.Hash().Hex())
+					return nil, nil, nil, nil, -1, fmt.Errorf("receipts not found for block %d", blockInfo.NumberU64())
 				}
 				logger.Info("Loaded receipts", "block", blockInfo.NumberU64(), "receiptCount", blockReceipts.Len())
 			}
@@ -234,7 +277,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 				var txChainData opprog.BatchSubmissionData
 				if err := txChainData.Decode(tx.Data()); err != nil {
 					logger.Error("Failed to decode tx chain data", "tx", tx.Hash().Hex(), "err", err)
-					return nil, nil, fmt.Errorf("failed to decode tx chain data: %w", err)
+					return nil, nil, nil, nil, -1, fmt.Errorf("failed to decode tx chain data: %w", err)
 				}
 
 				if l2StartBlock >= txChainData.PrevTotalElements+txChainData.BatchSize {
@@ -270,7 +313,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 				lastFoundBatch := rawBatchInfos[len(rawBatchInfos)-1]
 				if lastFoundBatch.BatchIndex != batchIndex {
 					logger.Error("Blob tx not in the same batch as tx chain", "tx", tx.Hash().Hex())
-					return nil, nil, fmt.Errorf("blob tx %s not in the same batch as tx chain", tx.Hash().Hex())
+					return nil, nil, nil, nil, -1, fmt.Errorf("blob tx %s not in the same batch as tx chain", tx.Hash().Hex())
 				}
 
 				txBlobCount := len(tx.BlobHashes())
@@ -304,12 +347,12 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 						continue
 					}
 
-					eventSignature := common.Hash(l1.SCCABI.Events["StateBatchAppended"].ID())
+					eventSignature := common.Hash(stateCommitmentEventID)
 					if log.Topics[0] == eventSignature {
 						// Decode non-indexed fields (from Data)
 						mapData := make(map[string]interface{})
 						if err = l1.SCCABI.UnpackIntoMap(mapData, "StateBatchAppended", log.Data); err != nil {
-							return nil, nil, fmt.Errorf("failed to unpack StateBatchAppended event: %w", err)
+							return nil, nil, nil, nil, -1, fmt.Errorf("failed to unpack StateBatchAppended event: %w", err)
 						}
 
 						chainID, ok := mapData["_chainId"].(*big.Int)
@@ -318,7 +361,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 						prevTotalElements, ok := mapData["_prevTotalElements"].(*big.Int)
 						extraData, ok := mapData["_extraData"].([]byte)
 						if !ok {
-							return nil, nil, errors.New("failed to decode state batch event")
+							return nil, nil, nil, nil, -1, errors.New("failed to decode state batch event")
 						}
 						if chainID.Cmp(l2Cfg.ChainID) != 0 {
 							// ignore non configured L2 chain events
@@ -341,6 +384,14 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 						}
 					}
 				}
+			} else if containsEnqueueTx {
+				enqueueIndex, err := collectEnqueueTx(logger, rollupCfg, l2Cfg.ChainID, receipt, enqueueTxs)
+				if err != nil {
+					return nil, nil, nil, nil, -1, fmt.Errorf("failed to collect enqueue tx: %w", err)
+				}
+				if enqueueIndex >= 0 && (earliestEnqueue < 0 || enqueueIndex < earliestEnqueue) {
+					earliestEnqueue = enqueueIndex
+				}
 			} else {
 				// nothing to do
 				logger.Warn("Ignoring invalid batcher tx", "tx", tx.Hash().Hex())
@@ -351,7 +402,172 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 	}
 }
 
-func rebuildL2Blocks(logger log.Logger, l2Cfg *params.ChainConfig, l1Oracle l1.Oracle, rawBatchInfos []*opprog.RawBatchInfo, l2StartBlock, l2EndBlock uint64) ([]*types.Block, error) {
+func collectEnqueueTx(logger log.Logger, rollupCfg *chainconfig.RollupConfig, chainId *big.Int,
+	receipt *ethtypes.Receipt, enqueueTxs map[uint64]*rollup.Enqueue) (int64, error) {
+	// check for the enqueue tx event
+	enqueueTxEventID := l1.CTCABI.Events["TransactionEnqueued"].ID().Bytes()
+	if !receipt.Bloom.Test(enqueueTxEventID) {
+		// ignore non-enqueue tx
+		return -1, nil
+	}
+
+	firstEnqueue := int64(-1)
+	for _, log := range receipt.Logs {
+		if log.Address != common.Address(rollupCfg.CTCAddress) || len(log.Topics) != 4 {
+			// ignore invalid event
+			continue
+		}
+
+		eventSignature := common.Hash(enqueueTxEventID)
+		if log.Topics[0] == eventSignature {
+			// Decode non-indexed fields (from Data)
+			mapData := make(map[string]interface{})
+			if err := l1.CTCABI.UnpackIntoMap(mapData, "TransactionEnqueued", log.Data); err != nil {
+				return -1, fmt.Errorf("failed to unpack TransactionEnqueued event: %w", err)
+			}
+
+			queueIndex := log.Topics[3].Big().Uint64()
+			chainID, ok := mapData["_chainId"].(*big.Int)
+			txData, ok := mapData["_data"].([]byte)
+			if !ok {
+				return -1, errors.New("failed to decode enqueue event")
+			}
+			if chainID.Cmp(chainId) != 0 {
+				// ignore non configured L2 chain events
+				continue
+			}
+
+			logger.Info("Processed enqueue tx", "tx", receipt.TxHash.Hex(), "queueIndex", queueIndex)
+
+			dataPtr := hexutil.Bytes(txData)
+			enqueueTxs[queueIndex] = &rollup.Enqueue{
+				Data:       &dataPtr,
+				QueueIndex: &queueIndex,
+			}
+
+			if int64(queueIndex) < firstEnqueue {
+				firstEnqueue = int64(queueIndex)
+			}
+		}
+	}
+
+	return firstEnqueue, nil
+}
+
+func collectMissingEnqueueTx(logger log.Logger, l2ChainID *big.Int, rollupCfg *chainconfig.RollupConfig, lastL1Head *ethtypes.Header, l2Blocks []*types.Block, collectedEarliestEnqueue int64, collectedEnqueueTxs map[uint64]*rollup.Enqueue, l1Oracle l1.Oracle) error {
+	earliestEnqueueTx := int64(-1)
+	earliestEnqueueTxBlock := uint64(0)
+
+	// find the first enqueue tx in the l2 blocks
+	for _, l2Block := range l2Blocks {
+		for _, tx := range l2Block.Transactions() {
+			if tx.QueueOrigin() == types.QueueOriginL1ToL2 {
+				earliestEnqueueTx = int64(*tx.GetMeta().QueueIndex)
+				earliestEnqueueTxBlock = tx.GetMeta().L1BlockNumber.Uint64()
+				break
+			}
+		}
+	}
+
+	logger.Info("Checking if there is any missing enqueue tx", "batchEarliest", earliestEnqueueTx, "collected", collectedEarliestEnqueue)
+
+	// no collected anything yet, we need to collect at least 1 enqueue tx
+	if collectedEarliestEnqueue < 0 {
+		collectedEarliestEnqueue = earliestEnqueueTx + 1
+	}
+
+	if earliestEnqueueTx < 0 || earliestEnqueueTx >= collectedEarliestEnqueue {
+		// no missing enqueue tx
+		return nil
+	}
+
+	logger.Info("Enqueue tx missing", "from", earliestEnqueueTx, "to", collectedEarliestEnqueue)
+
+	enqueueTxEventID := l1.CTCABI.Events["TransactionEnqueued"].ID().Bytes()
+
+	// otherwise we need to keep traversing back util we have collected all the missing enqueue tx
+	for l1Header := l1Oracle.HeaderByBlockHash(lastL1Head.ParentHash); l1Header.NumberU64() >= earliestEnqueueTxBlock; l1Header = l1Oracle.HeaderByBlockHash(l1Header.ParentHash()) {
+		logger.Info("Processing L1 block", "block", l1Header.NumberU64())
+
+		// first check whether there is any enqueue tx event
+		rawHeaderBytes, err := l1Header.HeaderRLP()
+		if err != nil {
+			return fmt.Errorf("failed to encode header: %w", err)
+		}
+
+		var rawHeader ethtypes.Header
+		if err := rlp.DecodeBytes(rawHeaderBytes, &rawHeader); err != nil {
+			return fmt.Errorf("failed to decode header: %w", err)
+		}
+
+		// we need to load the receipts if the block contains the enqueue tx event
+		containsEnqueueTx := rawHeader.Bloom.Test(enqueueTxEventID)
+		if !containsEnqueueTx {
+			// block does not have any enqueue tx
+			continue
+		}
+
+		blockInfo, blockReceipts := l1Oracle.ReceiptsByBlockHash(l1Header.Hash())
+		if blockReceipts == nil {
+			return fmt.Errorf("receipts not found for block %d", blockInfo.NumberU64())
+		}
+		logger.Info("Loaded receipts", "block", blockInfo.NumberU64(), "receiptCount", blockReceipts.Len())
+
+		for _, receipt := range blockReceipts {
+			queueIndex, err := collectEnqueueTx(logger, rollupCfg, l2ChainID, receipt, collectedEnqueueTxs)
+			if err != nil {
+				return fmt.Errorf("failed to collect enqueue tx: %w", err)
+			}
+
+			if queueIndex > 0 {
+				logger.Info("Collected enqueue tx", "tx", receipt.TxHash.Hex(), "queueIndex", queueIndex)
+			}
+		}
+	}
+
+	// replace the in-complete enqueue txs with the collected ones
+	nextQueueIndex := earliestEnqueueTx
+	for blockIndex, l2Block := range l2Blocks {
+		for _, tx := range l2Block.Transactions() {
+			if tx.QueueOrigin() != types.QueueOriginL1ToL2 {
+				continue
+			}
+
+			queueIndex := *tx.GetMeta().QueueIndex
+			if queueIndex != uint64(nextQueueIndex) {
+				logger.Error("We have a gap in the enqueue txs", "expected", nextQueueIndex, "actual", queueIndex)
+				return fmt.Errorf("found gap in enqueue tx, expected %d, actual %d", nextQueueIndex, queueIndex)
+			}
+
+			enqueue := collectedEnqueueTxs[queueIndex]
+			if enqueue == nil {
+				return fmt.Errorf("missing enqueue tx %d", queueIndex)
+			}
+
+			// complete the transaction with the collected enqueue tx
+			tx.SetInput(*enqueue.Data)
+			tx.GetMeta().RawTransaction = *enqueue.Data
+
+			nextQueueIndex = int64(queueIndex) + 1
+			if nextQueueIndex >= collectedEarliestEnqueue {
+				return nil
+			}
+		}
+
+		// need to rebuild the block, since tx has been changed, tx root will also be changed
+		header := &types.Header{
+			Number: l2Block.Number(),
+			Time:   l2Block.Time(),
+			Extra:  l2Block.Extra(),
+		}
+
+		l2Blocks[blockIndex] = types.NewBlock(header, l2Block.Transactions(), nil, nil)
+	}
+
+	return nil
+}
+
+func rebuildL2Blocks(logger log.Logger, l2Cfg *params.ChainConfig, l1Oracle l1.Oracle, rawBatchInfos []*opprog.RawBatchInfo, enqueueTxs map[uint64]*rollup.Enqueue, l2StartBlock, l2EndBlock uint64) ([]*types.Block, error) {
 	// start rebuild the batch
 	// decode batches and rebuild l2 blocks
 	l2Blocks := make([]*types.Block, 0, int(l2EndBlock-l2StartBlock+1))
@@ -393,7 +609,7 @@ func rebuildL2Blocks(logger log.Logger, l2Cfg *params.ChainConfig, l1Oracle l1.O
 			return int(i.FrameNumber - j.FrameNumber)
 		})
 		logger.Info("Processing frame", "channel", channelId.String(), "frameCount", len(frames))
-		channel, err := opderive.ProcessFrames(l2Cfg.ChainID, channelId, frames)
+		channel, err := opderive.ProcessFrames(l2Cfg.ChainID, channelId, frames, enqueueTxs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process frames: %w", err)
 		}

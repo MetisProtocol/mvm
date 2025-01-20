@@ -122,6 +122,16 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	return &Transaction{data: d, meta: *meta}
 }
 
+func (t *Transaction) SetSignatureValues(v, r, s *big.Int) {
+	t.data.V = v
+	t.data.R = r
+	t.data.S = s
+}
+
+func (t *Transaction) SetInput(data []byte) {
+	t.data.Payload = data
+}
+
 func (t *Transaction) SetTransactionMeta(meta *TransactionMeta) {
 	if meta == nil {
 		return

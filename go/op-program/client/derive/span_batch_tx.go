@@ -55,7 +55,7 @@ func (tx *spanBatchTx) UnmarshalBinary(b []byte) error {
 }
 
 // convertToFullTx takes values and convert spanBatchTx to types.Transaction
-func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, chainID *big.Int, R, S *uint256.Int, yParityBit byte, isProtected bool) (*types.Transaction, error) {
+func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, chainID *big.Int, R, S *uint256.Int, yParityBit byte, isProtected, isEnqueue bool, enqueueData []byte) (*types.Transaction, error) {
 	batchTxInner, ok := tx.inner.(*spanBatchLegacyTxData)
 	if !ok {
 		return nil, fmt.Errorf("invalid tx type: %d", tx.Type())
@@ -67,11 +67,21 @@ func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, ch
 
 	signer := types.NewEIP155Signer(chainID)
 
+	txData := batchTxInner.Data
+	if isEnqueue {
+		txData = enqueueData
+	}
+
 	var fullTx *types.Transaction
 	if to == nil {
-		fullTx = types.NewContractCreation(nonce, batchTxInner.Value, gas, batchTxInner.GasPrice, batchTxInner.Data)
+		fullTx = types.NewContractCreation(nonce, batchTxInner.Value, gas, batchTxInner.GasPrice, txData)
 	} else {
-		fullTx = types.NewTransaction(nonce, *to, batchTxInner.Value, gas, batchTxInner.GasPrice, batchTxInner.Data)
+		fullTx = types.NewTransaction(nonce, *to, batchTxInner.Value, gas, batchTxInner.GasPrice, txData)
+	}
+
+	if isEnqueue {
+		fullTx.SetSignatureValues(big.NewInt(0), big.NewInt(0), big.NewInt(0))
+		return fullTx, nil
 	}
 
 	rB32 := R.Bytes32()

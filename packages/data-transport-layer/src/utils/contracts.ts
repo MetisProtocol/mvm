@@ -55,6 +55,8 @@ export const loadOptimismContracts = async (
     },
     {
       name: 'StateCommitmentChain',
+      // alias used here to distinguish from the old StateCommitmentChain,
+      // if alias is set, the contract will be available as contracts[alias] instead of contracts[name]
       alias: 'MVM_StateCommitmentChain',
       interface: 'IMVMStateCommitmentChain',
     },
