@@ -445,7 +445,7 @@ func collectEnqueueTx(logger log.Logger, rollupCfg *chainconfig.RollupConfig, ch
 				QueueIndex: &queueIndex,
 			}
 
-			if int64(queueIndex) < firstEnqueue {
+			if firstEnqueue < 0 || int64(queueIndex) < firstEnqueue {
 				firstEnqueue = int64(queueIndex)
 			}
 		}
