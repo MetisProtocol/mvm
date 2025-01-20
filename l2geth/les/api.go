@@ -22,9 +22,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 )
 
 var (

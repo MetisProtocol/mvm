@@ -21,12 +21,12 @@ import (
 	//"fmt"
 	//"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/p2p"
 
-	//"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
+	//"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 // PrivateAdminAPI is the collection of administrative API methods exposed only

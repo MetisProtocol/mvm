@@ -21,12 +21,13 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/ethereum-optimism/optimism/l2geth/internal/ethapi"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
+
+	"github.com/MetisProtocol/mvm/l2geth/internal/ethapi"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/p2p"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 // Service encapsulates a GraphQL service.

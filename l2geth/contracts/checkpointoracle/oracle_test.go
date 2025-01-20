@@ -27,13 +27,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi/bind"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi/bind/backends"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/contracts/checkpointoracle/contract"
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/contracts/checkpointoracle/contract"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 var (

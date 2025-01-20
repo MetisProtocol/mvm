@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // Enabled is checked by the constructor functions for all of the

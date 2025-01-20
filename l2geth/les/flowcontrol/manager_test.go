@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
 )
 
 type testNode struct {

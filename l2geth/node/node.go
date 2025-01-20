@@ -26,15 +26,16 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts"
-	"github.com/ethereum-optimism/optimism/l2geth/core/rawdb"
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb"
-	"github.com/ethereum-optimism/optimism/l2geth/event"
-	"github.com/ethereum-optimism/optimism/l2geth/internal/debug"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
 	"github.com/prometheus/tsdb/fileutil"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts"
+	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb"
+	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/MetisProtocol/mvm/l2geth/internal/debug"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/p2p"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 // Node is a container on which services can be registered.

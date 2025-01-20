@@ -29,10 +29,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
 	"github.com/pborman/uuid"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 const (

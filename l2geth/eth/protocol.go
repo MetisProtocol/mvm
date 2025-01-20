@@ -21,12 +21,12 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/core/forkid"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/event"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/core/forkid"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 // Constants to match up protocol versions and messages

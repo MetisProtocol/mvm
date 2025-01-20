@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/abi"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 // revertError is an API error that encompasses an EVM revert with JSON error

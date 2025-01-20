@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/l2geth/core/vm"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
 )
 
 func TestState(t *testing.T) {

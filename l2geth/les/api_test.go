@@ -28,19 +28,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/consensus/ethash"
-	"github.com/ethereum-optimism/optimism/l2geth/eth"
-	"github.com/ethereum-optimism/optimism/l2geth/eth/downloader"
-	"github.com/ethereum-optimism/optimism/l2geth/les/flowcontrol"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/node"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/simulations"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/simulations/adapters"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
 	"github.com/mattn/go-colorable"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/consensus/ethash"
+	"github.com/MetisProtocol/mvm/l2geth/eth"
+	"github.com/MetisProtocol/mvm/l2geth/eth/downloader"
+	"github.com/MetisProtocol/mvm/l2geth/les/flowcontrol"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/node"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/simulations"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/simulations/adapters"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 // Additional command line flags for the test binary.

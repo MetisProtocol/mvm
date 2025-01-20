@@ -26,9 +26,9 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/math"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enr"
+	"github.com/MetisProtocol/mvm/l2geth/common/math"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
 )
 
 var (

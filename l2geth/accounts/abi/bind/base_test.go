@@ -23,14 +23,14 @@ import (
 	"strings"
 	"testing"
 
-	ethereum "github.com/ethereum-optimism/optimism/l2geth"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi/bind"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
+	ethereum "github.com/MetisProtocol/mvm/l2geth"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/abi"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 type mockCaller struct {

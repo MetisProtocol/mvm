@@ -12,21 +12,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/core/state"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/ethclient"
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb"
-	"github.com/ethereum-optimism/optimism/l2geth/event"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/ethclient"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb"
+	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 
-	"github.com/ethereum-optimism/optimism/l2geth/core/rawdb"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
 
-	"github.com/ethereum-optimism/optimism/l2geth/eth/gasprice"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/fees"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
+	"github.com/MetisProtocol/mvm/l2geth/eth/gasprice"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/fees"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 )
 
 var (
@@ -549,7 +549,7 @@ func (s *SyncService) HandleSyncFromOther() {
 	}
 
 	for block := range s.syncQueueFromOthers {
-		// unactive sequencers update local tx pool from active sequencer
+		// inactive sequencers update local tx pool from active sequencer
 		if !s.verifier {
 			blockNumber := block.NumberU64()
 			for index, tx := range block.Transactions() {

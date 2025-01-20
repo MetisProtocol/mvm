@@ -22,10 +22,11 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/ethereum-optimism/optimism/l2geth/internal/debug"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/internal/debug"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 var (

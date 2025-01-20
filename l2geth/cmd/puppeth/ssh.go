@@ -28,9 +28,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
+
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // sshClient is a small wrapper around Go's SSH client with a few utility methods

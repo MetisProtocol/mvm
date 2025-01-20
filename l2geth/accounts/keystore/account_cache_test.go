@@ -29,8 +29,9 @@ import (
 
 	"github.com/cespare/cp"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts"
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 var (

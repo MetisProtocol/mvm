@@ -23,10 +23,10 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/l2geth/core/state"
-	"github.com/ethereum-optimism/optimism/l2geth/core/vm"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/tests"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/tests"
 
 	cli "gopkg.in/urfave/cli.v1"
 )

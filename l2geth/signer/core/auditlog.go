@@ -19,10 +19,10 @@ package core
 import (
 	"context"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/internal/ethapi"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/internal/ethapi"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 type AuditLogger struct {

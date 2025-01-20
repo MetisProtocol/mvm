@@ -19,12 +19,12 @@ package tests
 import (
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 // TransactionTest checks RLP decoding and sender derivation of transactions.

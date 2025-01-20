@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/ethclient"
+	"github.com/MetisProtocol/mvm/l2geth/ethclient"
 )
 
 type LocalState struct {

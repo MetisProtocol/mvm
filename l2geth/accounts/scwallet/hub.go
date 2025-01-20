@@ -41,11 +41,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/event"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	pcsc "github.com/gballet/go-libpcsclite"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // Scheme is the URI prefix for smartcard wallets.

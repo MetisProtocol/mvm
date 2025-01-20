@@ -17,16 +17,16 @@
 package core
 
 import (
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/consensus"
-	"github.com/ethereum-optimism/optimism/l2geth/consensus/misc"
-	"github.com/ethereum-optimism/optimism/l2geth/core/state"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/core/vm"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/fees"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/consensus"
+	"github.com/MetisProtocol/mvm/l2geth/consensus/misc"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/core/vm"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/fees"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning

@@ -20,11 +20,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb"
-	"github.com/ethereum-optimism/optimism/l2geth/light"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb"
+	"github.com/MetisProtocol/mvm/l2geth/light"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // LesOdr implements light.OdrBackend

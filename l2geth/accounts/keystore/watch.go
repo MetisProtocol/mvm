@@ -22,8 +22,9 @@ package keystore
 import (
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"github.com/rjeczalik/notify"
+
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 type watcher struct {

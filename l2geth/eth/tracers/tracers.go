@@ -21,7 +21,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ethereum-optimism/optimism/l2geth/eth/tracers/internal/tracers"
+	"github.com/MetisProtocol/mvm/l2geth/eth/tracers/internal/tracers"
 )
 
 // all contains all the built in JavaScript tracers by name.

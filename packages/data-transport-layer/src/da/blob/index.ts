@@ -248,6 +248,7 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
         }
       } catch (err) {
         // mark batches as invalid
+        console.log(`Failed to read batches: ${err}`)
         invalidBatches = true
       }
 

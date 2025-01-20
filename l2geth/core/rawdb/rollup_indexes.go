@@ -3,8 +3,8 @@ package rawdb
 import (
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // ReadHeadIndex will read the known tip of the CTC

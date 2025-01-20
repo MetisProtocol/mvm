@@ -8,7 +8,7 @@ import {
   toNumber,
   TransactionReceipt,
 } from 'ethersv6'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 
 import {
   Batch,
@@ -63,6 +63,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   private seqsetValidHeight: number
   private seqsetContractAddress: string
   private seqsetUpgradeOnly: boolean
+  private fpUpgraded: boolean = false
+  private readonly fpUpgradeHeight: number
 
   constructor(
     signer: Signer,
@@ -98,7 +100,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     seqsetValidHeight: number,
     seqsetContractAddress: string,
     seqsetUpgradeOnly: number,
-    private useBlob: boolean
+    fpUpgradeHeight: number
   ) {
     super(
       signer,
@@ -127,6 +129,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.useMinio = useMinio
     this.minioConfig = minioConfig
     this.mpcUrl = mpcUrl
+    this.fpUpgradeHeight = fpUpgradeHeight
 
     this.inboxAddress = batchInboxAddress
     this.inboxStartIndex = batchInboxStartIndex
@@ -139,8 +142,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.logger,
       this.maxTxSize,
       useMinio,
-      minioConfig,
-      this.useBlob
+      minioConfig
     )
     this.seqsetValidHeight = seqsetValidHeight
     this.seqsetContractAddress = seqsetContractAddress
@@ -230,6 +232,24 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       })
     }
     return
+  }
+
+  public async _updateFPUpgradeStatus(): Promise<void> {
+    if (!this.fpUpgraded) {
+      const currentL1Height = await this.l1Provider.getBlockNumber()
+      if (currentL1Height < this.fpUpgradeHeight) {
+        this.logger.info('Fraud proof upgrade height not reached', {
+          currentL1Height,
+          fpUpgradeHeight: this.fpUpgradeHeight,
+          upgradeBlockLeft: this.fpUpgradeHeight - currentL1Height,
+        })
+      } else {
+        this.logger.info(
+          'Fraud proof upgrade height has reached, switching to fp mode...'
+        )
+        this.fpUpgraded = true
+      }
+    }
   }
 
   public async _onSync(): Promise<TransactionReceipt> {
@@ -411,6 +431,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         nextBatchIndex,
       })
       return this.inboxSubmitter.submitBatchToInbox(
+        this.fpUpgraded,
         startBlock,
         endBlock,
         nextBatchIndex,
@@ -439,6 +460,10 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
           )
         }
       )
+    }
+
+    if (this.fpUpgraded) {
+      throw new Error('FP upgrade must use inbox')
     }
 
     const params = await this._generateSequencerBatchParams(
@@ -497,7 +522,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     const mpcClient = new MpcClient(this.mpcUrl)
     const mpcLoadPromises = []
     mpcLoadPromises.push(mpcClient.getLatestMpc())
-    if (this.useBlob) {
+    if (this.fpUpgraded) {
       // if uses blob, also checks blob mpc balance
       mpcLoadPromises.push(mpcClient.getLatestMpc('3'))
     }
@@ -510,7 +535,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
 
     const hasEnoughBalancePromises: Promise<boolean>[] = []
 
-    if (this.useBlob) {
+    if (this.fpUpgraded) {
       const blobMpcInfo = results[1]
       if (!blobMpcInfo || !blobMpcInfo.mpc_address) {
         this.logger.error('MPC 3 info get failed')

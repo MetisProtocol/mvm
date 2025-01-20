@@ -27,8 +27,9 @@ import (
 	"sync"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"github.com/gorilla/websocket"
+
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 const (

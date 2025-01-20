@@ -25,10 +25,12 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"strconv"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 // Lengths of hashes and addresses in bytes.
@@ -377,4 +379,34 @@ func (ma *MixedcaseAddress) ValidChecksum() bool {
 // Original returns the mixed-case input string
 func (ma *MixedcaseAddress) Original() string {
 	return ma.original
+}
+
+type Decimal uint64
+
+func isString(input []byte) bool {
+	return len(input) >= 2 && input[0] == '"' && input[len(input)-1] == '"'
+}
+
+// UnmarshalJSON parses a hash in hex syntax.
+func (d *Decimal) UnmarshalJSON(input []byte) error {
+	if !isString(input) {
+		return &json.UnmarshalTypeError{Value: "non-string", Type: reflect.TypeOf(uint64(0))}
+	}
+	if i, err := strconv.ParseUint(string(input[1:len(input)-1]), 10, 64); err == nil {
+		*d = Decimal(i)
+		return nil
+	} else {
+		return err
+	}
+}
+
+type PrettyBytes []byte
+
+// TerminalString implements log.TerminalStringer, formatting a string for console
+// output during logging.
+func (b PrettyBytes) TerminalString() string {
+	if len(b) < 7 {
+		return fmt.Sprintf("%x", b)
+	}
+	return fmt.Sprintf("%#x...%x (%dB)", b[:3], b[len(b)-3:], len(b))
 }

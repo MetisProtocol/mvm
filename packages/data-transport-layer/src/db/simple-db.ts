@@ -1,11 +1,14 @@
 /* Imports: External */
 import { LevelUp } from 'levelup'
-import { toBigInt } from 'ethersv6'
+import { keccak256, toBigInt } from 'ethersv6'
 
 export class SimpleDB {
   constructor(public db: LevelUp) {}
 
-  public async get<TEntry>(key: string, index: number): Promise<TEntry | null> {
+  public async get<TEntry>(
+    key: string,
+    index: number | string
+  ): Promise<TEntry | null> {
     try {
       // TODO: Better checks here.
       return JSON.parse(await this.db.get(this._makeKey(key, index)))
@@ -127,7 +130,7 @@ export class SimpleDB {
   public async put<TEntry>(
     entries: {
       key: string
-      index: number
+      index: number | string
       value: TEntry
     }[]
   ): Promise<void> {
@@ -142,8 +145,11 @@ export class SimpleDB {
     )
   }
 
-  private _makeKey(key: string, index: number): string {
+  private _makeKey(key: string, index: number | string): string {
     // prettier-ignore
+    if (typeof index === 'string') {
+        return `${key}:${keccak256(index)}`
+    }
     return `${key}:${toBigInt(index).toString().padStart(32, '0')}`
   }
 

@@ -30,8 +30,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"github.com/rs/cors"
+
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 const (

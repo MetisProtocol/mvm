@@ -20,11 +20,11 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/core/state"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -47,6 +47,15 @@ type ChainReader interface {
 
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
+}
+
+// ChainHeaderReader defines a small collection of methods needed to access the local
+// blockchain during header verification.
+type ChainHeaderReader interface {
+	ChainReader
+
+	// GetTd retrieves the total difficulty from the database by hash and number.
+	GetTd(hash common.Hash, number uint64) *big.Int
 }
 
 // Engine is an algorithm agnostic consensus engine.
@@ -101,6 +110,9 @@ type Engine interface {
 	// Note, the method returns immediately and will send the result async. More
 	// than one result may also be returned depending on the consensus algorithm.
 	Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error
+
+	// SyncSeal seals a block
+	SyncSeal(chain ChainReader, block *types.Block) error
 
 	// SealHash returns the hash of a block prior to it being sealed.
 	SealHash(header *types.Header) common.Hash

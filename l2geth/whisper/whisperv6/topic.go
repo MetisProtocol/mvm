@@ -19,7 +19,7 @@
 package whisperv6
 
 import (
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 )
 
 // TopicType represents a cryptographically secure, probabilistic partial

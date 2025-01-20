@@ -24,16 +24,17 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/metrics"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/dump"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
-	"github.com/ethereum-optimism/optimism/l2geth/trie"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/metrics"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/dump"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
+	"github.com/MetisProtocol/mvm/l2geth/trie"
 )
 
 type revision struct {

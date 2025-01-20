@@ -7,11 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/go-resty/resty/v2"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 // Constants that are used to compare against values in the deserialized JSON
@@ -28,6 +30,142 @@ var errElementNotFound = errors.New("element not found")
 // errHttpError represents the error case of when the remote server
 // returns a 400 or greater error
 var errHTTPError = errors.New("http error")
+
+var (
+	bytes32Type, _ = abi.NewType("bytes32", "", nil)
+	uint256Type, _ = abi.NewType("uint256", "", nil)
+	addressType, _ = abi.NewType("address", "", nil)
+	bytesType, _   = abi.NewType("bytes", "", nil)
+
+	BatchHeaderABI = abi.Arguments{
+		{
+			Name: "BatchRoot",
+			Type: bytes32Type,
+		},
+		{
+			Name: "BatchSize",
+			Type: uint256Type,
+		},
+		{
+			Name: "PrevTotalElements",
+			Type: uint256Type,
+		},
+		{
+			Name: "ExtraData",
+			Type: bytesType,
+		},
+	}
+
+	ExtraDataABI = abi.Arguments{
+		{
+			Name: "Timestamp",
+			Type: uint256Type,
+		},
+		{
+			Name: "Submitter",
+			Type: addressType,
+		},
+		{
+			Name: "LastBlockHash",
+			Type: bytes32Type,
+		},
+		{
+			Name: "LastBlockNumber",
+			Type: uint256Type,
+		},
+	}
+)
+
+type ExtraData []byte
+
+func NewExtraData(timestamp uint64, submitter common.Address, lastBlockHash common.Hash, lastBlockNumber *big.Int) (ExtraData, error) {
+	data, err := ExtraDataABI.Pack(
+		new(big.Int).SetUint64(timestamp),
+		submitter,
+		lastBlockHash,
+		lastBlockNumber,
+	)
+
+	return data, err
+}
+
+func (e ExtraData) L1Timestamp() uint64 {
+	if len(e) < 32 {
+		return 0
+	}
+
+	return big.NewInt(0).SetBytes(e[0:32]).Uint64()
+}
+
+func (e ExtraData) Submitter() common.Address {
+	if len(e) < 64 {
+		return common.Address{}
+	}
+
+	return common.BytesToAddress(e[32:64])
+}
+
+func (e ExtraData) L2Head() common.Hash {
+	if len(e) < 96 {
+		return common.Hash{}
+	}
+
+	return common.BytesToHash(e[64:96])
+}
+
+func (e ExtraData) L2BlockNumber() *big.Int {
+	if len(e) < 128 {
+		return nil
+	}
+
+	return new(big.Int).SetBytes(e[96:128])
+}
+
+type BatchHeader struct {
+	BatchRoot         common.Hash
+	BatchSize         *big.Int
+	PrevTotalElements *big.Int
+	ExtraData         ExtraData
+}
+
+func (b *BatchHeader) Unpack(data []byte) error {
+	values, err := BatchHeaderABI.UnpackValues(data)
+	if err != nil {
+		return err
+	}
+
+	var ok bool
+	b.BatchRoot, ok = values[0].([32]byte)
+	b.BatchSize, ok = values[1].(*big.Int)
+	b.PrevTotalElements, ok = values[2].(*big.Int)
+	b.ExtraData, ok = values[3].([]byte)
+	if !ok {
+		return errors.New("invalid batch header")
+	}
+
+	return nil
+}
+
+func (b *BatchHeader) Pack() ([]byte, error) {
+	if b.BatchSize == nil || b.PrevTotalElements == nil {
+		return nil, errors.New("nil batch size or prev total elements")
+	}
+
+	return BatchHeaderABI.Pack(
+		b.BatchRoot,
+		b.BatchSize,
+		b.PrevTotalElements,
+		[]byte(b.ExtraData),
+	)
+}
+
+func (b BatchHeader) Hash() common.Hash {
+	data, err := b.Pack()
+	if err != nil {
+		return common.Hash{}
+	}
+	return crypto.Keccak256Hash(data)
+}
 
 // Batch represents the data structure that is submitted with
 // a series of transactions to layer one
@@ -66,9 +204,9 @@ type L1GasPrice struct {
 	GasPrice string `json:"gasPrice"`
 }
 
-// transaction represents the return result of the remote server.
+// Transaction represents the return result of the remote server.
 // It either came from a batch or was replicated from the sequencer.
-type transaction struct {
+type Transaction struct {
 	Index       uint64          `json:"index"`
 	BatchIndex  uint64          `json:"batchIndex"`
 	BlockNumber uint64          `json:"blockNumber"`
@@ -80,7 +218,7 @@ type transaction struct {
 	Data        hexutil.Bytes   `json:"data"`
 	QueueOrigin string          `json:"queueOrigin"`
 	QueueIndex  *uint64         `json:"queueIndex"`
-	Decoded     *decoded        `json:"decoded"`
+	Decoded     *Decoded        `json:"decoded"`
 	SeqSign     string          `json:"seqSign"`
 }
 
@@ -96,18 +234,23 @@ type Enqueue struct {
 	QueueIndex  *uint64         `json:"index"`
 }
 
-// signature represents a secp256k1 ECDSA signature
-type signature struct {
+// HighestSyncedResponse represents the response from the remote server
+type HighestSyncedResponse struct {
+	BlockNumber uint64 `json:"blockNumber"`
+}
+
+// Signature represents a secp256k1 ECDSA Signature
+type Signature struct {
 	R hexutil.Bytes `json:"r"`
 	S hexutil.Bytes `json:"s"`
 	V uint          `json:"v"`
 }
 
-// decoded represents the decoded transaction from the batch.
+// Decoded represents the decoded transaction from the batch.
 // When this struct exists in other structs and is set to `nil`,
 // it means that the decoding failed.
-type decoded struct {
-	Signature signature       `json:"sig"`
+type Decoded struct {
+	Signature Signature       `json:"sig"`
 	Value     *hexutil.Big    `json:"value"`
 	GasLimit  uint64          `json:"gasLimit,string"`
 	GasPrice  uint64          `json:"gasPrice,string"`
@@ -119,11 +262,11 @@ type decoded struct {
 // block represents the return result of the remote server.
 // It either came from a batch or was replicated from the sequencer.
 // It is used after DeSeqBlock
-type block struct {
+type Block struct {
 	Index        uint64         `json:"index"`
 	BatchIndex   uint64         `json:"batchIndex"`
 	Timestamp    uint64         `json:"timestamp"`
-	Transactions []*transaction `json:"transactions"`
+	Transactions []*Transaction `json:"transactions"`
 	Confirmed    bool           `json:"confirmed"`
 }
 
@@ -145,6 +288,10 @@ type RollupClient interface {
 	GetTransactionBatch(uint64) (*Batch, []*types.Transaction, error)
 	SyncStatus(Backend) (*SyncStatus, error)
 	GetStateRoot(index uint64) (common.Hash, error)
+	GetStateBatchHeader(batchHeaderHash common.Hash) (*BatchHeader, []common.Hash, error)
+	GetStateBatchByIndex(index uint64) (*StateRootBatchResponse, error)
+	GetLatestStateBatches() (*StateRootBatchResponse, error)
+	GetRawStateRoot(index uint64) (*StateRootResponse, error)
 	SetLastVerifier(index uint64, stateRoot string, verifierRoot string, success bool) error
 	GetRawBlock(uint64, Backend) (*BlockResponse, error)
 	GetBlock(uint64, Backend) (*types.Block, error)
@@ -153,6 +300,9 @@ type RollupClient interface {
 	GetLatestBlockBatch() (*Batch, []*types.Block, error)
 	GetLatestBlockBatchIndex() (*uint64, error)
 	GetBlockBatch(uint64) (*Batch, []*types.Block, error)
+	GetHighestSynced() (uint64, error)
+
+	Signer() types.Signer
 }
 
 // Client is an HTTP based RollupClient
@@ -167,7 +317,7 @@ type Client struct {
 // TransactionResponse represents the response from the remote server when
 // querying transactions.
 type TransactionResponse struct {
-	Transaction *transaction `json:"transaction"`
+	Transaction *Transaction `json:"transaction"`
 	Batch       *Batch       `json:"batch"`
 }
 
@@ -175,13 +325,13 @@ type TransactionResponse struct {
 // when querying batches.
 type TransactionBatchResponse struct {
 	Batch        *Batch         `json:"batch"`
-	Transactions []*transaction `json:"transactions"`
+	Transactions []*Transaction `json:"transactions"`
 }
 
 // TransactionResponse represents the response from the remote server when
 // querying transactions.
 type BlockResponse struct {
-	Block *block `json:"block"`
+	Block *Block `json:"block"`
 	Batch *Batch `json:"batch"`
 }
 
@@ -189,7 +339,7 @@ type BlockResponse struct {
 // when querying batches.
 type BlockBatchResponse struct {
 	Batch  *Batch   `json:"batch"`
-	Blocks []*block `json:"blocks"`
+	Blocks []*Block `json:"blocks"`
 }
 
 type stateRoot struct {
@@ -204,6 +354,11 @@ type stateRoot struct {
 type StateRootResponse struct {
 	Batch     *Batch     `json:"batch"`
 	StateRoot *stateRoot `json:"stateRoot"`
+}
+
+type StateRootBatchResponse struct {
+	Batch      *Batch       `json:"batch"`
+	StateRoots []*stateRoot `json:"stateRoots"`
 }
 
 // NewClient create a new Client given a remote HTTP url and a chain id
@@ -227,6 +382,22 @@ func NewClient(url string, chainID *big.Int) *Client {
 		signer:  &signer,
 		chainID: chainID.String(),
 	}
+}
+
+func (c *Client) GetHighestSynced() (uint64, error) {
+	response, err := c.client.R().
+		SetResult(&HighestSyncedResponse{}).
+		Get("/highest/l1")
+
+	if err != nil {
+		return 0, fmt.Errorf("cannot fetch enqueue: %w", err)
+	}
+	resp, ok := response.Result().(*HighestSyncedResponse)
+	if !ok {
+		return 0, errors.New("Cannot fetch highest synced")
+	}
+
+	return resp.BlockNumber, nil
 }
 
 // GetEnqueue fetches an `enqueue` transaction by queue index
@@ -393,8 +564,8 @@ func (c *Client) GetLatestTransactionBatchIndex() (*uint64, error) {
 	return &index, nil
 }
 
-// batchedBlockToBlock converts a block into a types.Block
-func batchedBlockToBlock(res *block, signerChain *types.EIP155Signer) (*types.Block, error) {
+// BatchedBlockToBlock converts a block into a types.Block
+func BatchedBlockToBlock(res *Block, signerChain *types.EIP155Signer) (*types.Block, error) {
 	if res == nil || len(res.Transactions) == 0 {
 		return nil, errElementNotFound
 	}
@@ -404,7 +575,7 @@ func batchedBlockToBlock(res *block, signerChain *types.EIP155Signer) (*types.Bl
 	}
 	var transactions []*types.Transaction
 	for _, tx := range res.Transactions {
-		transaction, err := batchedTransactionToTransaction(tx, signerChain)
+		transaction, err := BatchedTransactionToTransaction(tx, signerChain)
 		if err != nil {
 			return nil, err
 		}
@@ -414,9 +585,9 @@ func batchedBlockToBlock(res *block, signerChain *types.EIP155Signer) (*types.Bl
 	return block, nil
 }
 
-// batchedTransactionToTransaction converts a transaction into a
+// BatchedTransactionToTransaction converts a transaction into a
 // types.Transaction that can be consumed by the SyncService
-func batchedTransactionToTransaction(res *transaction, signerChain *types.EIP155Signer) (*types.Transaction, error) {
+func BatchedTransactionToTransaction(res *Transaction, signerChain *types.EIP155Signer) (*types.Transaction, error) {
 	// `nil` transactions are not found
 	if res == nil {
 		return nil, errElementNotFound
@@ -564,7 +735,7 @@ func (c *Client) GetTransaction(index uint64, backend Backend) (*types.Transacti
 	if err != nil {
 		return nil, err
 	}
-	return batchedTransactionToTransaction(res.Transaction, c.signer)
+	return BatchedTransactionToTransaction(res.Transaction, c.signer)
 }
 
 // GetLatestTransaction will get the latest transaction, meaning the transaction
@@ -588,7 +759,7 @@ func (c *Client) GetLatestTransaction(backend Backend) (*types.Transaction, erro
 		return nil, errors.New("Cannot get latest transaction")
 	}
 
-	return batchedTransactionToTransaction(res.Transaction, c.signer)
+	return BatchedTransactionToTransaction(res.Transaction, c.signer)
 }
 
 // GetEthContext will return the EthContext by block number
@@ -748,7 +919,7 @@ func parseTransactionBatchResponse(txBatch *TransactionBatchResponse, signer *ty
 	batch := txBatch.Batch
 	txs := make([]*types.Transaction, len(txBatch.Transactions))
 	for i, tx := range txBatch.Transactions {
-		transaction, err := batchedTransactionToTransaction(tx, signer)
+		transaction, err := BatchedTransactionToTransaction(tx, signer)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Cannot parse transaction batch: %w", err)
 		}
@@ -779,6 +950,100 @@ func (c *Client) GetStateRoot(index uint64) (common.Hash, error) {
 		return common.Hash{}, nil
 	}
 	return stateRootResp.StateRoot.Value, nil
+}
+
+func (c *Client) GetRawStateRoot(index uint64) (*StateRootResponse, error) {
+	str := strconv.FormatUint(index, 10)
+	response, err := c.client.R().
+		SetResult(&StateRootResponse{}).
+		SetPathParams(map[string]string{
+			"index":   str,
+			"chainId": c.chainID,
+		}).
+		Get("/stateroot/index/{index}/{chainId}")
+
+	if err != nil {
+		return nil, fmt.Errorf("Cannot get stateroot %d: %w", index, err)
+	}
+	stateRootResp, ok := response.Result().(*StateRootResponse)
+	if !ok {
+		return nil, fmt.Errorf("Cannot parse stateroot response")
+	}
+	return stateRootResp, nil
+}
+
+func (c *Client) GetLatestStateBatches() (*StateRootBatchResponse, error) {
+	response, err := c.client.R().
+		SetResult(&StateRootBatchResponse{}).
+		SetPathParams(map[string]string{
+			"chainId": c.chainID,
+		}).
+		Get("/batch/stateroot/latest/{chainId}")
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot get latest state batches: %w", err)
+	}
+
+	batchResp, ok := response.Result().(*StateRootBatchResponse)
+	if !ok {
+		return nil, errors.New("cannot parse state batch header response")
+	}
+
+	return batchResp, nil
+}
+
+func (c *Client) GetStateBatchByIndex(index uint64) (*StateRootBatchResponse, error) {
+	str := strconv.FormatUint(index, 10)
+	response, err := c.client.R().
+		SetResult(&StateRootBatchResponse{}).
+		SetPathParams(map[string]string{
+			"chainId": c.chainID,
+			"index":   str,
+		}).
+		Get("/batch/stateroot/index/{index}/{chainId}")
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot get latest state batches: %w", err)
+	}
+
+	batchResp, ok := response.Result().(*StateRootBatchResponse)
+	if !ok {
+		return nil, errors.New("cannot parse state batch header response")
+	}
+
+	return batchResp, nil
+}
+
+// GetStateBatchHeader will return the state batch header preimage by batch header hash
+func (c *Client) GetStateBatchHeader(batchHeaderHash common.Hash) (*BatchHeader, []common.Hash, error) {
+	response, err := c.client.R().
+		SetResult(&StateRootBatchResponse{}).
+		SetPathParams(map[string]string{
+			"hash":    batchHeaderHash.Hex(),
+			"chainId": c.chainID,
+		}).
+		Get("/batch/stateroot/hash/{hash}/{chainId}")
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("Cannot get state batch header %s: %w", batchHeaderHash.Hex(), err)
+	}
+
+	batchResp, ok := response.Result().(*StateRootBatchResponse)
+	if !ok {
+		return nil, nil, fmt.Errorf("Cannot parse state batch header response")
+	}
+
+	stateRoots := make([]common.Hash, len(batchResp.StateRoots))
+	for i, stateRoot := range batchResp.StateRoots {
+		stateRoots[i] = stateRoot.Value
+	}
+
+	return &BatchHeader{
+		BatchRoot:         batchResp.Batch.Root,
+		BatchSize:         big.NewInt(int64(batchResp.Batch.Size)),
+		PrevTotalElements: big.NewInt(int64(batchResp.Batch.PrevTotalElements)),
+		ExtraData:         ExtraData(batchResp.Batch.ExtraData),
+	}, stateRoots, nil
 }
 
 // GetStateRoot will return the stateroot by batch index
@@ -831,7 +1096,11 @@ func (c *Client) GetBlock(index uint64, backend Backend) (*types.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	return batchedBlockToBlock(res.Block, c.signer)
+	return BatchedBlockToBlock(res.Block, c.signer)
+}
+
+func (c *Client) Signer() types.Signer {
+	return c.signer
 }
 
 // GetLatestBlock will get the latest transaction, meaning the transaction
@@ -856,7 +1125,7 @@ func (c *Client) GetLatestBlock(backend Backend) (*types.Block, error) {
 		return nil, errors.New("Cannot get latest block")
 	}
 
-	return batchedBlockToBlock(res.Block, c.signer)
+	return BatchedBlockToBlock(res.Block, c.signer)
 }
 
 // GetLatestBlockIndex returns the latest inbox batch
@@ -921,7 +1190,7 @@ func parseBlockBatchResponse(blockBatch *BlockBatchResponse, signer *types.EIP15
 	batch := blockBatch.Batch
 	blocks := make([]*types.Block, len(blockBatch.Blocks))
 	for i, block := range blockBatch.Blocks {
-		blockNew, err := batchedBlockToBlock(block, signer)
+		blockNew, err := BatchedBlockToBlock(block, signer)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Cannot parse block batch: %w", err)
 		}

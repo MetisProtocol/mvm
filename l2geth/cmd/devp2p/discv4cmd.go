@@ -22,12 +22,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/discover"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/discover"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 var (

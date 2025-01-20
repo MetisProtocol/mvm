@@ -23,9 +23,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // networkStats verifies the status of network components and generates a protip

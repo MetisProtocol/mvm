@@ -23,11 +23,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
-	"github.com/ethereum-optimism/optimism/l2geth/consensus/ethash"
-	"github.com/ethereum-optimism/optimism/l2geth/eth"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
+	"github.com/MetisProtocol/mvm/l2geth/consensus/ethash"
+	"github.com/MetisProtocol/mvm/l2geth/eth"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 var (

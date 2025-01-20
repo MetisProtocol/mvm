@@ -28,16 +28,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/core/rawdb"
-	"github.com/ethereum-optimism/optimism/l2geth/core/state"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/internal/ethapi"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
-	"github.com/ethereum-optimism/optimism/l2geth/trie"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/internal/ethapi"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
+	"github.com/MetisProtocol/mvm/l2geth/trie"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum full node-related
@@ -299,6 +299,27 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 		return state.Dump{}, err
 	}
 	return stateDb.RawDump(false, false, true), nil
+}
+
+// DbGet returns the raw value of a key stored in the database.
+func (api *PublicDebugAPI) DbGet(key string) (hexutil.Bytes, error) {
+	blob, err := common.ParseHexOrString(key)
+	if err != nil {
+		return nil, err
+	}
+	return api.eth.ChainDb().Get(blob)
+}
+
+// DbAncient retrieves an ancient binary blob from the append-only immutable files.
+// It is a mapping to the `AncientReaderOp.Ancient` method
+func (api *PublicDebugAPI) DbAncient(kind string, number uint64) (hexutil.Bytes, error) {
+	return api.eth.ChainDb().Ancient(kind, number)
+}
+
+// DbAncients returns the ancient item numbers in the ancient store.
+// It is a mapping to the `AncientReaderOp.Ancients` method
+func (api *PublicDebugAPI) DbAncients() (uint64, error) {
+	return api.eth.ChainDb().Ancients()
 }
 
 // PrivateDebugAPI is the collection of Ethereum full node APIs exposed over

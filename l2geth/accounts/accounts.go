@@ -21,11 +21,12 @@ import (
 	"fmt"
 	"math/big"
 
-	ethereum "github.com/ethereum-optimism/optimism/l2geth"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/event"
 	"golang.org/x/crypto/sha3"
+
+	ethereum "github.com/MetisProtocol/mvm/l2geth"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/event"
 )
 
 // Account represents an Ethereum account located at a specific location defined

@@ -29,13 +29,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/l2geth/event"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/simulations/adapters"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
 	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
+
+	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/MetisProtocol/mvm/l2geth/p2p"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/simulations/adapters"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 // DefaultClient is the default simulation API client which expects the API

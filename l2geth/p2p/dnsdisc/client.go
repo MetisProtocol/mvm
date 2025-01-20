@@ -26,13 +26,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enr"
 	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/time/rate"
+
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
 )
 
 // Client discovers nodes by querying DNS servers.

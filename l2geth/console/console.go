@@ -28,12 +28,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/ethereum-optimism/optimism/l2geth/internal/jsre"
-	"github.com/ethereum-optimism/optimism/l2geth/internal/web3ext"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
 	"github.com/mattn/go-colorable"
 	"github.com/peterh/liner"
 	"github.com/robertkrimen/otto"
+
+	"github.com/MetisProtocol/mvm/l2geth/internal/jsre"
+	"github.com/MetisProtocol/mvm/l2geth/internal/web3ext"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 var (

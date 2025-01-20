@@ -23,11 +23,11 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/hexutil"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -122,6 +122,16 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	return &Transaction{data: d, meta: *meta}
 }
 
+func (t *Transaction) SetSignatureValues(v, r, s *big.Int) {
+	t.data.V = v
+	t.data.R = r
+	t.data.S = s
+}
+
+func (t *Transaction) SetInput(data []byte) {
+	t.data.Payload = data
+}
+
 func (t *Transaction) SetTransactionMeta(meta *TransactionMeta) {
 	if meta == nil {
 		return
@@ -203,6 +213,10 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	}
 	// log.Debug("Test peer", "decode for txRLP", newRLP, "err", err)
 	return err
+}
+
+func (t *Transaction) L2Tx() uint {
+	return t.l2tx
 }
 
 func (t *Transaction) SetL2Tx(l2tx uint) {

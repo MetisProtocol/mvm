@@ -1,20 +1,21 @@
-module github.com/ethereum-optimism/optimism/l2geth
+module github.com/MetisProtocol/mvm/l2geth
 
-go 1.20
+go 1.21
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.7.0
 	github.com/VictoriaMetrics/fastcache v1.9.0
 	github.com/aristanetworks/goarista v0.0.0-20170210015632-ea17b1a17847
 	github.com/aws/aws-sdk-go v1.42.6
-	github.com/btcsuite/btcd v0.22.1
 	github.com/cespare/cp v0.1.0
 	github.com/cloudflare/cloudflare-go v0.14.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0
 	github.com/docker/docker v20.10.10+incompatible
+	github.com/donovanhide/eventsource v0.0.0-20210830082556-c59027999da0
 	github.com/edsrzf/mmap-go v1.1.0
-	github.com/elastic/gosigar v0.12.0
+	github.com/elastic/gosigar v0.14.3
 	github.com/ethereum/go-ethereum v1.10.16
 	github.com/fatih/color v1.7.0
 	github.com/fjl/memsize v0.0.1
@@ -39,6 +40,9 @@ require (
 	github.com/pborman/uuid v1.2.0
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
 	github.com/prometheus/tsdb v0.10.0
+	github.com/protolambda/bls12-381-util v0.1.0
+	github.com/protolambda/zrnt v0.32.3
+	github.com/protolambda/ztyp v0.2.2
 	github.com/rjeczalik/notify v0.9.2
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/rs/cors v1.8.2
@@ -47,30 +51,37 @@ require (
 	github.com/stretchr/testify v1.8.2
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tyler-smith/go-bip39 v1.1.0
+	github.com/urfave/cli/v2 v2.3.0
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.18.0
 	golang.org/x/sync v0.3.0
-	golang.org/x/sys v0.16.0
+	golang.org/x/sys v0.17.0
 	golang.org/x/text v0.14.0
 	golang.org/x/time v0.3.0
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6
 	gopkg.in/urfave/cli.v1 v1.20.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/Azure/azure-pipeline-go v0.2.2 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.5 // indirect
 	github.com/allegro/bigcache v1.2.1 // indirect
+	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/holiman/uint256 v1.2.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/kilic/bls12-381 v0.1.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-ieproxy v0.0.0-20190702010315-6dee0af9227d // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/minio/sha256-simd v0.1.0 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/onsi/gomega v1.16.0 // indirect
@@ -79,11 +90,12 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
+	github.com/russross/blackfriday/v2 v2.0.1 // indirect
+	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/term v0.16.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.0.3 // indirect
 )

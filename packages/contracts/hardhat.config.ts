@@ -10,6 +10,7 @@ import {
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-etherscan'
+import '@openzeppelin/hardhat-upgrades'
 import 'hardhat-deploy'
 import '@typechain/hardhat'
 import './tasks/deploy'
@@ -65,6 +66,13 @@ const config = {
         version: '0.8.9',
         settings: {
           optimizer: { enabled: true, runs: 10_000 },
+        },
+      },
+      {
+        version: '0.8.15',
+        settings: {
+          // use 5000 instead 10000 here, since fdg contracts might be too large
+          optimizer: { enabled: true, runs: 5_000 },
         },
       },
       {

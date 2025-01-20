@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"math/big"
 
-	ethereum "github.com/ethereum-optimism/optimism/l2geth"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/event"
+	ethereum "github.com/MetisProtocol/mvm/l2geth"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/abi"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/event"
 )
 
 // SignerFn is a signer function callback when a contract requires a method to

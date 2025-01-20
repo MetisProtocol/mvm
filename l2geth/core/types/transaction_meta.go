@@ -11,9 +11,9 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 )
 
 type QueueOrigin uint8

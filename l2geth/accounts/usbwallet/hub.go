@@ -23,10 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts"
-	"github.com/ethereum-optimism/optimism/l2geth/event"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"github.com/karalabe/usb"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts"
+	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // LedgerScheme is the protocol scheme prefixing account and wallet URLs.

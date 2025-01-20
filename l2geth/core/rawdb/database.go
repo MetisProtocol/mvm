@@ -23,12 +23,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb"
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb/leveldb"
-	"github.com/ethereum-optimism/optimism/l2geth/ethdb/memorydb"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb/leveldb"
+	"github.com/MetisProtocol/mvm/l2geth/ethdb/memorydb"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // freezerdb is a database wrapper that enabled freezer data retrievals.

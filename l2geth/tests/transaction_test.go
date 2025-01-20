@@ -19,7 +19,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 func TestTransaction(t *testing.T) {

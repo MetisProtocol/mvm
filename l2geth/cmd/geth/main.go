@@ -15,6 +15,10 @@
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
 // geth is the official command-line client for Ethereum.
+
+//go:build cgo
+// +build cgo
+
 package main
 
 import (
@@ -29,20 +33,21 @@ import (
 	"time"
 
 	"github.com/elastic/gosigar"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts"
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/keystore"
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/console"
-	"github.com/ethereum-optimism/optimism/l2geth/eth"
-	"github.com/ethereum-optimism/optimism/l2geth/eth/downloader"
-	"github.com/ethereum-optimism/optimism/l2geth/ethclient"
-	"github.com/ethereum-optimism/optimism/l2geth/internal/debug"
-	"github.com/ethereum-optimism/optimism/l2geth/les"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/metrics"
-	"github.com/ethereum-optimism/optimism/l2geth/node"
 	cli "gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/console"
+	"github.com/MetisProtocol/mvm/l2geth/eth"
+	"github.com/MetisProtocol/mvm/l2geth/eth/downloader"
+	"github.com/MetisProtocol/mvm/l2geth/ethclient"
+	"github.com/MetisProtocol/mvm/l2geth/internal/debug"
+	"github.com/MetisProtocol/mvm/l2geth/les"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/metrics"
+	"github.com/MetisProtocol/mvm/l2geth/node"
 )
 
 const (

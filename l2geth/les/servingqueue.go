@@ -21,8 +21,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
-	"github.com/ethereum-optimism/optimism/l2geth/common/prque"
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/common/prque"
 )
 
 // servingQueue allows running tasks in a limited number of threads and puts the

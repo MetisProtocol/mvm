@@ -24,11 +24,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
-	"github.com/ethereum-optimism/optimism/l2geth/console"
-	"github.com/ethereum-optimism/optimism/l2geth/node"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
+	"github.com/MetisProtocol/mvm/l2geth/console"
+	"github.com/MetisProtocol/mvm/l2geth/node"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 var (

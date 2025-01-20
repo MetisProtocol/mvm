@@ -22,9 +22,10 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cloudflare-go"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/dnsdisc"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/dnsdisc"
 )
 
 var (

@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common/mclock"
+	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
 )
 
 // Subscription represents a stream of events. The carrier of the events is typically a

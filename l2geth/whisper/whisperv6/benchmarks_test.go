@@ -20,8 +20,9 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
 	"golang.org/x/crypto/pbkdf2"
+
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 func BenchmarkDeriveKeyMaterial(b *testing.B) {

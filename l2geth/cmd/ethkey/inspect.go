@@ -21,10 +21,11 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/keystore"
-	"github.com/ethereum-optimism/optimism/l2geth/cmd/utils"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
+	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 type outputInspect struct {

@@ -1,6 +1,6 @@
 {
-  "name": "@metis.io/contracts",
-  "version": "1.2.3",
+  "name": "@localtest911/contracts",
+  "version": "1.3.6",
   "main": "dist/index",
   "files": [
     "dist/**/*.js",
@@ -45,7 +45,8 @@
     "postpublish": "rimraf chugsplash L1 L2 libraries standards",
     "prepack": "yarn prepublishOnly",
     "postpack": "yarn postpublish",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged",
+    "deploy-test": "npx hardhat deploy --network devnet --num-deploy-confirmations 1 --l2chainid 57005 --l1-block-time-seconds 3 --mvm-metis-address 0x2A0668FD7D959B96aD1b64D0d066909a4250Fe28 --mvm-metis-manager 0x012347D9D1cC9df8d53289d43d84b5bCdED7F480 --ovm-address-manager-owner 0x012347D9D1cC9df8d53289d43d84b5bCdED7F480 --ovm-proposer-address 0x1001f5e463E3446D7B3D3a09e6256284dF517de0 --ovm-sequencer-address 0x100222702c050613c5b9264bBE71DfB1B6796b3F --scc-fraud-proof-window 604800 --scc-sequencer-publish-window 0 --allow-all-x-domain-senders true --inbox-sender-address 0x100222702c050613c5b9264bBE71DfB1B6796b3F --inbox-blob-sender-address 0x000575a8342247916851cE0f79fe5Dc05c8767eE --tags faultproof --absolute-prestate 0x03185913a712f95f20d135c6bf3959e476fab8cf687b6f381bfdd8e6448d874e --fault-dispute-proposer 0x012347D9D1cC9df8d53289d43d84b5bCdED7F480 --fault-dispute-challenger 0x012347D9D1cC9df8d53289d43d84b5bCdED7F480"
   },
   "dependencies": {
     "@ethersproject/abstract-provider": "^5.4.1",
@@ -62,8 +63,10 @@
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-etherscan": "^2.1.6",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
-    "@openzeppelin/contracts": "4.3.2",
-    "@openzeppelin/contracts-upgradeable": "4.3.2",
+    "@openzeppelin/contracts": "4.7.3",
+    "@openzeppelin/contracts-upgradeable": "4.7.3",
+    "@openzeppelin/hardhat-upgrades": "^1.28.0",
+    "@rari-capital/solmate": "7.0.0-alpha.3",
     "@typechain/ethers-v5": "^7.0.1",
     "@typechain/hardhat": "^2.3.0",
     "@types/chai": "^4.2.18",
@@ -99,6 +102,7 @@
     "prettier": "^2.3.1",
     "random-bytes-seed": "^1.0.3",
     "rlp": "^2.2.6",
+    "solady": "0.0.158",
     "solhint": "^3.3.6",
     "solidity-coverage": "^0.7.16",
     "ts-generator": "0.0.8",

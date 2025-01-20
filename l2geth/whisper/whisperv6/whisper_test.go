@@ -24,8 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
 	"golang.org/x/crypto/pbkdf2"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
 )
 
 func TestWhisperBasic(t *testing.T) {

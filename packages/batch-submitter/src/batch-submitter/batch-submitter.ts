@@ -5,7 +5,7 @@ import { RollupInfo, sleep } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 /* Internal Imports */
 import { TxSubmissionHooks } from '..'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 
 export interface BlockRange {
   start: number
@@ -65,12 +65,15 @@ export abstract class BatchSubmitter {
   public abstract _getBatchStartAndEnd(): Promise<BlockRange>
   public abstract _updateChainInfo(): Promise<void>
   public abstract _mpcBalanceCheck(): Promise<boolean>
+  public abstract _updateFPUpgradeStatus(): Promise<void>
 
   public async submitNextBatch(): Promise<ethers.TransactionReceipt> {
     if (typeof this.l2ChainId === 'undefined') {
       this.l2ChainId = await this._getL2ChainId()
     }
     await this._updateChainInfo()
+
+    await this._updateFPUpgradeStatus()
 
     if (!this.useMpc && !(await this._hasEnoughETHToCoverGasCosts())) {
       await sleep(this.resubmissionTimeout)

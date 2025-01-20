@@ -25,13 +25,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/node"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/simulations"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/simulations/adapters"
-	"github.com/ethereum-optimism/optimism/l2geth/rpc"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/node"
+	"github.com/MetisProtocol/mvm/l2geth/p2p"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/simulations"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/simulations/adapters"
+	"github.com/MetisProtocol/mvm/l2geth/rpc"
 )
 
 var adapterType = flag.String("adapter", "sim", `node adapter to use (one of "sim", "exec" or "docker")`)

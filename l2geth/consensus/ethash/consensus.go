@@ -25,15 +25,16 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/common/math"
-	"github.com/ethereum-optimism/optimism/l2geth/consensus"
-	"github.com/ethereum-optimism/optimism/l2geth/consensus/misc"
-	"github.com/ethereum-optimism/optimism/l2geth/core/state"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/common/math"
+	"github.com/MetisProtocol/mvm/l2geth/consensus"
+	"github.com/MetisProtocol/mvm/l2geth/consensus/misc"
+	"github.com/MetisProtocol/mvm/l2geth/core/state"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 // Ethash proof-of-work protocol constants.

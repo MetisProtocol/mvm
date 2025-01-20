@@ -22,11 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/l2geth/accounts/abi/bind"
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/crypto"
-	"github.com/ethereum-optimism/optimism/l2geth/light"
-	"github.com/ethereum-optimism/optimism/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/MetisProtocol/mvm/l2geth/light"
+	"github.com/MetisProtocol/mvm/l2geth/params"
 )
 
 // Test light syncing which will download all headers from genesis.

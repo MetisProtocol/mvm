@@ -12,14 +12,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/l2geth/contracts/checkpointoracle/contract/seqset"
-	"github.com/ethereum-optimism/optimism/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/contracts/checkpointoracle/contract/seqset"
+	"github.com/MetisProtocol/mvm/l2geth/core"
 
-	"github.com/ethereum-optimism/optimism/l2geth/common"
-	"github.com/ethereum-optimism/optimism/l2geth/core/types"
-	"github.com/ethereum-optimism/optimism/l2geth/ethclient"
-	"github.com/ethereum-optimism/optimism/l2geth/log"
-	"github.com/ethereum-optimism/optimism/l2geth/rollup/rcfg"
+	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/MetisProtocol/mvm/l2geth/ethclient"
+	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 )
 
 // RollupAdapter is the adapter for decentralized sequencers

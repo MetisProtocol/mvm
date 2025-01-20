@@ -33,8 +33,8 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ethereum-optimism/optimism/l2geth/core"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/core"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 type allocItem struct{ Addr, Balance *big.Int }

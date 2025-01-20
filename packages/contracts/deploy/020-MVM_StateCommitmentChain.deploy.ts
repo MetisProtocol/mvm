@@ -15,6 +15,8 @@ import {
   deployAndRegister,
 } from '../src/hardhat-deploy-ethers'
 
+import { ethers } from 'ethers'
+
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
 

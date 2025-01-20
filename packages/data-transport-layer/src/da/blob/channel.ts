@@ -2,7 +2,7 @@ import { PassThrough, Readable } from 'stream'
 import * as zlib from 'zlib'
 import { Frame } from './frame'
 import * as RLP from 'rlp'
-import { ethers, toBigInt, toNumber } from 'ethersv6'
+import { ethers, hexlify, toBigInt, toNumber } from 'ethersv6'
 import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
 
 // Constants and Enums
@@ -30,7 +30,6 @@ export enum CompressionAlgo {
 
 export interface Batch {
   batchType: number
-  timestamp: number
 }
 
 export interface InnerBatchData {
@@ -112,11 +111,13 @@ export class BatchData {
 export class SpanBatchElement {
   epochNum: bigint
   timestamp: number
+  extraData: string
   transactions: L2Transaction[]
 
   constructor() {
     this.epochNum = BigInt(0)
     this.timestamp = 0
+    this.extraData = ''
     this.transactions = []
   }
 }
@@ -350,6 +351,7 @@ export interface L2TransactionMeta {
   l1Timestamp: number
   l1TxOrigin: string
   queueOrigin: string
+  index: number
   seqV: string | undefined | null
   seqR: string | undefined | null
   seqS: string | undefined | null
@@ -434,11 +436,16 @@ export class SpanBatchTx {
       },
     })
 
+    const isSequencerTx = this.txMeta.queueOrigin === QueueOrigin.Sequencer
+
     const txAny = tx as any
     txAny.l1BlockNumber = this.txMeta.l1BlockNumber
     txAny.l1TxOrigin = this.txMeta.l1TxOrigin
     txAny.queueOrigin = this.txMeta.queueOrigin
+    txAny.queueIndex = isSequencerTx ? null : nonce
     txAny.rawTransaction = tx.serialized
+    txAny.index = this.txMeta.index
+    txAny.l1Timestamp = this.txMeta.l1Timestamp
     txAny.seqR = this.txMeta.seqR
     txAny.seqS = this.txMeta.seqS
     txAny.seqV = this.txMeta.seqV
@@ -469,8 +476,9 @@ export class SpanBatchTxs {
   txSeqSigs: SpanBatchSignature[]
   seqYParityBits: bigint
 
-  l1BlockNumber: number
-  l1Timestamp: number
+  l1BlockNumbers: number[]
+  l1Timestamps: number[]
+  blockTxCounts: number[]
 
   constructor() {
     this.totalBlockTxCount = 0
@@ -490,16 +498,18 @@ export class SpanBatchTxs {
     this.txSeqSigs = []
     this.seqYParityBits = BigInt(0)
 
-    this.l1BlockNumber = 0
-    this.l1Timestamp = 0
+    this.l1BlockNumbers = []
+    this.l1Timestamps = []
+    this.blockTxCounts = []
   }
 
   async decode(
     reader: BufferReader,
     blockTxCounts: number[],
-    l1BlockNumber: number,
-    l1Timestamp: number
+    l1Blocks: number[],
+    l1Timestamps: number[]
   ): Promise<void> {
+    this.blockTxCounts = blockTxCounts
     this.totalBlockTxCount = blockTxCounts.reduce((a, b) => a + b, 0)
 
     // Decode contractCreationBits
@@ -590,8 +600,8 @@ export class SpanBatchTxs {
       this.l1TxOrigins.push(reader.readBytes(20).toString('hex'))
     }
 
-    this.l1BlockNumber = l1BlockNumber
-    this.l1Timestamp = l1Timestamp
+    this.l1BlockNumbers = l1Blocks
+    this.l1Timestamps = l1Timestamps
   }
 
   async recoverV(chainID: bigint): Promise<void> {
@@ -634,22 +644,32 @@ export class SpanBatchTxs {
     return count
   }
 
-  async fullTxs(chainID: bigint): Promise<L2Transaction[]> {
+  async fullTxs(chainID: bigint, startBlock: number): Promise<L2Transaction[]> {
     const txs: L2Transaction[] = []
     let toIdx = 0
+    let blockCounter = 0
+    let enqueueTxCounter = 0
     for (let idx = 0; idx < this.totalBlockTxCount; idx++) {
+      if (
+        idx >=
+        this.blockTxCounts.slice(0, blockCounter + 1).reduce((a, b) => a + b, 0)
+      ) {
+        blockCounter++
+      }
+      const isSequencerTx = this.getBit(this.queueOriginBits, idx) === 0
       const stx = SpanBatchTx.unmarshalBinary(this.txDatas[idx], {
-        l1BlockNumber: this.l1BlockNumber,
-        l1Timestamp: this.l1Timestamp,
-        l1TxOrigin: this.l1TxOrigins[idx],
-        queueOrigin:
-          this.getBit(this.queueOriginBits, idx) === 0
-            ? QueueOrigin.Sequencer
-            : QueueOrigin.L1ToL2,
+        l1BlockNumber: this.l1BlockNumbers[blockCounter],
+        l1Timestamp: this.l1Timestamps[blockCounter],
+        l1TxOrigin: isSequencerTx
+          ? ethers.ZeroAddress
+          : this.l1TxOrigins[enqueueTxCounter++],
+        index: startBlock + blockCounter - 1,
+        queueOrigin: isSequencerTx ? QueueOrigin.Sequencer : QueueOrigin.L1ToL2,
         seqV: this.getBit(this.seqYParityBits, idx).toString(16),
         seqR: this.txSeqSigs[idx].r.toString(16),
         seqS: this.txSeqSigs[idx].s.toString(16),
       })
+
       const nonce = this.txNonces[idx]
       const gas = this.txGases[idx]
       let to: string | null = null
@@ -704,40 +724,37 @@ export class SpanBatchTxs {
   }
 }
 
-// RawSpanBatch Implementation
 // Batch format
 //
 // SpanBatchType := 1
 // spanBatch := SpanBatchType ++ prefix ++ payload
-// prefix := l1_timestamp ++ l1_origin_num ++ parent_check ++ l1_origin_check
-// payload := block_count ++ origin_bits ++ block_tx_counts ++ txs
-// txs := contract_creation_bits ++ y_parity_bits ++ tx_sigs ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits ++ queue_origin_bits ++ seq_y_parity_bits ++ tx_seq_sigs ++ l1_tx_origins
+// prefix := l2_start_block ++ parent_check ++ l1_origin_check
+// payload := block_count ++ origin_bits ++ l1_block_numbers ++ l1_block_timestamps ++ block_tx_counts ++ block_extra_datas(len+data) ++ txs
+// txs := contract_creation_bits ++ y_parity_bits(v) ++ tx_sigs(r & s) ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits
+//        ++ queue_origin_bits ++ seq_y_parity_bits(v) ++ tx_seq_sigs(r & s) ++ l1_tx_origins
 export class RawSpanBatch implements InnerBatchData, Batch {
-  l1Timestamp: number
-  l1OriginNum: number
   l2StartBlock: number
   parentCheck: Buffer
   l1OriginCheck: Buffer
-
   blockCount: number
   originBits: bigint
+  l1Blocks: number[]
+  l1BlockTimestamps: number[]
+  extraDatas: Buffer[]
   blockTxCounts: number[]
   txs: SpanBatchTxs
 
   constructor() {
-    this.l1Timestamp = 0
-    this.l1OriginNum = 0
     this.l2StartBlock = 0
     this.parentCheck = Buffer.alloc(20)
     this.l1OriginCheck = Buffer.alloc(20)
     this.blockCount = 0
     this.originBits = BigInt(0)
+    this.l1Blocks = []
+    this.l1BlockTimestamps = []
     this.blockTxCounts = []
     this.txs = new SpanBatchTxs()
-  }
-
-  get timestamp(): number {
-    return this.l1Timestamp
+    this.extraDatas = []
   }
 
   get batchType(): number {
@@ -756,10 +773,6 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     }
 
     const reader = new BufferReader(buffer)
-    // Decode l1Timestamp
-    this.l1Timestamp = reader.readUvarint()
-    // Decode l1OriginNum
-    this.l1OriginNum = reader.readUvarint()
     // Decode l2StartBlock
     this.l2StartBlock = reader.readUvarint()
     // Decode parentCheck
@@ -776,6 +789,18 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     }
     // Decode originBits
     this.originBits = reader.decodeSpanBatchBits(this.blockCount)
+    // Decode l1Blocks
+    this.l1Blocks = []
+    for (let i = 0; i < this.blockCount; i++) {
+      const l1Block = reader.readUvarint()
+      this.l1Blocks.push(l1Block)
+    }
+    // Decode l1Timestamps
+    this.l1BlockTimestamps = []
+    for (let i = 0; i < this.blockCount; i++) {
+      const l1Timestamp = reader.readUvarint()
+      this.l1BlockTimestamps.push(l1Timestamp)
+    }
     // Decode blockTxCounts
     this.blockTxCounts = []
     for (let i = 0; i < this.blockCount; i++) {
@@ -785,13 +810,18 @@ export class RawSpanBatch implements InnerBatchData, Batch {
       }
       this.blockTxCounts.push(count)
     }
+    for (let i = 0; i < this.blockCount; i++) {
+      const extraDataLen = reader.readUvarint()
+      const extraData = reader.readBytes(extraDataLen)
+      this.extraDatas.push(extraData)
+    }
     // Decode txs
     this.txs = new SpanBatchTxs()
     await this.txs.decode(
       reader,
       this.blockTxCounts,
-      this.l1OriginNum,
-      this.l1Timestamp
+      this.l1Blocks,
+      this.l1BlockTimestamps
     )
   }
 
@@ -801,20 +831,11 @@ export class RawSpanBatch implements InnerBatchData, Batch {
       throw new Error('Empty span batch')
     }
 
-    const blockOriginNums = new Array<number>(this.blockCount)
-    let l1OriginBlockNumber = this.l1OriginNum
-    for (let i = this.blockCount - 1; i >= 0; i--) {
-      blockOriginNums[i] = l1OriginBlockNumber
-      if (this.getBit(this.originBits, i) === 1 && i > 0) {
-        l1OriginBlockNumber--
-      }
-    }
-
     // Recover 'v' values in signatures
     await this.txs.recoverV(chainId)
 
     // Reconstruct full transactions
-    const fullTxs = await this.txs.fullTxs(chainId)
+    const fullTxs = await this.txs.fullTxs(chainId, this.l2StartBlock)
 
     // Build the SpanBatch
     const spanBatch = new SpanBatch()
@@ -829,16 +850,19 @@ export class RawSpanBatch implements InnerBatchData, Batch {
     let txIdx = 0
     for (let i = 0; i < this.blockCount; i++) {
       const batch = new SpanBatchElement()
+      batch.extraData = hexlify(this.extraDatas[i])
 
-      // FIXME: since currently there is no determined block time and span batch genesis time,
-      //        so just use block timestamp for now
-      batch.timestamp = this.l1Timestamp // genesisTimestamp + this.relTimestamp + blockTime * i
-      batch.epochNum = BigInt(blockOriginNums[i])
       batch.transactions = []
       for (let j = 0; j < this.blockTxCounts[i]; j++) {
+        if (j === 0) {
+          // first tx's timestamp and l1 block number is used for the batch
+          batch.timestamp = fullTxs[txIdx].l1Timestamp
+          batch.epochNum = BigInt(fullTxs[txIdx].l1BlockNumber)
+        }
         batch.transactions.push(fullTxs[txIdx])
         txIdx++
       }
+
       spanBatch.batches.push(batch)
     }
     return spanBatch
@@ -884,6 +908,11 @@ export class Channel {
   }
 
   addFrame(frame: Frame): void {
+    const frameSize = (f: Frame): number => {
+      // size of the frame header is 200 bytes
+      return f.data.length + 200
+    }
+
     const frameId = Buffer.from(frame.id).toString('hex')
     if (frameId !== this.id) {
       throw new Error(
@@ -1043,9 +1072,4 @@ export const batchReader = (
       reject(err)
     })
   })
-}
-
-const frameSize = (frame: Frame): number => {
-  // Assuming an overhead of 200 bytes as per your adjustment
-  return frame.data.length + 200
 }

@@ -27,10 +27,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enode"
-	"github.com/ethereum-optimism/optimism/l2geth/p2p/enr"
-	"github.com/ethereum-optimism/optimism/l2geth/rlp"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
+	"github.com/MetisProtocol/mvm/l2geth/rlp"
 )
 
 var enrdumpCommand = cli.Command{

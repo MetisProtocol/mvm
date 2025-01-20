@@ -11,7 +11,7 @@ import {
   loadContract,
   loadContractFromManager,
   predeploys,
-} from '@metis.io/contracts'
+} from '@localtest911/contracts'
 import { StateRootBatchHeader, SentMessage, SentMessageProof } from './types'
 import mongoose from 'mongoose'
 import ChainStore from './store/chain-store'
@@ -82,12 +82,14 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
   }
 
   private state: {
+    fpUpgraded: boolean
     lastFinalizedTxHeight: number
     nextUnfinalizedTxHeight: number
     lastQueriedL1Block: number
     eventCache: ethers.Event[]
     Lib_AddressManager: Contract
     StateCommitmentChain: Contract
+    MVMStateCommitmentChain: Contract
     L1CrossDomainMessenger: Contract
     L2CrossDomainMessenger: Contract
     OVM_L2ToL1MessagePasser: Contract
@@ -108,6 +110,8 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
     // Need to improve this, sorry.
     this.state = {} as any
 
+    this.state.fpUpgraded = false
+
     const address = await this.options.l1Wallet.getAddress()
     this.logger.info('Using L1 EOA', { address })
 
@@ -125,6 +129,17 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
     })
     this.logger.info('Connected to StateCommitmentChain', {
       address: this.state.StateCommitmentChain.address,
+    })
+
+    this.logger.info('Connecting to MVMStateCommitmentChain...')
+    this.state.MVMStateCommitmentChain = await loadContractFromManager({
+      name: 'StateCommitmentChain',
+      Lib_AddressManager: this.state.Lib_AddressManager,
+      provider: this.options.l1RpcProvider,
+      ifaceName: 'MVM_StateCommitmentChain',
+    })
+    this.logger.info('Connected to MVMStateCommitmentChain', {
+      address: this.state.MVMStateCommitmentChain.address,
     })
 
     this.logger.info('Connecting to L1CrossDomainMessenger...')
@@ -363,11 +378,12 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       })
 
       const events: ethers.Event[] =
-        await this.state.StateCommitmentChain.queryFilter(
-          this.state.StateCommitmentChain.filters.StateBatchAppended(),
+        await this.state.MVMStateCommitmentChain.queryFilter(
+          this.state.MVMStateCommitmentChain.filters.StateBatchAppended(),
           startingBlock,
           endBlock
         )
+
       const filteredEvents = events.filter(
         (e) => e && e.args._chainId.toNumber() === this.options.l2ChainId
       )
@@ -393,10 +409,32 @@ export class MessageRelayerService extends BaseService<MessageRelayerOptions> {
       event.transactionHash
     )
 
-    const txData = this.state.StateCommitmentChain.interface.decodeFunctionData(
-      'appendStateBatchByChainId',
-      transaction.data
-    )
+    const txDecoder = (sccContract: Contract) =>
+      sccContract.interface.decodeFunctionData(
+        'appendStateBatchByChainId',
+        transaction.data
+      )
+
+    let txData
+    if (this.state.fpUpgraded) {
+      txData = txDecoder(this.state.MVMStateCommitmentChain)
+    } else {
+      try {
+        // if decode success, update the local state, so next time we will not need to try catch this
+        txData = txDecoder(this.state.MVMStateCommitmentChain)
+        this.state.fpUpgraded = true
+        this.logger.info(
+          'StateCommitmentChain contract has been upgraded to FP enabled.',
+          { block: event.blockNumber }
+        )
+      } catch (e) {
+        txData = txDecoder(this.state.StateCommitmentChain)
+        this.logger.info('StateCommitmentChain contract is not FP enabled.', {
+          block: event.blockNumber,
+        })
+      }
+    }
+
     const stateRoots = txData[1] //param in appendStateBatchByChainId is: chainId,batch,_extraData
     return {
       batch: {

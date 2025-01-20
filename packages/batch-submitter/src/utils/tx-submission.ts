@@ -2,6 +2,8 @@ import { ethers, Signer, toBigInt, toNumber } from 'ethersv6'
 import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'
+import { calcBlobFee } from '../da/eip4844'
+import { ceil } from 'lodash'
 
 export interface ResubmissionConfig {
   resubmissionTimeout: number
@@ -19,11 +21,8 @@ export interface TxSubmissionHooks {
   onTransactionResponse: (txResponse: ethers.TransactionResponse) => void
 }
 
-const getGasPriceInGwei = async (signer: Signer): Promise<number> => {
-  return parseInt(
-    ethers.formatUnits((await signer.provider.getFeeData()).gasPrice, 'gwei'),
-    10
-  )
+const getGasPriceInWei = async (signer: Signer): Promise<number> => {
+  return toNumber((await signer.provider.getFeeData()).gasPrice)
 }
 
 export const submitTransactionWithYNATM = async (
@@ -36,27 +35,22 @@ export const submitTransactionWithYNATM = async (
   const sendTxAndWaitForReceipt = async (
     gasPrice
   ): Promise<ethers.TransactionReceipt> => {
-    const isEIP1559 = !!tx.maxFeePerGas || !!tx.maxPriorityFeePerGas
+    const isEIP1559 =
+      !!tx.maxFeePerGas || !!tx.maxPriorityFeePerGas || !!tx.maxFeePerBlobGas
     let fullTx: any
-    const fee = await signer.provider.getFeeData()
     if (isEIP1559) {
       // to be compatible with EIP-1559, we need to set the gasPrice to the maxPriorityFeePerGas
       const feeScalingFactor = gasPrice
-        ? gasPrice /
-          (toNumber(tx.maxFeePerGas) + toNumber(tx.maxPriorityFeePerGas))
+        ? gasPrice / toNumber(tx.maxFeePerGas)
         : 1
-      fullTx = {
-        ...tx,
-        maxFeePerGas: fee.maxFeePerGas, // set base fee to latest
-        maxPriorityFeePerGas:
-          fee.maxPriorityFeePerGas * toBigInt(feeScalingFactor), // update priority fee with the scaling factor
-      }
+      await calculateEIP1559GasPrice(signer.provider, tx, feeScalingFactor)
+      fullTx = tx
     } else {
       fullTx = {
         ...tx,
         // in some cases (mostly local testing env) gas price is lower than 1 gwei,
         // so we need to replace it to the current gas price
-        gasPrice: gasPrice || fee.gasPrice,
+        gasPrice: gasPrice || (await signer.provider.getFeeData()).gasPrice,
       }
     }
 
@@ -74,11 +68,10 @@ export const submitTransactionWithYNATM = async (
     }
   }
 
-  const minGasPrice = await getGasPriceInGwei(signer)
   try {
     const receipt = await ynatm.send({
       sendTransactionFunction: sendTxAndWaitForReceipt,
-      minGasPrice: ynatm.toGwei(minGasPrice),
+      minGasPrice: await getGasPriceInWei(signer),
       maxGasPrice: ynatm.toGwei(config.maxGasPriceInGwei),
       gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
       delay: config.resubmissionTimeout,
@@ -102,21 +95,25 @@ export const submitSignedTransactionWithYNATM = async (
     const sendTxAndWaitForReceipt = async (
       signedTx
     ): Promise<ethers.TransactionReceipt> => {
-      hooks.beforeSendTransaction(tx)
-      const txResponse = await signer.provider.broadcastTransaction(signedTx)
-      hooks.onTransactionResponse(txResponse)
-      return signer.provider.waitForTransaction(
-        txResponse.hash,
-        numConfirmations
-      )
+      try {
+        hooks.beforeSendTransaction(tx)
+        const txResponse = await signer.provider.broadcastTransaction(signedTx)
+        hooks.onTransactionResponse(txResponse)
+        return signer.provider.waitForTransaction(
+          txResponse.hash,
+          numConfirmations
+        )
+      } catch (e) {
+        console.error('Error sending transaction:', e.message.substring(0, 100))
+        throw e
+      }
     }
 
     const ynatmAsync = new YnatmAsync()
-    const minGasPrice = await getGasPriceInGwei(signer)
     const receipt = await ynatmAsync.sendAfterSign({
       sendSignedTransactionFunction: sendTxAndWaitForReceipt,
       signFunction,
-      minGasPrice: ynatmAsync.toGwei(minGasPrice),
+      minGasPrice: await getGasPriceInWei(signer),
       maxGasPrice: ynatmAsync.toGwei(config.maxGasPriceInGwei),
       gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
       delay: config.resubmissionTimeout,
@@ -187,4 +184,24 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
       hooks
     )
   }
+}
+
+export const calculateEIP1559GasPrice = async (
+  provider: ethers.Provider,
+  tx: ethers.TransactionRequest,
+  scalingFactor: number
+) => {
+  const latestFee = await provider.getFeeData()
+  const baseFee = latestFee.maxFeePerGas - latestFee.maxPriorityFeePerGas
+
+  // only scale the priority fee
+  tx.maxPriorityFeePerGas = toBigInt(
+    ceil(toNumber(tx.maxPriorityFeePerGas) * scalingFactor)
+  )
+  // use the latest base fee
+  tx.maxFeePerGas = baseFee + tx.maxPriorityFeePerGas
+  // scale the blob fee as well
+  tx.maxFeePerBlobGas = toBigInt(
+    ceil(toNumber(tx.maxFeePerBlobGas) * scalingFactor)
+  )
 }

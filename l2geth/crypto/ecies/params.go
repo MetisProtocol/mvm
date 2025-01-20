@@ -42,7 +42,7 @@ import (
 	"fmt"
 	"hash"
 
-	ethcrypto "github.com/ethereum-optimism/optimism/l2geth/crypto"
+	ethcrypto "github.com/MetisProtocol/mvm/l2geth/crypto"
 )
 
 var (

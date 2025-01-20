@@ -98,6 +98,7 @@ export interface BlockEntry {
   timestamp: number
   transactions: TransactionEntry[]
   confirmed: boolean
+  extraData?: string
 }
 
 export enum SenderType {
@@ -110,4 +111,8 @@ export interface InboxSenderSetEntry {
   blockNumber: number
   inboxSender: string
   senderType: SenderType
+}
+
+export interface Upgrades {
+  fpUpgraded: boolean
 }

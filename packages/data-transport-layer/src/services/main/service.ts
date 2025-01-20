@@ -48,8 +48,6 @@ export interface L1DataTransportServiceOptions {
   minioAccessKey?: string
   minioSecretKey?: string
 
-  blobEnabled?: boolean
-
   trustedIndexer?: string
 
   deSeqBlock: number
@@ -58,6 +56,8 @@ export interface L1DataTransportServiceOptions {
   batchInboxBlobSender: string
   batchInboxStartIndex: number
   batchInboxL1Height: number
+
+  fpBlock: number
 }
 
 const optionSettings = {
