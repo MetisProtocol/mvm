@@ -41,7 +41,7 @@ func (r *rpcTransactionMeta) UnmarshalJSON(input []byte) error {
 		L1BlockNumber   *hexutil.Big       `json:"l1BlockNumber"`
 		L1Timestamp     *hexutil.Uint64    `json:"l1Timestamp"`
 		L1MessageSender *common.Address    `json:"l1MessageSender"`
-		L1TxOrigin 		*common.Address    `json:"l1TxOrigin"`
+		L1TxOrigin      *common.Address    `json:"l1TxOrigin"`
 		QueueOrigin     *types.QueueOrigin `json:"queueOrigin"`
 		Index           *hexutil.Uint64    `json:"index"`
 		QueueIndex      *hexutil.Uint64    `json:"queueIndex"`
