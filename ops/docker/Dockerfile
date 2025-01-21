@@ -120,32 +120,32 @@ ENTRYPOINT ["./relayer.sh"]
 FROM node:18-alpine as batch-submitter
 RUN apk add --no-cache curl bash jq ca-certificates
 
-#FROM node:18-alpine as batch-submitter
-#RUN apk add --no-cache curl bash jq ca-certificates
-#
-#WORKDIR /opt/optimism
-#
-## copy top level files
-#COPY --from=builder /optimism/*.json /optimism/yarn.lock ./
-#COPY --from=builder /optimism/node_modules ./node_modules
-#
-## copy deps (would have been nice if docker followed the symlinks required)
-#COPY --from=builder /optimism/packages/core-utils/package.json ./packages/core-utils/package.json
-#COPY --from=builder /optimism/packages/core-utils/dist ./packages/core-utils/dist
-#COPY --from=builder /optimism/packages/common-ts/package.json ./packages/common-ts/package.json
-#COPY --from=builder /optimism/packages/common-ts/dist ./packages/common-ts/dist
-#
-#COPY --from=builder /optimism/packages/contracts/package.json ./packages/contracts/package.json
-#COPY --from=builder /optimism/packages/contracts/deployments ./packages/contracts/deployments
-#COPY --from=builder /optimism/packages/contracts/dist ./packages/contracts/dist
-#COPY --from=builder /optimism/packages/contracts/artifacts ./packages/contracts/artifacts
-#
-## copy the service
-#WORKDIR /opt/optimism/packages/batch-submitter
-#COPY --from=builder /optimism/packages/batch-submitter/package.json ./
-#COPY --from=builder /optimism/packages/batch-submitter/dist ./dist
-#COPY --from=builder /optimism/packages/batch-submitter/exec ./exec
-#COPY --from=builder /optimism/packages/batch-submitter/node_modules ./node_modules
-#COPY --chmod=775 ./ops/scripts/batches.sh .
-#VOLUME [ "/data" ]
-#ENTRYPOINT ["./batches.sh"]
+FROM node:18-alpine as batch-submitter
+RUN apk add --no-cache curl bash jq ca-certificates
+
+WORKDIR /opt/optimism
+
+# copy top level files
+COPY --from=builder /optimism/*.json /optimism/yarn.lock ./
+COPY --from=builder /optimism/node_modules ./node_modules
+
+# copy deps (would have been nice if docker followed the symlinks required)
+COPY --from=builder /optimism/packages/core-utils/package.json ./packages/core-utils/package.json
+COPY --from=builder /optimism/packages/core-utils/dist ./packages/core-utils/dist
+COPY --from=builder /optimism/packages/common-ts/package.json ./packages/common-ts/package.json
+COPY --from=builder /optimism/packages/common-ts/dist ./packages/common-ts/dist
+
+COPY --from=builder /optimism/packages/contracts/package.json ./packages/contracts/package.json
+COPY --from=builder /optimism/packages/contracts/deployments ./packages/contracts/deployments
+COPY --from=builder /optimism/packages/contracts/dist ./packages/contracts/dist
+COPY --from=builder /optimism/packages/contracts/artifacts ./packages/contracts/artifacts
+
+# copy the service
+WORKDIR /opt/optimism/packages/batch-submitter
+COPY --from=builder /optimism/packages/batch-submitter/package.json ./
+COPY --from=builder /optimism/packages/batch-submitter/dist ./dist
+COPY --from=builder /optimism/packages/batch-submitter/exec ./exec
+COPY --from=builder /optimism/packages/batch-submitter/node_modules ./node_modules
+COPY --chmod=775 ./ops/scripts/batches.sh .
+VOLUME [ "/data" ]
+ENTRYPOINT ["./batches.sh"]
