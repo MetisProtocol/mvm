@@ -2,6 +2,8 @@
 import { ethers } from 'ethers'
 import { task } from 'hardhat/config'
 import * as types from 'hardhat/internal/core/params/argumentTypes'
+import path from 'path'
+import fs from 'fs'
 
 const DEFAULT_L1_BLOCK_TIME_SECONDS = 15
 const DEFAULT_CTC_MAX_TRANSACTION_GAS_LIMIT = 11_000_000
@@ -114,6 +116,24 @@ task('deploy')
     false,
     types.boolean
   )
+  .addOptionalParam(
+    'absolutePrestate',
+    'absolute prestate of op-program',
+    false,
+    types.string
+  )
+  .addOptionalParam(
+    'faultDisputeProposer',
+    'allowed proposer for fault proof',
+    false,
+    types.string
+  )
+  .addOptionalParam(
+    'faultDisputeChallenger',
+    'allowed challenger for fault proof',
+    false,
+    types.string
+  )
   .setAction(async (args, hre: any, runSuper) => {
     // Necessary because hardhat doesn't let us attach non-optional parameters to existing tasks.
     const validateAddressArg = (argName: string) => {
@@ -126,6 +146,16 @@ task('deploy')
         throw new Error(
           `argument for ${argName} is not a valid address: ${args[argName]}`
         )
+      }
+    }
+
+    if (args.reset) {
+      const ozDirPath = path.join(hre.config.paths.root, '.openzeppelin')
+      if (fs.existsSync(ozDirPath)) {
+        // delete the openzeppeline upgrade cache file
+        fs.rm(ozDirPath, { recursive: true, force: true }, () => {
+          return
+        })
       }
     }
 

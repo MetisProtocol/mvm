@@ -1,6 +1,6 @@
 /* Imports: External */
 import { Contract, Signer, Provider, ethers } from 'ethersv6'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 
 export const loadContract = (
   name: string,
@@ -54,6 +54,13 @@ export const loadOptimismContracts = async (
       interface: 'IStateCommitmentChain',
     },
     {
+      name: 'StateCommitmentChain',
+      // alias used here to distinguish from the old StateCommitmentChain,
+      // if alias is set, the contract will be available as contracts[alias] instead of contracts[name]
+      alias: 'MVM_StateCommitmentChain',
+      interface: 'IMVMStateCommitmentChain',
+    },
+    {
       name: 'CanonicalTransactionChain',
       interface: 'ICanonicalTransactionChain',
     },
@@ -73,7 +80,7 @@ export const loadOptimismContracts = async (
 
   const contracts = {}
   for (const input of inputs) {
-    contracts[input.name] = await loadProxyFromManager(
+    contracts[input.alias || input.name] = await loadProxyFromManager(
       input.interface,
       input.name,
       Lib_AddressManager,

@@ -25,7 +25,12 @@ import {
 } from '@metis.io/core-utils'
 
 /* Internal Imports */
-import { MpcClient, TransactionSubmitter } from '../utils'
+import {
+  calculateEIP1559GasPrice,
+  MpcClient,
+  TransactionSubmitter,
+  YnatmTransactionSubmitter,
+} from '../utils'
 import { InboxStorage } from '../storage'
 import { TxSubmissionHooks } from '..'
 import { ChannelManager } from '../da/channel-manager'
@@ -54,8 +59,7 @@ export class TransactionBatchSubmitterInbox {
     readonly logger: Logger,
     readonly maxTxSize: number,
     readonly useMinio: boolean,
-    readonly minioConfig?: MinioConfig,
-    readonly useBlob?: boolean
+    readonly minioConfig?: MinioConfig
   ) {
     if (useMinio && minioConfig) {
       this.minioClient = new MinioClient(minioConfig)
@@ -63,6 +67,7 @@ export class TransactionBatchSubmitterInbox {
   }
 
   public async submitBatchToInbox(
+    useBlob: boolean,
     startBlock: number,
     endBlock: number,
     nextBatchIndex: number,
@@ -84,6 +89,7 @@ export class TransactionBatchSubmitterInbox {
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
     const params = await this._generateSequencerBatchParams(
+      useBlob,
       startBlock,
       endBlock,
       nextBatchIndex
@@ -101,7 +107,7 @@ export class TransactionBatchSubmitterInbox {
       batchSizeInBytes,
     })
 
-    if (this.useBlob) {
+    if (useBlob) {
       // when using blob txs, need to calculate the blob txs size,
       // to avoid the situation that the batch is too small,
       // we will commit until at least one blob got included
@@ -251,9 +257,36 @@ export class TransactionBatchSubmitterInbox {
         let submitTx: () => Promise<TransactionReceipt>
         if (mpcUrl) {
           submitTx = (): Promise<TransactionReceipt> => {
+            const yntmSubmmiter =
+              transactionSubmitter as YnatmTransactionSubmitter
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
-              async () => {
+              async (gasPrice) => {
+                if (gasPrice > 0) {
+                  const feeScalingFactor =
+                    gasPrice / toNumber(blobTx.maxFeePerGas)
+                  await calculateEIP1559GasPrice(
+                    signer.provider,
+                    blobTx,
+                    feeScalingFactor
+                  )
+                  if (
+                    toBigInt(blobTx.maxFeePerGas) >
+                    ethers.parseUnits(
+                      yntmSubmmiter.ynatmConfig.maxGasPriceInGwei.toString(10),
+                      'gwei'
+                    )
+                  ) {
+                    this.logger.error('Gas price exceeds the cap', {
+                      max: yntmSubmmiter.ynatmConfig.maxGasPriceInGwei,
+                      current: toNumber(blobTx.maxFeePerGas),
+                    })
+                    throw new Error(
+                      `Gas price ${blobTx.maxFeePerGas} exceeds the cap ${yntmSubmmiter.ynatmConfig.maxGasPriceInGwei}`
+                    )
+                  }
+                }
+
                 const signedTx = await mpcClient.signTx(blobTx, mpcId)
                 // need to append the blob sidecar to the signed tx
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
@@ -399,6 +432,7 @@ export class TransactionBatchSubmitterInbox {
   }
 
   private async _generateSequencerBatchParams(
+    useBlob: boolean,
     startBlock: number,
     endBlock: number,
     nextBatchIndex: number
@@ -420,6 +454,7 @@ export class TransactionBatchSubmitterInbox {
     const fixedMaxTxSize = this.maxTxSize
 
     let inboxBatchParams = await this._getSequencerBatchParams(
+      useBlob,
       startBlock,
       nextBatchIndex,
       batch
@@ -433,6 +468,7 @@ export class TransactionBatchSubmitterInbox {
       })
       batch.splice(Math.ceil((batch.length * 2) / 3)) // Delete 1/3rd of all of the batch elements
       inboxBatchParams = await this._getSequencerBatchParams(
+        useBlob,
         startBlock,
         nextBatchIndex,
         batch
@@ -456,6 +492,7 @@ export class TransactionBatchSubmitterInbox {
   }
 
   private async _getSequencerBatchParams(
+    useBlob: boolean,
     l2StartBlock: number,
     nextBatchIndex: number,
     blocks: BatchToInbox
@@ -473,7 +510,7 @@ export class TransactionBatchSubmitterInbox {
     let encoded = ''
     const blobTxData: TxData[] = []
 
-    if (!this.useBlob) {
+    if (!useBlob) {
       let encodeBlockData = ''
       blocks.forEach((inboxElement: BatchToInboxElement) => {
         // block encode, [3 txs count] [5 block timestamp = l1 timestamp of txs] [32 l1BlockNumber of txs, get it from tx0]
@@ -635,6 +672,7 @@ export class TransactionBatchSubmitterInbox {
       blockNumber: block.number,
       hash: block.hash,
       parentHash: block.parentHash,
+      extraData: block.extraData,
       txs: [],
     }
 
@@ -653,9 +691,9 @@ export class TransactionBatchSubmitterInbox {
         if (!l2Tx.seqR) {
           batchElementTx.seqSign = ''
         } else {
-          let r = remove0x(block.l2Transactions[0].seqR)
-          let s = remove0x(block.l2Transactions[0].seqS)
-          let v = remove0x(block.l2Transactions[0].seqV)
+          let r = remove0x(l2Tx.seqR)
+          let s = remove0x(l2Tx.seqS)
+          let v = remove0x(l2Tx.seqV)
           if (r === '0') {
             r = '00'
           } else {

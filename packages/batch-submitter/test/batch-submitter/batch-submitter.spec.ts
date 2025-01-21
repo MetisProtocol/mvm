@@ -5,7 +5,7 @@ import { BigNumber, Contract, ContractFactory, ethers, Signer } from 'ethers'
 import ganache from 'ganache-core'
 import sinon from 'sinon'
 
-import scc from '@metis.io/contracts/artifacts/contracts/L1/rollup/StateCommitmentChain.sol/StateCommitmentChain.json'
+import scc from '@localtest911/contracts/artifacts/contracts/L1/rollup/StateCommitmentChain.sol/StateCommitmentChain.json'
 import { getContractInterface } from '@eth-optimism/contracts'
 import { MockContract, smockit } from '@eth-optimism/smock'
 

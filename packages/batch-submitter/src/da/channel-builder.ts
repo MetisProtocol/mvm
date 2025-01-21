@@ -7,7 +7,7 @@ import {
   RollupConfig,
 } from './types'
 import { SpanChannelOut } from './span-channel-out'
-import { L2Block } from '@metis.io/core-utils'
+import { L2Block, remove0x } from '@metis.io/core-utils'
 import { ChannelCompressor } from './channel-compressor'
 import { CHANNEL_FULL_ERR, MAX_BLOB_SIZE } from './consts'
 import { maxDataSize } from './utils'

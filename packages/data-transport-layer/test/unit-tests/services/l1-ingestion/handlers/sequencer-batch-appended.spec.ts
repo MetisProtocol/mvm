@@ -19,9 +19,9 @@ describe('Event Handlers: CanonicalTransactionChain.SequencerBatchAppended', () 
       l1TransactionHash:
         '0x6effe006836b841205ace4d99d7ae1b74ee96aac499a3f358b97fccd32ee9af2',
       gasLimit: '548976',
-      prevTotalElements: toBigInt(73677),
-      batchIndex: toBigInt(743),
-      batchSize: toBigInt(101),
+      prevTotalElements: 73677,
+      batchIndex: 743,
+      batchSize: 101,
       batchRoot:
         '10B99425FB53AD7D40A939205C0F7B35CBB89AB4D67E7AE64BDAC5F1073943B4',
       batchExtraData: '',

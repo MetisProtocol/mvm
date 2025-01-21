@@ -1,12 +1,5 @@
 /* Imports: External */
-import {
-  Block,
-  ethers,
-  toBeHex,
-  toBigInt,
-  toNumber,
-  TransactionResponse,
-} from 'ethersv6'
+import { Block, ethers, toNumber, TransactionResponse } from 'ethersv6'
 import {
   fromHexString,
   L2Transaction,
@@ -31,6 +24,7 @@ import {
 import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
 import { BlobDataExpiredError, MissingElementError } from './errors'
 import { fetchBatches } from '../../../da/blob'
+import { toHex } from 'hardhat/internal/util/bigint'
 
 export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
   SequencerBatchAppendedExtraData,
@@ -49,13 +43,14 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       const offset = 2
       // l2 block number - 1, in order to keep same as CTC
       batchSubmissionData.prevTotalElements =
-        toBigInt(calldata.subarray(offset + 32, offset + 64)) - toBigInt(1)
-      batchSubmissionData.batchIndex = toBigInt(
+        toNumber(calldata.subarray(offset + 32, offset + 64)) - 1
+      batchSubmissionData.batchIndex = toNumber(
         calldata.subarray(offset, offset + 32)
       )
-      batchSubmissionData.batchSize = toBigInt(
+      batchSubmissionData.batchSize = toNumber(
         calldata.subarray(offset + 64, offset + 68)
       )
+
       batchSubmissionVerified = true
     }
 
@@ -189,10 +184,10 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
     }
 
     const transactionBatchEntry: TransactionBatchEntry = {
-      index: Number(extraData.batchIndex),
+      index: toNumber(extraData.batchIndex),
       root: extraData.batchRoot,
-      size: Number(extraData.batchSize),
-      prevTotalElements: Number(extraData.prevTotalElements),
+      size: toNumber(extraData.batchSize),
+      prevTotalElements: toNumber(extraData.prevTotalElements),
       extraData: extraData.batchExtraData,
       blockNumber: extraData.blockNumber,
       timestamp: extraData.timestamp,
@@ -220,7 +215,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
 
         const blockEntry: BlockEntry = {
           index: l2Start + blockIndex - 1, // keep same rule as single tx index
-          batchIndex: Number(extraData.batchIndex),
+          batchIndex: toNumber(extraData.batchIndex),
           timestamp: blockTimestamp,
           transactions: [],
           confirmed: true,
@@ -235,7 +230,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
 
           const transactionEntry: TransactionEntry = {
             index: blockEntry.index,
-            batchIndex: Number(extraData.batchIndex),
+            batchIndex: toNumber(extraData.batchIndex),
             blockNumber: l1BlockNumber,
             timestamp: blockTimestamp,
             gasLimit: '0',
@@ -330,24 +325,25 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
             const l2BlockNumber = spanBatch.l2StartBlock + j
             const batchElement = spanBatch.batches[j]
             blockEntries.push({
-              index: l2BlockNumber,
+              index: l2BlockNumber - 1,
               batchIndex: Number(extraData.batchIndex),
               timestamp: batchElement.timestamp,
+              extraData: batchElement.extraData,
               transactions: batchElement.transactions.map(
                 (tx: L2Transaction) => {
                   const isSequencerTx = tx.queueOrigin === QueueOrigin.Sequencer
                   // decode raw tx
                   return {
-                    index: l2BlockNumber,
+                    index: l2BlockNumber - 1,
                     batchIndex: Number(extraData.batchIndex),
-                    blockNumber: l2BlockNumber,
+                    blockNumber: tx.l1BlockNumber,
                     timestamp: batchElement.timestamp,
                     gasLimit: tx.gasLimit.toString(10),
                     target: ethers.ZeroAddress,
-                    origin: isSequencerTx ? null : tx.l1TxOrigin,
-                    data: isSequencerTx ? tx.data : '0x',
+                    origin: isSequencerTx ? ethers.ZeroAddress : tx.l1TxOrigin,
+                    data: isSequencerTx ? tx.rawTransaction : tx.data,
                     queueOrigin: isSequencerTx ? 'sequencer' : 'l1',
-                    value: isSequencerTx ? toBeHex(tx.value) : '0x0',
+                    value: isSequencerTx ? toHex(tx.value) : '0x0',
                     queueIndex: isSequencerTx ? null : tx.nonce,
                     decoded: isSequencerTx
                       ? decodeSequencerBatchTransaction(
@@ -362,7 +358,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                         )},0x${removeLeadingZeros(
                           remove0x(tx.seqS)
                         )},0x${removeLeadingZeros(remove0x(tx.seqV))}`
-                      : '0x0,0x0,0x0',
+                      : null,
                   }
                 }
               ),
@@ -411,21 +407,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       }
     }
 
-    await db.setL2BlockToL1BlockMapping(
-      entry.transactionBatchEntry.blockNumber,
-      options.l2ChainId,
-      entry.blockEntries.map((block) => block.index)
-    )
-
     await db.putTransactionBatchEntries([entry.transactionBatchEntry])
-
-    // save the mapping of L1 block number to L2 block number
-    await db.setL1BlockToL2BlockMapping(
-      entry.transactionBatchEntry.blockNumber,
-      options.l2ChainId,
-      entry.transactionBatchEntry.prevTotalElements +
-        entry.transactionBatchEntry.size
-    )
   },
 }
 
@@ -460,11 +442,14 @@ const decodeSequencerBatchTransaction = (
     nonce: decodedTx.nonce.toString(),
     gasPrice: decodedTx.gasPrice.toString(),
     gasLimit: decodedTx.gasLimit.toString(),
-    value: toBeHex(decodedTx.value),
+    value: toHex(decodedTx.value),
     target: decodedTx.to ? toHexString(decodedTx.to) : null,
     data: toHexString(decodedTx.data),
     sig: {
-      v: parseSignatureVParam(decodedTx.signature.v, l2ChainId),
+      v: parseSignatureVParam(
+        decodedTx.signature.networkV || decodedTx.signature.v,
+        l2ChainId
+      ),
       r: toHexString(decodedTx.signature.r),
       s: toHexString(decodedTx.signature.s),
     },

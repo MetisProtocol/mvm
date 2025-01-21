@@ -67,9 +67,9 @@ export interface SequencerBatchAppendedExtraData extends ContextfulData {
   gasLimit: string
 
   // Stuff from TransactionBatchAppended.
-  prevTotalElements: bigint
-  batchIndex: bigint
-  batchSize: bigint
+  prevTotalElements: number
+  batchIndex: number
+  batchSize: number
   batchRoot: string
   batchExtraData: string
 

@@ -72,17 +72,16 @@ export class SpanBatch {
     if (this.batches.length === 0) {
       throw new Error('cannot merge empty singularBatch list')
     }
-    const spanStart = this.batches[0]
-    const spanEnd = this.batches[this.batches.length - 1]
 
     return new RawSpanBatch(
-      spanStart.timestamp,
-      spanEnd.epochNum,
       this.startBlock,
       this.parentCheck,
       this.l1OriginCheck,
       this.batches.length,
       this.originBits,
+      this.batches.map((b) => b.epochNum),
+      this.batches.map((b) => b.timestamp),
+      this.batches.map((b) => getBytes(b.extraData)),
       this.blockTxCounts,
       this.sbtxs
     )
@@ -98,6 +97,7 @@ export class SpanBatch {
     return {
       epochNum: singularBatch.epochNum,
       timestamp: singularBatch.timestamp,
+      extraData: singularBatch.extraData,
       transactions: singularBatch.transactions,
     }
   }
@@ -106,6 +106,7 @@ export class SpanBatch {
 export interface SpanBatchElement {
   epochNum: number
   timestamp: number
+  extraData: string
   transactions: L2Transaction[]
 }
 
@@ -113,19 +114,20 @@ export interface SpanBatchElement {
 //
 // SpanBatchType := 1
 // spanBatch := SpanBatchType ++ prefix ++ payload
-// prefix := rel_timestamp ++ l1_origin_num ++ parent_check ++ l1_origin_check
-// payload := block_count ++ origin_bits ++ block_tx_counts ++ txs
+// prefix := l2_start_block ++ parent_check ++ l1_origin_check
+// payload := block_count ++ origin_bits ++ l1_block_numbers ++ l1_block_timestamps ++ block_tx_counts ++ block_extra_datas(len+data) ++ txs
 // txs := contract_creation_bits ++ y_parity_bits(v) ++ tx_sigs(r & s) ++ tx_tos ++ tx_datas ++ tx_nonces ++ tx_gases ++ protected_bits
 //        ++ queue_origin_bits ++ seq_y_parity_bits(v) ++ tx_seq_sigs(r & s) ++ l1_tx_origins
 export class RawSpanBatch {
   constructor(
-    public l1Timestamp: number, // for here we use referenced l1 timestamp instead of the relative time
-    public l1OriginNum: number,
     public startBlock: number,
     public parentCheck: Uint8Array,
     public l1OriginCheck: Uint8Array,
     public blockCount: number,
     public originBits: bigint,
+    public l1Blocks: number[],
+    public l1BlockTimestamps: number[],
+    public extraDatas: Uint8Array[],
     public blockTxCounts: number[],
     public txs: SpanBatchTxs
   ) {}
@@ -140,8 +142,6 @@ export class RawSpanBatch {
   }
 
   private encodePrefix(writer: Writer): void {
-    writer.writeVarInt(this.l1Timestamp)
-    writer.writeVarInt(this.l1OriginNum)
     writer.writeVarInt(this.startBlock)
     writer.writeBytes(this.parentCheck)
     writer.writeBytes(this.l1OriginCheck)
@@ -150,8 +150,18 @@ export class RawSpanBatch {
   private encodePayload(writer: Writer): void {
     writer.writeVarInt(this.blockCount)
     encodeSpanBatchBits(writer, this.blockCount, this.originBits)
+    for (const l1Block of this.l1Blocks) {
+      writer.writeVarInt(l1Block)
+    }
+    for (const l1BlockTimestamp of this.l1BlockTimestamps) {
+      writer.writeVarInt(l1BlockTimestamp)
+    }
     for (const count of this.blockTxCounts) {
       writer.writeVarInt(count)
+    }
+    for (const extraData of this.extraDatas) {
+      writer.writeVarInt(extraData.length)
+      writer.writeBytes(extraData)
     }
     writer.writeBytes(this.txs.encode())
   }

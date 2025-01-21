@@ -16,6 +16,7 @@ import {
   BlockEntry,
   InboxSenderSetEntry,
   SenderType,
+  Upgrades,
 } from '../types/database-types'
 import { SimpleDB } from './simple-db'
 import { toBigInt, toNumber } from 'ethersv6'
@@ -42,10 +43,10 @@ const TRANSPORT_DB_KEYS = {
   MVM_CTC_INBOX_SENDER: `mvmctc:inboxsender`,
   BLOCK: `block`,
   UNCONFIRMED_BLOCK: `unconfirmed:block`,
+  UPGRADES: `upgrades`,
 
   // FDG required keys
-  L1_BLOCK_TO_L2_MAPPER_PREFIX: `l1tol2blockmapper:`,
-  L2_BLOCK_TO_L1_MAPPER_PREFIX: `l2tol1blockmapper:`,
+  STATE_ROOT_BATCH_HEADER_HASH_INDEX: `batch:stateheaderhashindex`,
 }
 
 interface Indexed {
@@ -114,6 +115,29 @@ export class TransportDB {
     entries: TransactionBatchEntry[]
   ): Promise<void> {
     await this._putEntries(TRANSPORT_DB_KEYS.TRANSACTION_BATCH, entries)
+  }
+
+  public async putStateRootBatchHeaderHashIndex(
+    hash: string,
+    index: number
+  ): Promise<void> {
+    await this.db.put([
+      {
+        key: TRANSPORT_DB_KEYS.STATE_ROOT_BATCH_HEADER_HASH_INDEX,
+        index: hash,
+        value: index,
+      },
+    ])
+  }
+
+  public async putUpgrades(upgrades: any): Promise<void> {
+    await this.db.put([
+      {
+        key: TRANSPORT_DB_KEYS.UPGRADES,
+        index: 0,
+        value: upgrades,
+      },
+    ])
   }
 
   public async putStateRootEntries(entries: StateRootEntry[]): Promise<void> {
@@ -303,6 +327,24 @@ export class TransportDB {
     return this._getEntryByIndex(TRANSPORT_DB_KEYS.TRANSACTION_BATCH, index)
   }
 
+  public async getStateHeaderByHash(
+    hash: string
+  ): Promise<StateRootBatchEntry> {
+    const stateBatchIndex = await this.db.get<number>(
+      TRANSPORT_DB_KEYS.STATE_ROOT_BATCH_HEADER_HASH_INDEX,
+      hash
+    )
+
+    if (stateBatchIndex === null) {
+      return null
+    }
+
+    return this._getEntryByIndex(
+      TRANSPORT_DB_KEYS.STATE_ROOT_BATCH,
+      stateBatchIndex
+    )
+  }
+
   public async getStateRootByIndex(index: number): Promise<StateRootEntry> {
     return this._getEntryByIndex(TRANSPORT_DB_KEYS.STATE_ROOT, index)
   }
@@ -438,82 +480,6 @@ export class TransportDB {
     ])
   }
 
-  public async getLastDerivedL1Block(l2ChainId: number): Promise<number> {
-    const derivedL1Blocks = await this.db.rangeKV<number, number>(
-      `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
-      0,
-      undefined, // set no limit to upper bound
-      true, // reads in reverse order
-      true // only needs to latest entry
-    )
-
-    return !derivedL1Blocks ? 0 : derivedL1Blocks[0].key
-  }
-
-  public async getL1OriginOfL2Block(
-    l2block: number,
-    l2ChainId: number
-  ): Promise<number> {
-    const l1Origin = await this.db.get<number>(
-      `${TRANSPORT_DB_KEYS.L2_BLOCK_TO_L1_MAPPER_PREFIX}${l2ChainId}`,
-      l2block
-    )
-
-    return !l1Origin ? 0 : l1Origin
-  }
-
-  // getL2SafeHeadFromL1Block returns the latest safe l2 block along with the corresponding l1 block number,
-  // the first element of the tuple is the l1 block number that is closet to the given l1 block number,
-  // the second element of the tuple is the safe l2 block number.
-  public async getL2SafeHeadFromL1Block(
-    l1block: number,
-    l2ChainId: number
-  ): Promise<[number, number]> {
-    const l2Blocks = await this.db.rangeKV<number, number>(
-      `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
-      0,
-      l1block,
-      true, // reads in reverse order
-      true // only needs to latest entry
-    )
-
-    return !l2Blocks ? [0, 0] : [l2Blocks[0].key, l2Blocks[0].value]
-  }
-
-  public async setL1BlockToL2BlockMapping(
-    l1block: number,
-    l2ChainId: number,
-    l2block: number
-  ): Promise<void> {
-    return this.db.put<number>([
-      {
-        key: `${TRANSPORT_DB_KEYS.L1_BLOCK_TO_L2_MAPPER_PREFIX}${l2ChainId}`,
-        index: l1block,
-        value: l2block,
-      },
-    ])
-  }
-
-  public async setL2BlockToL1BlockMapping(
-    l1block: number,
-    l2ChainId: number,
-    l2blocks: number[]
-  ): Promise<void> {
-    if (!l2blocks) {
-      return
-    }
-
-    return this.db.put<number>(
-      l2blocks.map((l2block) => {
-        return {
-          key: `${TRANSPORT_DB_KEYS.L2_BLOCK_TO_L1_MAPPER_PREFIX}${l2ChainId}`,
-          index: l2block,
-          value: l1block,
-        }
-      })
-    )
-  }
-
   public async getStartingL1Block(): Promise<number> {
     return this.db.get<number>(TRANSPORT_DB_KEYS.STARTING_L1_BLOCK, 0)
   }
@@ -583,6 +549,10 @@ export class TransportDB {
     return this.getFullTransactionByIndex(
       await this._getLatestEntryIndex(TRANSPORT_DB_KEYS.TRANSACTION)
     )
+  }
+
+  public async getUpgrades(): Promise<Upgrades> {
+    return this.db.get(TRANSPORT_DB_KEYS.UPGRADES, 0)
   }
 
   public async getFullTransactionsByIndexRange(
@@ -751,7 +721,7 @@ export class TransportDB {
 
   private async _getEntryByIndex<TEntry extends Indexed>(
     key: string,
-    index: number
+    index: number | string
   ): Promise<TEntry | null> {
     if (index === null) {
       return null

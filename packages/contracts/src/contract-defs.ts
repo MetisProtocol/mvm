@@ -48,13 +48,14 @@ export const loadContractFromManager = async (args: {
   proxy?: string
   Lib_AddressManager: ethers.Contract
   provider: ethers.providers.JsonRpcProvider
+  ifaceName?: string
 }): Promise<ethers.Contract> => {
-  const { name, proxy, Lib_AddressManager, provider } = args
+  const { name, proxy, Lib_AddressManager, provider, ifaceName } = args
   const address = await Lib_AddressManager.getAddress(proxy ? proxy : name)
   if (address === ethers.constants.AddressZero) {
     throw new Error(
       `Lib_AddressManager does not have a record for a contract named: ${name}`
     )
   }
-  return loadContract(name, address, provider)
+  return loadContract(ifaceName || name, address, provider)
 }

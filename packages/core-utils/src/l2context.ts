@@ -28,6 +28,9 @@ export class L2Provider extends JsonRpcProvider {
     const txResponseAny = txResponse as any
 
     txResponseAny.l1BlockNumber = toNumber(anyTx.l1BlockNumber)
+    txResponseAny.l1Timestamp = toNumber(anyTx.l1Timestamp)
+    txResponseAny.queueIndex = toNumber(anyTx.queueIndex)
+    txResponseAny.index = toNumber(anyTx.index)
     txResponseAny.l1TxOrigin = anyTx.l1TxOrigin
     txResponseAny.queueOrigin = anyTx.queueOrigin
     txResponseAny.rawTransaction = anyTx.rawTransaction

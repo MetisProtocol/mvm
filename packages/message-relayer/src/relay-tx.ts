@@ -6,7 +6,7 @@ import {
   toHexString,
   toRpcHexString,
 } from '@metis.io/core-utils'
-import { getContractInterface, predeploys } from '@metis.io/contracts'
+import { getContractInterface, predeploys } from '@localtest911/contracts'
 import * as rlp from 'rlp'
 import { MerkleTree } from 'merkletreejs'
 
@@ -131,7 +131,7 @@ export const getStateBatchAppendedEventByTransactionIndex = async (
 ): Promise<ethers.Event | null> => {
   const l1StateCommitmentChain = new ethers.Contract(
     l1StateCommitmentChainAddress,
-    getContractInterface('StateCommitmentChain'),
+    getContractInterface('MVM_StateCommitmentChain'),
     l1RpcProvider
   )
 
@@ -213,7 +213,7 @@ export const getStateRootBatchByTransactionIndex = async (
 ): Promise<StateRootBatch | null> => {
   const l1StateCommitmentChain = new ethers.Contract(
     l1StateCommitmentChainAddress,
-    getContractInterface('StateCommitmentChain'),
+    getContractInterface('MVM_StateCommitmentChain'),
     l1RpcProvider
   )
 

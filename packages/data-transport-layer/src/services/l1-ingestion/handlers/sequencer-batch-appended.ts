@@ -1,7 +1,7 @@
 /* Imports: External */
 import { Contract, ethers, EventLog, toBigInt, toNumber } from 'ethersv6'
 import { MerkleTree } from 'merkletreejs'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 import {
   EventArgsSequencerBatchAppended,
   fromHexString,
@@ -174,9 +174,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         )
 
         transactionEntries.push({
-          index: toNumber(
-            extraData.prevTotalElements + toBigInt(transactionIndex)
-          ),
+          index: toNumber(extraData.prevTotalElements + transactionIndex),
           batchIndex: toNumber(extraData.batchIndex),
           blockNumber: toNumber(context.blockNumber),
           timestamp: toNumber(context.timestamp),
@@ -197,11 +195,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
             new ethers.AbiCoder().encode(
               ['uint256', 'bytes'],
               [
-                toNumber(
-                  extraData.prevTotalElements +
-                    toBigInt(transactionIndex) +
-                    toBigInt(1)
-                ),
+                toNumber(extraData.prevTotalElements + transactionIndex + 1),
                 parseMerkleLeafFromSequencerBatchTransaction(
                   calldata,
                   nextTxPointer
@@ -228,15 +222,11 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
         // was submitted to CTC as part of the context. use the timestamp in the context otherwise
         // the batch timestamp will be inconsistent with the main node.
         transactionEntries.push({
-          index: toNumber(
-            extraData.prevTotalElements + toBigInt(transactionIndex)
-          ),
+          index: toNumber(extraData.prevTotalElements + transactionIndex),
           batchIndex: toNumber(extraData.batchIndex),
           blockNumber: 0,
           timestamp:
-            toNumber(
-              extraData.prevTotalElements + toBigInt(transactionIndex)
-            ) <= 2287472
+            toNumber(extraData.prevTotalElements + transactionIndex) <= 2287472
               ? 0
               : toNumber(context.timestamp), //timestamp needs to be consistent
           gasLimit: toBigInt(0).toString(),

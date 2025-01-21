@@ -25,6 +25,9 @@ export enum QueueOrigin {
  */
 export interface L2Transaction extends ethers.TransactionResponse {
   l1BlockNumber: number
+  l1Timestamp: number
+  index: number
+  queueIndex: number
   l1TxOrigin: string
   queueOrigin: string
   rawTransaction: string

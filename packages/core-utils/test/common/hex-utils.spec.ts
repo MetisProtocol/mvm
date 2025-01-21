@@ -9,7 +9,7 @@ import {
   toHexString,
   padHexString,
 } from '../../src'
-import { toBigInt } from 'ethers'
+import { toBigInt } from 'ethersv6'
 
 describe('remove0x', () => {
   it('should return undefined', () => {

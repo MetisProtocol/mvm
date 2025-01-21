@@ -8,7 +8,7 @@ import {
   toNumber,
   TransactionReceipt,
 } from 'ethersv6'
-import { getContractDefinition } from '@metis.io/contracts'
+import { getContractDefinition } from '@localtest911/contracts'
 import { Bytes32, L2Block, remove0x, RollupInfo } from '@metis.io/core-utils'
 import { Logger, Metrics } from '@eth-optimism/common-ts'
 
@@ -32,6 +32,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
   private inboxStorage: InboxStorage
   private seqsetValidHeight: number
   private seqsetUpgradeOnly: boolean
+  private fpChainContract: Contract
+  private fpUpgraded: boolean = false
 
   constructor(
     signer: Signer,
@@ -98,14 +100,13 @@ export class StateBatchSubmitter extends BatchSubmitter {
       process.exit(1)
     }
     this.syncing = info.syncing
-    const addrs = await this._getChainAddresses()
-    const sccAddress = addrs.sccAddress
-    const ctcAddress = addrs.ctcAddress
+    const { sccAddress, ctcAddress } = await this._getChainAddresses()
 
     if (
       typeof this.chainContract !== 'undefined' &&
       sccAddress === (await this.chainContract.getAddress()) &&
-      ctcAddress === (await this.ctcContract.getAddress())
+      ctcAddress === (await this.ctcContract.getAddress()) &&
+      sccAddress === (await this.fpChainContract.getAddress())
     ) {
       this.logger.debug('Chain contract already initialized', {
         sccAddress,
@@ -126,9 +127,15 @@ export class StateBatchSubmitter extends BatchSubmitter {
       this.signer
     )
 
+    this.fpChainContract = new Contract(
+      sccAddress,
+      getContractDefinition('MVM_StateCommitmentChain').abi,
+      this.signer
+    )
+
     this.logger.info('Connected Optimism contracts', {
-      stateCommitmentChain: this.chainContract.address,
-      canonicalTransactionChain: this.ctcContract.address,
+      stateCommitmentChain: await this.chainContract.getAddress(),
+      canonicalTransactionChain: await this.ctcContract.getAddress(),
     })
     return
   }
@@ -138,11 +145,27 @@ export class StateBatchSubmitter extends BatchSubmitter {
     return
   }
 
+  public async _updateFPUpgradeStatus(): Promise<void> {
+    if (!this.fpUpgraded) {
+      try {
+        // dry run: try to call a function that only exists on the upgraded contract
+        await this.fpChainContract.DISPUTE_GAME_FACTORY_NAME()
+        this.fpUpgraded = true
+        this.logger.info('Fraud proof upgrade enabled on SCC!')
+      } catch (e) {
+        this.logger.info('Fraud proof upgrade not enabled on SCC yet...', {
+          error: e,
+        })
+      }
+    }
+  }
+
   public async _getBatchStartAndEnd(): Promise<BlockRange> {
     this.logger.info('Getting batch start and end for state batch submitter...')
+
     const startBlock: number =
       toNumber(
-        await this.chainContract.getTotalElementsByChainId(this.l2ChainId)
+        await this.fpChainContract.getTotalElementsByChainId(this.l2ChainId)
       ) + this.blockOffset
     this.logger.info('Retrieved start block number from SCC', {
       startBlock,
@@ -235,10 +258,20 @@ export class StateBatchSubmitter extends BatchSubmitter {
     // eslint-disable-next-line radix
     const proposer = parseInt(this.l2ChainId.toString()) + '_MVM_Proposer'
     const batch = await this._generateStateCommitmentBatch(startBlock, endBlock)
-    const calldata = this.chainContract.interface.encodeFunctionData(
+    const sccContract = this.fpUpgraded
+      ? this.fpChainContract
+      : this.chainContract
+    let args = [this.l2ChainId, batch.stateRoots, startBlock, proposer]
+    if (this.fpUpgraded) {
+      args.push(batch.blockHash)
+      args.push(batch.blockNumber)
+    }
+
+    const calldata = sccContract.interface.encodeFunctionData(
       'appendStateBatchByChainId',
-      [this.l2ChainId, batch, startBlock, proposer]
+      args
     )
+
     const batchSizeInBytes = remove0x(calldata).length / 2
     this.logger.debug('State batch generated', {
       batchSizeInBytes,
@@ -265,15 +298,14 @@ export class StateBatchSubmitter extends BatchSubmitter {
     // Generate the transaction we will repeatedly submit
     const nonce = await this.signer.getNonce() //mpc address , 2 mpc addresses
     // state ctc are different signer addresses.
-    const tx = await this.chainContract
+    args = [this.l2ChainId, batch.stateRoots, offsetStartsAtIndex, proposer]
+    if (this.fpUpgraded) {
+      args.push(batch.blockHash)
+      args.push(batch.blockNumber)
+    }
+    const tx = await sccContract
       .getFunction('appendStateBatchByChainId')
-      .populateTransaction(
-        this.l2ChainId,
-        batch,
-        offsetStartsAtIndex,
-        proposer,
-        { nonce }
-      )
+      .populateTransaction(...args, { nonce })
 
     // MPC enabled: prepare nonce, gasPrice
     if (this.mpcUrl) {
@@ -363,9 +395,17 @@ export class StateBatchSubmitter extends BatchSubmitter {
   private async _generateStateCommitmentBatch(
     startBlock: number,
     endBlock: number
-  ): Promise<Bytes32[]> {
+  ): Promise<{
+    stateRoots: Bytes32[]
+    blockHash: Bytes32
+    blockNumber: number
+  }> {
     const blockRange = endBlock - startBlock
-    const batch: Bytes32[] = await bPromise.map(
+    const batch: {
+      stateRoot: Bytes32
+      blockHash: Bytes32
+      blockNumber: number
+    }[] = await bPromise.map(
       [...Array(blockRange).keys()],
       async (i: number) => {
         this.logger.debug('Fetching L2BatchElement', {
@@ -385,32 +425,64 @@ export class StateBatchSubmitter extends BatchSubmitter {
             fraudSubmissionAddress: this.fraudSubmissionAddress,
           })
           this.fraudSubmissionAddress = 'no fraud'
-          return '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1'
+          return {
+            stateRoot:
+              '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1',
+            blockHash:
+              '0xbad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1',
+            blockNumber: startBlock + i,
+          }
         }
-        return block.stateRoot
+        return {
+          stateRoot: block.stateRoot,
+          blockHash: block.hash,
+          blockNumber: startBlock + i,
+        }
       },
       { concurrency: 100 }
     )
 
     const proposer = this.l2ChainId + '_MVM_Proposer'
-    let tx = this.chainContract.interface.encodeFunctionData(
+    let stateRoots = batch.map((b) => b.stateRoot)
+    const sccContract = this.fpUpgraded
+      ? this.fpChainContract
+      : this.chainContract
+
+    let args = [this.l2ChainId, stateRoots, startBlock, proposer]
+    if (this.fpUpgraded) {
+      args.push(batch[batch.length - 1].blockHash)
+      args.push(batch[batch.length - 1].blockNumber)
+    }
+
+    let tx = sccContract.interface.encodeFunctionData(
       'appendStateBatchByChainId',
-      [this.l2ChainId, batch, startBlock, proposer]
+      args
     )
     while (remove0x(tx).length / 2 > this.maxTxSize) {
       batch.splice(Math.ceil((batch.length * 2) / 3)) // Delete 1/3rd of all of the batch elements
       this.logger.debug('Splicing batch...', {
         batchSizeInBytes: tx.length / 2,
       })
-      tx = this.chainContract.interface.encodeFunctionData(
+      stateRoots = batch.map((b) => b.stateRoot)
+      args = [this.l2ChainId, stateRoots, startBlock, proposer]
+      if (this.fpUpgraded) {
+        args.push(batch[batch.length - 1].blockHash)
+        args.push(batch[batch.length - 1].blockNumber)
+      }
+
+      tx = sccContract.interface.encodeFunctionData(
         'appendStateBatchByChainId',
-        [this.l2ChainId, batch, startBlock, proposer]
+        args
       )
     }
 
     this.logger.info('Generated state commitment batch', {
-      batch, // list of stateRoots
+      stateRoots, // list of stateRoots
     })
-    return batch
+    return {
+      stateRoots,
+      blockHash: batch[batch.length - 1].blockHash,
+      blockNumber: batch[batch.length - 1].blockNumber,
+    }
   }
 }

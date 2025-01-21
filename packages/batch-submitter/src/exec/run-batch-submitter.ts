@@ -84,6 +84,9 @@ interface RequiredEnvVars {
   // seq set finalize block options
   SEQSET_VALID_HEIGHT: number
   SEQSET_CONTRACT: string
+
+  // fp settings
+  FP_VALID_HEIGHT: number
 }
 
 /* Optional Env Vars
@@ -167,7 +170,7 @@ export const run = async () => {
   )
 
   const getBlobSigner = async (): Promise<Signer> => {
-    if (useHardhat && USE_BLOB) {
+    if (useHardhat) {
       if (!DEBUG_IMPERSONATE_BLOB_ADDRESS) {
         throw new Error('Must pass DEBUG_IMPERSONATE_BLOB_ADDRESS')
       }
@@ -291,7 +294,10 @@ export const run = async () => {
     env.SEQUENCER_PRIVATE_KEY
   )
   // dedicated private key for signing blob txs
-  const BLOB_PRIVATE_KEY = config.str('blob-private-key', env.BLOB_PRIVATE_KEY)
+  const BLOB_PRIVATE_KEY = config.str(
+    'blob-private-key',
+    env.BLOB_PRIVATE_KEY || ''
+  )
   // Kept for backwards compatibility
   const PROPOSER_PRIVATE_KEY = config.str(
     'proposer-private-key',
@@ -325,12 +331,6 @@ export const run = async () => {
   const VALIDATE_TX_BATCH = config.bool(
     'validate-tx-batch',
     env.VALIDATE_TX_BATCH ? env.VALIDATE_TX_BATCH === 'true' : false
-  )
-
-  // Blob DA
-  const USE_BLOB = config.bool(
-    'use-blob',
-    env.USE_BLOB ? env.USE_BLOB === 'true' : false
   )
 
   // Auto fix batch options -- TODO: Remove this very hacky config
@@ -453,6 +453,11 @@ export const run = async () => {
       parseInt(env.SEQSET_VALID_HEIGHT, 10)
     ),
     SEQSET_CONTRACT: config.str('seqset-contract', env.SEQSET_CONTRACT),
+
+    FP_VALID_HEIGHT: config.uint(
+      'fp-valid-height',
+      parseInt(env.FP_VALID_HEIGHT, 10)
+    ),
   }
 
   for (const [key, val] of Object.entries(requiredEnvVars)) {
@@ -483,16 +488,11 @@ export const run = async () => {
   const l2Provider = new L2Provider(requiredEnvVars.L2_NODE_WEB3_URL)
   const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
 
-  if (requiredEnvVars.MINIO_ENABLED && USE_BLOB) {
-    logger.error(
-      'Cannot use both Memo and Blob as DA, you can only choose one from them'
-    )
-    process.exit(1)
-  }
-
   const sequencerSigner: Signer = await getSequencerSigner()
+  const localBlobSignerConfigured =
+    BLOB_PRIVATE_KEY || (BLOB_MNEMONIC && BLOB_HD_PATH)
   let blobSigner: Signer
-  if (USE_BLOB) {
+  if (localBlobSignerConfigured) {
     blobSigner = await getBlobSigner()
   }
   let proposerSigner: Signer = await getProposerSigner()
@@ -510,11 +510,9 @@ export const run = async () => {
     addressManagerAddress: requiredEnvVars.ADDRESS_MANAGER_ADDRESS,
   })
 
-  if (USE_BLOB) {
-    logger.info('Blob DA enabled, initializing KZG trusted setup...')
-    // initialize KZG trusted setup, required for blob DA
-    loadTrustedSetup(0)
-  }
+  logger.info('Initializing KZG trusted setup...')
+  // initialize KZG trusted setup, required for blob DA
+  loadTrustedSetup(0)
 
   const resubmissionConfig: ResubmissionConfig = {
     resubmissionTimeout: requiredEnvVars.RESUBMISSION_TIMEOUT * 1_000,
@@ -528,7 +526,7 @@ export const run = async () => {
       resubmissionConfig,
       requiredEnvVars.NUM_CONFIRMATIONS
     )
-  const blobTxSubmitter: TransactionSubmitter = USE_BLOB
+  const blobTxSubmitter: TransactionSubmitter = localBlobSignerConfigured
     ? new YnatmTransactionSubmitter(
         blobSigner,
         resubmissionConfig,
@@ -586,7 +584,7 @@ export const run = async () => {
     requiredEnvVars.SEQSET_VALID_HEIGHT,
     requiredEnvVars.SEQSET_CONTRACT,
     SEQSET_UPGRADE_ONLY,
-    USE_BLOB
+    requiredEnvVars.FP_VALID_HEIGHT
   )
 
   const stateBatchTxSubmitter: TransactionSubmitter =
@@ -676,8 +674,31 @@ export const run = async () => {
       }
     }
 
+    let fpUpgraded = false
     while (!stopped) {
       try {
+        let currentL1Height = 0
+        if (!fpUpgraded) {
+          currentL1Height = await l1Provider.getBlockNumber()
+          fpUpgraded = currentL1Height >= requiredEnvVars.FP_VALID_HEIGHT
+        }
+        if (!fpUpgraded) {
+          const upgradeDistance =
+            requiredEnvVars.FP_VALID_HEIGHT - currentL1Height
+          if (upgradeDistance > 0 && upgradeDistance <= 50) {
+            logger.info(
+              'Close to FP upgrade height, to avoid missing the target, we will pause here until the upgrade height has been reached...',
+              {
+                upgradeHeight: requiredEnvVars.FP_VALID_HEIGHT,
+                currentHeight: currentL1Height,
+                blocksLeft: upgradeDistance,
+              }
+            )
+
+            continue
+          }
+        }
+
         await func()
       } catch (err) {
         switch (err.code) {

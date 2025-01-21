@@ -1,6 +1,6 @@
 /* Imports: External */
-import { getContractDefinition } from '@metis.io/contracts'
-import { Contract, Interface, toNumber } from 'ethersv6'
+import { getContractDefinition } from '@localtest911/contracts'
+import { Interface, toNumber, ethers } from 'ethersv6'
 
 /* Imports: Internal */
 import {
@@ -38,13 +38,33 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
       l1TransactionData: l1Transaction.data,
     }
   },
-  parseEvent: async (event, extraData) => {
-    const stateRoots = new Interface(
-      getContractDefinition('StateCommitmentChain').abi
-    ).decodeFunctionData(
-      'appendStateBatchByChainId',
-      extraData.l1TransactionData
-    )[1]
+  parseEvent: async (event, extraData, chainId, options) => {
+    const decodeTx = (abi: string) =>
+      new Interface(getContractDefinition(abi).abi).decodeFunctionData(
+        'appendStateBatchByChainId',
+        extraData.l1TransactionData
+      )[1]
+
+    let stateRoots: any
+    const chainDb = await options.dbs.getTransportDbByChainId(options.l2ChainId)
+    const upgrades = await chainDb.getUpgrades()
+    if (upgrades && upgrades.fpUpgraded) {
+      stateRoots = decodeTx('IMVMStateCommitmentChain')
+    } else {
+      // decode the tx with the new interface, if it fails, try the old one
+      try {
+        stateRoots = decodeTx('IMVMStateCommitmentChain')
+        await chainDb.putUpgrades(
+          upgrades
+            ? { ...upgrades, fpUpgraded: true }
+            : {
+                fpUpgraded: true,
+              }
+        )
+      } catch (e) {
+        stateRoots = decodeTx('IStateCommitmentChain')
+      }
+    }
 
     const stateRootEntries: StateRootEntry[] = []
     for (let i = 0; i < stateRoots.length; i++) {
@@ -89,7 +109,23 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
       }
     }
 
+    const packedHeader = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['bytes32', 'uint256', 'uint256', 'bytes'],
+      [
+        entry.stateRootBatchEntry.root,
+        entry.stateRootBatchEntry.size,
+        entry.stateRootBatchEntry.prevTotalElements,
+        entry.stateRootBatchEntry.extraData,
+      ]
+    )
+
+    const headerHash = ethers.keccak256(packedHeader)
+
     await db.putStateRootBatchEntries([entry.stateRootBatchEntry])
     await db.putStateRootEntries(entry.stateRootEntries)
+    await db.putStateRootBatchHeaderHashIndex(
+      headerHash,
+      entry.stateRootBatchEntry.index
+    )
   },
 }
