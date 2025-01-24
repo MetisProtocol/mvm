@@ -262,7 +262,9 @@ const getImplDeploymentInfo = async (
 
   // Look for network specific files
   const files = fs.readdirSync(ozDirPath)
-  const networkFile = files.find((f) => f.endsWith(`-${chainId}.json`))
+  const networkFile = files.find(
+    (f) => f.endsWith(`-${chainId}.json`) || f.endsWith(`${network.name}.json`)
+  )
   if (!networkFile) {
     return null
   }

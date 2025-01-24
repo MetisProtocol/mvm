@@ -3,6 +3,7 @@ import {
   deployAndRegister,
   getDeployedContract,
 } from '../src/hardhat-deploy-ethers'
+import { ethers } from 'ethers'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
@@ -41,7 +42,7 @@ const deployFn: DeployFunction = async (hre) => {
     name: 'PermissionedDisputeGame',
     contract: 'PermissionedDisputeGame',
     args: [
-      1, // gameType 0 for permissionless game
+      1, // gameType 1 for permissioned game
       (hre as any).deployConfig.absolutePrestate, // absolutePrestate of mips program
       73, // maxGameDepth
       30, // splitDepth
@@ -64,6 +65,9 @@ const deployFn: DeployFunction = async (hre) => {
 
   console.log('Registering PermissionedDisputeGame to DisputeGameFactory...')
   await disputeGameFactory.setImplementation(1, faultDisputeGame.address)
+
+  console.log('Setting init bond for PermissionedDisputeGame...')
+  await disputeGameFactory.setInitBond(0, ethers.utils.parseEther('0.08'))
 }
 
 deployFn.tags = ['PermissionedDisputeGame', 'game', 'faultproof']

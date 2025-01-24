@@ -1,0 +1,974 @@
+{
+  "address": "0x49Ef14ab59E3b27C524471F6114642247f2704dB",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_delay",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "src",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "guy",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "Approval",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "dst",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "Deposit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "version",
+          "type": "uint8"
+        }
+      ],
+      "name": "Initialized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "src",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "dst",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "Transfer",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "src",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "Unwrap",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "src",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "Withdrawal",
+      "type": "event"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "fallback"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "allowance",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "guy",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "approve",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "config",
+      "outputs": [
+        {
+          "internalType": "contract MetisConfig",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "delay",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "deposit",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_guy",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "hold",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_owner",
+          "type": "address"
+        },
+        {
+          "internalType": "contract MetisConfig",
+          "name": "_config",
+          "type": "address"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "name",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "recover",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "symbol",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalSupply",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "dst",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "transfer",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "src",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "dst",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "transferFrom",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_guy",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "unlock",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_guy",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_wad",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "withdrawals",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ],
+  "transactionHash": "0x437a40a328cf3feea4eb98f34f27706426a6614f0cef54a057a5002581fe9142",
+  "receipt": {
+    "to": null,
+    "from": "0xE2e7d70f6D8D9BF07774d22Bf55D6C5f9B2521A1",
+    "contractAddress": "0x49Ef14ab59E3b27C524471F6114642247f2704dB",
+    "transactionIndex": 173,
+    "gasUsed": "1177306",
+    "logsBloom": "0x00000000000000000000000000000000000000010000000000800000000000000002000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000020000000000000000000800000000000000000000000000000000400000000080000000000000000000000000000000000088000000000000000800000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xb1bee363e47c09a693bd3eeed00e44ff9f0c17dccc5e17080eb8152cfb7ec121",
+    "transactionHash": "0x437a40a328cf3feea4eb98f34f27706426a6614f0cef54a057a5002581fe9142",
+    "logs": [
+      {
+        "transactionIndex": 173,
+        "blockNumber": 7551862,
+        "transactionHash": "0x437a40a328cf3feea4eb98f34f27706426a6614f0cef54a057a5002581fe9142",
+        "address": "0x49Ef14ab59E3b27C524471F6114642247f2704dB",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x000000000000000000000000e2e7d70f6d8d9bf07774d22bf55d6c5f9b2521a1"
+        ],
+        "data": "0x",
+        "logIndex": 293,
+        "blockHash": "0xb1bee363e47c09a693bd3eeed00e44ff9f0c17dccc5e17080eb8152cfb7ec121"
+      },
+      {
+        "transactionIndex": 173,
+        "blockNumber": 7551862,
+        "transactionHash": "0x437a40a328cf3feea4eb98f34f27706426a6614f0cef54a057a5002581fe9142",
+        "address": "0x49Ef14ab59E3b27C524471F6114642247f2704dB",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x000000000000000000000000e2e7d70f6d8d9bf07774d22bf55d6c5f9b2521a1",
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ],
+        "data": "0x",
+        "logIndex": 294,
+        "blockHash": "0xb1bee363e47c09a693bd3eeed00e44ff9f0c17dccc5e17080eb8152cfb7ec121"
+      },
+      {
+        "transactionIndex": 173,
+        "blockNumber": 7551862,
+        "transactionHash": "0x437a40a328cf3feea4eb98f34f27706426a6614f0cef54a057a5002581fe9142",
+        "address": "0x49Ef14ab59E3b27C524471F6114642247f2704dB",
+        "topics": [
+          "0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498"
+        ],
+        "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "logIndex": 295,
+        "blockHash": "0xb1bee363e47c09a693bd3eeed00e44ff9f0c17dccc5e17080eb8152cfb7ec121"
+      }
+    ],
+    "blockNumber": 7551862,
+    "cumulativeGasUsed": "15815540",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    604800
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "d4ef876c21b9fffbee7cb8c376509b73",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.15+commit.e14f2714\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_delay\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"src\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"guy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"wad\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"dst\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"wad\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"src\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"dst\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"wad\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"src\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"wad\",\"type\":\"uint256\"}],\"name\":\"Unwrap\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"src\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"wad\",\"type\":\"uint256\"}],\"name\":\"Withdrawal\",\"type\":\"event\"},{\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"guy\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"wad\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"config\",\"outputs\":[{\"internalType\":\"contract MetisConfig\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"delay\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_guy\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_wad\",\"type\":\"uint256\"}],\"name\":\"hold\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"contract MetisConfig\",\"name\":\"_config\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_wad\",\"type\":\"uint256\"}],\"name\":\"recover\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"dst\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"wad\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"src\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"dst\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"wad\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_guy\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_wad\",\"type\":\"uint256\"}],\"name\":\"unlock\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_wad\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_guy\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_wad\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"withdrawals\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"approve(address,uint256)\":{\"params\":{\"guy\":\"The address that is approved to transfer the WETH.\",\"wad\":\"The amount that is approved to transfer.\"},\"returns\":{\"_0\":\"True if the approval was successful.\"}},\"constructor\":{\"params\":{\"_delay\":\"The delay for withdrawals in seconds.\"}},\"delay()\":{\"returns\":{\"_0\":\"The withdrawal delay in seconds.\"}},\"hold(address,uint256)\":{\"params\":{\"_guy\":\"The address to recover the WETH from.\",\"_wad\":\"The amount of WETH to recover.\"}},\"initialize(address,address)\":{\"params\":{\"_config\":\"Address of the SuperchainConfig contract.\",\"_owner\":\"The address of the owner.\"}},\"name()\":{\"returns\":{\"_0\":\"The name of the token.\"}},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"recover(uint256)\":{\"params\":{\"_wad\":\"The amount of WETH to recover.\"}},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.\"},\"symbol()\":{\"returns\":{\"_0\":\"The symbol of the token.\"}},\"totalSupply()\":{\"returns\":{\"_0\":\"The total supply of WETH.\"}},\"transfer(address,uint256)\":{\"params\":{\"dst\":\"The address to transfer the WETH to.\",\"wad\":\"The amount of WETH to transfer.\"},\"returns\":{\"_0\":\"True if the transfer was successful.\"}},\"transferFrom(address,address,uint256)\":{\"params\":{\"dst\":\"The address to transfer the WETH to.\",\"src\":\"The address to transfer the WETH from.\",\"wad\":\"The amount of WETH to transfer.\"},\"returns\":{\"_0\":\"True if the transfer was successful.\"}},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"},\"unlock(address,uint256)\":{\"params\":{\"_guy\":\"Sub-account to unlock.\",\"_wad\":\"The amount of WETH to unlock.\"}},\"withdraw(address,uint256)\":{\"params\":{\"_guy\":\"Sub-account to withdraw from.\",\"_wad\":\"The amount of WETH to withdraw.\"}},\"withdraw(uint256)\":{\"params\":{\"wad\":\"The amount of ETH to withdraw.\"}}},\"stateVariables\":{\"version\":{\"custom:semver\":\"1.1.0-rc.1\"},\"withdrawals\":{\"params\":{\"_guy\":\"Sub-account to query the withdrawal request of.\",\"_owner\":\"The address to query the withdrawal request of.\"},\"return\":\"amount The withdrawal request for the given address-subaccount pair.\",\"returns\":{\"amount\":\"The withdrawal request for the given address-subaccount pair.\"}}},\"title\":\"DelayedWETH\",\"version\":1},\"userdoc\":{\"events\":{\"Approval(address,address,uint256)\":{\"notice\":\"Emitted when an approval is made.\"},\"Deposit(address,uint256)\":{\"notice\":\"Emitted when a deposit is made.\"},\"Transfer(address,address,uint256)\":{\"notice\":\"Emitted when a transfer is made.\"},\"Unwrap(address,uint256)\":{\"notice\":\"Emitted when an unwrap is started.\"},\"Withdrawal(address,uint256)\":{\"notice\":\"Emitted when a withdrawal is made.\"}},\"kind\":\"user\",\"methods\":{\"allowance(address,address)\":{\"notice\":\"Returns the amount of WETH that the spender can transfer on behalf of the owner.\"},\"approve(address,uint256)\":{\"notice\":\"Approves the given address to transfer the WETH on behalf of the caller.\"},\"balanceOf(address)\":{\"notice\":\"Returns the balance of the given address.\"},\"config()\":{\"notice\":\"Address of the MetisConfig contract.\"},\"decimals()\":{\"notice\":\"Returns the number of decimals the token uses.\"},\"delay()\":{\"notice\":\"Returns the withdrawal delay in seconds.\"},\"deposit()\":{\"notice\":\"Allows WETH to be deposited by sending ether to the contract.\"},\"hold(address,uint256)\":{\"notice\":\"Allows the owner to recover from error cases by pulling ETH from a specific owner.\"},\"initialize(address,address)\":{\"notice\":\"Initializes the contract.\"},\"name()\":{\"notice\":\"Returns the name of the token.\"},\"recover(uint256)\":{\"notice\":\"Allows the owner to recover from error cases by pulling ETH out of the contract.\"},\"symbol()\":{\"notice\":\"Returns the symbol of the token.\"},\"totalSupply()\":{\"notice\":\"Returns the total supply of WETH.\"},\"transfer(address,uint256)\":{\"notice\":\"Transfers the given amount of WETH to the given address.\"},\"transferFrom(address,address,uint256)\":{\"notice\":\"Transfers the given amount of WETH from the given address to the given address.\"},\"unlock(address,uint256)\":{\"notice\":\"Unlocks withdrawals for the sender's account, after a time delay.\"},\"version()\":{\"notice\":\"Semantic version.\"},\"withdraw(address,uint256)\":{\"notice\":\"Extension to withdrawal, must provide a sub-account to withdraw from.\"},\"withdraw(uint256)\":{\"notice\":\"Withdraws an amount of ETH.\"},\"withdrawals(address,address)\":{\"notice\":\"Returns a withdrawal request for the given address.\"}},\"notice\":\"DelayedWETH is an extension to WETH9 that allows for delayed withdrawals. Accounts must trigger an unlock         function before they can withdraw WETH. Accounts must trigger unlock by specifying a sub-account and an         amount of WETH to unlock. Accounts can trigger the unlock function at any time, but must wait a delay         period before they can withdraw after the unlock function is triggered. DelayedWETH is designed to be used         by the DisputeGame contracts where unlock will only be triggered after a dispute is resolved. DelayedWETH         is meant to sit behind a proxy contract and has an owner address that can pull WETH from any account and         can recover ETH from the contract itself. Variable and function naming vaguely follows the vibe of WETH9.         Not the prettiest contract in the world, but it gets the job done.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/L1/dispute/weth/DelayedWETH.sol\":\"DelayedWETH\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":5000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/ContextUpgradeable.sol\\\";\\nimport \\\"../proxy/utils/Initializable.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    function __Ownable_init() internal onlyInitializing {\\n        __Ownable_init_unchained();\\n    }\\n\\n    function __Ownable_init_unchained() internal onlyInitializing {\\n        _transferOwnership(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions anymore. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby removing any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n\\n    /**\\n     * @dev This empty reserved space is put in place to allow future versions to add new\\n     * variables without shifting down storage in the inheritance chain.\\n     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps\\n     */\\n    uint256[49] private __gap;\\n}\\n\",\"keccak256\":\"0x247c62047745915c0af6b955470a72d1696ebad4352d7d3011aef1a2463cd888\",\"license\":\"MIT\"},\"@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (proxy/utils/Initializable.sol)\\n\\npragma solidity ^0.8.2;\\n\\nimport \\\"../../utils/AddressUpgradeable.sol\\\";\\n\\n/**\\n * @dev This is a base contract to aid in writing upgradeable contracts, or any kind of contract that will be deployed\\n * behind a proxy. Since proxied contracts do not make use of a constructor, it's common to move constructor logic to an\\n * external initializer function, usually called `initialize`. It then becomes necessary to protect this initializer\\n * function so it can only be called once. The {initializer} modifier provided by this contract will have this effect.\\n *\\n * The initialization functions use a version number. Once a version number is used, it is consumed and cannot be\\n * reused. This mechanism prevents re-execution of each \\\"step\\\" but allows the creation of new initialization steps in\\n * case an upgrade adds a module that needs to be initialized.\\n *\\n * For example:\\n *\\n * [.hljs-theme-light.nopadding]\\n * ```\\n * contract MyToken is ERC20Upgradeable {\\n *     function initialize() initializer public {\\n *         __ERC20_init(\\\"MyToken\\\", \\\"MTK\\\");\\n *     }\\n * }\\n * contract MyTokenV2 is MyToken, ERC20PermitUpgradeable {\\n *     function initializeV2() reinitializer(2) public {\\n *         __ERC20Permit_init(\\\"MyToken\\\");\\n *     }\\n * }\\n * ```\\n *\\n * TIP: To avoid leaving the proxy in an uninitialized state, the initializer function should be called as early as\\n * possible by providing the encoded function call as the `_data` argument to {ERC1967Proxy-constructor}.\\n *\\n * CAUTION: When used with inheritance, manual care must be taken to not invoke a parent initializer twice, or to ensure\\n * that all initializers are idempotent. This is not verified automatically as constructors are by Solidity.\\n *\\n * [CAUTION]\\n * ====\\n * Avoid leaving a contract uninitialized.\\n *\\n * An uninitialized contract can be taken over by an attacker. This applies to both a proxy and its implementation\\n * contract, which may impact the proxy. To prevent the implementation contract from being used, you should invoke\\n * the {_disableInitializers} function in the constructor to automatically lock it when it is deployed:\\n *\\n * [.hljs-theme-light.nopadding]\\n * ```\\n * /// @custom:oz-upgrades-unsafe-allow constructor\\n * constructor() {\\n *     _disableInitializers();\\n * }\\n * ```\\n * ====\\n */\\nabstract contract Initializable {\\n    /**\\n     * @dev Indicates that the contract has been initialized.\\n     * @custom:oz-retyped-from bool\\n     */\\n    uint8 private _initialized;\\n\\n    /**\\n     * @dev Indicates that the contract is in the process of being initialized.\\n     */\\n    bool private _initializing;\\n\\n    /**\\n     * @dev Triggered when the contract has been initialized or reinitialized.\\n     */\\n    event Initialized(uint8 version);\\n\\n    /**\\n     * @dev A modifier that defines a protected initializer function that can be invoked at most once. In its scope,\\n     * `onlyInitializing` functions can be used to initialize parent contracts. Equivalent to `reinitializer(1)`.\\n     */\\n    modifier initializer() {\\n        bool isTopLevelCall = !_initializing;\\n        require(\\n            (isTopLevelCall && _initialized < 1) || (!AddressUpgradeable.isContract(address(this)) && _initialized == 1),\\n            \\\"Initializable: contract is already initialized\\\"\\n        );\\n        _initialized = 1;\\n        if (isTopLevelCall) {\\n            _initializing = true;\\n        }\\n        _;\\n        if (isTopLevelCall) {\\n            _initializing = false;\\n            emit Initialized(1);\\n        }\\n    }\\n\\n    /**\\n     * @dev A modifier that defines a protected reinitializer function that can be invoked at most once, and only if the\\n     * contract hasn't been initialized to a greater version before. In its scope, `onlyInitializing` functions can be\\n     * used to initialize parent contracts.\\n     *\\n     * `initializer` is equivalent to `reinitializer(1)`, so a reinitializer may be used after the original\\n     * initialization step. This is essential to configure modules that are added through upgrades and that require\\n     * initialization.\\n     *\\n     * Note that versions can jump in increments greater than 1; this implies that if multiple reinitializers coexist in\\n     * a contract, executing them in the right order is up to the developer or operator.\\n     */\\n    modifier reinitializer(uint8 version) {\\n        require(!_initializing && _initialized < version, \\\"Initializable: contract is already initialized\\\");\\n        _initialized = version;\\n        _initializing = true;\\n        _;\\n        _initializing = false;\\n        emit Initialized(version);\\n    }\\n\\n    /**\\n     * @dev Modifier to protect an initialization function so that it can only be invoked by functions with the\\n     * {initializer} and {reinitializer} modifiers, directly or indirectly.\\n     */\\n    modifier onlyInitializing() {\\n        require(_initializing, \\\"Initializable: contract is not initializing\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @dev Locks the contract, preventing any future reinitialization. This cannot be part of an initializer call.\\n     * Calling this in the constructor of a contract will prevent that contract from being initialized or reinitialized\\n     * to any version. It is recommended to use this to lock implementation contracts that are designed to be called\\n     * through proxies.\\n     */\\n    function _disableInitializers() internal virtual {\\n        require(!_initializing, \\\"Initializable: contract is initializing\\\");\\n        if (_initialized < type(uint8).max) {\\n            _initialized = type(uint8).max;\\n            emit Initialized(type(uint8).max);\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x0203dcadc5737d9ef2c211d6fa15d18ebc3b30dfa51903b64870b01a062b0b4e\",\"license\":\"MIT\"},\"@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (utils/Address.sol)\\n\\npragma solidity ^0.8.1;\\n\\n/**\\n * @dev Collection of functions related to the address type\\n */\\nlibrary AddressUpgradeable {\\n    /**\\n     * @dev Returns true if `account` is a contract.\\n     *\\n     * [IMPORTANT]\\n     * ====\\n     * It is unsafe to assume that an address for which this function returns\\n     * false is an externally-owned account (EOA) and not a contract.\\n     *\\n     * Among others, `isContract` will return false for the following\\n     * types of addresses:\\n     *\\n     *  - an externally-owned account\\n     *  - a contract in construction\\n     *  - an address where a contract will be created\\n     *  - an address where a contract lived, but was destroyed\\n     * ====\\n     *\\n     * [IMPORTANT]\\n     * ====\\n     * You shouldn't rely on `isContract` to protect against flash loan attacks!\\n     *\\n     * Preventing calls from contracts is highly discouraged. It breaks composability, breaks support for smart wallets\\n     * like Gnosis Safe, and does not provide security since it can be circumvented by calling from a contract\\n     * constructor.\\n     * ====\\n     */\\n    function isContract(address account) internal view returns (bool) {\\n        // This method relies on extcodesize/address.code.length, which returns 0\\n        // for contracts in construction, since the code is only stored at the end\\n        // of the constructor execution.\\n\\n        return account.code.length > 0;\\n    }\\n\\n    /**\\n     * @dev Replacement for Solidity's `transfer`: sends `amount` wei to\\n     * `recipient`, forwarding all available gas and reverting on errors.\\n     *\\n     * https://eips.ethereum.org/EIPS/eip-1884[EIP1884] increases the gas cost\\n     * of certain opcodes, possibly making contracts go over the 2300 gas limit\\n     * imposed by `transfer`, making them unable to receive funds via\\n     * `transfer`. {sendValue} removes this limitation.\\n     *\\n     * https://diligence.consensys.net/posts/2019/09/stop-using-soliditys-transfer-now/[Learn more].\\n     *\\n     * IMPORTANT: because control is transferred to `recipient`, care must be\\n     * taken to not create reentrancy vulnerabilities. Consider using\\n     * {ReentrancyGuard} or the\\n     * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].\\n     */\\n    function sendValue(address payable recipient, uint256 amount) internal {\\n        require(address(this).balance >= amount, \\\"Address: insufficient balance\\\");\\n\\n        (bool success, ) = recipient.call{value: amount}(\\\"\\\");\\n        require(success, \\\"Address: unable to send value, recipient may have reverted\\\");\\n    }\\n\\n    /**\\n     * @dev Performs a Solidity function call using a low level `call`. A\\n     * plain `call` is an unsafe replacement for a function call: use this\\n     * function instead.\\n     *\\n     * If `target` reverts with a revert reason, it is bubbled up by this\\n     * function (like regular Solidity function calls).\\n     *\\n     * Returns the raw returned data. To convert to the expected return value,\\n     * use https://solidity.readthedocs.io/en/latest/units-and-global-variables.html?highlight=abi.decode#abi-encoding-and-decoding-functions[`abi.decode`].\\n     *\\n     * Requirements:\\n     *\\n     * - `target` must be a contract.\\n     * - calling `target` with `data` must not revert.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCall(address target, bytes memory data) internal returns (bytes memory) {\\n        return functionCall(target, data, \\\"Address: low-level call failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`], but with\\n     * `errorMessage` as a fallback revert reason when `target` reverts.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCall(\\n        address target,\\n        bytes memory data,\\n        string memory errorMessage\\n    ) internal returns (bytes memory) {\\n        return functionCallWithValue(target, data, 0, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],\\n     * but also transferring `value` wei to `target`.\\n     *\\n     * Requirements:\\n     *\\n     * - the calling contract must have an ETH balance of at least `value`.\\n     * - the called Solidity function must be `payable`.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCallWithValue(\\n        address target,\\n        bytes memory data,\\n        uint256 value\\n    ) internal returns (bytes memory) {\\n        return functionCallWithValue(target, data, value, \\\"Address: low-level call with value failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCallWithValue-address-bytes-uint256-}[`functionCallWithValue`], but\\n     * with `errorMessage` as a fallback revert reason when `target` reverts.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCallWithValue(\\n        address target,\\n        bytes memory data,\\n        uint256 value,\\n        string memory errorMessage\\n    ) internal returns (bytes memory) {\\n        require(address(this).balance >= value, \\\"Address: insufficient balance for call\\\");\\n        require(isContract(target), \\\"Address: call to non-contract\\\");\\n\\n        (bool success, bytes memory returndata) = target.call{value: value}(data);\\n        return verifyCallResult(success, returndata, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],\\n     * but performing a static call.\\n     *\\n     * _Available since v3.3._\\n     */\\n    function functionStaticCall(address target, bytes memory data) internal view returns (bytes memory) {\\n        return functionStaticCall(target, data, \\\"Address: low-level static call failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],\\n     * but performing a static call.\\n     *\\n     * _Available since v3.3._\\n     */\\n    function functionStaticCall(\\n        address target,\\n        bytes memory data,\\n        string memory errorMessage\\n    ) internal view returns (bytes memory) {\\n        require(isContract(target), \\\"Address: static call to non-contract\\\");\\n\\n        (bool success, bytes memory returndata) = target.staticcall(data);\\n        return verifyCallResult(success, returndata, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the\\n     * revert reason using the provided one.\\n     *\\n     * _Available since v4.3._\\n     */\\n    function verifyCallResult(\\n        bool success,\\n        bytes memory returndata,\\n        string memory errorMessage\\n    ) internal pure returns (bytes memory) {\\n        if (success) {\\n            return returndata;\\n        } else {\\n            // Look for revert reason and bubble it up if present\\n            if (returndata.length > 0) {\\n                // The easiest way to bubble the revert reason is using memory via assembly\\n                /// @solidity memory-safe-assembly\\n                assembly {\\n                    let returndata_size := mload(returndata)\\n                    revert(add(32, returndata), returndata_size)\\n                }\\n            } else {\\n                revert(errorMessage);\\n            }\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x611aa3f23e59cfdd1863c536776407b3e33d695152a266fa7cfb34440a29a8a3\",\"license\":\"MIT\"},\"@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\nimport \\\"../proxy/utils/Initializable.sol\\\";\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract ContextUpgradeable is Initializable {\\n    function __Context_init() internal onlyInitializing {\\n    }\\n\\n    function __Context_init_unchained() internal onlyInitializing {\\n    }\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n\\n    /**\\n     * @dev This empty reserved space is put in place to allow future versions to add new\\n     * variables without shifting down storage in the inheritance chain.\\n     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps\\n     */\\n    uint256[50] private __gap;\\n}\\n\",\"keccak256\":\"0x963ea7f0b48b032eef72fe3a7582edf78408d6f834115b9feadd673a4d5bd149\",\"license\":\"MIT\"},\"@openzeppelin/contracts/proxy/utils/Initializable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (proxy/utils/Initializable.sol)\\n\\npragma solidity ^0.8.2;\\n\\nimport \\\"../../utils/Address.sol\\\";\\n\\n/**\\n * @dev This is a base contract to aid in writing upgradeable contracts, or any kind of contract that will be deployed\\n * behind a proxy. Since proxied contracts do not make use of a constructor, it's common to move constructor logic to an\\n * external initializer function, usually called `initialize`. It then becomes necessary to protect this initializer\\n * function so it can only be called once. The {initializer} modifier provided by this contract will have this effect.\\n *\\n * The initialization functions use a version number. Once a version number is used, it is consumed and cannot be\\n * reused. This mechanism prevents re-execution of each \\\"step\\\" but allows the creation of new initialization steps in\\n * case an upgrade adds a module that needs to be initialized.\\n *\\n * For example:\\n *\\n * [.hljs-theme-light.nopadding]\\n * ```\\n * contract MyToken is ERC20Upgradeable {\\n *     function initialize() initializer public {\\n *         __ERC20_init(\\\"MyToken\\\", \\\"MTK\\\");\\n *     }\\n * }\\n * contract MyTokenV2 is MyToken, ERC20PermitUpgradeable {\\n *     function initializeV2() reinitializer(2) public {\\n *         __ERC20Permit_init(\\\"MyToken\\\");\\n *     }\\n * }\\n * ```\\n *\\n * TIP: To avoid leaving the proxy in an uninitialized state, the initializer function should be called as early as\\n * possible by providing the encoded function call as the `_data` argument to {ERC1967Proxy-constructor}.\\n *\\n * CAUTION: When used with inheritance, manual care must be taken to not invoke a parent initializer twice, or to ensure\\n * that all initializers are idempotent. This is not verified automatically as constructors are by Solidity.\\n *\\n * [CAUTION]\\n * ====\\n * Avoid leaving a contract uninitialized.\\n *\\n * An uninitialized contract can be taken over by an attacker. This applies to both a proxy and its implementation\\n * contract, which may impact the proxy. To prevent the implementation contract from being used, you should invoke\\n * the {_disableInitializers} function in the constructor to automatically lock it when it is deployed:\\n *\\n * [.hljs-theme-light.nopadding]\\n * ```\\n * /// @custom:oz-upgrades-unsafe-allow constructor\\n * constructor() {\\n *     _disableInitializers();\\n * }\\n * ```\\n * ====\\n */\\nabstract contract Initializable {\\n    /**\\n     * @dev Indicates that the contract has been initialized.\\n     * @custom:oz-retyped-from bool\\n     */\\n    uint8 private _initialized;\\n\\n    /**\\n     * @dev Indicates that the contract is in the process of being initialized.\\n     */\\n    bool private _initializing;\\n\\n    /**\\n     * @dev Triggered when the contract has been initialized or reinitialized.\\n     */\\n    event Initialized(uint8 version);\\n\\n    /**\\n     * @dev A modifier that defines a protected initializer function that can be invoked at most once. In its scope,\\n     * `onlyInitializing` functions can be used to initialize parent contracts. Equivalent to `reinitializer(1)`.\\n     */\\n    modifier initializer() {\\n        bool isTopLevelCall = !_initializing;\\n        require(\\n            (isTopLevelCall && _initialized < 1) || (!Address.isContract(address(this)) && _initialized == 1),\\n            \\\"Initializable: contract is already initialized\\\"\\n        );\\n        _initialized = 1;\\n        if (isTopLevelCall) {\\n            _initializing = true;\\n        }\\n        _;\\n        if (isTopLevelCall) {\\n            _initializing = false;\\n            emit Initialized(1);\\n        }\\n    }\\n\\n    /**\\n     * @dev A modifier that defines a protected reinitializer function that can be invoked at most once, and only if the\\n     * contract hasn't been initialized to a greater version before. In its scope, `onlyInitializing` functions can be\\n     * used to initialize parent contracts.\\n     *\\n     * `initializer` is equivalent to `reinitializer(1)`, so a reinitializer may be used after the original\\n     * initialization step. This is essential to configure modules that are added through upgrades and that require\\n     * initialization.\\n     *\\n     * Note that versions can jump in increments greater than 1; this implies that if multiple reinitializers coexist in\\n     * a contract, executing them in the right order is up to the developer or operator.\\n     */\\n    modifier reinitializer(uint8 version) {\\n        require(!_initializing && _initialized < version, \\\"Initializable: contract is already initialized\\\");\\n        _initialized = version;\\n        _initializing = true;\\n        _;\\n        _initializing = false;\\n        emit Initialized(version);\\n    }\\n\\n    /**\\n     * @dev Modifier to protect an initialization function so that it can only be invoked by functions with the\\n     * {initializer} and {reinitializer} modifiers, directly or indirectly.\\n     */\\n    modifier onlyInitializing() {\\n        require(_initializing, \\\"Initializable: contract is not initializing\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @dev Locks the contract, preventing any future reinitialization. This cannot be part of an initializer call.\\n     * Calling this in the constructor of a contract will prevent that contract from being initialized or reinitialized\\n     * to any version. It is recommended to use this to lock implementation contracts that are designed to be called\\n     * through proxies.\\n     */\\n    function _disableInitializers() internal virtual {\\n        require(!_initializing, \\\"Initializable: contract is initializing\\\");\\n        if (_initialized < type(uint8).max) {\\n            _initialized = type(uint8).max;\\n            emit Initialized(type(uint8).max);\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x2a21b14ff90012878752f230d3ffd5c3405e5938d06c97a7d89c0a64561d0d66\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Address.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (utils/Address.sol)\\n\\npragma solidity ^0.8.1;\\n\\n/**\\n * @dev Collection of functions related to the address type\\n */\\nlibrary Address {\\n    /**\\n     * @dev Returns true if `account` is a contract.\\n     *\\n     * [IMPORTANT]\\n     * ====\\n     * It is unsafe to assume that an address for which this function returns\\n     * false is an externally-owned account (EOA) and not a contract.\\n     *\\n     * Among others, `isContract` will return false for the following\\n     * types of addresses:\\n     *\\n     *  - an externally-owned account\\n     *  - a contract in construction\\n     *  - an address where a contract will be created\\n     *  - an address where a contract lived, but was destroyed\\n     * ====\\n     *\\n     * [IMPORTANT]\\n     * ====\\n     * You shouldn't rely on `isContract` to protect against flash loan attacks!\\n     *\\n     * Preventing calls from contracts is highly discouraged. It breaks composability, breaks support for smart wallets\\n     * like Gnosis Safe, and does not provide security since it can be circumvented by calling from a contract\\n     * constructor.\\n     * ====\\n     */\\n    function isContract(address account) internal view returns (bool) {\\n        // This method relies on extcodesize/address.code.length, which returns 0\\n        // for contracts in construction, since the code is only stored at the end\\n        // of the constructor execution.\\n\\n        return account.code.length > 0;\\n    }\\n\\n    /**\\n     * @dev Replacement for Solidity's `transfer`: sends `amount` wei to\\n     * `recipient`, forwarding all available gas and reverting on errors.\\n     *\\n     * https://eips.ethereum.org/EIPS/eip-1884[EIP1884] increases the gas cost\\n     * of certain opcodes, possibly making contracts go over the 2300 gas limit\\n     * imposed by `transfer`, making them unable to receive funds via\\n     * `transfer`. {sendValue} removes this limitation.\\n     *\\n     * https://diligence.consensys.net/posts/2019/09/stop-using-soliditys-transfer-now/[Learn more].\\n     *\\n     * IMPORTANT: because control is transferred to `recipient`, care must be\\n     * taken to not create reentrancy vulnerabilities. Consider using\\n     * {ReentrancyGuard} or the\\n     * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].\\n     */\\n    function sendValue(address payable recipient, uint256 amount) internal {\\n        require(address(this).balance >= amount, \\\"Address: insufficient balance\\\");\\n\\n        (bool success, ) = recipient.call{value: amount}(\\\"\\\");\\n        require(success, \\\"Address: unable to send value, recipient may have reverted\\\");\\n    }\\n\\n    /**\\n     * @dev Performs a Solidity function call using a low level `call`. A\\n     * plain `call` is an unsafe replacement for a function call: use this\\n     * function instead.\\n     *\\n     * If `target` reverts with a revert reason, it is bubbled up by this\\n     * function (like regular Solidity function calls).\\n     *\\n     * Returns the raw returned data. To convert to the expected return value,\\n     * use https://solidity.readthedocs.io/en/latest/units-and-global-variables.html?highlight=abi.decode#abi-encoding-and-decoding-functions[`abi.decode`].\\n     *\\n     * Requirements:\\n     *\\n     * - `target` must be a contract.\\n     * - calling `target` with `data` must not revert.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCall(address target, bytes memory data) internal returns (bytes memory) {\\n        return functionCall(target, data, \\\"Address: low-level call failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`], but with\\n     * `errorMessage` as a fallback revert reason when `target` reverts.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCall(\\n        address target,\\n        bytes memory data,\\n        string memory errorMessage\\n    ) internal returns (bytes memory) {\\n        return functionCallWithValue(target, data, 0, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],\\n     * but also transferring `value` wei to `target`.\\n     *\\n     * Requirements:\\n     *\\n     * - the calling contract must have an ETH balance of at least `value`.\\n     * - the called Solidity function must be `payable`.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCallWithValue(\\n        address target,\\n        bytes memory data,\\n        uint256 value\\n    ) internal returns (bytes memory) {\\n        return functionCallWithValue(target, data, value, \\\"Address: low-level call with value failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCallWithValue-address-bytes-uint256-}[`functionCallWithValue`], but\\n     * with `errorMessage` as a fallback revert reason when `target` reverts.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCallWithValue(\\n        address target,\\n        bytes memory data,\\n        uint256 value,\\n        string memory errorMessage\\n    ) internal returns (bytes memory) {\\n        require(address(this).balance >= value, \\\"Address: insufficient balance for call\\\");\\n        require(isContract(target), \\\"Address: call to non-contract\\\");\\n\\n        (bool success, bytes memory returndata) = target.call{value: value}(data);\\n        return verifyCallResult(success, returndata, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],\\n     * but performing a static call.\\n     *\\n     * _Available since v3.3._\\n     */\\n    function functionStaticCall(address target, bytes memory data) internal view returns (bytes memory) {\\n        return functionStaticCall(target, data, \\\"Address: low-level static call failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],\\n     * but performing a static call.\\n     *\\n     * _Available since v3.3._\\n     */\\n    function functionStaticCall(\\n        address target,\\n        bytes memory data,\\n        string memory errorMessage\\n    ) internal view returns (bytes memory) {\\n        require(isContract(target), \\\"Address: static call to non-contract\\\");\\n\\n        (bool success, bytes memory returndata) = target.staticcall(data);\\n        return verifyCallResult(success, returndata, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],\\n     * but performing a delegate call.\\n     *\\n     * _Available since v3.4._\\n     */\\n    function functionDelegateCall(address target, bytes memory data) internal returns (bytes memory) {\\n        return functionDelegateCall(target, data, \\\"Address: low-level delegate call failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],\\n     * but performing a delegate call.\\n     *\\n     * _Available since v3.4._\\n     */\\n    function functionDelegateCall(\\n        address target,\\n        bytes memory data,\\n        string memory errorMessage\\n    ) internal returns (bytes memory) {\\n        require(isContract(target), \\\"Address: delegate call to non-contract\\\");\\n\\n        (bool success, bytes memory returndata) = target.delegatecall(data);\\n        return verifyCallResult(success, returndata, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the\\n     * revert reason using the provided one.\\n     *\\n     * _Available since v4.3._\\n     */\\n    function verifyCallResult(\\n        bool success,\\n        bytes memory returndata,\\n        string memory errorMessage\\n    ) internal pure returns (bytes memory) {\\n        if (success) {\\n            return returndata;\\n        } else {\\n            // Look for revert reason and bubble it up if present\\n            if (returndata.length > 0) {\\n                // The easiest way to bubble the revert reason is using memory via assembly\\n                /// @solidity memory-safe-assembly\\n                assembly {\\n                    let returndata_size := mload(returndata)\\n                    revert(add(32, returndata), returndata_size)\\n                }\\n            } else {\\n                revert(errorMessage);\\n            }\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xd6153ce99bcdcce22b124f755e72553295be6abcd63804cfdffceb188b8bef10\",\"license\":\"MIT\"},\"contracts/L1/config/MetisConfig.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.15;\\n\\nimport {Storage} from \\\"../../libraries/Storage.sol\\\";\\nimport {ISemver} from \\\"../../universal/ISemver.sol\\\";\\nimport {Initializable} from \\\"@openzeppelin/contracts/proxy/utils/Initializable.sol\\\";\\n\\n/// @custom:audit none This contracts is not yet audited.\\n/// @title MetisConfig\\n/// @notice The MetisConfig contract is used to manage configuration of global metis values.\\ncontract MetisConfig is Initializable, ISemver {\\n    /// @notice Enum representing different types of updates.\\n    /// @custom:value GUARDIAN            Represents an update to the guardian.\\n    enum UpdateType {\\n        GUARDIAN\\n    }\\n\\n    /// @notice Whether or not the Superchain is paused.\\n    bytes32 public constant PAUSED_SLOT = bytes32(uint256(keccak256(\\\"metisConfig.paused\\\")) - 1);\\n\\n    /// @notice The address of the guardian, which can pause withdrawals from the System.\\n    ///         It can only be modified by an upgrade.\\n    bytes32 public constant GUARDIAN_SLOT = bytes32(uint256(keccak256(\\\"metisConfig.guardian\\\")) - 1);\\n\\n    /// @notice Emitted when the pause is triggered.\\n    /// @param identifier A string helping to identify provenance of the pause transaction.\\n    event Paused(string identifier);\\n\\n    /// @notice Emitted when the pause is lifted.\\n    event Unpaused();\\n\\n    /// @notice Emitted when configuration is updated.\\n    /// @param updateType Type of update.\\n    /// @param data       Encoded update data.\\n    event ConfigUpdate(UpdateType indexed updateType, bytes data);\\n\\n    /// @notice Semantic version.\\n    /// @custom:semver 1.1.0\\n    string public constant version = \\\"1.1.0\\\";\\n\\n    /// @notice Constructs the SuperchainConfig contract.\\n    constructor() {\\n        initialize({_guardian: address(0), _paused: false});\\n    }\\n\\n    /// @notice Initializer.\\n    /// @param _guardian    Address of the guardian, can pause the OptimismPortal.\\n    /// @param _paused      Initial paused status.\\n    function initialize(address _guardian, bool _paused) public initializer {\\n        _setGuardian(_guardian);\\n        if (_paused) {\\n            _pause(\\\"Initializer paused\\\");\\n        }\\n    }\\n\\n    /// @notice Getter for the guardian address.\\n    function guardian() public view returns (address guardian_) {\\n        guardian_ = Storage.getAddress(GUARDIAN_SLOT);\\n    }\\n\\n    /// @notice Getter for the current paused status.\\n    function paused() public view returns (bool paused_) {\\n        paused_ = Storage.getBool(PAUSED_SLOT);\\n    }\\n\\n    /// @notice Pauses withdrawals.\\n    /// @param _identifier (Optional) A string to identify provenance of the pause transaction.\\n    function pause(string memory _identifier) external {\\n        require(msg.sender == guardian(), \\\"MetisConfig: only guardian can pause\\\");\\n        _pause(_identifier);\\n    }\\n\\n    /// @notice Pauses withdrawals.\\n    /// @param _identifier (Optional) A string to identify provenance of the pause transaction.\\n    function _pause(string memory _identifier) internal {\\n        Storage.setBool(PAUSED_SLOT, true);\\n        emit Paused(_identifier);\\n    }\\n\\n    /// @notice Unpauses withdrawals.\\n    function unpause() external {\\n        require(msg.sender == guardian(), \\\"MetisConfig: only guardian can unpause\\\");\\n        Storage.setBool(PAUSED_SLOT, false);\\n        emit Unpaused();\\n    }\\n\\n    /// @notice Sets the guardian address. This is only callable during initialization, so an upgrade\\n    ///         will be required to change the guardian.\\n    /// @param _guardian The new guardian address.\\n    function _setGuardian(address _guardian) internal {\\n        Storage.setAddress(GUARDIAN_SLOT, _guardian);\\n        emit ConfigUpdate(UpdateType.GUARDIAN, abi.encode(_guardian));\\n    }\\n}\\n\",\"keccak256\":\"0xa523b4ee709f3c75efbb4624c22d005163126f4d859160194cf68b5fbef7374f\",\"license\":\"MIT\"},\"contracts/L1/dispute/interfaces/IDelayedWETH.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\nimport {IWETH} from \\\"./IWETH.sol\\\";\\n\\n/// @title IDelayedWETH\\n/// @notice Interface for the DelayedWETH contract.\\ninterface IDelayedWETH is IWETH {\\n    /// @notice Represents a withdrawal request.\\n    struct WithdrawalRequest {\\n        uint256 amount;\\n        uint256 timestamp;\\n    }\\n\\n    /// @notice Emitted when an unwrap is started.\\n    /// @param src The address that started the unwrap.\\n    /// @param wad The amount of WETH that was unwrapped.\\n    event Unwrap(address indexed src, uint256 wad);\\n\\n    /// @notice Returns the withdrawal delay in seconds.\\n    /// @return The withdrawal delay in seconds.\\n    function delay() external view returns (uint256);\\n\\n    /// @notice Returns a withdrawal request for the given address.\\n    /// @param _owner The address to query the withdrawal request of.\\n    /// @param _guy Sub-account to query the withdrawal request of.\\n    /// @return The withdrawal request for the given address-subaccount pair.\\n    function withdrawals(address _owner, address _guy) external view returns (uint256, uint256);\\n\\n    /// @notice Unlocks withdrawals for the sender's account, after a time delay.\\n    /// @param _guy Sub-account to unlock.\\n    /// @param _wad The amount of WETH to unlock.\\n    function unlock(address _guy, uint256 _wad) external;\\n\\n    /// @notice Extension to withdrawal, must provide a sub-account to withdraw from.\\n    /// @param _guy Sub-account to withdraw from.\\n    /// @param _wad The amount of WETH to withdraw.\\n    function withdraw(address _guy, uint256 _wad) external;\\n\\n    /// @notice Allows the owner to recover from error cases by pulling ETH out of the contract.\\n    /// @param _wad The amount of WETH to recover.\\n    function recover(uint256 _wad) external;\\n\\n    /// @notice Allows the owner to recover from error cases by pulling ETH from a specific owner.\\n    /// @param _guy The address to recover the WETH from.\\n    /// @param _wad The amount of WETH to recover.\\n    function hold(address _guy, uint256 _wad) external;\\n}\\n\",\"keccak256\":\"0xeff6ccb0c0accc914e77c6177f317eb7a81bf7867e360fea6aacd2b69326eaf0\",\"license\":\"MIT\"},\"contracts/L1/dispute/interfaces/IWETH.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\n/// @title IWETH\\n/// @notice Interface for WETH9.\\ninterface IWETH {\\n    /// @notice Emitted when an approval is made.\\n    /// @param src The address that approved the transfer.\\n    /// @param guy The address that was approved to transfer.\\n    /// @param wad The amount that was approved to transfer.\\n    event Approval(address indexed src, address indexed guy, uint256 wad);\\n\\n    /// @notice Emitted when a transfer is made.\\n    /// @param src The address that transferred the WETH.\\n    /// @param dst The address that received the WETH.\\n    /// @param wad The amount of WETH that was transferred.\\n    event Transfer(address indexed src, address indexed dst, uint256 wad);\\n\\n    /// @notice Emitted when a deposit is made.\\n    /// @param dst The address that deposited the WETH.\\n    /// @param wad The amount of WETH that was deposited.\\n    event Deposit(address indexed dst, uint256 wad);\\n\\n    /// @notice Emitted when a withdrawal is made.\\n    /// @param src The address that withdrew the WETH.\\n    /// @param wad The amount of WETH that was withdrawn.\\n    event Withdrawal(address indexed src, uint256 wad);\\n\\n    /// @notice Returns the name of the token.\\n    /// @return The name of the token.\\n    function name() external view returns (string memory);\\n\\n    /// @notice Returns the symbol of the token.\\n    /// @return The symbol of the token.\\n    function symbol() external view returns (string memory);\\n\\n    /// @notice Returns the number of decimals the token uses.\\n    /// @return The number of decimals the token uses.\\n    function decimals() external pure returns (uint8);\\n\\n    /// @notice Returns the balance of the given address.\\n    /// @param owner The address to query the balance of.\\n    /// @return The balance of the given address.\\n    function balanceOf(address owner) external view returns (uint256);\\n\\n    /// @notice Returns the amount of WETH that the spender can transfer on behalf of the owner.\\n    /// @param owner The address that owns the WETH.\\n    /// @param spender The address that is approved to transfer the WETH.\\n    /// @return The amount of WETH that the spender can transfer on behalf of the owner.\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /// @notice Allows WETH to be deposited by sending ether to the contract.\\n    function deposit() external payable;\\n\\n    /// @notice Withdraws an amount of ETH.\\n    /// @param wad The amount of ETH to withdraw.\\n    function withdraw(uint256 wad) external;\\n\\n    /// @notice Returns the total supply of WETH.\\n    /// @return The total supply of WETH.\\n    function totalSupply() external view returns (uint256);\\n\\n    /// @notice Approves the given address to transfer the WETH on behalf of the caller.\\n    /// @param guy The address that is approved to transfer the WETH.\\n    /// @param wad The amount that is approved to transfer.\\n    /// @return True if the approval was successful.\\n    function approve(address guy, uint256 wad) external returns (bool);\\n\\n    /// @notice Transfers the given amount of WETH to the given address.\\n    /// @param dst The address to transfer the WETH to.\\n    /// @param wad The amount of WETH to transfer.\\n    /// @return True if the transfer was successful.\\n    function transfer(address dst, uint256 wad) external returns (bool);\\n\\n    /// @notice Transfers the given amount of WETH from the given address to the given address.\\n    /// @param src The address to transfer the WETH from.\\n    /// @param dst The address to transfer the WETH to.\\n    /// @param wad The amount of WETH to transfer.\\n    /// @return True if the transfer was successful.\\n    function transferFrom(address src, address dst, uint256 wad) external returns (bool);\\n}\\n\",\"keccak256\":\"0x3858f6c0ce3ec7978b1ea1772484c25aec7c8c480ceaf18239f726fdd06fdd1f\",\"license\":\"MIT\"},\"contracts/L1/dispute/weth/DelayedWETH.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.15;\\n\\nimport {MetisConfig} from \\\"../../config/MetisConfig.sol\\\";\\nimport {ISemver} from \\\"../../../universal/ISemver.sol\\\";\\nimport {IDelayedWETH} from \\\"../interfaces/IDelayedWETH.sol\\\";\\nimport {IWETH} from \\\"../interfaces/IWETH.sol\\\";\\nimport {WETH98} from \\\"./WETH98.sol\\\";\\nimport {OwnableUpgradeable} from \\\"@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol\\\";\\nimport {Initializable} from \\\"@openzeppelin/contracts/proxy/utils/Initializable.sol\\\";\\n\\n/// @title DelayedWETH\\n/// @notice DelayedWETH is an extension to WETH9 that allows for delayed withdrawals. Accounts must trigger an unlock\\n///         function before they can withdraw WETH. Accounts must trigger unlock by specifying a sub-account and an\\n///         amount of WETH to unlock. Accounts can trigger the unlock function at any time, but must wait a delay\\n///         period before they can withdraw after the unlock function is triggered. DelayedWETH is designed to be used\\n///         by the DisputeGame contracts where unlock will only be triggered after a dispute is resolved. DelayedWETH\\n///         is meant to sit behind a proxy contract and has an owner address that can pull WETH from any account and\\n///         can recover ETH from the contract itself. Variable and function naming vaguely follows the vibe of WETH9.\\n///         Not the prettiest contract in the world, but it gets the job done.\\ncontract DelayedWETH is OwnableUpgradeable, WETH98, IDelayedWETH, ISemver {\\n    /// @notice Semantic version.\\n    /// @custom:semver 1.1.0-rc.1\\n    string public constant version = \\\"1.1.0-rc.1\\\";\\n\\n    /// @inheritdoc IDelayedWETH\\n    mapping(address => mapping(address => WithdrawalRequest)) public withdrawals;\\n\\n    /// @notice Withdrawal delay in seconds.\\n    uint256 internal immutable DELAY_SECONDS;\\n\\n    /// @notice Address of the MetisConfig contract.\\n    MetisConfig public config;\\n\\n    /// @param _delay The delay for withdrawals in seconds.\\n    constructor(uint256 _delay) {\\n        DELAY_SECONDS = _delay;\\n        initialize({_owner: address(0), _config: MetisConfig(address(0))});\\n    }\\n\\n    /// @notice Initializes the contract.\\n    /// @param _owner The address of the owner.\\n    /// @param _config Address of the SuperchainConfig contract.\\n    function initialize(address _owner, MetisConfig _config) public initializer {\\n        __Ownable_init();\\n        _transferOwnership(_owner);\\n        config = _config;\\n    }\\n\\n    /// @inheritdoc IDelayedWETH\\n    function delay() external view returns (uint256) {\\n        return DELAY_SECONDS;\\n    }\\n\\n    /// @inheritdoc IDelayedWETH\\n    function unlock(address _guy, uint256 _wad) external {\\n        // Note that the unlock function can be called by any address, but the actual unlocking capability still only\\n        // gives the msg.sender the ability to withdraw from the account. As long as the unlock and withdraw functions\\n        // are called with the proper recipient addresses, this will be safe. Could be made safer by having external\\n        // accounts execute withdrawals themselves but that would have added extra complexity and made DelayedWETH a\\n        // leaky abstraction, so we chose this instead.\\n        WithdrawalRequest storage wd = withdrawals[msg.sender][_guy];\\n        wd.timestamp = block.timestamp;\\n        wd.amount += _wad;\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function withdraw(uint256 _wad) public override(WETH98, IWETH) {\\n        withdraw(msg.sender, _wad);\\n    }\\n\\n    /// @inheritdoc IDelayedWETH\\n    function withdraw(address _guy, uint256 _wad) public {\\n        require(!config.paused(), \\\"DelayedWETH: contract is paused\\\");\\n        WithdrawalRequest storage wd = withdrawals[msg.sender][_guy];\\n        require(wd.amount >= _wad, \\\"DelayedWETH: insufficient unlocked withdrawal\\\");\\n        require(wd.timestamp > 0, \\\"DelayedWETH: withdrawal not unlocked\\\");\\n        require(wd.timestamp + DELAY_SECONDS <= block.timestamp, \\\"DelayedWETH: withdrawal delay not met\\\");\\n        wd.amount -= _wad;\\n        super.withdraw(_wad);\\n    }\\n\\n    /// @inheritdoc IDelayedWETH\\n    function recover(uint256 _wad) external {\\n        require(msg.sender == owner(), \\\"DelayedWETH: not owner\\\");\\n        uint256 amount = _wad < address(this).balance ? _wad : address(this).balance;\\n        (bool success,) = payable(msg.sender).call{value : amount}(hex\\\"\\\");\\n        require(success, \\\"DelayedWETH: recover failed\\\");\\n    }\\n\\n    /// @inheritdoc IDelayedWETH\\n    function hold(address _guy, uint256 _wad) external {\\n        require(msg.sender == owner(), \\\"DelayedWETH: not owner\\\");\\n        allowance[_guy][msg.sender] = _wad;\\n        emit Approval(_guy, msg.sender, _wad);\\n    }\\n}\\n\",\"keccak256\":\"0xe05a9251187d1dcc60f8810bb20f2f96813949eb1d0915b226dd5f0806606e7c\",\"license\":\"MIT\"},\"contracts/L1/dispute/weth/WETH98.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-3.0\\n// Copyright (C) 2015, 2016, 2017 Dapphub\\n\\n// This program is free software: you can redistribute it and/or modify\\n// it under the terms of the GNU General Public License as published by\\n// the Free Software Foundation, either version 3 of the License, or\\n// (at your option) any later version.\\n\\n// This program is distributed in the hope that it will be useful,\\n// but WITHOUT ANY WARRANTY; without even the implied warranty of\\n// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\\n// GNU General Public License for more details.\\n\\n// You should have received a copy of the GNU General Public License\\n// along with this program.  If not, see <http://www.gnu.org/licenses/>.\\n\\n// Based on WETH9 by Dapphub.\\n// Modified by OP Labs.\\n\\npragma solidity 0.8.15;\\n\\nimport {IWETH} from \\\"../interfaces/IWETH.sol\\\";\\n\\n/// @title WETH98\\n/// @notice WETH98 is a version of WETH9 upgraded for Solidity 0.8.x.\\ncontract WETH98 is IWETH {\\n    uint8 public constant decimals = 18;\\n\\n    mapping(address => uint256) public balanceOf;\\n    mapping(address => mapping(address => uint256)) public allowance;\\n\\n    /// @notice Pipes to deposit.\\n    receive() external payable {\\n        deposit();\\n    }\\n\\n    /// @notice Pipes to deposit.\\n    fallback() external payable {\\n        deposit();\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function name() external view virtual override returns (string memory) {\\n        return \\\"Wrapped Ether\\\";\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function symbol() external view virtual override returns (string memory) {\\n        return \\\"WETH\\\";\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function deposit() public payable virtual {\\n        balanceOf[msg.sender] += msg.value;\\n        emit Deposit(msg.sender, msg.value);\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function withdraw(uint256 wad) public virtual {\\n        require(balanceOf[msg.sender] >= wad);\\n        balanceOf[msg.sender] -= wad;\\n        payable(msg.sender).transfer(wad);\\n        emit Withdrawal(msg.sender, wad);\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function totalSupply() external view returns (uint256) {\\n        return address(this).balance;\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function approve(address guy, uint256 wad) external returns (bool) {\\n        allowance[msg.sender][guy] = wad;\\n        emit Approval(msg.sender, guy, wad);\\n        return true;\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function transfer(address dst, uint256 wad) external returns (bool) {\\n        return transferFrom(msg.sender, dst, wad);\\n    }\\n\\n    /// @inheritdoc IWETH\\n    function transferFrom(address src, address dst, uint256 wad) public returns (bool) {\\n        require(balanceOf[src] >= wad);\\n\\n        if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {\\n            require(allowance[src][msg.sender] >= wad);\\n            allowance[src][msg.sender] -= wad;\\n        }\\n\\n        balanceOf[src] -= wad;\\n        balanceOf[dst] += wad;\\n\\n        emit Transfer(src, dst, wad);\\n\\n        return true;\\n    }\\n}\\n\",\"keccak256\":\"0xd3b53488da7fdb7910ea28604844da2d2a996d56429990a7365523fea6e969ca\",\"license\":\"GPL-3.0\"},\"contracts/libraries/Storage.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\n/// @title Storage\\n/// @notice Storage handles reading and writing to arbitary storage locations\\nlibrary Storage {\\n    /// @notice Returns an address stored in an arbitrary storage slot.\\n    ///         These storage slots decouple the storage layout from\\n    ///         solc's automation.\\n    /// @param _slot The storage slot to retrieve the address from.\\n    function getAddress(bytes32 _slot) internal view returns (address addr_) {\\n        assembly {\\n            addr_ := sload(_slot)\\n        }\\n    }\\n\\n    /// @notice Stores an address in an arbitrary storage slot, `_slot`.\\n    /// @param _slot The storage slot to store the address in.\\n    /// @param _address The protocol version to store\\n    /// @dev WARNING! This function must be used cautiously, as it allows for overwriting addresses\\n    ///      in arbitrary storage slots.\\n    function setAddress(bytes32 _slot, address _address) internal {\\n        assembly {\\n            sstore(_slot, _address)\\n        }\\n    }\\n\\n    /// @notice Returns a uint256 stored in an arbitrary storage slot.\\n    ///         These storage slots decouple the storage layout from\\n    ///         solc's automation.\\n    /// @param _slot The storage slot to retrieve the address from.\\n    function getUint(bytes32 _slot) internal view returns (uint256 value_) {\\n        assembly {\\n            value_ := sload(_slot)\\n        }\\n    }\\n\\n    /// @notice Stores a value in an arbitrary storage slot, `_slot`.\\n    /// @param _slot The storage slot to store the address in.\\n    /// @param _value The protocol version to store\\n    /// @dev WARNING! This function must be used cautiously, as it allows for overwriting values\\n    ///      in arbitrary storage slots.\\n    function setUint(bytes32 _slot, uint256 _value) internal {\\n        assembly {\\n            sstore(_slot, _value)\\n        }\\n    }\\n\\n    /// @notice Returns a bytes32 stored in an arbitrary storage slot.\\n    ///         These storage slots decouple the storage layout from\\n    ///         solc's automation.\\n    /// @param _slot The storage slot to retrieve the address from.\\n    function getBytes32(bytes32 _slot) internal view returns (bytes32 value_) {\\n        assembly {\\n            value_ := sload(_slot)\\n        }\\n    }\\n\\n    /// @notice Stores a bytes32 value in an arbitrary storage slot, `_slot`.\\n    /// @param _slot The storage slot to store the address in.\\n    /// @param _value The bytes32 value to store.\\n    /// @dev WARNING! This function must be used cautiously, as it allows for overwriting values\\n    ///      in arbitrary storage slots.\\n    function setBytes32(bytes32 _slot, bytes32 _value) internal {\\n        assembly {\\n            sstore(_slot, _value)\\n        }\\n    }\\n\\n    /// @notice Stores a bool value in an arbitrary storage slot, `_slot`.\\n    /// @param _slot The storage slot to store the bool in.\\n    /// @param _value The bool value to store\\n    /// @dev WARNING! This function must be used cautiously, as it allows for overwriting values\\n    ///      in arbitrary storage slots.\\n    function setBool(bytes32 _slot, bool _value) internal {\\n        assembly {\\n            sstore(_slot, _value)\\n        }\\n    }\\n\\n    /// @notice Returns a bool stored in an arbitrary storage slot.\\n    /// @param _slot The storage slot to retrieve the bool from.\\n    function getBool(bytes32 _slot) internal view returns (bool value_) {\\n        assembly {\\n            value_ := sload(_slot)\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x7ce27a05552aa69afa6b2ab6684dfe99f27366cf8ef2046baeb1fb62fff0022f\",\"license\":\"MIT\"},\"contracts/universal/ISemver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\n/// @title ISemver\\n/// @notice ISemver is a simple contract for ensuring that contracts are\\n///         versioned using semantic versioning.\\ninterface ISemver {\\n    /// @notice Getter for the semantic version of the contract. This is not\\n    ///         meant to be used onchain but instead meant to be used by offchain\\n    ///         tooling.\\n    /// @return Semver contract version as a string.\\n    function version() external view returns (string memory);\\n}\\n\",\"keccak256\":\"0xba34562a8026f59886d2e07d1d58d90b9691d00e0788c6263cef6c22740cab44\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60a06040523480156200001157600080fd5b50604051620016ce380380620016ce8339810160408190526200003491620002d7565b6080819052620000466000806200004d565b50620002f1565b600054610100900460ff16158080156200006e5750600054600160ff909116105b806200009e57506200008b30620001a760201b62000efc1760201c565b1580156200009e575060005460ff166001145b620001075760405162461bcd60e51b815260206004820152602e60248201527f496e697469616c697a61626c653a20636f6e747261637420697320616c72656160448201526d191e481a5b9a5d1a585b1a5e995960921b60648201526084015b60405180910390fd5b6000805460ff1916600117905580156200012b576000805461ff0019166101001790555b62000135620001b6565b62000140836200021e565b606880546001600160a01b0319166001600160a01b0384161790558015620001a2576000805461ff0019169055604051600181527f7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb38474024989060200160405180910390a15b505050565b6001600160a01b03163b151590565b600054610100900460ff16620002125760405162461bcd60e51b815260206004820152602b6024820152600080516020620016ae83398151915260448201526a6e697469616c697a696e6760a81b6064820152608401620000fe565b6200021c62000270565b565b603380546001600160a01b038381166001600160a01b0319831681179093556040519116919082907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e090600090a35050565b600054610100900460ff16620002cc5760405162461bcd60e51b815260206004820152602b6024820152600080516020620016ae83398151915260448201526a6e697469616c697a696e6760a81b6064820152608401620000fe565b6200021c336200021e565b600060208284031215620002ea57600080fd5b5051919050565b60805161139a620003146000396000818161033f0152610e37015261139a6000f3fe6080604052600436106101845760003560e01c8063715018a6116100d6578063a9059cbb1161007f578063dd62ed3e11610059578063dd62ed3e146104f5578063f2fde38b1461052d578063f3fef3a31461054d57610193565b8063a9059cbb14610481578063cd47bde1146104a1578063d0e30db01461019357610193565b80638da5cb5b116100b05780638da5cb5b146103fd57806395d89b411461041b578063977a5ec51461046157610193565b8063715018a61461039057806379502c55146103a55780637eee288d146103dd57610193565b80632e1a7d4d1161013857806354fd4d501161011257806354fd4d50146102e75780636a42b8f81461033057806370a082311461036357610193565b80632e1a7d4d14610280578063313ce567146102a0578063485cc955146102c757610193565b80630ca35682116101695780630ca356821461022357806318160ddd1461024357806323b872dd1461026057610193565b806306fdde031461019b578063095ea7b3146101f357610193565b366101935761019161056d565b005b61019161056d565b3480156101a757600080fd5b5060408051808201909152600d81527f577261707065642045746865720000000000000000000000000000000000000060208201525b6040516101ea9190611180565b60405180910390f35b3480156101ff57600080fd5b5061021361020e366004611208565b6105c8565b60405190151581526020016101ea565b34801561022f57600080fd5b5061019161023e366004611234565b610634565b34801561024f57600080fd5b50475b6040519081526020016101ea565b34801561026c57600080fd5b5061021361027b36600461124d565b610744565b34801561028c57600080fd5b5061019161029b366004611234565b6108e6565b3480156102ac57600080fd5b506102b5601281565b60405160ff90911681526020016101ea565b3480156102d357600080fd5b506101916102e236600461128e565b6108f3565b3480156102f357600080fd5b506101dd6040518060400160405280600a81526020017f312e312e302d72632e310000000000000000000000000000000000000000000081525081565b34801561033c57600080fd5b507f0000000000000000000000000000000000000000000000000000000000000000610252565b34801561036f57600080fd5b5061025261037e3660046112c7565b60656020526000908152604090205481565b34801561039c57600080fd5b50610191610aa8565b3480156103b157600080fd5b506068546103c5906001600160a01b031681565b6040516001600160a01b0390911681526020016101ea565b3480156103e957600080fd5b506101916103f8366004611208565b610abc565b34801561040957600080fd5b506033546001600160a01b03166103c5565b34801561042757600080fd5b5060408051808201909152600481527f574554480000000000000000000000000000000000000000000000000000000060208201526101dd565b34801561046d57600080fd5b5061019161047c366004611208565b610b03565b34801561048d57600080fd5b5061021361049c366004611208565b610bbc565b3480156104ad57600080fd5b506104e06104bc36600461128e565b60676020908152600092835260408084209091529082529020805460019091015482565b604080519283526020830191909152016101ea565b34801561050157600080fd5b5061025261051036600461128e565b606660209081526000928352604080842090915290825290205481565b34801561053957600080fd5b506101916105483660046112c7565b610bd0565b34801561055957600080fd5b50610191610568366004611208565b610c5d565b336000908152606560205260408120805434929061058c908490611313565b909155505060405134815233907fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c9060200160405180910390a2565b3360008181526066602090815260408083206001600160a01b038716808552925280832085905551919290917f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925906106239086815260200190565b60405180910390a350600192915050565b6033546001600160a01b031633146106935760405162461bcd60e51b815260206004820152601660248201527f44656c61796564574554483a206e6f74206f776e65720000000000000000000060448201526064015b60405180910390fd5b60004782106106a257476106a4565b815b604051909150600090339083908381818185875af1925050503d80600081146106e9576040519150601f19603f3d011682016040523d82523d6000602084013e6106ee565b606091505b505090508061073f5760405162461bcd60e51b815260206004820152601b60248201527f44656c61796564574554483a207265636f766572206661696c65640000000000604482015260640161068a565b505050565b6001600160a01b03831660009081526065602052604081205482111561076957600080fd5b6001600160a01b03841633148015906107c557506001600160a01b03841660009081526066602090815260408083203384529091529020547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff14155b15610833576001600160a01b03841660009081526066602090815260408083203384529091529020548211156107fa57600080fd5b6001600160a01b03841660009081526066602090815260408083203384529091528120805484929061082d90849061132b565b90915550505b6001600160a01b0384166000908152606560205260408120805484929061085b90849061132b565b90915550506001600160a01b03831660009081526065602052604081208054849290610888908490611313565b92505081905550826001600160a01b0316846001600160a01b03167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040516108d491815260200190565b60405180910390a35060019392505050565b6108f03382610c5d565b50565b600054610100900460ff16158080156109135750600054600160ff909116105b8061092d5750303b15801561092d575060005460ff166001145b61099f5760405162461bcd60e51b815260206004820152602e60248201527f496e697469616c697a61626c653a20636f6e747261637420697320616c72656160448201527f647920696e697469616c697a6564000000000000000000000000000000000000606482015260840161068a565b600080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0016600117905580156109fd57600080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ff166101001790555b610a05610f0b565b610a0e83610f90565b606880547fffffffffffffffffffffffff0000000000000000000000000000000000000000166001600160a01b038416179055801561073f57600080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ff169055604051600181527f7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb38474024989060200160405180910390a1505050565b610ab0610ffa565b610aba6000610f90565b565b3360009081526067602090815260408083206001600160a01b03861684529091528120426001820155805490918391839190610af9908490611313565b9091555050505050565b6033546001600160a01b03163314610b5d5760405162461bcd60e51b815260206004820152601660248201527f44656c61796564574554483a206e6f74206f776e657200000000000000000000604482015260640161068a565b6001600160a01b03821660008181526066602090815260408083203380855290835292819020859055518481529192917f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925910160405180910390a35050565b6000610bc9338484610744565b9392505050565b610bd8610ffa565b6001600160a01b038116610c545760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f6464726573730000000000000000000000000000000000000000000000000000606482015260840161068a565b6108f081610f90565b606860009054906101000a90046001600160a01b03166001600160a01b0316635c975abb6040518163ffffffff1660e01b8152600401602060405180830381865afa158015610cb0573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610cd49190611342565b15610d215760405162461bcd60e51b815260206004820152601f60248201527f44656c61796564574554483a20636f6e74726163742069732070617573656400604482015260640161068a565b3360009081526067602090815260408083206001600160a01b038616845290915290208054821115610dbb5760405162461bcd60e51b815260206004820152602d60248201527f44656c61796564574554483a20696e73756666696369656e7420756e6c6f636b60448201527f6564207769746864726177616c00000000000000000000000000000000000000606482015260840161068a565b6000816001015411610e345760405162461bcd60e51b8152602060048201526024808201527f44656c61796564574554483a207769746864726177616c206e6f7420756e6c6f60448201527f636b656400000000000000000000000000000000000000000000000000000000606482015260840161068a565b427f00000000000000000000000000000000000000000000000000000000000000008260010154610e659190611313565b1115610ed95760405162461bcd60e51b815260206004820152602560248201527f44656c61796564574554483a207769746864726177616c2064656c6179206e6f60448201527f74206d6574000000000000000000000000000000000000000000000000000000606482015260840161068a565b81816000016000828254610eed919061132b565b9091555061073f905082611054565b6001600160a01b03163b151590565b600054610100900460ff16610f885760405162461bcd60e51b815260206004820152602b60248201527f496e697469616c697a61626c653a20636f6e7472616374206973206e6f74206960448201527f6e697469616c697a696e67000000000000000000000000000000000000000000606482015260840161068a565b610aba6110fa565b603380546001600160a01b038381167fffffffffffffffffffffffff0000000000000000000000000000000000000000831681179093556040519116919082907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e090600090a35050565b6033546001600160a01b03163314610aba5760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640161068a565b3360009081526065602052604090205481111561107057600080fd5b336000908152606560205260408120805483929061108f90849061132b565b9091555050604051339082156108fc029083906000818181858888f193505050501580156110c1573d6000803e3d6000fd5b5060405181815233907f7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b659060200160405180910390a250565b600054610100900460ff166111775760405162461bcd60e51b815260206004820152602b60248201527f496e697469616c697a61626c653a20636f6e7472616374206973206e6f74206960448201527f6e697469616c697a696e67000000000000000000000000000000000000000000606482015260840161068a565b610aba33610f90565b600060208083528351808285015260005b818110156111ad57858101830151858201604001528201611191565b818111156111bf576000604083870101525b50601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016929092016040019392505050565b6001600160a01b03811681146108f057600080fd5b6000806040838503121561121b57600080fd5b8235611226816111f3565b946020939093013593505050565b60006020828403121561124657600080fd5b5035919050565b60008060006060848603121561126257600080fd5b833561126d816111f3565b9250602084013561127d816111f3565b929592945050506040919091013590565b600080604083850312156112a157600080fd5b82356112ac816111f3565b915060208301356112bc816111f3565b809150509250929050565b6000602082840312156112d957600080fd5b8135610bc9816111f3565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60008219821115611326576113266112e4565b500190565b60008282101561133d5761133d6112e4565b500390565b60006020828403121561135457600080fd5b81518015158114610bc957600080fdfea26469706673582212206235e8c1b98491da538dbbe834ddfd0cd9dbc1668ebf4673f2f1a0285587bf3b64736f6c634300080f0033496e697469616c697a61626c653a20636f6e7472616374206973206e6f742069",
+  "deployedBytecode": "0x6080604052600436106101845760003560e01c8063715018a6116100d6578063a9059cbb1161007f578063dd62ed3e11610059578063dd62ed3e146104f5578063f2fde38b1461052d578063f3fef3a31461054d57610193565b8063a9059cbb14610481578063cd47bde1146104a1578063d0e30db01461019357610193565b80638da5cb5b116100b05780638da5cb5b146103fd57806395d89b411461041b578063977a5ec51461046157610193565b8063715018a61461039057806379502c55146103a55780637eee288d146103dd57610193565b80632e1a7d4d1161013857806354fd4d501161011257806354fd4d50146102e75780636a42b8f81461033057806370a082311461036357610193565b80632e1a7d4d14610280578063313ce567146102a0578063485cc955146102c757610193565b80630ca35682116101695780630ca356821461022357806318160ddd1461024357806323b872dd1461026057610193565b806306fdde031461019b578063095ea7b3146101f357610193565b366101935761019161056d565b005b61019161056d565b3480156101a757600080fd5b5060408051808201909152600d81527f577261707065642045746865720000000000000000000000000000000000000060208201525b6040516101ea9190611180565b60405180910390f35b3480156101ff57600080fd5b5061021361020e366004611208565b6105c8565b60405190151581526020016101ea565b34801561022f57600080fd5b5061019161023e366004611234565b610634565b34801561024f57600080fd5b50475b6040519081526020016101ea565b34801561026c57600080fd5b5061021361027b36600461124d565b610744565b34801561028c57600080fd5b5061019161029b366004611234565b6108e6565b3480156102ac57600080fd5b506102b5601281565b60405160ff90911681526020016101ea565b3480156102d357600080fd5b506101916102e236600461128e565b6108f3565b3480156102f357600080fd5b506101dd6040518060400160405280600a81526020017f312e312e302d72632e310000000000000000000000000000000000000000000081525081565b34801561033c57600080fd5b507f0000000000000000000000000000000000000000000000000000000000000000610252565b34801561036f57600080fd5b5061025261037e3660046112c7565b60656020526000908152604090205481565b34801561039c57600080fd5b50610191610aa8565b3480156103b157600080fd5b506068546103c5906001600160a01b031681565b6040516001600160a01b0390911681526020016101ea565b3480156103e957600080fd5b506101916103f8366004611208565b610abc565b34801561040957600080fd5b506033546001600160a01b03166103c5565b34801561042757600080fd5b5060408051808201909152600481527f574554480000000000000000000000000000000000000000000000000000000060208201526101dd565b34801561046d57600080fd5b5061019161047c366004611208565b610b03565b34801561048d57600080fd5b5061021361049c366004611208565b610bbc565b3480156104ad57600080fd5b506104e06104bc36600461128e565b60676020908152600092835260408084209091529082529020805460019091015482565b604080519283526020830191909152016101ea565b34801561050157600080fd5b5061025261051036600461128e565b606660209081526000928352604080842090915290825290205481565b34801561053957600080fd5b506101916105483660046112c7565b610bd0565b34801561055957600080fd5b50610191610568366004611208565b610c5d565b336000908152606560205260408120805434929061058c908490611313565b909155505060405134815233907fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c9060200160405180910390a2565b3360008181526066602090815260408083206001600160a01b038716808552925280832085905551919290917f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925906106239086815260200190565b60405180910390a350600192915050565b6033546001600160a01b031633146106935760405162461bcd60e51b815260206004820152601660248201527f44656c61796564574554483a206e6f74206f776e65720000000000000000000060448201526064015b60405180910390fd5b60004782106106a257476106a4565b815b604051909150600090339083908381818185875af1925050503d80600081146106e9576040519150601f19603f3d011682016040523d82523d6000602084013e6106ee565b606091505b505090508061073f5760405162461bcd60e51b815260206004820152601b60248201527f44656c61796564574554483a207265636f766572206661696c65640000000000604482015260640161068a565b505050565b6001600160a01b03831660009081526065602052604081205482111561076957600080fd5b6001600160a01b03841633148015906107c557506001600160a01b03841660009081526066602090815260408083203384529091529020547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff14155b15610833576001600160a01b03841660009081526066602090815260408083203384529091529020548211156107fa57600080fd5b6001600160a01b03841660009081526066602090815260408083203384529091528120805484929061082d90849061132b565b90915550505b6001600160a01b0384166000908152606560205260408120805484929061085b90849061132b565b90915550506001600160a01b03831660009081526065602052604081208054849290610888908490611313565b92505081905550826001600160a01b0316846001600160a01b03167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040516108d491815260200190565b60405180910390a35060019392505050565b6108f03382610c5d565b50565b600054610100900460ff16158080156109135750600054600160ff909116105b8061092d5750303b15801561092d575060005460ff166001145b61099f5760405162461bcd60e51b815260206004820152602e60248201527f496e697469616c697a61626c653a20636f6e747261637420697320616c72656160448201527f647920696e697469616c697a6564000000000000000000000000000000000000606482015260840161068a565b600080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0016600117905580156109fd57600080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ff166101001790555b610a05610f0b565b610a0e83610f90565b606880547fffffffffffffffffffffffff0000000000000000000000000000000000000000166001600160a01b038416179055801561073f57600080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ff169055604051600181527f7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb38474024989060200160405180910390a1505050565b610ab0610ffa565b610aba6000610f90565b565b3360009081526067602090815260408083206001600160a01b03861684529091528120426001820155805490918391839190610af9908490611313565b9091555050505050565b6033546001600160a01b03163314610b5d5760405162461bcd60e51b815260206004820152601660248201527f44656c61796564574554483a206e6f74206f776e657200000000000000000000604482015260640161068a565b6001600160a01b03821660008181526066602090815260408083203380855290835292819020859055518481529192917f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925910160405180910390a35050565b6000610bc9338484610744565b9392505050565b610bd8610ffa565b6001600160a01b038116610c545760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f6464726573730000000000000000000000000000000000000000000000000000606482015260840161068a565b6108f081610f90565b606860009054906101000a90046001600160a01b03166001600160a01b0316635c975abb6040518163ffffffff1660e01b8152600401602060405180830381865afa158015610cb0573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610cd49190611342565b15610d215760405162461bcd60e51b815260206004820152601f60248201527f44656c61796564574554483a20636f6e74726163742069732070617573656400604482015260640161068a565b3360009081526067602090815260408083206001600160a01b038616845290915290208054821115610dbb5760405162461bcd60e51b815260206004820152602d60248201527f44656c61796564574554483a20696e73756666696369656e7420756e6c6f636b60448201527f6564207769746864726177616c00000000000000000000000000000000000000606482015260840161068a565b6000816001015411610e345760405162461bcd60e51b8152602060048201526024808201527f44656c61796564574554483a207769746864726177616c206e6f7420756e6c6f60448201527f636b656400000000000000000000000000000000000000000000000000000000606482015260840161068a565b427f00000000000000000000000000000000000000000000000000000000000000008260010154610e659190611313565b1115610ed95760405162461bcd60e51b815260206004820152602560248201527f44656c61796564574554483a207769746864726177616c2064656c6179206e6f60448201527f74206d6574000000000000000000000000000000000000000000000000000000606482015260840161068a565b81816000016000828254610eed919061132b565b9091555061073f905082611054565b6001600160a01b03163b151590565b600054610100900460ff16610f885760405162461bcd60e51b815260206004820152602b60248201527f496e697469616c697a61626c653a20636f6e7472616374206973206e6f74206960448201527f6e697469616c697a696e67000000000000000000000000000000000000000000606482015260840161068a565b610aba6110fa565b603380546001600160a01b038381167fffffffffffffffffffffffff0000000000000000000000000000000000000000831681179093556040519116919082907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e090600090a35050565b6033546001600160a01b03163314610aba5760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640161068a565b3360009081526065602052604090205481111561107057600080fd5b336000908152606560205260408120805483929061108f90849061132b565b9091555050604051339082156108fc029083906000818181858888f193505050501580156110c1573d6000803e3d6000fd5b5060405181815233907f7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b659060200160405180910390a250565b600054610100900460ff166111775760405162461bcd60e51b815260206004820152602b60248201527f496e697469616c697a61626c653a20636f6e7472616374206973206e6f74206960448201527f6e697469616c697a696e67000000000000000000000000000000000000000000606482015260840161068a565b610aba33610f90565b600060208083528351808285015260005b818110156111ad57858101830151858201604001528201611191565b818111156111bf576000604083870101525b50601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016929092016040019392505050565b6001600160a01b03811681146108f057600080fd5b6000806040838503121561121b57600080fd5b8235611226816111f3565b946020939093013593505050565b60006020828403121561124657600080fd5b5035919050565b60008060006060848603121561126257600080fd5b833561126d816111f3565b9250602084013561127d816111f3565b929592945050506040919091013590565b600080604083850312156112a157600080fd5b82356112ac816111f3565b915060208301356112bc816111f3565b809150509250929050565b6000602082840312156112d957600080fd5b8135610bc9816111f3565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60008219821115611326576113266112e4565b500190565b60008282101561133d5761133d6112e4565b500390565b60006020828403121561135457600080fd5b81518015158114610bc957600080fdfea26469706673582212206235e8c1b98491da538dbbe834ddfd0cd9dbc1668ebf4673f2f1a0285587bf3b64736f6c634300080f0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "approve(address,uint256)": {
+        "params": {
+          "guy": "The address that is approved to transfer the WETH.",
+          "wad": "The amount that is approved to transfer."
+        },
+        "returns": {
+          "_0": "True if the approval was successful."
+        }
+      },
+      "constructor": {
+        "params": {
+          "_delay": "The delay for withdrawals in seconds."
+        }
+      },
+      "delay()": {
+        "returns": {
+          "_0": "The withdrawal delay in seconds."
+        }
+      },
+      "hold(address,uint256)": {
+        "params": {
+          "_guy": "The address to recover the WETH from.",
+          "_wad": "The amount of WETH to recover."
+        }
+      },
+      "initialize(address,address)": {
+        "params": {
+          "_config": "Address of the SuperchainConfig contract.",
+          "_owner": "The address of the owner."
+        }
+      },
+      "name()": {
+        "returns": {
+          "_0": "The name of the token."
+        }
+      },
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "recover(uint256)": {
+        "params": {
+          "_wad": "The amount of WETH to recover."
+        }
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner."
+      },
+      "symbol()": {
+        "returns": {
+          "_0": "The symbol of the token."
+        }
+      },
+      "totalSupply()": {
+        "returns": {
+          "_0": "The total supply of WETH."
+        }
+      },
+      "transfer(address,uint256)": {
+        "params": {
+          "dst": "The address to transfer the WETH to.",
+          "wad": "The amount of WETH to transfer."
+        },
+        "returns": {
+          "_0": "True if the transfer was successful."
+        }
+      },
+      "transferFrom(address,address,uint256)": {
+        "params": {
+          "dst": "The address to transfer the WETH to.",
+          "src": "The address to transfer the WETH from.",
+          "wad": "The amount of WETH to transfer."
+        },
+        "returns": {
+          "_0": "True if the transfer was successful."
+        }
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      },
+      "unlock(address,uint256)": {
+        "params": {
+          "_guy": "Sub-account to unlock.",
+          "_wad": "The amount of WETH to unlock."
+        }
+      },
+      "withdraw(address,uint256)": {
+        "params": {
+          "_guy": "Sub-account to withdraw from.",
+          "_wad": "The amount of WETH to withdraw."
+        }
+      },
+      "withdraw(uint256)": {
+        "params": {
+          "wad": "The amount of ETH to withdraw."
+        }
+      }
+    },
+    "stateVariables": {
+      "version": {
+        "custom:semver": "1.1.0-rc.1"
+      },
+      "withdrawals": {
+        "params": {
+          "_guy": "Sub-account to query the withdrawal request of.",
+          "_owner": "The address to query the withdrawal request of."
+        },
+        "return": "amount The withdrawal request for the given address-subaccount pair.",
+        "returns": {
+          "amount": "The withdrawal request for the given address-subaccount pair."
+        }
+      }
+    },
+    "title": "DelayedWETH",
+    "version": 1
+  },
+  "userdoc": {
+    "events": {
+      "Approval(address,address,uint256)": {
+        "notice": "Emitted when an approval is made."
+      },
+      "Deposit(address,uint256)": {
+        "notice": "Emitted when a deposit is made."
+      },
+      "Transfer(address,address,uint256)": {
+        "notice": "Emitted when a transfer is made."
+      },
+      "Unwrap(address,uint256)": {
+        "notice": "Emitted when an unwrap is started."
+      },
+      "Withdrawal(address,uint256)": {
+        "notice": "Emitted when a withdrawal is made."
+      }
+    },
+    "kind": "user",
+    "methods": {
+      "allowance(address,address)": {
+        "notice": "Returns the amount of WETH that the spender can transfer on behalf of the owner."
+      },
+      "approve(address,uint256)": {
+        "notice": "Approves the given address to transfer the WETH on behalf of the caller."
+      },
+      "balanceOf(address)": {
+        "notice": "Returns the balance of the given address."
+      },
+      "config()": {
+        "notice": "Address of the MetisConfig contract."
+      },
+      "decimals()": {
+        "notice": "Returns the number of decimals the token uses."
+      },
+      "delay()": {
+        "notice": "Returns the withdrawal delay in seconds."
+      },
+      "deposit()": {
+        "notice": "Allows WETH to be deposited by sending ether to the contract."
+      },
+      "hold(address,uint256)": {
+        "notice": "Allows the owner to recover from error cases by pulling ETH from a specific owner."
+      },
+      "initialize(address,address)": {
+        "notice": "Initializes the contract."
+      },
+      "name()": {
+        "notice": "Returns the name of the token."
+      },
+      "recover(uint256)": {
+        "notice": "Allows the owner to recover from error cases by pulling ETH out of the contract."
+      },
+      "symbol()": {
+        "notice": "Returns the symbol of the token."
+      },
+      "totalSupply()": {
+        "notice": "Returns the total supply of WETH."
+      },
+      "transfer(address,uint256)": {
+        "notice": "Transfers the given amount of WETH to the given address."
+      },
+      "transferFrom(address,address,uint256)": {
+        "notice": "Transfers the given amount of WETH from the given address to the given address."
+      },
+      "unlock(address,uint256)": {
+        "notice": "Unlocks withdrawals for the sender's account, after a time delay."
+      },
+      "version()": {
+        "notice": "Semantic version."
+      },
+      "withdraw(address,uint256)": {
+        "notice": "Extension to withdrawal, must provide a sub-account to withdraw from."
+      },
+      "withdraw(uint256)": {
+        "notice": "Withdraws an amount of ETH."
+      },
+      "withdrawals(address,address)": {
+        "notice": "Returns a withdrawal request for the given address."
+      }
+    },
+    "notice": "DelayedWETH is an extension to WETH9 that allows for delayed withdrawals. Accounts must trigger an unlock         function before they can withdraw WETH. Accounts must trigger unlock by specifying a sub-account and an         amount of WETH to unlock. Accounts can trigger the unlock function at any time, but must wait a delay         period before they can withdraw after the unlock function is triggered. DelayedWETH is designed to be used         by the DisputeGame contracts where unlock will only be triggered after a dispute is resolved. DelayedWETH         is meant to sit behind a proxy contract and has an owner address that can pull WETH from any account and         can recover ETH from the contract itself. Variable and function naming vaguely follows the vibe of WETH9.         Not the prettiest contract in the world, but it gets the job done.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 138,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "_initialized",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_uint8"
+      },
+      {
+        "astId": 141,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "_initializing",
+        "offset": 1,
+        "slot": "0",
+        "type": "t_bool"
+      },
+      {
+        "astId": 752,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_array(t_uint256)50_storage"
+      },
+      {
+        "astId": 10,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "51",
+        "type": "t_address"
+      },
+      {
+        "astId": 130,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "52",
+        "type": "t_array(t_uint256)49_storage"
+      },
+      {
+        "astId": 16468,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "balanceOf",
+        "offset": 0,
+        "slot": "101",
+        "type": "t_mapping(t_address,t_uint256)"
+      },
+      {
+        "astId": 16474,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "allowance",
+        "offset": 0,
+        "slot": "102",
+        "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))"
+      },
+      {
+        "astId": 16191,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "withdrawals",
+        "offset": 0,
+        "slot": "103",
+        "type": "t_mapping(t_address,t_mapping(t_address,t_struct(WithdrawalRequest)14855_storage))"
+      },
+      {
+        "astId": 16198,
+        "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+        "label": "config",
+        "offset": 0,
+        "slot": "104",
+        "type": "t_contract(MetisConfig)10396"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_uint256)49_storage": {
+        "base": "t_uint256",
+        "encoding": "inplace",
+        "label": "uint256[49]",
+        "numberOfBytes": "1568"
+      },
+      "t_array(t_uint256)50_storage": {
+        "base": "t_uint256",
+        "encoding": "inplace",
+        "label": "uint256[50]",
+        "numberOfBytes": "1600"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_contract(MetisConfig)10396": {
+        "encoding": "inplace",
+        "label": "contract MetisConfig",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_mapping(t_address,t_struct(WithdrawalRequest)14855_storage))": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => mapping(address => struct IDelayedWETH.WithdrawalRequest))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_address,t_struct(WithdrawalRequest)14855_storage)"
+      },
+      "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => mapping(address => uint256))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_address,t_uint256)"
+      },
+      "t_mapping(t_address,t_struct(WithdrawalRequest)14855_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct IDelayedWETH.WithdrawalRequest)",
+        "numberOfBytes": "32",
+        "value": "t_struct(WithdrawalRequest)14855_storage"
+      },
+      "t_mapping(t_address,t_uint256)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => uint256)",
+        "numberOfBytes": "32",
+        "value": "t_uint256"
+      },
+      "t_struct(WithdrawalRequest)14855_storage": {
+        "encoding": "inplace",
+        "label": "struct IDelayedWETH.WithdrawalRequest",
+        "members": [
+          {
+            "astId": 14852,
+            "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+            "label": "amount",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 14854,
+            "contract": "contracts/L1/dispute/weth/DelayedWETH.sol:DelayedWETH",
+            "label": "timestamp",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint8": {
+        "encoding": "inplace",
+        "label": "uint8",
+        "numberOfBytes": "1"
+      }
+    }
+  }
+}

@@ -59,13 +59,13 @@ task('deploy')
   .addOptionalParam(
     'inboxSenderAddress',
     'Address of the inbox sender. Must be provided or this deployment will fail.',
-    undefined,
+    '0x0000000000000000000000000000000000000000',
     types.string
   )
   .addOptionalParam(
     'inboxBlobSenderAddress',
     'Address of the inbox blob sender. Must be provided or this deployment will fail.',
-    undefined,
+    '0x0000000000000000000000000000000000000000',
     types.string
   )
   .addOptionalParam(
@@ -119,19 +119,19 @@ task('deploy')
   .addOptionalParam(
     'absolutePrestate',
     'absolute prestate of op-program',
-    false,
+    undefined,
     types.string
   )
   .addOptionalParam(
     'faultDisputeProposer',
     'allowed proposer for fault proof',
-    false,
+    undefined,
     types.string
   )
   .addOptionalParam(
     'faultDisputeChallenger',
     'allowed challenger for fault proof',
-    false,
+    undefined,
     types.string
   )
   .setAction(async (args, hre: any, runSuper) => {
@@ -164,8 +164,6 @@ task('deploy')
     validateAddressArg('ovmAddressManagerOwner')
     validateAddressArg('mvmMetisAddress')
     validateAddressArg('mvmMetisManager')
-    validateAddressArg('inboxSenderAddress')
-    validateAddressArg('inboxBlobSenderAddress')
 
     hre.deployConfig = args
     return runSuper(args)

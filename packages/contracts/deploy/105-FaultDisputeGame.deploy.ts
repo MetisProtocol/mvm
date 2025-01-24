@@ -3,6 +3,7 @@ import {
   deployAndRegister,
   getDeployedContract,
 } from '../src/hardhat-deploy-ethers'
+import { ethers } from 'ethers'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
@@ -47,6 +48,9 @@ const deployFn: DeployFunction = async (hre) => {
 
   console.log('Registering FaultDisputeGame to DisputeGameFactory...')
   await disputeGameFactory.setImplementation(0, faultDisputeGame.address)
+
+  console.log('Setting init bond for DisputeGame...')
+  await disputeGameFactory.setInitBond(0, ethers.utils.parseEther('0.08'))
 }
 
 deployFn.tags = ['FaultDisputeGame', 'game', 'faultproof']
