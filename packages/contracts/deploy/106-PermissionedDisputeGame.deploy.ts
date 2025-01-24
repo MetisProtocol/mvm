@@ -67,7 +67,7 @@ const deployFn: DeployFunction = async (hre) => {
   await disputeGameFactory.setImplementation(1, faultDisputeGame.address)
 
   console.log('Setting init bond for PermissionedDisputeGame...')
-  await disputeGameFactory.setInitBond(0, ethers.utils.parseEther('0.08'))
+  await disputeGameFactory.setInitBond(1, ethers.utils.parseEther('0.08'))
 }
 
 deployFn.tags = ['PermissionedDisputeGame', 'game', 'faultproof']
