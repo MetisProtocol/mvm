@@ -1545,6 +1545,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"l1GasUsed":   (*hexutil.Big)(receipt.L1GasUsed),
 		"l1Fee":       (*hexutil.Big)(receipt.L1Fee),
 		"l1FeeScalar": receipt.FeeScalar.String(),
+		// EIP 1559 compatibility fields
+		"effectiveGasPrice": (*hexutil.Big)(tx.GasPrice()),
+		"type":              "0x0",
 	}
 
 	// Assign receipt status or post state.
@@ -1613,6 +1616,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceiptsByBlock(ctx context.Con
 			"contractAddress":   nil,
 			"logs":              receipt.Logs,
 			"logsBloom":         receipt.Bloom,
+			// EIP 1559 compatibility fields
+			"effectiveGasPrice": (*hexutil.Big)(tx.GasPrice()),
+			"type":              "0x0",
 		}
 
 		// Assign receipt status or post state.
