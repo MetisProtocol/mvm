@@ -62,15 +62,14 @@ var (
 			},
 		},
 		BlobBatcherAddresses: []BatcherAddressAtHeight{
-			// FIXME: update this later, this is just a placeholder, since currently we don't have blob batcher address right now
 			{
-				Height:  5536996,
-				Address: common.HexToAddress("0x578c88EeEe23Db03E70aDB2445F0043bEC3C416E"),
+				Height:  7683900,
+				Address: common.HexToAddress("0xd664e05a1f64E4a105C5a64dBf6761e90b16832e"),
 			},
 		},
 	}
 	MetisAndromedaRollupConfig = &RollupConfig{
-		L1ChainId:    big.NewInt(11155111),
+		L1ChainId:    big.NewInt(1088),
 		InboxAddress: common.HexToAddress("0xFf00000000000000000000000000000000001088"),
 		SCCAddress:   common.HexToAddress("0xA2FaAAC9120c1Ff75814F0c6DdB119496a12eEA6"),
 		CTCAddress:   common.HexToAddress("0x56a76bcC92361f6DF8D75476feD8843EdC70e1C9"),

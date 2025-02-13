@@ -29,3 +29,9 @@ services:
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.geth
+
+  challenger:
+    image: metisdao/challenger:${VERSION:-dev}
+    build:
+      context: ..
+      dockerfile: ./ops/docker/Dockerfile.challenger
