@@ -40,10 +40,7 @@ export const submitTransactionWithYNATM = async (
     let fullTx: any
     if (isEIP1559) {
       // to be compatible with EIP-1559, we need to set the gasPrice to the maxPriorityFeePerGas
-      const feeScalingFactor = gasPrice
-        ? gasPrice / toNumber(tx.maxFeePerGas)
-        : 1
-      await calculateEIP1559GasPrice(signer.provider, tx, feeScalingFactor)
+      await bumpEIP1559GasPrice(signer.provider, tx)
       fullTx = tx
     } else {
       fullTx = {
@@ -186,22 +183,37 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
   }
 }
 
-export const calculateEIP1559GasPrice = async (
+export const bumpEIP1559GasPrice = async (
   provider: ethers.Provider,
-  tx: ethers.TransactionRequest,
-  scalingFactor: number
+  tx: ethers.TransactionRequest
 ) => {
-  const latestFee = await provider.getFeeData()
-  const baseFee = latestFee.maxFeePerGas - latestFee.maxPriorityFeePerGas
+  const latestBlock = await provider.getBlock('latest', false)
+  if (tx.type === 3) {
+    // for blob tx we need to bump all fees by 2x
+    const newBlobFee = calcBlobFee(latestBlock.excessBlobGas)
+    tx.maxFeePerGas = toBigInt(toNumber(tx.maxFeePerGas) * 2)
+    tx.maxPriorityFeePerGas = toBigInt(toNumber(tx.maxPriorityFeePerGas) * 2)
+    tx.maxFeePerBlobGas = toBigInt(toNumber(tx.maxFeePerBlobGas) * 2)
+    if (tx.maxFeePerBlobGas < newBlobFee) {
+      tx.maxFeePerBlobGas = newBlobFee
+    }
+  } else {
+    const latestFee = await provider.getFeeData()
+    const baseFee = latestBlock.baseFeePerGas
 
-  // only scale the priority fee
-  tx.maxPriorityFeePerGas = toBigInt(
-    ceil(toNumber(tx.maxPriorityFeePerGas) * scalingFactor)
-  )
-  // use the latest base fee
-  tx.maxFeePerGas = baseFee + tx.maxPriorityFeePerGas
-  // scale the blob fee as well
-  tx.maxFeePerBlobGas = toBigInt(
-    ceil(toNumber(tx.maxFeePerBlobGas) * scalingFactor)
-  )
+    // scale the fees by 10%
+    tx.maxPriorityFeePerGas = toBigInt(
+      ceil(toNumber(tx.maxPriorityFeePerGas) * 1.1)
+    )
+    if (tx.maxPriorityFeePerGas < latestFee.maxPriorityFeePerGas) {
+      tx.maxPriorityFeePerGas = latestFee.maxPriorityFeePerGas
+    }
+
+    // bump 20% of the current base fee for safety
+    tx.maxFeePerGas =
+      toBigInt(ceil(toNumber(baseFee) * 1.2)) + tx.maxPriorityFeePerGas
+    if (tx.maxFeePerGas < latestFee.maxFeePerGas) {
+      tx.maxFeePerGas = latestFee.maxFeePerGas
+    }
+  }
 }

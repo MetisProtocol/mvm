@@ -26,7 +26,7 @@ import {
 
 /* Internal Imports */
 import {
-  calculateEIP1559GasPrice,
+  bumpEIP1559GasPrice,
   MpcClient,
   TransactionSubmitter,
   YnatmTransactionSubmitter,
@@ -234,9 +234,7 @@ export class TransactionBatchSubmitterInbox {
         const maxFeePerBlobGas = calcBlobFee(latestBlock.excessBlobGas)
         this.logger.info('submitting blob tx', {
           blobCount: blobs.length,
-          maxFeePerBlobGas: toNumber(maxFeePerBlobGas),
           signerAddress,
-          feeData,
           nonce,
         })
 
@@ -259,36 +257,40 @@ export class TransactionBatchSubmitterInbox {
         // mpc model can use ynatm
         let submitTx: () => Promise<TransactionReceipt>
         if (mpcUrl) {
+          let bumpCount = 0
           submitTx = (): Promise<TransactionReceipt> => {
             const yntmSubmmiter =
               transactionSubmitter as YnatmTransactionSubmitter
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
               async (gasPrice) => {
-                if (gasPrice > 0) {
-                  const feeScalingFactor =
-                    gasPrice / toNumber(blobTx.maxFeePerGas)
-                  await calculateEIP1559GasPrice(
-                    signer.provider,
-                    blobTx,
-                    feeScalingFactor
+                // check if gas price exceeds the cap
+                if (
+                  toBigInt(blobTx.maxFeePerGas) >
+                  ethers.parseUnits(
+                    yntmSubmmiter.ynatmConfig.maxGasPriceInGwei.toString(10),
+                    'gwei'
                   )
-                  if (
-                    toBigInt(blobTx.maxFeePerGas) >
-                    ethers.parseUnits(
-                      yntmSubmmiter.ynatmConfig.maxGasPriceInGwei.toString(10),
-                      'gwei'
-                    )
-                  ) {
-                    this.logger.error('Gas price exceeds the cap', {
-                      max: yntmSubmmiter.ynatmConfig.maxGasPriceInGwei,
-                      current: toNumber(blobTx.maxFeePerGas),
-                    })
-                    throw new Error(
-                      `Gas price ${blobTx.maxFeePerGas} exceeds the cap ${yntmSubmmiter.ynatmConfig.maxGasPriceInGwei}`
-                    )
-                  }
+                ) {
+                  this.logger.error('Gas price exceeds the cap', {
+                    max: yntmSubmmiter.ynatmConfig.maxGasPriceInGwei,
+                    current: toNumber(blobTx.maxFeePerGas),
+                  })
+                  throw new Error(
+                    `Gas price ${blobTx.maxFeePerGas} exceeds the cap ${yntmSubmmiter.ynatmConfig.maxGasPriceInGwei}`
+                  )
                 }
+
+                if (bumpCount > 0) {
+                  await bumpEIP1559GasPrice(signer.provider, blobTx)
+                }
+
+                this.logger.info('tx fee details', {
+                  maxFeePerGas: toNumber(blobTx.maxFeePerGas),
+                  maxPriorityFeePerGas: toNumber(blobTx.maxPriorityFeePerGas),
+                  maxFeePerBlobGas: toNumber(blobTx.maxFeePerBlobGas),
+                  bumpCount: bumpCount++,
+                })
 
                 const signedTx = await mpcClient.signTx(
                   blobTx,
