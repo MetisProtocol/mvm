@@ -1,9 +1,7 @@
-import { ethers, Signer, toBigInt, toNumber } from 'ethersv6'
+import { ethers, Signer, toNumber } from 'ethersv6'
 import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'
-import { calcBlobFee } from '../da/eip4844'
-import { ceil } from 'lodash'
 
 export interface ResubmissionConfig {
   resubmissionTimeout: number
@@ -40,8 +38,12 @@ export const submitTransactionWithYNATM = async (
     let fullTx: any
     if (isEIP1559) {
       // to be compatible with EIP-1559, we need to set the gasPrice to the maxPriorityFeePerGas
-      await bumpEIP1559GasPrice(signer.provider, tx)
-      fullTx = tx
+      const feeData = await signer.provider.getFeeData()
+      fullTx = {
+        ...tx,
+        maxFeePerGas: feeData.maxFeePerGas,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+      }
     } else {
       fullTx = {
         ...tx,
@@ -180,40 +182,5 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
       this.numConfirmations,
       hooks
     )
-  }
-}
-
-export const bumpEIP1559GasPrice = async (
-  provider: ethers.Provider,
-  tx: ethers.TransactionRequest
-) => {
-  const latestBlock = await provider.getBlock('latest', false)
-  if (tx.type === 3) {
-    // for blob tx we need to bump all fees by 2x
-    const newBlobFee = calcBlobFee(latestBlock.excessBlobGas)
-    tx.maxFeePerGas = toBigInt(toNumber(tx.maxFeePerGas) * 2)
-    tx.maxPriorityFeePerGas = toBigInt(toNumber(tx.maxPriorityFeePerGas) * 2)
-    tx.maxFeePerBlobGas = toBigInt(toNumber(tx.maxFeePerBlobGas) * 2)
-    if (tx.maxFeePerBlobGas < newBlobFee) {
-      tx.maxFeePerBlobGas = newBlobFee
-    }
-  } else {
-    const latestFee = await provider.getFeeData()
-    const baseFee = latestBlock.baseFeePerGas
-
-    // scale the fees by 10%
-    tx.maxPriorityFeePerGas = toBigInt(
-      ceil(toNumber(tx.maxPriorityFeePerGas) * 1.1)
-    )
-    if (tx.maxPriorityFeePerGas < latestFee.maxPriorityFeePerGas) {
-      tx.maxPriorityFeePerGas = latestFee.maxPriorityFeePerGas
-    }
-
-    // bump 20% of the current base fee for safety
-    tx.maxFeePerGas =
-      toBigInt(ceil(toNumber(baseFee) * 1.2)) + tx.maxPriorityFeePerGas
-    if (tx.maxFeePerGas < latestFee.maxFeePerGas) {
-      tx.maxFeePerGas = latestFee.maxFeePerGas
-    }
   }
 }

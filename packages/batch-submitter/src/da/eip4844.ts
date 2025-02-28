@@ -1,13 +1,18 @@
 // Constants
 const BlobTxMinBlobGasprice = BigInt(1)
-const BlobTxBlobGaspriceUpdateFraction = BigInt(3338477)
-
 const minBlobGasPrice = BlobTxMinBlobGasprice
-const blobGaspriceUpdateFraction = BlobTxBlobGaspriceUpdateFraction
+
+const fractions = {
+  cancun: BigInt(3338477),
+  pectra: BigInt(5007716),
+}
 
 // CalcBlobFee calculates the blobfee from the header's excess blob gas field.
-export const calcBlobFee = (excessBlobGas: bigint): bigint =>
-  fakeExponential(minBlobGasPrice, excessBlobGas, blobGaspriceUpdateFraction)
+export const calcBlobFee = (
+  excessBlobGas: bigint,
+  fraction: 'cancun' | 'pectra'
+): bigint =>
+  fakeExponential(minBlobGasPrice, excessBlobGas, fractions[fraction])
 
 // fakeExponential approximates factor * e ** (numerator / denominator) using
 // Taylor expansion.

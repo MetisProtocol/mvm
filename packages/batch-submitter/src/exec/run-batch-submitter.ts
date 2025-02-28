@@ -105,6 +105,7 @@ interface RequiredEnvVars {
  * DEBUG_IMPERSONATE_PROPOSER_ADDRESS
  * SEQSET_UPGRADE_ONLY
  * MPC_SIGN_TIMEOUT
+ * PECTRA_UPGRADE_TIME
  */
 
 export const run = async () => {
@@ -173,6 +174,10 @@ export const run = async () => {
   const MPC_SIGN_TIMEOUT = config.uint(
     'mpc-sign-timeout',
     env.MPC_SIGN_TIMEOUT ? parseInt(env.MPC_SIGN_TIMEOUT, 10) : 6000
+  )
+  const PECTRA_UPGRADE_TIME = config.uint(
+    'pectra-upgrade-time',
+    env.PECTRA_UPGRADE_TIME ? parseInt(env.PECTRA_UPGRADE_TIME, 10) : 0
   )
 
   const getBlobSigner = async (): Promise<Signer> => {
@@ -591,7 +596,8 @@ export const run = async () => {
     requiredEnvVars.SEQSET_VALID_HEIGHT,
     requiredEnvVars.SEQSET_CONTRACT,
     SEQSET_UPGRADE_ONLY,
-    requiredEnvVars.FP_VALID_HEIGHT
+    requiredEnvVars.FP_VALID_HEIGHT,
+    PECTRA_UPGRADE_TIME
   )
 
   const stateBatchTxSubmitter: TransactionSubmitter =

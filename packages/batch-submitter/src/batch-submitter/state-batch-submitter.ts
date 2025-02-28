@@ -319,6 +319,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
         throw new Error('MPC 1 info get failed')
       }
       const txUnsign: ContractTransaction = {
+        type: 2,
         to: tx.to,
         data: tx.data,
         value: ethers.parseEther('0'),
@@ -343,8 +344,10 @@ export class StateBatchSubmitter extends BatchSubmitter {
           txUnsign,
           async (gasPrice) => {
             try {
-              txUnsign.gasPrice =
-                gasPrice || (await this.signer.provider.getFeeData()).gasPrice
+              const feeData = await this.signer.provider.getFeeData()
+              txUnsign.maxFeePerGas = feeData.maxFeePerGas
+              txUnsign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+
               const signedTx = await mpcClient.signTx(
                 txUnsign,
                 mpcInfo.mpc_id,
