@@ -28,6 +28,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
   private fraudSubmissionAddress: string
   private transactionSubmitter: TransactionSubmitter
   private mpcUrl: string
+  private mpcSignTimeout: number
   private inboxAddress: string
   private inboxStorage: InboxStorage
   private seqsetValidHeight: number
@@ -54,6 +55,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     metrics: Metrics,
     fraudSubmissionAddress: string,
     mpcUrl: string,
+    mpcSignTimeout: number,
     batchInboxAddress: string,
     batchInboxStoragePath: string,
     seqsetValidHeight: number,
@@ -81,6 +83,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     this.fraudSubmissionAddress = fraudSubmissionAddress
     this.transactionSubmitter = transactionSubmitter
     this.mpcUrl = mpcUrl
+    this.mpcSignTimeout = mpcSignTimeout
     this.inboxAddress = batchInboxAddress
     this.inboxStorage = new InboxStorage(batchInboxStoragePath, logger)
     this.seqsetValidHeight = seqsetValidHeight
@@ -310,7 +313,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     // MPC enabled: prepare nonce, gasPrice
     if (this.mpcUrl) {
       this.logger.info('submitter state with mpc', { url: this.mpcUrl })
-      const mpcClient = new MpcClient(this.mpcUrl)
+      const mpcClient = new MpcClient(this.mpcUrl, this.logger)
       const mpcInfo = await mpcClient.getLatestMpc('1')
       if (!mpcInfo || !mpcInfo.mpc_address) {
         throw new Error('MPC 1 info get failed')
@@ -342,7 +345,11 @@ export class StateBatchSubmitter extends BatchSubmitter {
             try {
               txUnsign.gasPrice =
                 gasPrice || (await this.signer.provider.getFeeData()).gasPrice
-              const signedTx = await mpcClient.signTx(txUnsign, mpcInfo.mpc_id)
+              const signedTx = await mpcClient.signTx(
+                txUnsign,
+                mpcInfo.mpc_id,
+                this.mpcSignTimeout
+              )
               return signedTx
             } catch (e) {
               this.logger.error('MPC sign tx failed', { error: e })
@@ -379,7 +386,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       return true
     }
     this.logger.info('MPC model balance check of state batch submitter...')
-    const mpcClient = new MpcClient(this.mpcUrl)
+    const mpcClient = new MpcClient(this.mpcUrl, this.logger)
     const mpcInfo = await mpcClient.getLatestMpc('1')
     if (!mpcInfo || !mpcInfo.mpc_address) {
       this.logger.error('MPC 1 info get failed')

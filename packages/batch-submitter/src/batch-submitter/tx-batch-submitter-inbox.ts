@@ -75,6 +75,7 @@ export class TransactionBatchSubmitterInbox {
     signer: Signer,
     blobSigner: Signer,
     mpcUrl: string,
+    mpcSignTimeout: number,
     shouldSubmitBatch: (sizeInBytes: number) => boolean,
     transactionSubmitter: TransactionSubmitter,
     blobTransactionSubmitter: TransactionSubmitter,
@@ -142,6 +143,7 @@ export class TransactionBatchSubmitterInbox {
       signer,
       blobSigner,
       mpcUrl,
+      mpcSignTimeout,
       transactionSubmitter,
       blobTransactionSubmitter,
       hooks,
@@ -161,6 +163,7 @@ export class TransactionBatchSubmitterInbox {
     // in EIP4844, ethereum does not allow one account sending txs to multiple pools at the same time
     blobSigner: Signer,
     mpcUrl: string,
+    mpcSignTimeout: number,
     transactionSubmitter: TransactionSubmitter,
     blobTransactionSubmitter: TransactionSubmitter,
     hooks: TxSubmissionHooks,
@@ -185,7 +188,7 @@ export class TransactionBatchSubmitterInbox {
     if (sendBlobTx) {
       let mpcClient: MpcClient
       if (mpcUrl) {
-        mpcClient = new MpcClient(mpcUrl)
+        mpcClient = new MpcClient(mpcUrl, this.logger)
       }
 
       const { chainId } = await signer.provider.getNetwork()
@@ -287,7 +290,11 @@ export class TransactionBatchSubmitterInbox {
                   }
                 }
 
-                const signedTx = await mpcClient.signTx(blobTx, mpcId)
+                const signedTx = await mpcClient.signTx(
+                  blobTx,
+                  mpcId,
+                  mpcSignTimeout
+                )
                 // need to append the blob sidecar to the signed tx
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
                 // force set tx type to 3, just bypass the tx type inferring bug in ethers
@@ -345,7 +352,7 @@ export class TransactionBatchSubmitterInbox {
       await sleep(3000)
 
       this.logger.info('submitter with mpc', { url: mpcUrl })
-      const mpcClient = new MpcClient(mpcUrl)
+      const mpcClient = new MpcClient(mpcUrl, this.logger)
       const chainId = (await signer.provider.getNetwork()).chainId
 
       const mpcInfo = await mpcClient.getLatestMpc()
@@ -370,7 +377,11 @@ export class TransactionBatchSubmitterInbox {
             try {
               tx.gasPrice =
                 gasPrice || (await this.l1Provider.getFeeData()).gasPrice
-              const signedTx = await mpcClient.signTx(tx, mpcInfo.mpc_id)
+              const signedTx = await mpcClient.signTx(
+                tx,
+                mpcInfo.mpc_id,
+                mpcSignTimeout
+              )
               return signedTx
             } catch (e) {
               this.logger.error(`Error signing tx with mpc, ${e}`)

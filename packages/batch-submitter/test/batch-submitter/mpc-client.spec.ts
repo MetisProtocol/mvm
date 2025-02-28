@@ -10,7 +10,7 @@ describe('MpcClient Test', async () => {
   let mpcAddress: string
 
   before(async () => {
-    mpcClient = new MpcClient('')
+    mpcClient = new MpcClient('', null)
     signId = randomUUID()
   })
 

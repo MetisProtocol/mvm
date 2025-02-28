@@ -5,12 +5,16 @@ import { ethers, toBigInt, toNumber } from 'ethersv6'
 import { randomUUID } from 'crypto'
 import '@metis.io/core-utils'
 import * as kzg from 'c-kzg'
+import { Logger } from '@eth-optimism/common-ts'
 
 export class MpcClient {
   protected url: string
 
-  constructor(url: string) {
+  private logger: Logger
+
+  constructor(url: string, logger: Logger) {
     this.url = url
+    this.logger = logger
   }
 
   protected httpRequest(
@@ -57,7 +61,7 @@ export class MpcClient {
     if (!resp) {
       return null
     }
-    const obj = eval('(' + resp + ')')
+    const obj = JSON.parse(resp)
     if (obj.result && obj.result.mpc_address) {
       return obj.result
     }
@@ -76,12 +80,18 @@ export class MpcClient {
         'Content-Length': Buffer.byteLength(JSON.stringify(data)),
       },
     }
+    this.logger.info('proposing mpc sign', {
+      mpcId: data.mpc_id,
+      signId: data.sign_id,
+    })
     const resp = await this.httpRequest(this.url, postOptions, data)
-    console.info('proposeMpcSign resp', resp)
+    this.logger.info('proposed mpc sign resp', {
+      resp,
+    })
     if (!resp) {
       return null
     }
-    const obj = eval('(' + resp + ')')
+    const obj = JSON.parse(resp)
     if (obj.error) {
       return null
     }
@@ -97,11 +107,13 @@ export class MpcClient {
       path: getUrl.pathname,
     }
     const resp = await this.httpRequest(this.url, getOptions)
-    console.info('getMpcSign resp', resp)
+    this.logger.info('get mpc sign resp', {
+      resp,
+    })
     if (!resp) {
       return ''
     }
-    const obj = eval('(' + resp + ')')
+    const obj = JSON.parse(resp)
     if (obj.error) {
       return ''
     }
@@ -156,7 +168,11 @@ export class MpcClient {
   }
 
   // call this
-  public async signTx(tx: any, mpcId: any): Promise<string> {
+  public async signTx(
+    tx: any,
+    mpcId: any,
+    timeoutMilli: number
+  ): Promise<string> {
     // check tx
     if (!tx.gasLimit) {
       throw new Error('tx gasLimit is required')
@@ -164,6 +180,12 @@ export class MpcClient {
     if (tx.nonce === undefined || tx.nonce === null) {
       throw new Error('tx nonce is required')
     }
+
+    this.logger.info('signing tx with mpc', {
+      mpcId,
+      timeoutMilli,
+    })
+
     // call mpc to sign tx
     const unsignedTx: any = {
       data: tx.data,
@@ -237,10 +259,22 @@ export class MpcClient {
       throw new Error(`MPC ${mpcId} propose sign failed`)
     }
 
-    const signedTx = await this.getMpcSignWithTimeout(signId, 6000, 5000)
+    const signedTx = await this.getMpcSignWithTimeout(
+      signId,
+      timeoutMilli,
+      5000
+    )
+
     if (!signedTx) {
+      this.logger.error('mpc sign failed, timeout', {
+        mpcId,
+      })
       throw new Error(`MPC ${mpcId} get sign failed`)
     }
+
+    this.logger.info('signed mpc tx', {
+      mpcId,
+    })
     return this.base64ToHex(signedTx)
   }
 }

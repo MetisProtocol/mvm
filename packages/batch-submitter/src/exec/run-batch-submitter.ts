@@ -104,6 +104,7 @@ interface RequiredEnvVars {
  * DEBUG_IMPERSONATE_SEQUENCER_ADDRESS
  * DEBUG_IMPERSONATE_PROPOSER_ADDRESS
  * SEQSET_UPGRADE_ONLY
+ * MPC_SIGN_TIMEOUT
  */
 
 export const run = async () => {
@@ -167,6 +168,11 @@ export const run = async () => {
   const DEBUG_IMPERSONATE_PROPOSER_ADDRESS = config.str(
     'debug-impersonate-proposer-address',
     env.DEBUG_IMPERSONATE_PROPOSER_ADDRESS
+  )
+
+  const MPC_SIGN_TIMEOUT = config.uint(
+    'mpc-sign-timeout',
+    env.MPC_SIGN_TIMEOUT ? parseInt(env.MPC_SIGN_TIMEOUT, 10) : 6000
   )
 
   const getBlobSigner = async (): Promise<Signer> => {
@@ -578,6 +584,7 @@ export const run = async () => {
     requiredEnvVars.MINIO_ENABLED,
     minioConfig,
     requiredEnvVars.MPC_URL,
+    MPC_SIGN_TIMEOUT,
     requiredEnvVars.BATCH_INBOX_ADDRESS,
     requiredEnvVars.BATCH_INBOX_START_INDEX,
     requiredEnvVars.BATCH_INBOX_STORAGE_PATH,
@@ -612,6 +619,7 @@ export const run = async () => {
     metrics,
     FRAUD_SUBMISSION_ADDRESS,
     requiredEnvVars.MPC_URL,
+    MPC_SIGN_TIMEOUT,
     requiredEnvVars.BATCH_INBOX_ADDRESS,
     requiredEnvVars.BATCH_INBOX_STORAGE_PATH,
     requiredEnvVars.SEQSET_VALID_HEIGHT,

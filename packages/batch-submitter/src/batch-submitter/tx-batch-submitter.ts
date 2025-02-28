@@ -56,6 +56,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   private minioConfig: MinioConfig
   private encodeSequencerBatchOptions?: EncodeSequencerBatchOptions
   private mpcUrl: string
+  private mpcSignTimeout: number
   private inboxStorage: InboxStorage
   private inboxAddress: string
   private inboxStartIndex: string
@@ -94,6 +95,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     useMinio: boolean,
     minioConfig: MinioConfig,
     mpcUrl: string,
+    mpcSignTimeout: number,
     batchInboxAddress: string,
     batchInboxStartIndex: string,
     batchInboxStoragePath: string,
@@ -129,6 +131,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.useMinio = useMinio
     this.minioConfig = minioConfig
     this.mpcUrl = mpcUrl
+    this.mpcSignTimeout = mpcSignTimeout
     this.fpUpgradeHeight = fpUpgradeHeight
 
     this.inboxAddress = batchInboxAddress
@@ -439,6 +442,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         this.signer,
         this.blobSigner,
         this.mpcUrl,
+        this.mpcSignTimeout,
         (sizeInBytes: number): boolean => {
           return this._shouldSubmitBatch(sizeInBytes)
         },
@@ -519,7 +523,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       return true
     }
     this.logger.info('MPC model balance check of tx batch submitter...')
-    const mpcClient = new MpcClient(this.mpcUrl)
+    const mpcClient = new MpcClient(this.mpcUrl, this.logger)
     const mpcLoadPromises = []
     mpcLoadPromises.push(mpcClient.getLatestMpc())
     if (this.fpUpgraded) {
@@ -607,7 +611,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     // MPC enabled: prepare nonce, gasPrice
     if (this.mpcUrl) {
       this.logger.info('submitter with mpc', { url: this.mpcUrl })
-      const mpcClient = new MpcClient(this.mpcUrl)
+      const mpcClient = new MpcClient(this.mpcUrl, this.logger)
       const mpcInfo = await mpcClient.getLatestMpc()
       if (!mpcInfo || !mpcInfo.mpc_address) {
         throw new Error('MPC info get failed')
@@ -630,7 +634,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
           tx,
           async (gasPrice) => {
             tx.gasPrice = gasPrice
-            return mpcClient.signTx(tx, mpcInfo.mpc_id)
+            return mpcClient.signTx(tx, mpcInfo.mpc_id, this.mpcSignTimeout)
           },
           this._makeHooks('appendSequencerBatch')
         )
