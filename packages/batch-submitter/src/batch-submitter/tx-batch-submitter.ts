@@ -102,8 +102,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     seqsetValidHeight: number,
     seqsetContractAddress: string,
     seqsetUpgradeOnly: number,
-    fpUpgradeHeight: number,
-    pectraUpgradeTime: number
+    fpUpgradeHeight: number
   ) {
     super(
       signer,
@@ -145,7 +144,6 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.l2Provider,
       this.logger,
       this.maxTxSize,
-      pectraUpgradeTime,
       useMinio,
       minioConfig
     )

@@ -2,6 +2,7 @@
 import { Promise as bPromise } from 'bluebird'
 import {
   ethers,
+  JsonRpcProvider,
   Provider,
   Signer,
   toBeHex,
@@ -26,6 +27,7 @@ import {
 
 /* Internal Imports */
 import {
+  checkGasFee,
   MpcClient,
   TransactionSubmitter,
   YnatmTransactionSubmitter,
@@ -42,9 +44,7 @@ import {
 } from '../da/types'
 import { CompressionAlgo } from '../da/channel-compressor'
 import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE, TX_GAS } from '../da/consts'
-import { calcBlobFee } from '../da/eip4844'
 import { SpanBatch } from '../da/span-batch'
-import { floor } from 'lodash'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
@@ -58,7 +58,6 @@ export class TransactionBatchSubmitterInbox {
     readonly l2Provider: Provider,
     readonly logger: Logger,
     readonly maxTxSize: number,
-    readonly pectraUpgradeTime: number,
     readonly useMinio: boolean,
     readonly minioConfig?: MinioConfig
   ) {
@@ -155,14 +154,6 @@ export class TransactionBatchSubmitterInbox {
   /*********************
    * Private Functions *
    ********************/
-
-  private getFork(time: number): 'cancun' | 'pectra' {
-    if (this.pectraUpgradeTime === 0 || time < this.pectraUpgradeTime) {
-      return 'cancun'
-    } else {
-      return 'pectra'
-    }
-  }
 
   private async submitSequencerBatch(
     nextBatchIndex: number,
@@ -263,15 +254,13 @@ export class TransactionBatchSubmitterInbox {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
               async (gasPrice) => {
-                const maxFeePerBlobGas = calcBlobFee(
-                  latestBlock.excessBlobGas,
-                  this.getFork(floor(Date.now() / 1000))
-                )
-
                 const feeData = await this.l1Provider.getFeeData()
                 blobTx.maxFeePerGas = feeData.maxFeePerGas
                 blobTx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-                blobTx.maxFeePerBlobGas = maxFeePerBlobGas
+                blobTx.maxFeePerBlobGas =
+                  (await this.getBlobBaseFee()) * toBigInt(2)
+
+                checkGasFee(this.logger, transactionSubmitter, blobTx)
 
                 const signedTx = await mpcClient.signTx(
                   blobTx,
@@ -362,6 +351,8 @@ export class TransactionBatchSubmitterInbox {
               const feeData = await this.l1Provider.getFeeData()
               tx.maxFeePerGas = feeData.maxFeePerGas
               tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+
+              checkGasFee(this.logger, transactionSubmitter, tx)
 
               const signedTx = await mpcClient.signTx(
                 tx,
@@ -762,5 +753,11 @@ export class TransactionBatchSubmitterInbox {
     const zerosToPad = targetLength - inputString.length
     const paddedString = '0'.repeat(zerosToPad) + inputString
     return paddedString
+  }
+
+  private async getBlobBaseFee(): Promise<bigint> {
+    return toBigInt(
+      await (this.l1Provider as JsonRpcProvider).send('eth_blobBaseFee', [])
+    )
   }
 }

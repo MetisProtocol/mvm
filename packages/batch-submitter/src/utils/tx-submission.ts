@@ -1,7 +1,8 @@
-import { ethers, Signer, toNumber } from 'ethersv6'
+import { ethers, Signer, toBigInt, toNumber } from 'ethersv6'
 import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'
+import { Logger } from '@eth-optimism/common-ts'
 
 export interface ResubmissionConfig {
   resubmissionTimeout: number
@@ -17,6 +18,29 @@ export type SubmitTransactionFn = (
 export interface TxSubmissionHooks {
   beforeSendTransaction: (tx: ethers.TransactionRequest) => void
   onTransactionResponse: (txResponse: ethers.TransactionResponse) => void
+}
+
+export const checkGasFee = (
+  logger: Logger,
+  transactionSubmitter: any,
+  tx: any
+) => {
+  const yntmSubmmiter = transactionSubmitter as YnatmTransactionSubmitter
+
+  const gasCapInWei = ethers.parseUnits(
+    yntmSubmmiter.ynatmConfig.maxGasPriceInGwei.toString(10),
+    'gwei'
+  )
+  if (toBigInt(tx.maxFeePerGas) > gasCapInWei) {
+    logger.error('Gas price exceeds the cap', {
+      max: gasCapInWei,
+      current: toNumber(tx.maxFeePerGas),
+    })
+
+    throw new Error(
+      `Gas price ${tx.maxFeePerGas} exceeds the cap ${yntmSubmmiter.ynatmConfig.maxGasPriceInGwei}`
+    )
+  }
 }
 
 const getGasPriceInWei = async (signer: Signer): Promise<number> => {

@@ -14,7 +14,7 @@ import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
 import { BatchSubmitter, BlockRange } from '.'
-import { MpcClient, TransactionSubmitter } from '../utils'
+import { checkGasFee, MpcClient, TransactionSubmitter } from '../utils'
 import { InboxStorage } from '../storage'
 
 export class StateBatchSubmitter extends BatchSubmitter {
@@ -347,6 +347,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
               const feeData = await this.signer.provider.getFeeData()
               txUnsign.maxFeePerGas = feeData.maxFeePerGas
               txUnsign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+
+              checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
 
               const signedTx = await mpcClient.signTx(
                 txUnsign,
