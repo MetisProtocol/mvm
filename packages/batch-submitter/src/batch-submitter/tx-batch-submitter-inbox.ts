@@ -220,14 +220,7 @@ export class TransactionBatchSubmitterInbox {
         }
 
         // async fetch required info
-        const [latestBlockPromise, noncePromise] = [
-          this.l1Provider.getBlock('latest'),
-          signer.provider.getTransactionCount(signerAddress),
-        ]
-        const [latestBlock, nonce] = await Promise.all([
-          latestBlockPromise,
-          noncePromise,
-        ])
+        const nonce = await signer.provider.getTransactionCount(signerAddress)
 
         this.logger.info('submitting blob tx', {
           blobCount: blobs.length,
