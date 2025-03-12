@@ -70,7 +70,7 @@ func (d *DelayedWMetisContract) GetBalanceAndDelay(ctx context.Context, block rp
 		return nil, 0, fmt.Errorf("expected 2 results but got %v", len(results))
 	}
 	balance := results[0].GetBigInt(0)
-	delay := time.Duration(results[1].GetUint64(0)) * time.Second
+	delay := time.Duration(results[1].GetBigInt(0).Uint64()) * time.Second
 	return balance, delay, nil
 }
 

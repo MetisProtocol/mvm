@@ -198,8 +198,9 @@ func (m *mockNewHeadSource) SetErr(err error) {
 	m.err = err
 }
 
-func (m *mockNewHeadSource) EthSubscribe(
+func (m *mockNewHeadSource) Subscribe(
 	_ context.Context,
+	_ string,
 	ch any,
 	_ ...any,
 ) (ethereum.Subscription, error) {

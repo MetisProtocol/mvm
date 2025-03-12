@@ -28,16 +28,6 @@
   },
   {
     "inputs": [],
-    "name": "InsufficientAllowance",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InsufficientBalance",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "NoDisputeGameRequests",
     "type": "error"
   },

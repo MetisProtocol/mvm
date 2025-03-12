@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
+	abi2 "github.com/ethereum-optimism/optimism/go/op-challenger/abi"
 	contractMetrics "github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts/metrics"
 	faultTypes "github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/types"
@@ -48,26 +49,8 @@ const (
 
 var versions = []contractVersion{
 	{
-		version: vers080,
-		loadAbi: func() *abi.ABI {
-			return mustParseAbi(faultDisputeGameAbi020)
-		},
-	},
-	{
-		version: vers0180,
-		loadAbi: func() *abi.ABI {
-			return mustParseAbi(faultDisputeGameAbi0180)
-		},
-	},
-	{
-		version: vers111,
-		loadAbi: func() *abi.ABI {
-			return mustParseAbi(faultDisputeGameAbi111)
-		},
-	},
-	{
 		version: versLatest,
-		loadAbi: snapshots.LoadFaultDisputeGameABI,
+		loadAbi: abi2.LoadFaultDisputeGameABI,
 	},
 }
 
@@ -331,20 +314,29 @@ func TestGetBalance(t *testing.T) {
 	for _, version := range versions {
 		version := version
 		t.Run(version.version, func(t *testing.T) {
-			wethAddr := common.Address{0x11, 0x55, 0x66}
 			balance := big.NewInt(9995877)
 			delaySeconds := big.NewInt(429829)
 			delay := time.Duration(delaySeconds.Int64()) * time.Second
 			block := rpcblock.ByNumber(424)
 			stubRpc, game := setupFaultDisputeGameTest(t, version)
-			stubRpc.SetResponse(fdgAddr, methodWETH, block, nil, []interface{}{wethAddr})
-			stubRpc.AddContract(wethAddr, snapshots.LoadDelayedWETHABI())
-			stubRpc.SetResponse(wethAddr, methodDelay, block, nil, []interface{}{delaySeconds})
-			stubRpc.AddExpectedCall(batchingTest.NewGetBalanceCall(wethAddr, block, balance))
+			tokenAddr := common.Address{0x11, 0x55, 0x66}
+			if version.version == versLatest {
+				stubRpc.SetResponse(fdgAddr, methodWMetis, block, nil, []interface{}{tokenAddr})
+				stubRpc.AddContract(tokenAddr, abi2.LoadDelayedWMetisABI())
+				stubRpc.SetResponse(tokenAddr, methodDelayedWMetisBalanceOf, block, []interface{}{common.Address{}}, []interface{}{balance})
+				stubRpc.SetResponse(tokenAddr, methodDelayedWMetisAllowance, block, []interface{}{common.Address{}, game.Addr()}, []interface{}{balance})
+				stubRpc.SetResponse(tokenAddr, methodDelay, block, nil, []interface{}{delaySeconds})
+				stubRpc.AddExpectedCall(batchingTest.NewGetBalanceCall(tokenAddr, block, balance))
+			} else {
+				stubRpc.SetResponse(fdgAddr, "weth", block, nil, []interface{}{tokenAddr})
+				stubRpc.AddContract(tokenAddr, snapshots.LoadDelayedWETHABI())
+				stubRpc.SetResponse(tokenAddr, methodDelay, block, nil, []interface{}{delaySeconds})
+				stubRpc.AddExpectedCall(batchingTest.NewGetBalanceCall(tokenAddr, block, balance))
+			}
 
 			actualBalance, actualDelay, actualAddr, err := game.GetBalanceAndDelay(context.Background(), block)
 			require.NoError(t, err)
-			require.Equal(t, wethAddr, actualAddr)
+			require.Equal(t, tokenAddr, actualAddr)
 			require.Equal(t, delay, actualDelay)
 			require.Truef(t, balance.Cmp(actualBalance) == 0, "Expected balance %v but was %v", balance, actualBalance)
 		})
@@ -404,6 +396,9 @@ func TestAttackTx(t *testing.T) {
 			stubRpc, game := setupFaultDisputeGameTest(t, version)
 			bond := big.NewInt(1044)
 			value := common.Hash{0xaa}
+			delayedMetisAddr := common.Address{0x11, 0x55, 0x66}
+			metisAddr := common.Address{0x22, 0x55, 0x66}
+			balance, _ := big.NewInt(0).SetString("100000000000000000000000000000", 10)
 			parent := faultTypes.Claim{ClaimData: faultTypes.ClaimData{Value: common.Hash{0xbb}}, ContractIndex: 111}
 			stubRpc.SetResponse(fdgAddr, methodRequiredBond, rpcblock.Latest, []interface{}{parent.Position.Attack().ToGIndex()}, []interface{}{bond})
 			if version.Is(vers080, vers0180, vers111) {
@@ -411,10 +406,20 @@ func TestAttackTx(t *testing.T) {
 			} else {
 				stubRpc.SetResponse(fdgAddr, methodAttack, rpcblock.Latest, []interface{}{parent.Value, big.NewInt(111), value}, nil)
 			}
+
+			stubRpc.SetResponse(fdgAddr, methodWMetis, rpcblock.Latest, nil, []interface{}{delayedMetisAddr})
+			stubRpc.AddContract(delayedMetisAddr, abi2.LoadDelayedWMetisABI())
+			stubRpc.SetResponse(delayedMetisAddr, methodDelayedWMetisBalanceOf, rpcblock.Latest, []interface{}{common.Address{}}, []interface{}{balance})
+			stubRpc.SetResponse(delayedMetisAddr, methodDelayedWMetisAllowance, rpcblock.Latest, []interface{}{common.Address{}, game.Addr()}, []interface{}{balance})
+			stubRpc.SetResponse(delayedMetisAddr, methodDelayedWMetisMetisToken, rpcblock.Latest, nil, []interface{}{metisAddr})
+			stubRpc.AddExpectedCall(batchingTest.NewGetBalanceCall(delayedMetisAddr, rpcblock.Latest, balance))
+			stubRpc.AddContract(metisAddr, abi2.LoadMetisTokenABI())
+			stubRpc.SetResponse(metisAddr, methodMetisBalanceOf, rpcblock.Latest, []interface{}{common.Address{}}, []interface{}{balance})
+			stubRpc.SetResponse(metisAddr, methodMetisAllowance, rpcblock.Latest, []interface{}{common.Address{}, game.Addr()}, []interface{}{balance})
+
 			tx, err := game.AttackTx(context.Background(), parent, value)
 			require.NoError(t, err)
 			stubRpc.VerifyTxCandidate(tx)
-			require.Equal(t, bond, tx.Value)
 		})
 	}
 }
@@ -427,16 +432,29 @@ func TestDefendTx(t *testing.T) {
 			bond := big.NewInt(1044)
 			value := common.Hash{0xaa}
 			parent := faultTypes.Claim{ClaimData: faultTypes.ClaimData{Value: common.Hash{0xbb}}, ContractIndex: 111}
+			delayedMetisAddr := common.Address{0x11, 0x55, 0x66}
+			metisAddr := common.Address{0x22, 0x55, 0x66}
+			balance, _ := big.NewInt(0).SetString("100000000000000000000000000000", 10)
 			stubRpc.SetResponse(fdgAddr, methodRequiredBond, rpcblock.Latest, []interface{}{parent.Position.Defend().ToGIndex()}, []interface{}{bond})
 			if version.Is(vers080, vers0180, vers111) {
 				stubRpc.SetResponse(fdgAddr, methodDefend, rpcblock.Latest, []interface{}{big.NewInt(111), value}, nil)
 			} else {
 				stubRpc.SetResponse(fdgAddr, methodDefend, rpcblock.Latest, []interface{}{parent.Value, big.NewInt(111), value}, nil)
 			}
+
+			stubRpc.SetResponse(fdgAddr, methodWMetis, rpcblock.Latest, nil, []interface{}{delayedMetisAddr})
+			stubRpc.AddContract(delayedMetisAddr, abi2.LoadDelayedWMetisABI())
+			stubRpc.SetResponse(delayedMetisAddr, methodDelayedWMetisBalanceOf, rpcblock.Latest, []interface{}{common.Address{}}, []interface{}{balance})
+			stubRpc.SetResponse(delayedMetisAddr, methodDelayedWMetisAllowance, rpcblock.Latest, []interface{}{common.Address{}, game.Addr()}, []interface{}{balance})
+			stubRpc.SetResponse(delayedMetisAddr, methodDelayedWMetisMetisToken, rpcblock.Latest, nil, []interface{}{metisAddr})
+			stubRpc.AddExpectedCall(batchingTest.NewGetBalanceCall(delayedMetisAddr, rpcblock.Latest, balance))
+			stubRpc.AddContract(metisAddr, abi2.LoadMetisTokenABI())
+			stubRpc.SetResponse(metisAddr, methodMetisBalanceOf, rpcblock.Latest, []interface{}{common.Address{}}, []interface{}{balance})
+			stubRpc.SetResponse(metisAddr, methodMetisAllowance, rpcblock.Latest, []interface{}{common.Address{}, game.Addr()}, []interface{}{balance})
+
 			tx, err := game.DefendTx(context.Background(), parent, value)
 			require.NoError(t, err)
 			stubRpc.VerifyTxCandidate(tx)
-			require.Equal(t, bond, tx.Value)
 		})
 	}
 }

@@ -291,19 +291,23 @@ func TestCreateDisputeTx(t *testing.T) {
 	traceType := uint32(123)
 	l2BlockNum := common.BigToHash(big.NewInt(456)).Bytes()
 	bond := big.NewInt(49284294829)
+	balance := big.NewInt(49284294829)
+	metisAddr := common.Address{0x01, 0x02, 0x03}
 	stubRpc.SetResponse(factoryAddr, methodInitBonds, rpcblock.Latest, []interface{}{traceType}, []interface{}{bond})
 	stubRpc.SetResponse(factoryAddr, methodCreateDispute, rpcblock.Latest, []interface{}{traceType, l2BlockNum}, nil)
+	stubRpc.AddContract(metisAddr, override.LoadMetisTokenABI())
+	stubRpc.SetResponse(metisAddr, methodMetisBalanceOf, rpcblock.Latest, []interface{}{common.Address{}}, []interface{}{balance})
+	stubRpc.SetResponse(metisAddr, methodMetisAllowance, rpcblock.Latest, []interface{}{common.Address{}, factoryAddr}, []interface{}{balance})
 	tx, err := factory.CreateDisputeTx(context.Background(), traceType, uint64(456))
 	require.NoError(t, err)
 	stubRpc.VerifyTxCandidate(tx)
-	require.NotNil(t, tx.Value)
-	require.Truef(t, bond.Cmp(tx.Value) == 0, "Expected bond %v but was %v", bond, tx.Value)
 }
 
 func setupDisputeGameFactoryTest(t *testing.T) (*batchingTest.AbiBasedRpc, *DisputeGameFactoryContract) {
 	fdgAbi := override.LoadDisputeGameFactoryABI()
 
 	stubRpc := batchingTest.NewAbiBasedRpc(t, factoryAddr, fdgAbi)
+	stubRpc.SetResponse(factoryAddr, methodMetisTokenAddress, rpcblock.Latest, nil, []interface{}{common.Address{0x01, 0x02, 0x03}})
 	caller := batching.NewMultiCaller(stubRpc, batchSize)
 	factory := NewDisputeGameFactoryContract(metrics.NoopContractMetrics, factoryAddr, caller, common.Address{})
 	return stubRpc, factory

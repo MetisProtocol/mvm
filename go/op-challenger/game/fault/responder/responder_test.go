@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 
@@ -304,9 +305,10 @@ func newTestFaultResponder(t *testing.T) (*FaultResponder, *mockTxManager, *mock
 	log := testlog.Logger(t, log.LevelError)
 	mockTxMgr := &mockTxManager{}
 	contract := &mockContract{}
+	metisToken := &mockTokenContract{}
 	uploader := &mockPreimageUploader{}
 	oracle := &mockOracle{}
-	responder, err := NewFaultResponder(log, mockTxMgr, contract, uploader, oracle)
+	responder, err := NewFaultResponder(log, mockTxMgr, contract, metisToken, uploader, oracle)
 	require.NoError(t, err)
 	return responder, mockTxMgr, contract, uploader, oracle
 }
@@ -367,6 +369,18 @@ func (m *mockTxManager) From() common.Address {
 func (m *mockTxManager) Close() {
 }
 
+type mockTokenContract struct {
+}
+
+func (m mockTokenContract) GetAllowanceAndBalance(ctx context.Context, block rpcblock.Block, owner common.Address, spender common.Address) (*big.Int, *big.Int, error) {
+	veryBigNumber, _ := big.NewInt(0).SetString("100000000000000000000000", 10)
+	return veryBigNumber, veryBigNumber, nil
+}
+
+func (m mockTokenContract) ApproveWithMaxAllowanceTx(spender common.Address) (txmgr.TxCandidate, error) {
+	return txmgr.TxCandidate{}, nil
+}
+
 type mockContract struct {
 	calls                int
 	callFails            bool
@@ -396,6 +410,10 @@ func (m *mockContract) CallResolveClaim(_ context.Context, _ uint64) error {
 	}
 	m.calls++
 	return nil
+}
+
+func (m *mockContract) Addr() common.Address {
+	return common.Address{}
 }
 
 func (m *mockContract) ResolveClaimTx(_ uint64) (txmgr.TxCandidate, error) {
