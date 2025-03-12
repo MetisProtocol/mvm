@@ -431,7 +431,8 @@ func (m *gameCreator) handleDisputeGameRequest(event *DisputeGameRequest, timest
 		return err
 	}
 
-	if uint64(time.Now().UTC().Unix())-fraudProofWindow > timestamp {
+	currentTime := uint64(time.Now().UTC().Unix())
+	if currentTime > fraudProofWindow && currentTime-fraudProofWindow > timestamp {
 		m.logger.Info("dispute game request has expired", "request", crypto.Keccak256Hash(requestUUID).Hex())
 		return nil
 	}

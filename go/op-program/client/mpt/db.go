@@ -13,6 +13,10 @@ type DB struct {
 	db Hooks
 }
 
+func (p *DB) DeleteRange(start, end []byte) error {
+	panic("not supported")
+}
+
 func (p *DB) Has(key []byte) (bool, error) {
 	panic("not supported")
 }

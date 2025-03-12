@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
 
@@ -437,7 +438,7 @@ func Run(ctx *cli.Context) error {
 		}
 
 		if snapshotAt(state) {
-			if err := jsonutil.WriteJSON(fmt.Sprintf(snapshotFmt, step), state, OutFilePerm); err != nil {
+			if err := jsonutil.WriteJSON(state, ioutil.ToStdOutOrFileOrNoop(fmt.Sprintf(snapshotFmt, step), OutFilePerm)); err != nil {
 				return fmt.Errorf("failed to write state snapshot: %w", err)
 			}
 		}
@@ -460,7 +461,7 @@ func Run(ctx *cli.Context) error {
 				proof.OracleValue = witness.PreimageValue
 				proof.OracleOffset = witness.PreimageOffset
 			}
-			if err := jsonutil.WriteJSON(fmt.Sprintf(proofFmt, step), proof, OutFilePerm); err != nil {
+			if err := jsonutil.WriteJSON(proof, ioutil.ToStdOutOrFileOrNoop(fmt.Sprintf(proofFmt, step), OutFilePerm)); err != nil {
 				return fmt.Errorf("failed to write proof data: %w", err)
 			}
 		} else {
@@ -494,11 +495,11 @@ func Run(ctx *cli.Context) error {
 		vm.Traceback()
 	}
 
-	if err := jsonutil.WriteJSON(ctx.Path(RunOutputFlag.Name), state, OutFilePerm); err != nil {
+	if err := jsonutil.WriteJSON(state, ioutil.ToStdOutOrFileOrNoop(ctx.Path(RunOutputFlag.Name), OutFilePerm)); err != nil {
 		return fmt.Errorf("failed to write state output: %w", err)
 	}
 	if debugInfoFile := ctx.Path(RunDebugInfoFlag.Name); debugInfoFile != "" {
-		if err := jsonutil.WriteJSON(debugInfoFile, vm.GetDebugInfo(), OutFilePerm); err != nil {
+		if err := jsonutil.WriteJSON(vm.GetDebugInfo(), ioutil.ToStdOutOrFileOrNoop(debugInfoFile, OutFilePerm)); err != nil {
 			return fmt.Errorf("failed to write benchmark data: %w", err)
 		}
 	}

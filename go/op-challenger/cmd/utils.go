@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
+	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	"github.com/ethereum-optimism/optimism/op-service/dial"
-	"github.com/ethereum-optimism/optimism/op-service/opio"
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
@@ -21,7 +21,7 @@ type ContractCreator[T any] func(context.Context, contractMetrics.ContractMetric
 
 func Interruptible(action cli.ActionFunc) cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		ctx.Context = opio.CancelOnInterrupt(ctx.Context)
+		ctx.Context = ctxinterrupt.WithCancelOnInterrupt(ctx.Context)
 		return action(ctx)
 	}
 }

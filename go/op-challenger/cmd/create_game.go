@@ -39,7 +39,7 @@ var (
 
 func CreateGame(ctx *cli.Context) error {
 	outputRoot := common.HexToHash(ctx.String(OutputRootFlag.Name))
-	traceType := ctx.Uint64(TraceTypeFlag.Name)
+	traceType := ctx.String(TraceTypeFlag.Name)
 	l2BlockNum := ctx.Uint64(L2BlockNumFlag.Name)
 
 	contract, txMgr, err := NewContractWithTxMgr[*contracts.DisputeGameFactoryContract](ctx, flags.FactoryAddress,
@@ -51,7 +51,7 @@ func CreateGame(ctx *cli.Context) error {
 	}
 
 	creator := tools.NewGameCreator(contract, txMgr)
-	gameAddr, err := creator.CreateGame(ctx.Context, outputRoot, traceType, l2BlockNum)
+	gameAddr, err := creator.CreateGame(ctx.Context, outputRoot, uint64(types.TraceType(traceType).GameType()), l2BlockNum)
 	if err != nil {
 		return fmt.Errorf("failed to create game: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/metrics"
@@ -13,7 +14,6 @@ import (
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/opio"
 
 	challenger "github.com/ethereum-optimism/optimism/go/op-challenger"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/config"
@@ -31,7 +31,7 @@ var VersionWithMeta = opservice.FormatVersion(version.Version, GitCommit, GitDat
 
 func main() {
 	args := os.Args
-	ctx := opio.WithInterruptBlocker(context.Background())
+	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
 	if err := run(ctx, args, func(ctx context.Context, l log.Logger, config *config.Config) (cliapp.Lifecycle, error) {
 		return challenger.Main(ctx, l, config, metrics.NewMetrics())
 	}); err != nil {
