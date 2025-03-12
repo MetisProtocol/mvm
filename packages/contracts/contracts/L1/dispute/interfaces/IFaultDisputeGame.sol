@@ -38,14 +38,14 @@ interface IFaultDisputeGame is IDisputeGame {
     /// @param _parentIndex Index of the `Claim` to attack in the `claimData` array. This must match the `_disputed`
     /// claim.
     /// @param _claim The `Claim` at the relative attack position.
-    function attack(Claim _disputed, uint256 _parentIndex, Claim _claim) external payable;
+    function attack(Claim _disputed, uint256 _parentIndex, Claim _claim) external;
 
     /// @notice Defend an agreed upon `Claim`.
     /// @notice _disputed The `Claim` being defended.
     /// @param _parentIndex Index of the claim to defend in the `claimData` array. This must match the `_disputed`
     /// claim.
     /// @param _claim The `Claim` at the relative defense position.
-    function defend(Claim _disputed, uint256 _parentIndex, Claim _claim) external payable;
+    function defend(Claim _disputed, uint256 _parentIndex, Claim _claim) external;
 
     /// @notice Perform an instruction step via an on-chain fault proof processor.
     /// @dev This function should point to a fault proof processor in order to execute

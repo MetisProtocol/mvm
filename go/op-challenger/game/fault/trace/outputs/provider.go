@@ -210,6 +210,10 @@ func (o *OutputTraceProvider) outputAtBlock(ctx context.Context, block uint64) (
 		case <-ctx.Done():
 			return common.Hash{}, fmt.Errorf("context cancelled: %w", ctx.Err())
 		case header := <-headersResultCh:
+			if header == nil {
+				o.logger.Warn("nil header fetched")
+				return common.Hash{}, errors.New("l2 header fetch failed")
+			}
 			offset := header.Number.Uint64() - 1 - batchHeader.PrevTotalElements.Uint64()
 			stateRoots[offset] = header.Root.Bytes()
 			collected++

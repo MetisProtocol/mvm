@@ -117,7 +117,7 @@ func listClaims(ctx context.Context, game contracts.FaultDisputeGameContract, ve
 	}
 	now := time.Now()
 	lineFormat := "%3v %-7v %6v %5v %14v " + valueFormat + " %-42v %12v %-19v %10v %v\n"
-	info := fmt.Sprintf(lineFormat, "Idx", "Move", "Parent", "Depth", "Trace", "Value", "Claimant", "Bond (ETH)", "Time", "Clock Used", "Resolution")
+	info := fmt.Sprintf(lineFormat, "Idx", "Move", "Parent", "Depth", "Trace", "Value", "Claimant", "Bond (METIS)", "Time", "Clock Used", "Resolution")
 	for i, claim := range claims {
 		pos := claim.Position
 		parent := strconv.Itoa(claim.ParentContractIndex)

@@ -273,8 +273,16 @@ export class TransactionBatchSubmitterInbox {
             )
           }
         } else {
-          submitTx = (): Promise<TransactionReceipt> => {
+          submitTx = async (): Promise<TransactionReceipt> => {
             try {
+              const feeData = await this.l1Provider.getFeeData()
+              blobTx.maxFeePerGas = feeData.maxFeePerGas
+              blobTx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+              blobTx.maxFeePerBlobGas =
+                (await this.getBlobBaseFee()) * toBigInt(2)
+
+              checkGasFee(this.logger, transactionSubmitter, blobTx)
+
               return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
             } catch (err) {
               this.logger.error('blob tx submission failed', { err })
@@ -377,6 +385,11 @@ export class TransactionBatchSubmitterInbox {
         from: await signer.getAddress(),
         data: tx.data,
       })
+      const feeData = await this.l1Provider.getFeeData()
+      tx.maxFeePerGas = feeData.maxFeePerGas
+      tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+
+      checkGasFee(this.logger, transactionSubmitter, tx)
     }
 
     const submitTransaction = (): Promise<TransactionReceipt> => {

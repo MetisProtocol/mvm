@@ -37,8 +37,8 @@
         "type": "address"
       },
       {
-        "internalType": "contract IDelayedWETH",
-        "name": "_weth",
+        "internalType": "contract IDelayedWMetis",
+        "name": "_wmetis",
         "type": "address"
       },
       {
@@ -68,11 +68,6 @@
   {
     "inputs": [],
     "name": "BlockNumberMatches",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "BondTransferFailed",
     "type": "error"
   },
   {
@@ -122,7 +117,12 @@
   },
   {
     "inputs": [],
-    "name": "IncorrectBondAmount",
+    "name": "InsufficientAllowance",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InsufficientBalance",
     "type": "error"
   },
   {
@@ -319,7 +319,7 @@
     ],
     "name": "attack",
     "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -526,7 +526,7 @@
     ],
     "name": "defend",
     "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -771,7 +771,7 @@
     ],
     "name": "move",
     "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1047,11 +1047,11 @@
   },
   {
     "inputs": [],
-    "name": "weth",
+    "name": "wmetis",
     "outputs": [
       {
-        "internalType": "contract IDelayedWETH",
-        "name": "weth_",
+        "internalType": "contract IDelayedWMetis",
+        "name": "wmetis_",
         "type": "address"
       }
     ],

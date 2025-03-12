@@ -71,8 +71,8 @@ const config = {
       {
         version: '0.8.15',
         settings: {
-          // use 5000 instead 10000 here, since fdg contracts might be too large
-          optimizer: { enabled: true, runs: 5_000 },
+          // use 1000 instead 10000 here, since fdg contracts might be too large
+          optimizer: { enabled: true, runs: 1_000 },
         },
       },
       {

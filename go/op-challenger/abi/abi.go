@@ -19,6 +19,12 @@ var faultDisputeGame []byte
 //go:embed override/StateCommitmentChain.json
 var stateCommitmentChain []byte
 
+//go:embed override/DelayedWMetis.json
+var delayedWMetis []byte
+
+//go:embed override/MetisToken.json
+var metisToken []byte
+
 func LoadDisputeGameFactoryABI() *abi.ABI {
 	return loadABI(disputeGameFactory)
 }
@@ -29,6 +35,14 @@ func LoadFaultDisputeGameABI() *abi.ABI {
 
 func LoadSCCABI() *abi.ABI {
 	return loadABI(stateCommitmentChain)
+}
+
+func LoadMetisTokenABI() *abi.ABI {
+	return loadABI(metisToken)
+}
+
+func LoadDelayedWMetisABI() *abi.ABI {
+	return loadABI(delayedWMetis)
 }
 
 func EncodePacked(params ...interface{}) ([]byte, error) {

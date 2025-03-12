@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { IDelayedWETH } from "contracts/L1/dispute/interfaces/IDelayedWETH.sol";
-import { IAnchorStateRegistry } from "contracts/L1/dispute/interfaces/IAnchorStateRegistry.sol";
+import {IDelayedWMetis} from "./interfaces/IDelayedWMetis.sol";
 import { FaultDisputeGame, IFaultDisputeGame, IBigStepper, IInitializable } from "contracts/L1/dispute/FaultDisputeGame.sol";
 import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
 import "contracts/L1/dispute/lib/Types.sol";
@@ -38,7 +37,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
     /// @param _clockExtension The clock extension to perform when the remaining duration is less than the extension.
     /// @param _maxClockDuration The maximum amount of time that may accumulate on a team's chess clock.
     /// @param _vm An onchain VM that performs single instruction steps on an FPP trace.
-    /// @param _weth WETH contract for holding ETH.
+    /// @param _wmetis WMETIS contract for holding METIS.
     /// @param _addressManager Address manager contract.
     /// @param _l2ChainId Chain ID of the L2 network this contract argues about.
     /// @param _proposer Address that is allowed to create instances of this contract.
@@ -51,7 +50,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         Duration _clockExtension,
         Duration _maxClockDuration,
         IBigStepper _vm,
-        IDelayedWETH _weth,
+        IDelayedWMetis _wmetis,
         Lib_AddressManager _addressManager,
         uint256 _l2ChainId,
         address _proposer,
@@ -65,7 +64,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
     _clockExtension,
     _maxClockDuration,
     _vm,
-    _weth,
+    _wmetis,
     _addressManager,
     _l2ChainId
     )
@@ -100,7 +99,6 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         bool _isAttack
     )
     public
-    payable
     override
     onlyAuthorized
     {

@@ -90,7 +90,7 @@ interface IDisputeGameFactory {
     /// @dev Emits a `DisputeGameRequested` event.
     /// @param _gameType The type of the dispute game.
     /// @param _extraData Any extra data that should be provided to the created dispute game.
-    function dispute(GameType _gameType, bytes calldata _extraData) external payable;
+    function dispute(GameType _gameType, bytes calldata _extraData) external;
 
     /// @notice Creates a new DisputeGame proxy contract.
     /// @param _gameType The type of the DisputeGame - used to decide the proxy implementation.

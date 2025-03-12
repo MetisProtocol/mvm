@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/clock"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	gethTypes "github.com/ethereum/go-ethereum/core/types"
@@ -50,6 +52,7 @@ type GamePlayer struct {
 	prestateValidators []Validator
 	status             gameTypes.GameStatus
 	gameL1Head         eth.BlockID
+	token              contracts.MetisContract
 }
 
 type GameContract interface {
@@ -63,6 +66,12 @@ type GameContract interface {
 	GetMaxClockDuration(ctx context.Context) (time.Duration, error)
 	GetOracle(ctx context.Context) (contracts.PreimageOracleContract, error)
 	GetL1Head(ctx context.Context) (common.Hash, error)
+	GetDelayedWMetis(ctx context.Context, block rpcblock.Block) (contracts.WMetisContract, error)
+}
+
+type MetisTokenContract interface {
+	GetAllowanceAndBalance(ctx context.Context, block rpcblock.Block, owner common.Address, spender common.Address) (*big.Int, *big.Int, error)
+	ApproveWithMaxAllowanceTx(spender common.Address) (txmgr.TxCandidate, error)
 }
 
 type resourceCreator func(ctx context.Context, logger log.Logger, gameDepth types.Depth, dir string) (types.TraceAccessor, error)
@@ -86,6 +95,14 @@ func NewGamePlayer(
 ) (*GamePlayer, error) {
 	logger = logger.New("game", addr)
 
+	wmetis, err := loader.GetDelayedWMetis(ctx, rpcblock.Latest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load delayed wmetis: %w", err)
+	}
+	metis, err := wmetis.GetMetis(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load metis: %w", err)
+	}
 	status, err := loader.GetStatus(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch game status: %w", err)
@@ -142,7 +159,7 @@ func NewGamePlayer(
 	direct := preimages.NewDirectPreimageUploader(logger, txSender, loader)
 	large := preimages.NewLargePreimageUploader(logger, l1Clock, txSender, oracle)
 	uploader := preimages.NewSplitPreimageUploader(direct, large, minLargePreimageSize)
-	responder, err := responder.NewFaultResponder(logger, txSender, loader, uploader, oracle)
+	responder, err := responder.NewFaultResponder(logger, txSender, loader, metis, uploader, oracle)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the responder: %w", err)
 	}

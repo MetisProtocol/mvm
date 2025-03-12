@@ -12,8 +12,11 @@ const deployFn: DeployFunction = async (hre) => {
     name: 'DisputeGameFactory',
     args: [deployer],
     options: {
-      constructorArgs: [],
-      unsafeAllow: ['constructor'],
+      constructorArgs: [
+        // metis token address
+        (hre as any).deployConfig.mvmMetisAddress,
+      ],
+      unsafeAllow: ['constructor', 'state-variable-immutable'],
     },
   })
 

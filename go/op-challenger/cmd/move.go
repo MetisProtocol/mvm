@@ -2,16 +2,21 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum-optimism/optimism/go/op-challenger/flags"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts"
+	contractMetrics "github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts/metrics"
+	"github.com/ethereum-optimism/optimism/go/op-challenger/tools"
 )
 
 var (
@@ -46,6 +51,9 @@ func Move(ctx *cli.Context) error {
 	if attack && defend {
 		return fmt.Errorf("both attack and defense flags cannot be set")
 	}
+	if !attack && !defend {
+		return fmt.Errorf("either attack or defense flag must be set")
+	}
 
 	contract, txMgr, err := NewContractWithTxMgr[contracts.FaultDisputeGameContract](ctx, AddrFromFlag(GameAddressFlag.Name), contracts.NewFaultDisputeGameContract)
 	if err != nil {
@@ -59,16 +67,42 @@ func Move(ctx *cli.Context) error {
 	var tx txmgr.TxCandidate
 	if attack {
 		tx, err = contract.AttackTx(ctx.Context, parentClaim, claim)
-		if err != nil {
-			return fmt.Errorf("failed to create attack tx: %w", err)
-		}
-	} else if defend {
+	} else {
 		tx, err = contract.DefendTx(ctx.Context, parentClaim, claim)
-		if err != nil {
+	}
+
+	if err != nil {
+		if errors.Is(err, contracts.InsufficientAllowance) {
+			token, txMgr, err := NewContractWithTxMgr[*contracts.MetisTokenContract](ctx, func(ctx *cli.Context) (common.Address, error) {
+				wmetis, err := contract.GetDelayedWMetis(ctx.Context, rpcblock.Latest)
+				if err != nil {
+					return common.Address{}, nil
+				}
+				metis, err := wmetis.GetMetis(ctx.Context)
+				if err != nil {
+					return common.Address{}, nil
+				}
+				return metis.Addr(), nil
+			}, func(ctx context.Context, metricer contractMetrics.ContractMetricer, address common.Address, caller *batching.MultiCaller, from common.Address) (*contracts.MetisTokenContract, error) {
+				return contracts.NewMetisTokenContract(address, caller, from), nil
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create metis token bindings: %w", err)
+			}
+
+			approver := tools.NewTokenApprover(token, txMgr)
+			if err := approver.ApproveToken(ctx.Context, contract.Addr()); err != nil {
+				return fmt.Errorf("failed to approve token: %w", err)
+			}
+
+			// retry after approval
+			return Move(ctx)
+		}
+		if attack {
+			return fmt.Errorf("failed to create attack tx: %w", err)
+		} else {
 			return fmt.Errorf("failed to create defense tx: %w", err)
 		}
-	} else {
-		return fmt.Errorf("either attack or defense flag must be set")
 	}
 
 	rct, err := txMgr.Send(context.Background(), tx)

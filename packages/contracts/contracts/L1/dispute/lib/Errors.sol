@@ -139,3 +139,9 @@ import "./LibUDT.sol";
 
 /// @notice Thrown when attempting to set an anchor state using an invalid game result.
     error InvalidGameStatus();
+
+/// @notice Thrown when a user has insufficient balance for a bond.
+error InsufficientBalance();
+
+/// @notice Thrown when a user has insufficient allowance for a bond.
+error InsufficientAllowance();

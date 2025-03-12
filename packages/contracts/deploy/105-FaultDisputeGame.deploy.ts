@@ -13,7 +13,7 @@ const deployFn: DeployFunction = async (hre) => {
     throw new Error('absolutePrestate is required to deploy fault dispute game')
   }
 
-  const delayedWETH = await getDeployedContract(hre, 'Proxy__DelayedWETH')
+  const delayedWMetis = await getDeployedContract(hre, 'Proxy__DelayedWMetis')
   const addressManager = await getDeployedContract(hre, 'Lib_AddressManager')
   const mips = await getDeployedContract(hre, 'MIPS')
   const disputeGameFactory = await getDeployedContract(
@@ -34,10 +34,10 @@ const deployFn: DeployFunction = async (hre) => {
       (hre as any).deployConfig.absolutePrestate, // absolutePrestate of mips program
       73, // maxGameDepth
       30, // splitDepth
-      10800, // clockExtension
-      302400, // maxClockDuration
+      0, // clockExtension
+      86400, // maxClockDuration
       mips.address, // address of MIPS VM contract
-      delayedWETH.address, // address of DelayedWETH contract
+      delayedWMetis.address, // address of DelayedWMetis contract
       addressManager.address, // address of AddressManager contract
       (hre as any).deployConfig.l2chainid, // L2 chain ID
     ],
@@ -50,7 +50,7 @@ const deployFn: DeployFunction = async (hre) => {
   await disputeGameFactory.setImplementation(0, faultDisputeGame.address)
 
   console.log('Setting init bond for DisputeGame...')
-  await disputeGameFactory.setInitBond(0, ethers.utils.parseEther('0.08'))
+  await disputeGameFactory.setInitBond(0, ethers.utils.parseEther('4'))
 }
 
 deployFn.tags = ['FaultDisputeGame', 'game', 'faultproof']

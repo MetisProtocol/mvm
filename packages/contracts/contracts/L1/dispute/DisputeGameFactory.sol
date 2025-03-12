@@ -8,6 +8,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {LibClone} from "solady/src/utils/LibClone.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title DisputeGameFactory
 /// @notice A factory contract for creating `IDisputeGame` contracts. All created dispute games are stored in both a
@@ -29,6 +30,9 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
+    /// @notice The Metis ERC20 token contract
+    IERC20 public immutable METIS;
+
     /// @inheritdoc IDisputeGameFactory
     mapping(GameType => IDisputeGame) public gameImpls;
 
@@ -47,7 +51,9 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
     mapping(bytes32 => DisputeInfo) public disputeGameCreationRequests;
 
     /// @notice Constructs a new DisputeGameFactory contract.
-    constructor() OwnableUpgradeable() {
+    /// @param _metis The Metis ERC20 token contract
+    constructor(IERC20 _metis) OwnableUpgradeable() {
+        METIS = _metis;
         initialize(address(0));
     }
 
@@ -89,15 +95,21 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
     }
 
     /// @inheritdoc IDisputeGameFactory
-    function dispute(GameType _gameType, bytes calldata _extraData) external payable {
+    function dispute(GameType _gameType, bytes calldata _extraData) external {
         // Grab the implementation contract for the given `GameType`.
         IDisputeGame impl = gameImpls[_gameType];
 
         // If there is no implementation to clone for the given `GameType`, revert.
         if (address(impl) == address(0)) revert NoImplementation(_gameType);
 
-        // If the required initialization bond is not met, revert.
-        if (msg.value != initBonds[_gameType]) revert IncorrectBondAmount();
+        uint256 initBond = initBonds[_gameType];
+
+        // Check if sender has enough balance
+        IERC20 metis = METIS;
+        if (initBond > 0) {
+            // Transfer the bond from the sender to this contract
+            metis.transferFrom(msg.sender, address(this), initBond);
+        }
 
         // Get the hash of the parent block.
         bytes32 parentHash = blockhash(block.number - 1);
@@ -106,12 +118,12 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
         DisputeInfo memory info = DisputeInfo({
             gameType: _gameType,
             sender: msg.sender,
-            bond: msg.value,
+            bond: initBond,
             l1Head: parentHash
         });
         disputeGameCreationRequests[keccak256(abi.encodePacked(_gameType, _extraData))] = info;
 
-        emit DisputeGameRequested(msg.sender, _gameType, msg.value, _extraData);
+        emit DisputeGameRequested(msg.sender, _gameType, initBond, _extraData);
     }
 
     /// @inheritdoc IDisputeGameFactory
@@ -151,7 +163,15 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
         // │ [84, 84 + n) │ Extra data (opaque)                │
         // └──────────────┴────────────────────────────────────┘
         proxy_ = IDisputeGame(address(impl).clone(abi.encodePacked(msg.sender, _rootClaim, info.l1Head, _extraData)));
-        proxy_.initialize{value: info.bond}();
+
+        // Only transfer bond if it's not zero
+        if (info.bond > 0) {
+            // Transfer the initial bond to the new game contract
+            METIS.transfer(address(proxy_), info.bond);
+        }
+
+        // Initialize the game
+        proxy_.initialize();
 
         // Compute the unique identifier for the dispute game.
         Hash uuid = getGameUUID(_gameType, _rootClaim, _extraData);

@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 
+	"github.com/MetisProtocol/mvm/l2geth/log"
 	override "github.com/ethereum-optimism/optimism/go/op-challenger/abi"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts/metrics"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
@@ -50,7 +51,7 @@ var (
 	methodRequiredBond            = "getRequiredBond"
 	methodClaimCredit             = "claimCredit"
 	methodCredit                  = "credit"
-	methodWETH                    = "weth"
+	methodWMetis                  = "wmetis"
 	methodL2BlockNumberChallenged = "l2BlockNumberChallenged"
 	methodL2BlockNumberChallenger = "l2BlockNumberChallenger"
 	methodChallengeRootL2Block    = "challengeRootL2Block"
@@ -150,20 +151,25 @@ func mustParseAbi(json []byte) *abi.ABI {
 	return &loaded
 }
 
+// Addr returns the address of the contract.
+func (f *FaultDisputeGameContractLatest) Addr() common.Address {
+	return f.contract.Addr()
+}
+
 // GetBalanceAndDelay returns the total amount of ETH controlled by this contract.
-// Note that the ETH is actually held by the DelayedWETH contract which may be shared by multiple games.
+// Note that the ETH is actually held by the DelayedWMetis contract which may be shared by multiple games.
 // Returns the balance and the address of the contract that actually holds the balance.
 func (f *FaultDisputeGameContractLatest) GetBalanceAndDelay(ctx context.Context, block rpcblock.Block) (*big.Int, time.Duration, common.Address, error) {
 	defer f.metrics.StartContractRequest("GetBalanceAndDelay")()
-	weth, err := f.getDelayedWETH(ctx, block)
+	wmetis, err := f.getDelayedWMetis(ctx, block)
 	if err != nil {
-		return nil, 0, common.Address{}, fmt.Errorf("failed to get DelayedWETH contract: %w", err)
+		return nil, 0, common.Address{}, fmt.Errorf("failed to get DelayedWMetis contract: %w", err)
 	}
-	balance, delay, err := weth.GetBalanceAndDelay(ctx, block)
+	balance, delay, err := wmetis.GetBalanceAndDelay(ctx, block)
 	if err != nil {
-		return nil, 0, common.Address{}, fmt.Errorf("failed to get WETH balance and delay: %w", err)
+		return nil, 0, common.Address{}, fmt.Errorf("failed to get Metis balance and delay: %w", err)
 	}
-	return balance, delay, weth.Addr(), nil
+	return balance, delay, wmetis.Addr(), nil
 }
 
 // GetBlockRange returns the block numbers of the absolute pre-state block (typically genesis or the bedrock activation block)
@@ -365,20 +371,24 @@ func (f *FaultDisputeGameContractLatest) addGlobalDataTx(ctx context.Context, da
 
 func (f *FaultDisputeGameContractLatest) GetWithdrawals(ctx context.Context, block rpcblock.Block, recipients ...common.Address) ([]*WithdrawalRequest, error) {
 	defer f.metrics.StartContractRequest("GetWithdrawals")()
-	delayedWETH, err := f.getDelayedWETH(ctx, block)
+	metis, err := f.getDelayedWMetis(ctx, block)
 	if err != nil {
 		return nil, err
 	}
-	return delayedWETH.GetWithdrawals(ctx, block, f.contract.Addr(), recipients...)
+	return metis.GetWithdrawals(ctx, block, f.contract.Addr(), recipients...)
 }
 
-func (f *FaultDisputeGameContractLatest) getDelayedWETH(ctx context.Context, block rpcblock.Block) (*DelayedWETHContract, error) {
-	defer f.metrics.StartContractRequest("GetDelayedWETH")()
-	result, err := f.multiCaller.SingleCall(ctx, block, f.contract.Call(methodWETH))
+func (f *FaultDisputeGameContractLatest) GetDelayedWMetis(ctx context.Context, block rpcblock.Block) (WMetisContract, error) {
+	return f.getDelayedWMetis(ctx, block)
+}
+
+func (f *FaultDisputeGameContractLatest) getDelayedWMetis(ctx context.Context, block rpcblock.Block) (*DelayedWMetisContract, error) {
+	result, err := f.multiCaller.SingleCall(ctx, block, f.contract.Call(methodWMetis))
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch WETH addr: %w", err)
+		return nil, fmt.Errorf("failed to get DelayedWMetis address: %w", err)
 	}
-	return NewDelayedWETHContract(f.metrics, result.GetAddress(0), f.multiCaller), nil
+	addr := result.GetAddress(0)
+	return NewDelayedWMetisContract(addr, f.multiCaller, f.from), nil
 }
 
 func (f *FaultDisputeGameContractLatest) GetOracle(ctx context.Context) (PreimageOracleContract, error) {
@@ -529,15 +539,38 @@ func (f *FaultDisputeGameContractLatest) DefendTx(ctx context.Context, parent ty
 }
 
 func (f *FaultDisputeGameContractLatest) txWithBond(ctx context.Context, position types.Position, call *batching.ContractCall) (txmgr.TxCandidate, error) {
-	tx, err := call.ToTxCandidate()
+	bond, err := f.GetRequiredBond(ctx, position)
 	if err != nil {
-		return txmgr.TxCandidate{}, fmt.Errorf("failed to create transaction: %w", err)
+		return txmgr.TxCandidate{}, fmt.Errorf("failed to get required bond: %w", err)
 	}
-	tx.Value, err = f.GetRequiredBond(ctx, position)
+
+	// Get the DelayedWMetis contract
+	delayedMetis, err := f.getDelayedWMetis(ctx, rpcblock.Latest)
 	if err != nil {
-		return txmgr.TxCandidate{}, fmt.Errorf("failed to fetch required bond: %w", err)
+		return txmgr.TxCandidate{}, fmt.Errorf("failed to get DelayedWMetis contract: %w", err)
 	}
-	return tx, nil
+
+	metis, err := delayedMetis.GetMetis(ctx)
+
+	// Check allowance
+	allowance, balance, err := metis.GetAllowanceAndBalance(ctx, rpcblock.Latest, f.from, f.contract.Addr())
+	if err != nil {
+		return txmgr.TxCandidate{}, fmt.Errorf("failed to get allowance: %w", err)
+	}
+
+	// If allowance is insufficient, approve first
+	if allowance.Cmp(bond) < 0 {
+		log.Debug("Insufficient allowance", "bond", bond.String(), "allowance", allowance.String(),
+			"addr", call.From.Hex(), "spender", f.contract.Addr().Hex(), "token", metis.Addr().Hex())
+		return txmgr.TxCandidate{}, InsufficientAllowance
+	}
+	if balance.Cmp(bond) < 0 {
+		log.Debug("Insufficient balance", "bond", bond.String(), "balance", balance.String(),
+			"addr", call.From.Hex(), "token", metis.Addr().Hex())
+		return txmgr.TxCandidate{}, InsufficientBalance
+	}
+
+	return call.ToTxCandidate()
 }
 
 func (f *FaultDisputeGameContractLatest) StepTx(claimIdx uint64, isAttack bool, stateData []byte, proof []byte) (txmgr.TxCandidate, error) {
@@ -621,6 +654,7 @@ func (f *FaultDisputeGameContractLatest) decodeClaim(result *batching.CallResult
 }
 
 type FaultDisputeGameContract interface {
+	Addr() common.Address
 	GetBalanceAndDelay(ctx context.Context, block rpcblock.Block) (*big.Int, time.Duration, common.Address, error)
 	GetBlockRange(ctx context.Context) (prestateBlock uint64, poststateBlock uint64, retErr error)
 	GetGameMetadata(ctx context.Context, block rpcblock.Block) (GameMetadata, error)
@@ -643,6 +677,7 @@ type FaultDisputeGameContract interface {
 	GetClaimCount(ctx context.Context) (uint64, error)
 	GetClaim(ctx context.Context, idx uint64) (types.Claim, error)
 	GetAllClaims(ctx context.Context, block rpcblock.Block) ([]types.Claim, error)
+	GetDelayedWMetis(ctx context.Context, block rpcblock.Block) (WMetisContract, error)
 	IsResolved(ctx context.Context, block rpcblock.Block, claims ...types.Claim) ([]bool, error)
 	IsL2BlockNumberChallenged(ctx context.Context, block rpcblock.Block) (bool, error)
 	ChallengeL2BlockNumberTx(challenge *types.InvalidL2BlockNumberChallenge) (txmgr.TxCandidate, error)

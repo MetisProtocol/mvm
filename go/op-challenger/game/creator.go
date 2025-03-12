@@ -72,6 +72,7 @@ type gameCreator struct {
 
 	logger          log.Logger
 	factoryContract *contracts.DisputeGameFactoryContract
+	tokenContract   *contracts.MetisTokenContract
 	sccContract     *batching.BoundContract
 
 	l1Source  *l1client.Client
@@ -127,6 +128,11 @@ func newCreator(logger log.Logger,
 
 	sccABI := abi.LoadSCCABI()
 	factoryABI := abi.LoadDisputeGameFactoryABI()
+	metisToken, err := factoryContract.GetMetisTokenContractAddress(context.TODO())
+	if err != nil {
+		logger.Crit("failed to get metis token contract address", "err", err)
+		return nil
+	}
 
 	return &gameCreator{
 		ctx:             ctx,
@@ -135,6 +141,7 @@ func newCreator(logger log.Logger,
 		logger:          logger.With("module", "game-creator"),
 		factoryContract: factoryContract,
 		sccContract:     batching.NewBoundContract(sccABI, cfg.SCCAddress),
+		tokenContract:   contracts.NewMetisTokenContract(metisToken, multiCaller, txMgr.From()),
 		l1Source:        l1Source,
 		l2Source:        l2Source,
 		dtlSource:       dtlSource,
@@ -542,7 +549,28 @@ func (m *gameCreator) createDisputeGameRequest(event *StateBatchAppended) error 
 
 	txCandidate, err := m.factoryContract.CreateDisputeTx(m.ctx, gameType, l2Block.Uint64())
 	if err != nil {
-		return fmt.Errorf("failed to create dispute transaction: %w", err)
+		if errors.Is(err, contracts.InsufficientAllowance) {
+			m.logger.Warn("Insufficient allowance, approving token")
+			txCandidate, err = m.tokenContract.ApproveWithMaxAllowanceTx(m.factoryContract.Addr())
+			if err != nil {
+				return fmt.Errorf("failed to approve token: %w", err)
+			}
+
+			receipt, err := m.txMgr.Send(m.ctx, txCandidate)
+			if err != nil {
+				return fmt.Errorf("failed to send approve token transaction: %w", err)
+			}
+			if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+				return errors.New("approve token transaction reverted")
+			}
+
+			txCandidate, err = m.factoryContract.CreateDisputeTx(m.ctx, gameType, l2Block.Uint64())
+			if err != nil {
+				return fmt.Errorf("failed to create dispute transaction: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to create dispute transaction: %w", err)
+		}
 	}
 
 	receipt, err := m.txMgr.Send(m.ctx, txCandidate)

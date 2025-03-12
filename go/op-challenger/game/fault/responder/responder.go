@@ -4,17 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/contracts"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/preimages"
 	"github.com/ethereum-optimism/optimism/go/op-challenger/game/fault/types"
 	gameTypes "github.com/ethereum-optimism/optimism/go/op-challenger/game/types"
 )
 
 type GameContract interface {
+	Addr() common.Address
 	CallResolve(ctx context.Context) (gameTypes.GameStatus, error)
 	ResolveTx() (txmgr.TxCandidate, error)
 	CallResolveClaim(ctx context.Context, claimIdx uint64) error
@@ -23,6 +27,11 @@ type GameContract interface {
 	DefendTx(ctx context.Context, parent types.Claim, pivot common.Hash) (txmgr.TxCandidate, error)
 	StepTx(claimIdx uint64, isAttack bool, stateData []byte, proof []byte) (txmgr.TxCandidate, error)
 	ChallengeL2BlockNumberTx(challenge *types.InvalidL2BlockNumberChallenge) (txmgr.TxCandidate, error)
+}
+
+type MetisTokenContract interface {
+	GetAllowanceAndBalance(ctx context.Context, block rpcblock.Block, owner common.Address, spender common.Address) (*big.Int, *big.Int, error)
+	ApproveWithMaxAllowanceTx(spender common.Address) (txmgr.TxCandidate, error)
 }
 
 type Oracle interface {
@@ -38,16 +47,18 @@ type FaultResponder struct {
 	log      log.Logger
 	sender   TxSender
 	contract GameContract
+	token    MetisTokenContract
 	uploader preimages.PreimageUploader
 	oracle   Oracle
 }
 
 // NewFaultResponder returns a new [FaultResponder].
-func NewFaultResponder(logger log.Logger, sender TxSender, contract GameContract, uploader preimages.PreimageUploader, oracle Oracle) (*FaultResponder, error) {
+func NewFaultResponder(logger log.Logger, sender TxSender, contract GameContract, token MetisTokenContract, uploader preimages.PreimageUploader, oracle Oracle) (*FaultResponder, error) {
 	return &FaultResponder{
 		log:      logger,
 		sender:   sender,
 		contract: contract,
+		token:    token,
 		uploader: uploader,
 		oracle:   oracle,
 	}, nil
@@ -119,6 +130,18 @@ func (r *FaultResponder) PerformAction(ctx context.Context, action types.Action)
 		} else {
 			r.log.Debug("Defending", "claim", action.ParentClaim.ContractIndex, "value", action.Value)
 			candidate, err = r.contract.DefendTx(ctx, action.ParentClaim, action.Value)
+		}
+		if errors.Is(err, contracts.InsufficientAllowance) {
+			r.log.Debug("Insufficient allowance, approving allowance for game contract")
+			candidate, err = r.token.ApproveWithMaxAllowanceTx(r.contract.Addr())
+			if err == nil {
+				if err = r.sender.SendAndWaitSimple("approve game with allowance", candidate); err != nil {
+					r.log.Error("Failed to approve allowance", "err", err)
+					return err
+				}
+				// retry after approving allowance
+				return r.PerformAction(ctx, action)
+			}
 		}
 	case types.ActionTypeStep:
 		r.log.Debug("Stepping", "claim", action.ParentClaim.ContractIndex, "is_attack", action.IsAttack)

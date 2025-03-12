@@ -8,7 +8,7 @@ import {Clone} from "solady/src/utils/Clone.sol";
 import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
 import {Hashing} from "../../libraries/Hashing.sol";
 import {IBigStepper} from "./interfaces/IBigStepper.sol";
-import {IDelayedWETH} from "./interfaces/IDelayedWETH.sol";
+import {IDelayedWMetis} from "./interfaces/IDelayedWMetis.sol";
 import {IDisputeGame} from "./interfaces/IDisputeGame.sol";
 import {IFaultDisputeGame} from "./interfaces/IFaultDisputeGame.sol";
 import {IInitializable} from "contracts/L1/dispute/interfaces/IInitializable.sol";
@@ -19,10 +19,12 @@ import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.so
 
 import {Lib_OVMCodec} from "../../libraries/codec/Lib_OVMCodec.sol";
 import {Lib_RLPReader} from "../../libraries/rlp/Lib_RLPReader.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {OutputRoot, LocalPreimageKey, VMStatuses} from "./lib/Types.sol";
 import {StateCommitmentChain} from "../rollup/StateCommitmentChain.sol";
 import {Types} from "../../libraries/Types.sol";
+
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title FaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.
@@ -51,8 +53,8 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @notice The game type ID.
     GameType internal immutable GAME_TYPE;
 
-    /// @notice WETH contract for holding ETH.
-    IDelayedWETH internal immutable WETH;
+    /// @notice WMETIS contract for holding METIS.
+    IDelayedWMetis internal immutable WMETIS;
 
     /// @notice The address manager contract.
     Lib_AddressManager internal immutable ADDRESS_MANAGER;
@@ -129,7 +131,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @param _clockExtension The clock extension to perform when the remaining duration is less than the extension.
     /// @param _maxClockDuration The maximum amount of time that may accumulate on a team's chess clock.
     /// @param _vm An onchain VM that performs single instruction steps on an FPP trace.
-    /// @param _weth WETH contract for holding ETH.
+    /// @param _wmetis WMETIS contract for holding METIS.
     /// @param _addressManager The contract that stores the names and addresses of metis contracts.
     /// @param _l2ChainId Chain ID of the L2 network this contract argues about.
     constructor(
@@ -140,7 +142,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         Duration _clockExtension,
         Duration _maxClockDuration,
         IBigStepper _vm,
-        IDelayedWETH _weth,
+        IDelayedWMetis _wmetis,
         Lib_AddressManager _addressManager,
         uint256 _l2ChainId
     ) {
@@ -182,7 +184,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         CLOCK_EXTENSION = _clockExtension;
         MAX_CLOCK_DURATION = _maxClockDuration;
         VM = _vm;
-        WETH = _weth;
+        WMETIS = _wmetis;
         ADDRESS_MANAGER = _addressManager;
         L2_CHAIN_ID = _l2ChainId;
     }
@@ -243,13 +245,16 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         // configured starting block number.
         if (l2BlockNumber() <= rootBlockNumber) revert UnexpectedRootClaim(rootClaim());
 
+        IDelayedWMetis wmet = WMETIS;
+        IERC20 met = wmet.metisToken();
+
         // Set the root claim
         claimData.push(
             ClaimData({
                 parentIndex: type(uint32).max,
                 counteredBy: address(0),
                 claimant: gameCreator(),
-                bond: uint128(msg.value),
+                bond: uint128(met.balanceOf(address(this))), // Use the balance transferred from factory
                 claim: rootClaim(),
                 position: ROOT_POSITION,
                 clock: LibClock.wrap(Duration.wrap(0), Timestamp.wrap(uint64(block.timestamp)))
@@ -259,8 +264,10 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         // Set the game as initialized.
         initialized = true;
 
-        // Deposit the bond.
-        WETH.deposit{value: msg.value}();
+        // Convert the initial bond from METIS to WMETIS
+        uint256 initialBond = met.balanceOf(address(this));
+        met.approve(address(wmet), initialBond);
+        wmet.deposit(initialBond);
 
         // Set the game's starting timestamp
         createdAt = Timestamp.wrap(uint64(block.timestamp));
@@ -356,7 +363,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @param _challengeIndex The index of the claim being moved against.
     /// @param _claim The claim at the next logical position in the game.
     /// @param _isAttack Whether or not the move is an attack or defense.
-    function move(Claim _disputed, uint256 _challengeIndex, Claim _claim, bool _isAttack) public payable virtual {
+    function move(Claim _disputed, uint256 _challengeIndex, Claim _claim, bool _isAttack) public virtual {
         // INVARIANT: Moves cannot be made unless the game is currently in progress.
         if (status != GameStatus.IN_PROGRESS) revert GameNotInProgress();
 
@@ -396,8 +403,23 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
             _verifyExecBisectionRoot(_claim, _challengeIndex, parentPos, _isAttack);
         }
 
-        // INVARIANT: The `msg.value` must exactly equal the required bond.
-        if (getRequiredBond(nextPosition) != msg.value) revert IncorrectBondAmount();
+        // Get the required bond
+        uint256 requiredBond = getRequiredBond(nextPosition);
+
+        // Check if the claimant has enough balance and allowance,
+        // use inner scope to avoid stack too deep
+        IDelayedWMetis wmet = WMETIS;
+        {
+            IERC20 metis = IERC20(wmet.metisToken());
+
+            // Check balance and allowance
+            if (metis.balanceOf(msg.sender) < requiredBond) {
+                revert InsufficientBalance();
+            }
+            if (metis.allowance(msg.sender, address(this)) < requiredBond) {
+                revert InsufficientAllowance();
+            }
+        }
 
         // Compute the duration of the next clock. This is done by adding the duration of the
         // grandparent claim to the difference between the current block timestamp and the
@@ -450,7 +472,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
             // This is updated during subgame resolution
                 counteredBy: address(0),
                 claimant: msg.sender,
-                bond: uint128(msg.value),
+                bond: uint128(requiredBond),
                 claim: _claim,
                 position: nextPosition,
                 clock: nextClock
@@ -460,20 +482,27 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         // Update the subgame rooted at the parent claim.
         subgames[_challengeIndex].push(claimData.length - 1);
 
-        // Deposit the bond.
-        WETH.deposit{value: msg.value}();
+        // Transfer the bond from the sender to this contract
+        if (requiredBond > 0) {
+            IERC20 met = IERC20(wmet.metisToken());
+            met.transferFrom(msg.sender, address(this), requiredBond);
+
+            // Approve and deposit the bond into wmet
+            met.approve(address(wmet), requiredBond);
+            wmet.deposit(requiredBond);
+        }
 
         // Emit the appropriate event for the attack or defense.
         emit Move(_challengeIndex, _claim, msg.sender);
     }
 
     /// @inheritdoc IFaultDisputeGame
-    function attack(Claim _disputed, uint256 _parentIndex, Claim _claim) external payable {
+    function attack(Claim _disputed, uint256 _parentIndex, Claim _claim) external {
         move(_disputed, _parentIndex, _claim, true);
     }
 
     /// @inheritdoc IFaultDisputeGame
-    function defend(Claim _disputed, uint256 _parentIndex, Claim _claim) external payable {
+    function defend(Claim _disputed, uint256 _parentIndex, Claim _claim) external {
         move(_disputed, _parentIndex, _claim, false);
     }
 
@@ -821,26 +850,27 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         int256 rawGas = FixedPointMathLib.powWad(base, int256(depth * FixedPointMathLib.WAD));
         uint256 requiredGas = FixedPointMathLib.mulWad(baseGasCharged, uint256(rawGas));
 
-        // Compute the required bond.
-        requiredBond_ = assumedBaseFee * requiredGas;
+        // Compute the required bond in Metis, assume the exchange ratio between Metis and ETH is 50:1.
+        requiredBond_ = assumedBaseFee * requiredGas * 50;
     }
 
     /// @notice Claim the credit belonging to the recipient address.
     /// @param _recipient The owner and recipient of the credit.
     function claimCredit(address _recipient) external {
-        // Remove the credit from the recipient prior to performing the external call.
+        // Get the credit amount
         uint256 recipientCredit = credit[_recipient];
-        credit[_recipient] = 0;
+        // Delete the credit before transferring
+        delete credit[_recipient];
 
         // Revert if the recipient has no credit to claim.
         if (recipientCredit == 0) revert NoCreditToClaim();
 
-        // Try to withdraw the WETH amount so it can be used here.
-        WETH.withdraw(_recipient, recipientCredit);
+        // Try to withdraw the WMetis amount so it can be used here.
+        IDelayedWMetis wmet = WMETIS;
+        IERC20 met = wmet.metisToken();
 
-        // Transfer the credit to the recipient.
-        (bool success,) = _recipient.call{value : recipientCredit}(hex"");
-        if (!success) revert BondTransferFailed();
+        wmet.withdraw(_recipient, recipientCredit);
+        met.transfer(_recipient, recipientCredit);
     }
 
     /// @notice Returns the amount of time elapsed on the potential challenger to `_claimIndex`'s chess clock. Maxes
@@ -907,9 +937,9 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         vm_ = VM;
     }
 
-    /// @notice Returns the WETH contract for holding ETH.
-    function weth() external view returns (IDelayedWETH weth_) {
-        weth_ = WETH;
+    /// @notice Returns the WMETIS contract for holding METIS.
+    function wmetis() external view returns (IDelayedWMetis wmetis_) {
+        wmetis_ = WMETIS;
     }
 
     /// @notice Returns the anchor state registry contract.
@@ -936,8 +966,8 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         // Increase the recipient's credit.
         credit[_recipient] += bond;
 
-        // Unlock the bond.
-        WETH.unlock(_recipient, bond);
+        // Unlock the bond for withdrawal
+        WMETIS.unlock(_recipient, bond);
     }
 
     /// @notice Verifies the integrity of an execution bisection subgame's root claim. Reverts if the claim

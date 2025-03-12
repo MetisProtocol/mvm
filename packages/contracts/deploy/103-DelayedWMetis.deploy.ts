@@ -10,27 +10,29 @@ const deployFn: DeployFunction = async (hre) => {
 
   const metisConfig = await getDeployedContract(hre, 'MetisConfig')
 
-  const delayedWETH = await deployWithOZTransparentProxy({
+  const delayedWMetis = await deployWithOZTransparentProxy({
     hre,
-    name: 'DelayedWETH',
+    name: 'DelayedWMetis',
     args: [deployer, metisConfig.address],
     options: {
       constructorArgs: [
         // withdrawal delay
-        604800,
+        86400,
+        // metis token address
+        (hre as any).deployConfig.mvmMetisAddress,
       ],
       unsafeAllow: ['constructor', 'state-variable-immutable'],
     },
   })
 
-  if (delayedWETH.newDeploy) {
+  if (delayedWMetis.newDeploy) {
     await registerAddress({
       hre,
-      name: 'DelayedWETH',
-      address: delayedWETH.contract.address,
+      name: 'DelayedWMetis',
+      address: delayedWMetis.contract.address,
     })
   }
 }
 
-deployFn.tags = ['DelayedWETH', 'weth', 'faultproof']
+deployFn.tags = ['DelayedWMetis', 'wmetis', 'faultproof']
 export default deployFn

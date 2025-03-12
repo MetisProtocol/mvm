@@ -21,15 +21,16 @@ import (
 )
 
 const (
-	methodGameCount     = "gameCount"
-	methodGameAtIndex   = "gameAtIndex"
-	methodGameImpls     = "gameImpls"
-	methodInitBonds     = "initBonds"
-	methodCreateGame    = "create"
-	methodCreateDispute = "dispute"
-	methodGames         = "games"
-	methodOwner         = "owner"
-	methodGameRequests  = "disputeGameCreationRequests"
+	methodGameCount         = "gameCount"
+	methodGameAtIndex       = "gameAtIndex"
+	methodGameImpls         = "gameImpls"
+	methodInitBonds         = "initBonds"
+	methodCreateGame        = "create"
+	methodCreateDispute     = "dispute"
+	methodGames             = "games"
+	methodOwner             = "owner"
+	methodGameRequests      = "disputeGameCreationRequests"
+	methodMetisTokenAddress = "METIS"
 
 	eventDisputeGameCreated   = "DisputeGameCreated"
 	eventDisputeGameRequested = "DisputeGameRequested"
@@ -50,6 +51,7 @@ type DisputeGameFactoryContract struct {
 	metrics     metrics.ContractMetricer
 	multiCaller *batching.MultiCaller
 	contract    *batching.BoundContract
+	token       *MetisTokenContract
 	abi         *abi.ABI
 
 	from common.Address
@@ -57,13 +59,21 @@ type DisputeGameFactoryContract struct {
 
 func NewDisputeGameFactoryContract(m metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller, from common.Address) *DisputeGameFactoryContract {
 	factoryAbi := metis.LoadDisputeGameFactoryABI()
-	return &DisputeGameFactoryContract{
+	factory := &DisputeGameFactoryContract{
 		metrics:     m,
 		multiCaller: caller,
 		contract:    batching.NewBoundContract(factoryAbi, addr),
 		abi:         factoryAbi,
 		from:        from,
 	}
+
+	metisTokenAddr, err := factory.GetMetisTokenContractAddress(context.TODO())
+	if err != nil {
+		panic(err)
+	}
+
+	factory.token = NewMetisTokenContract(metisTokenAddr, caller, from)
+	return factory
 }
 
 func (f *DisputeGameFactoryContract) GetDisputeGameRequest(ctx context.Context, gameType faultTypes.GameType, extraData []byte) (*DisputeInfo, error) {
@@ -214,14 +224,35 @@ func (f *DisputeGameFactoryContract) CreateDisputeTx(ctx context.Context, traceT
 	if err != nil {
 		return txmgr.TxCandidate{}, fmt.Errorf("failed to fetch init bond: %w", err)
 	}
+
 	initBond := result.GetBigInt(0)
+
+	allowance, balance, err := f.token.GetAllowanceAndBalance(ctx, rpcblock.Latest, f.from, f.contract.Addr())
+	if err != nil {
+		return txmgr.TxCandidate{}, fmt.Errorf("failed to fetch allowance and balance: %w", err)
+	}
+
+	if allowance.Cmp(initBond) < 0 {
+		return txmgr.TxCandidate{}, InsufficientAllowance
+	}
+	if balance.Cmp(initBond) < 0 {
+		return txmgr.TxCandidate{}, InsufficientBalance
+	}
+
 	call := f.contract.Call(methodCreateDispute, traceType, common.BigToHash(big.NewInt(int64(l2BlockNum))).Bytes())
 	candidate, err := call.ToTxCandidate()
 	if err != nil {
 		return txmgr.TxCandidate{}, err
 	}
-	candidate.Value = initBond
 	return candidate, err
+}
+
+func (f *DisputeGameFactoryContract) GetMetisTokenContractAddress(ctx context.Context) (common.Address, error) {
+	result, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, f.contract.Call(methodMetisTokenAddress))
+	if err != nil {
+		return common.Address{}, fmt.Errorf("failed to fetch metis token contract address: %w", err)
+	}
+	return result.GetAddress(0), nil
 }
 
 func (f *DisputeGameFactoryContract) DecodeDisputeGameRequestedLog(rcpt *ethTypes.Receipt) (common.Address, uint32, *big.Int, []byte, error) {
@@ -264,6 +295,10 @@ func (f *DisputeGameFactoryContract) DecodeDisputeGameCreatedLog(rcpt *ethTypes.
 		return result.GetAddress(0), result.GetUint32(1), result.GetHash(2), nil
 	}
 	return common.Address{}, 0, common.Hash{}, fmt.Errorf("%w: %v", ErrEventNotFound, eventDisputeGameCreated)
+}
+
+func (f *DisputeGameFactoryContract) Addr() common.Address {
+	return f.contract.Addr()
 }
 
 func (f *DisputeGameFactoryContract) checkOwner(ctx context.Context) error {

@@ -25,11 +25,6 @@ type DelayedWETHContract struct {
 	contract    *batching.BoundContract
 }
 
-type WithdrawalRequest struct {
-	Amount    *big.Int
-	Timestamp *big.Int
-}
-
 func NewDelayedWETHContract(metrics metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller) *DelayedWETHContract {
 	contractAbi := snapshots.LoadDelayedWETHABI()
 	return &DelayedWETHContract{

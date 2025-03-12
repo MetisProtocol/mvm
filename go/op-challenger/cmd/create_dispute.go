@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
@@ -30,9 +31,30 @@ func CreateDispute(ctx *cli.Context) error {
 	}
 
 	creator := tools.NewGameCreator(contract, txMgr)
+
 	gameType, bond, l2Block, err := creator.CreateDispute(ctx.Context, traceType, l2BlockNum)
 	if err != nil {
 		return fmt.Errorf("failed to create game: %w", err)
+	}
+
+	if errors.Is(err, contracts.InsufficientAllowance) {
+		token, txMgr, err := NewContractWithTxMgr[*contracts.MetisTokenContract](ctx, func(ctx *cli.Context) (common.Address, error) {
+			return contract.GetMetisTokenContractAddress(ctx.Context)
+		}, func(ctx context.Context, metricer contractMetrics.ContractMetricer, address common.Address, caller *batching.MultiCaller, from common.Address) (*contracts.MetisTokenContract, error) {
+			return contracts.NewMetisTokenContract(address, caller, from), nil
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create metis token bindings: %w", err)
+		}
+
+		approver := tools.NewTokenApprover(token, txMgr)
+
+		if err := approver.ApproveToken(ctx.Context, contract.Addr()); err != nil {
+			return fmt.Errorf("failed to approve token: %w", err)
+		}
+
+		// retry after approve
+		return CreateDispute(ctx)
 	}
 
 	fmt.Printf("Created Dispute Game %s Request with: { Bond: %s, L2BlockNumber: %s }\n",
