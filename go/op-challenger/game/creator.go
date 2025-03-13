@@ -705,9 +705,5 @@ func (m *gameCreator) StopMonitoring() {
 
 func shouldRetry(err error) bool {
 	// do not retry on invalid txs
-	if err == nil || strings.Contains(err.Error(), "failed to estimate gas") || strings.Contains(err.Error(), "failed to call") {
-		return false
-	}
-
-	return true
+	return err != nil && !strings.Contains(err.Error(), "failed to estimate gas") && !strings.Contains(err.Error(), "failed to call")
 }
