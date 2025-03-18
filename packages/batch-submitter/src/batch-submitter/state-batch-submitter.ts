@@ -14,7 +14,13 @@ import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
 import { BatchSubmitter, BlockRange } from '.'
-import { checkGasFee, MpcClient, TransactionSubmitter } from '../utils'
+import {
+  checkGasFee,
+  MpcClient,
+  setTxEIP1559Fees,
+  TransactionSubmitter,
+  validateTxFeeBeforeMPCSend,
+} from '../utils'
 import { InboxStorage } from '../storage'
 
 export class StateBatchSubmitter extends BatchSubmitter {
@@ -344,10 +350,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
           txUnsign,
           async (gasPrice) => {
             try {
-              const feeData = await this.signer.provider.getFeeData()
-              txUnsign.maxFeePerGas = feeData.maxFeePerGas
-              txUnsign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-
+              await setTxEIP1559Fees(txUnsign, this.l1Provider)
               checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
 
               const signedTx = await mpcClient.signTx(
@@ -355,6 +358,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
                 mpcInfo.mpc_id,
                 this.mpcSignTimeout
               )
+              await validateTxFeeBeforeMPCSend(txUnsign, this.l1Provider)
               return signedTx
             } catch (e) {
               this.logger.error('MPC sign tx failed', { error: e })

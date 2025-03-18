@@ -1,4 +1,11 @@
-import { ethers, Signer, toBigInt, toNumber } from 'ethersv6'
+import {
+  ethers,
+  JsonRpcProvider,
+  Provider,
+  Signer,
+  toBigInt,
+  toNumber,
+} from 'ethersv6'
 import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'
@@ -18,6 +25,19 @@ export type SubmitTransactionFn = (
 export interface TxSubmissionHooks {
   beforeSendTransaction: (tx: ethers.TransactionRequest) => void
   onTransactionResponse: (txResponse: ethers.TransactionResponse) => void
+}
+
+export const setTxEIP1559Fees = async (
+  tx: any,
+  l1Provider: Provider,
+  blobTx: boolean = false
+): Promise<void> => {
+  const feeData = await l1Provider.getFeeData()
+  tx.maxFeePerGas = feeData.maxFeePerGas * 2n
+  tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+  if (blobTx) {
+    tx.maxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
+  }
 }
 
 export const checkGasFee = (
@@ -41,6 +61,54 @@ export const checkGasFee = (
       `Gas price ${tx.maxFeePerGas} exceeds the cap ${yntmSubmmiter.ynatmConfig.maxGasPriceInGwei}`
     )
   }
+}
+
+// This function is used to validate the transaction fee before sending it, since MPC sign sometimes takes a long time,
+// the signed tx may be sent after the base fee has already increased more than 2 times.
+export const validateTxFeeBeforeMPCSend = async (
+  tx: any,
+  l1Provider: Provider
+): Promise<void> => {
+  if (!tx.maxFeePerGas || !tx.maxPriorityFeePerGas) {
+    throw new Error(
+      "Transaction doesn't have maxFeePerGas or maxPriorityFeePerGas"
+    )
+  }
+
+  const feeData = await l1Provider.getFeeData()
+
+  // Assume the worst case scenario:
+  // 1. Gas used in the n-th block is 100% of the gas limit
+  // 2. We are sending a transaction in-between blocks, price fetched at block n, but tx send at block n+1
+  // In this case, the base fee in the next block will be 12.5% higher than the base fee we fetched.
+  // To avoid this situation, we need to make sure the tx's maxFeePerGas & maxFeePerBlobGas is at least 12.5%
+  // (let's make it 13%, since we are doing int calc instead float) higher than the base fee we fetched.
+  if (tx.maxFeePerGas < (feeData.maxFeePerGas * 113n) / 100n) {
+    throw new Error(
+      `Transaction maxFeePerGas ${tx.maxFeePerGas} is lower than current maxFeePerGas ${feeData.maxFeePerGas}`
+    )
+  }
+
+  if (tx.maxPriorityFeePerGas < feeData.maxPriorityFeePerGas) {
+    throw new Error(
+      `Transaction maxPriorityFeePerGas ${tx.maxPriorityFeePerGas} is lower than current maxPriorityFeePerGas ${feeData.maxPriorityFeePerGas}`
+    )
+  }
+
+  if (tx.maxFeePerBlobGas) {
+    const blobBaseFee = await getBlobBaseFee(l1Provider)
+    if (tx.maxFeePerBlobGas < (blobBaseFee * 113n) / 100n) {
+      throw new Error(
+        `Transaction maxFeePerBlobGas ${tx.maxFeePerBlobGas} is lower than current blob base fee ${blobBaseFee}`
+      )
+    }
+  }
+}
+
+export const getBlobBaseFee = async (l1Provider: Provider): Promise<bigint> => {
+  return toBigInt(
+    await (l1Provider as JsonRpcProvider).send('eth_blobBaseFee', [])
+  )
 }
 
 const getGasPriceInWei = async (signer: Signer): Promise<number> => {

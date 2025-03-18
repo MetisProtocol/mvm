@@ -7,7 +7,6 @@ import {
   Signer,
   toBeHex,
   toBigInt,
-  toNumber,
   TransactionReceipt,
   TransactionRequest,
 } from 'ethersv6'
@@ -29,8 +28,9 @@ import {
 import {
   checkGasFee,
   MpcClient,
+  setTxEIP1559Fees,
   TransactionSubmitter,
-  YnatmTransactionSubmitter,
+  validateTxFeeBeforeMPCSend,
 } from '../utils'
 import { InboxStorage } from '../storage'
 import { TxSubmissionHooks } from '..'
@@ -247,12 +247,7 @@ export class TransactionBatchSubmitterInbox {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
               async (gasPrice) => {
-                const feeData = await this.l1Provider.getFeeData()
-                blobTx.maxFeePerGas = feeData.maxFeePerGas
-                blobTx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-                blobTx.maxFeePerBlobGas =
-                  (await this.getBlobBaseFee()) * toBigInt(2)
-
+                await setTxEIP1559Fees(blobTx, this.l1Provider, true)
                 checkGasFee(this.logger, transactionSubmitter, blobTx)
 
                 const signedTx = await mpcClient.signTx(
@@ -260,6 +255,9 @@ export class TransactionBatchSubmitterInbox {
                   mpcId,
                   mpcSignTimeout
                 )
+
+                await validateTxFeeBeforeMPCSend(blobTx, this.l1Provider)
+
                 // need to append the blob sidecar to the signed tx
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
                 // force set tx type to 3, just bypass the tx type inferring bug in ethers
@@ -275,12 +273,7 @@ export class TransactionBatchSubmitterInbox {
         } else {
           submitTx = async (): Promise<TransactionReceipt> => {
             try {
-              const feeData = await this.l1Provider.getFeeData()
-              blobTx.maxFeePerGas = feeData.maxFeePerGas
-              blobTx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-              blobTx.maxFeePerBlobGas =
-                (await this.getBlobBaseFee()) * toBigInt(2)
-
+              await setTxEIP1559Fees(blobTx, this.l1Provider, true)
               checkGasFee(this.logger, transactionSubmitter, blobTx)
 
               return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
@@ -349,10 +342,7 @@ export class TransactionBatchSubmitterInbox {
           tx,
           async (gasPrice) => {
             try {
-              const feeData = await this.l1Provider.getFeeData()
-              tx.maxFeePerGas = feeData.maxFeePerGas
-              tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-
+              await setTxEIP1559Fees(tx, this.l1Provider)
               checkGasFee(this.logger, transactionSubmitter, tx)
 
               const signedTx = await mpcClient.signTx(
@@ -360,6 +350,8 @@ export class TransactionBatchSubmitterInbox {
                 mpcInfo.mpc_id,
                 mpcSignTimeout
               )
+
+              await validateTxFeeBeforeMPCSend(tx, this.l1Provider)
               return signedTx
             } catch (e) {
               this.logger.error(`Error signing tx with mpc, ${e}`)
@@ -385,10 +377,7 @@ export class TransactionBatchSubmitterInbox {
         from: await signer.getAddress(),
         data: tx.data,
       })
-      const feeData = await this.l1Provider.getFeeData()
-      tx.maxFeePerGas = feeData.maxFeePerGas
-      tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-
+      await setTxEIP1559Fees(tx, this.l1Provider)
       checkGasFee(this.logger, transactionSubmitter, tx)
     }
 
@@ -759,11 +748,5 @@ export class TransactionBatchSubmitterInbox {
     const zerosToPad = targetLength - inputString.length
     const paddedString = '0'.repeat(zerosToPad) + inputString
     return paddedString
-  }
-
-  private async getBlobBaseFee(): Promise<bigint> {
-    return toBigInt(
-      await (this.l1Provider as JsonRpcProvider).send('eth_blobBaseFee', [])
-    )
   }
 }
