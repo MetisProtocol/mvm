@@ -35,11 +35,18 @@ export const setTxEIP1559Fees = async (
   tx: any,
   oldTx: PendingRecordInfo | null,
   l1Provider: Provider,
+  resubmissionTimeout: number,
   blobTx: boolean = false
 ): Promise<void> => {
   const feeData = await l1Provider.getFeeData()
-  // check if pending tx exists and has not been confirmed yet
-  if (oldTx && !(await l1Provider.getTransactionReceipt(oldTx.txHash))) {
+  // check if pending tx exists and has not been confirmed yet,
+  // also need to check if the resubmission timeout has passed,
+  // will only bump the fees if the timeout has passed
+  if (
+    oldTx &&
+    !(await l1Provider.getTransactionReceipt(oldTx.txHash)) &&
+    Date.now() - oldTx.submissionTime > resubmissionTimeout
+  ) {
     // pending tx exists, need to bump
     // for blob tx we need to double all fees,
     // for non-blob tx we need to bump maxFeePerGas and maxPriorityFeePerGas by 11% (using 11% instead of 10% to avoid rounding issues).

@@ -354,7 +354,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
               await setTxEIP1559Fees(
                 txUnsign,
                 await this.pendingStorage.getPendingTx(mpcAddress),
-                this.l1Provider
+                this.l1Provider,
+                this.resubmissionTimeout
               )
               checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
 

@@ -251,6 +251,7 @@ export abstract class BatchSubmitter {
           maxFeePerBlobGas: txResponse.maxFeePerBlobGas
             ? toNumber(txResponse.maxFeePerBlobGas)
             : null,
+          submissionTime: Date.now(),
         })
       },
       onTxReceipt: async (receipt: ethers.TransactionReceipt) => {

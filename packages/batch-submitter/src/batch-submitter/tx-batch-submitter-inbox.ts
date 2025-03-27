@@ -59,6 +59,7 @@ export class TransactionBatchSubmitterInbox {
     readonly l2Provider: Provider,
     readonly logger: Logger,
     readonly maxTxSize: number,
+    readonly resubmissionTimeout: number,
     readonly useMinio: boolean,
     readonly minioConfig?: MinioConfig
   ) {
@@ -252,6 +253,7 @@ export class TransactionBatchSubmitterInbox {
                   blobTx,
                   await this.pendingStorage.getPendingTx(signerAddress),
                   this.l1Provider,
+                  this.resubmissionTimeout,
                   true
                 )
                 checkGasFee(this.logger, transactionSubmitter, blobTx)
@@ -283,6 +285,7 @@ export class TransactionBatchSubmitterInbox {
                 blobTx,
                 await this.pendingStorage.getPendingTx(signerAddress),
                 this.l1Provider,
+                this.resubmissionTimeout,
                 true
               )
               checkGasFee(this.logger, transactionSubmitter, blobTx)
@@ -356,7 +359,8 @@ export class TransactionBatchSubmitterInbox {
               await setTxEIP1559Fees(
                 tx,
                 await this.pendingStorage.getPendingTx(mpcAddress),
-                this.l1Provider
+                this.l1Provider,
+                this.resubmissionTimeout
               )
               checkGasFee(this.logger, transactionSubmitter, tx)
 
@@ -395,7 +399,8 @@ export class TransactionBatchSubmitterInbox {
       await setTxEIP1559Fees(
         tx,
         await this.pendingStorage.getPendingTx(await signer.getAddress()),
-        this.l1Provider
+        this.l1Provider,
+        this.resubmissionTimeout
       )
       checkGasFee(this.logger, transactionSubmitter, tx)
     }

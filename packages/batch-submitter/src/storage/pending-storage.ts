@@ -2,7 +2,7 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Logger } from '@eth-optimism/common-ts'
-import { toBigInt, toNumber } from 'ethersv6'
+import { toNumber } from 'ethersv6'
 
 const PENDING_TX_FILE_SUFFIX = '_pending.json'
 
@@ -13,6 +13,7 @@ export interface PendingRecordInfo {
   maxFeePerGas: number
   maxPriorityFeePerGas: number
   maxFeePerBlobGas: number | null
+  submissionTime: number
 }
 
 export class PendingStorage {
@@ -24,7 +25,7 @@ export class PendingStorage {
     this.logger = logger
   }
 
-  public async recordPendingTx(pending: PendingRecordInfo): Promise<boolean> {
+  public async recordPendingTx(pending: PendingRecordInfo): Promise<void> {
     const jsonData = {
       from: pending.from,
       batchIndex: toNumber(pending.batchIndex),
@@ -32,24 +33,18 @@ export class PendingStorage {
       maxFeePerGas: toNumber(pending.maxFeePerGas),
       maxPriorityFeePerGas: toNumber(pending.maxPriorityFeePerGas),
       maxFeePerBlobGas: pending.maxFeePerBlobGas,
+      submissionTime: pending.submissionTime,
     }
     const jsonString = JSON.stringify(jsonData, null, 2)
     const filePath = path.join(
       this.storagePath,
       `${pending.from}${PENDING_TX_FILE_SUFFIX}`
     )
-    try {
-      const fileHandle = await fs.open(filePath, 'w')
-      await fileHandle.write(jsonString)
-      await fileHandle.close()
-      this.logger.info('JSON data has been written to pending tx file', {
-        filePath,
-      })
-      return true
-    } catch (writeError) {
-      this.logger.error('Error writing to pending tx file:', writeError)
-      throw new Error('Error writing to pending tx file file')
-    }
+
+    await fs.writeFile(filePath, jsonString)
+    this.logger.info('JSON data has been written to pending tx file', {
+      filePath,
+    })
   }
 
   public async clearPendingTx(address: string): Promise<void> {
@@ -57,15 +52,10 @@ export class PendingStorage {
       this.storagePath,
       `${address}${PENDING_TX_FILE_SUFFIX}`
     )
-    try {
-      await fs.rm(filePath, { force: true })
-      this.logger.info(`Pending tx of ${address} has been cleared`, {
-        filePath,
-      })
-    } catch (removeError) {
-      this.logger.error('Error removing pending tx file:', removeError)
-      throw new Error('Error removing pending tx file file')
-    }
+    await fs.rm(filePath, { force: true })
+    this.logger.info(`Pending tx of ${address} has been cleared`, {
+      filePath,
+    })
   }
 
   public async getPendingTx(
@@ -75,30 +65,26 @@ export class PendingStorage {
       this.storagePath,
       `${address}${PENDING_TX_FILE_SUFFIX}`
     )
-    if (!this.fileExists(filePath)) {
+    if (!(await this.fileExists(filePath))) {
       return null
     }
-    try {
-      const data = await fs.readFile(filePath, 'utf-8')
-      if (!data) {
-        return null
-      }
-      const readJsonData = JSON.parse(data)
-      return {
-        batchIndex: readJsonData.batchIndex,
-        txHash: readJsonData.hash,
-        from: readJsonData.from,
-        maxFeePerGas: readJsonData.maxFeePerGas,
-        maxPriorityFeePerGas: readJsonData.maxPriorityFeePerGas,
-        maxFeePerBlobGas: readJsonData.maxFeePerBlobGas
-          ? readJsonData.maxFeePerBlobGas
-          : null,
-      }
-    } catch (readError) {
-      this.logger.debug(`Unable to read pending tx file: ${readError}`)
-      this.logger.info(`No pending tx found for ${address}`)
+    const data = await fs.readFile(filePath, 'utf-8')
+    if (!data) {
+      return null
     }
-    return null
+
+    const readJsonData = JSON.parse(data)
+    return {
+      batchIndex: readJsonData.batchIndex,
+      txHash: readJsonData.hash,
+      from: readJsonData.from,
+      maxFeePerGas: readJsonData.maxFeePerGas,
+      maxPriorityFeePerGas: readJsonData.maxPriorityFeePerGas,
+      maxFeePerBlobGas: readJsonData.maxFeePerBlobGas
+        ? readJsonData.maxFeePerBlobGas
+        : null,
+      submissionTime: readJsonData.submissionTime,
+    }
   }
 
   private async fileExists(filePath) {
@@ -106,10 +92,7 @@ export class PendingStorage {
       await fs.stat(filePath)
       return true
     } catch (error) {
-      if (error.code === 'ENOENT') {
-        return false
-      }
-      throw error
+      return false
     }
   }
 }

@@ -146,6 +146,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       this.l2Provider,
       this.logger,
       this.maxTxSize,
+      this.resubmissionTimeout,
       useMinio,
       minioConfig
     )
