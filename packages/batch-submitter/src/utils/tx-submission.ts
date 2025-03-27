@@ -44,8 +44,8 @@ export const setTxEIP1559Fees = async (
   // will only bump the fees if the timeout has passed
   if (
     oldTx &&
-    !(await l1Provider.getTransactionReceipt(oldTx.txHash)) &&
-    Date.now() - oldTx.submissionTime > resubmissionTimeout
+    Date.now() - oldTx.submissionTime > resubmissionTimeout &&
+    !(await l1Provider.getTransactionReceipt(oldTx.txHash))
   ) {
     // pending tx exists, need to bump
     // for blob tx we need to double all fees,
