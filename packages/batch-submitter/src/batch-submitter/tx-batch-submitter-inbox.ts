@@ -2,7 +2,6 @@
 import { Promise as bPromise } from 'bluebird'
 import {
   ethers,
-  JsonRpcProvider,
   Provider,
   Signer,
   toBeHex,
@@ -45,6 +44,7 @@ import {
 import { CompressionAlgo } from '../da/channel-compressor'
 import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE, TX_GAS } from '../da/consts'
 import { SpanBatch } from '../da/span-batch'
+import { PendingStorage } from '../storage/pending-storage'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
@@ -53,6 +53,7 @@ export class TransactionBatchSubmitterInbox {
 
   constructor(
     readonly inboxStorage: InboxStorage,
+    readonly pendingStorage: PendingStorage,
     readonly inboxAddress: string,
     readonly l1Provider: Provider,
     readonly l2Provider: Provider,
@@ -247,7 +248,12 @@ export class TransactionBatchSubmitterInbox {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
               async (gasPrice) => {
-                await setTxEIP1559Fees(blobTx, this.l1Provider, true)
+                await setTxEIP1559Fees(
+                  blobTx,
+                  await this.pendingStorage.getPendingTx(signerAddress),
+                  this.l1Provider,
+                  true
+                )
                 checkGasFee(this.logger, transactionSubmitter, blobTx)
 
                 const signedTx = await mpcClient.signTx(
@@ -273,7 +279,12 @@ export class TransactionBatchSubmitterInbox {
         } else {
           submitTx = async (): Promise<TransactionReceipt> => {
             try {
-              await setTxEIP1559Fees(blobTx, this.l1Provider, true)
+              await setTxEIP1559Fees(
+                blobTx,
+                await this.pendingStorage.getPendingTx(signerAddress),
+                this.l1Provider,
+                true
+              )
               checkGasFee(this.logger, transactionSubmitter, blobTx)
 
               return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
@@ -342,7 +353,11 @@ export class TransactionBatchSubmitterInbox {
           tx,
           async (gasPrice) => {
             try {
-              await setTxEIP1559Fees(tx, this.l1Provider)
+              await setTxEIP1559Fees(
+                tx,
+                await this.pendingStorage.getPendingTx(mpcAddress),
+                this.l1Provider
+              )
               checkGasFee(this.logger, transactionSubmitter, tx)
 
               const signedTx = await mpcClient.signTx(
@@ -377,7 +392,11 @@ export class TransactionBatchSubmitterInbox {
         from: await signer.getAddress(),
         data: tx.data,
       })
-      await setTxEIP1559Fees(tx, this.l1Provider)
+      await setTxEIP1559Fees(
+        tx,
+        await this.pendingStorage.getPendingTx(await signer.getAddress()),
+        this.l1Provider
+      )
       checkGasFee(this.logger, transactionSubmitter, tx)
     }
 

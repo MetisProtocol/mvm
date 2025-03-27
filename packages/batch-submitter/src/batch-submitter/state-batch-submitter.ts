@@ -84,7 +84,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
       blockOffset,
       logger,
       metrics,
-      mpcUrl.length > 0
+      mpcUrl.length > 0,
+      batchInboxStoragePath
     )
     this.fraudSubmissionAddress = fraudSubmissionAddress
     this.transactionSubmitter = transactionSubmitter
@@ -350,7 +351,11 @@ export class StateBatchSubmitter extends BatchSubmitter {
           txUnsign,
           async (gasPrice) => {
             try {
-              await setTxEIP1559Fees(txUnsign, this.l1Provider)
+              await setTxEIP1559Fees(
+                txUnsign,
+                await this.pendingStorage.getPendingTx(mpcAddress),
+                this.l1Provider
+              )
               checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
 
               const signedTx = await mpcClient.signTx(

@@ -6,6 +6,7 @@ import { Logger, Metrics } from '@eth-optimism/common-ts'
 /* Internal Imports */
 import { TxSubmissionHooks } from '..'
 import { getContractDefinition } from '@metis.io/contracts'
+import { PendingStorage } from '../storage/pending-storage'
 
 export interface BlockRange {
   start: number
@@ -32,6 +33,7 @@ export abstract class BatchSubmitter {
   protected syncing: boolean
   protected lastBatchSubmissionTimestamp: number = 0
   protected metrics: BatchSubmitterMetrics
+  protected pendingStorage: PendingStorage
 
   constructor(
     readonly signer: ethers.Signer,
@@ -50,8 +52,10 @@ export abstract class BatchSubmitter {
     readonly blockOffset: number,
     readonly logger: Logger,
     readonly defaultMetrics: Metrics,
-    readonly useMpc: boolean
+    readonly useMpc: boolean,
+    storagePath: string
   ) {
+    this.pendingStorage = new PendingStorage(storagePath, logger)
     this.metrics = this._registerMetrics(defaultMetrics)
   }
 
@@ -230,13 +234,34 @@ export abstract class BatchSubmitter {
           contractAddr: tx.to,
         })
       },
-      onTransactionResponse: (txResponse: ethers.TransactionResponse) => {
+      onTransactionResponse: async (txResponse: ethers.TransactionResponse) => {
         this.logger.info(`Submitted ${txName} transaction`, {
           txHash: txResponse.hash,
           from: txResponse.from,
         })
         this.logger.debug(`${txName} transaction data`, {
           data: txResponse.data,
+        })
+        await this.pendingStorage.recordPendingTx({
+          batchIndex: txResponse.nonce,
+          txHash: txResponse.hash,
+          from: txResponse.from,
+          maxFeePerGas: toNumber(txResponse.maxFeePerGas),
+          maxPriorityFeePerGas: toNumber(txResponse.maxPriorityFeePerGas),
+          maxFeePerBlobGas: txResponse.maxFeePerBlobGas
+            ? toNumber(txResponse.maxFeePerBlobGas)
+            : null,
+        })
+      },
+      onTxReceipt: async (receipt: ethers.TransactionReceipt) => {
+        this.logger.info(`Received ${txName} transaction receipt`, {
+          txHash: receipt.hash,
+          from: receipt.from,
+          blockNumber: receipt.blockNumber,
+        })
+        await this.pendingStorage.clearPendingTx(receipt.from)
+        this.logger.debug(`${txName} transaction receipt data`, {
+          data: receipt,
         })
       },
     }

@@ -10,6 +10,7 @@ import * as ynatm from '@eth-optimism/ynatm'
 
 import { YnatmAsync } from '../utils'
 import { Logger } from '@eth-optimism/common-ts'
+import { PendingRecordInfo } from '../storage/pending-storage'
 
 export interface ResubmissionConfig {
   resubmissionTimeout: number
@@ -23,20 +24,54 @@ export type SubmitTransactionFn = (
 ) => Promise<ethers.TransactionReceipt>
 
 export interface TxSubmissionHooks {
-  beforeSendTransaction: (tx: ethers.TransactionRequest) => void
-  onTransactionResponse: (txResponse: ethers.TransactionResponse) => void
+  beforeSendTransaction: (tx: ethers.TransactionRequest) => Promise<void>
+  onTransactionResponse: (
+    txResponse: ethers.TransactionResponse
+  ) => Promise<void>
+  onTxReceipt: (receipt: ethers.TransactionReceipt) => Promise<void>
 }
 
 export const setTxEIP1559Fees = async (
   tx: any,
+  oldTx: PendingRecordInfo | null,
   l1Provider: Provider,
   blobTx: boolean = false
 ): Promise<void> => {
   const feeData = await l1Provider.getFeeData()
-  tx.maxFeePerGas = feeData.maxFeePerGas * 2n
-  tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-  if (blobTx) {
-    tx.maxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
+  // check if pending tx exists and has not been confirmed yet
+  if (oldTx && !(await l1Provider.getTransactionReceipt(oldTx.txHash))) {
+    // pending tx exists, need to bump
+    // for blob tx we need to double all fees,
+    // for non-blob tx we need to bump maxFeePerGas and maxPriorityFeePerGas by 11% (using 11% instead of 10% to avoid rounding issues).
+    const bumpThreshold = blobTx ? 100n : 11n
+    const bumpedMaxFeePerGas =
+      (toBigInt(oldTx.maxFeePerGas) * (100n + bumpThreshold)) / 100n
+    const bumpedMaxPriorityFeePerGas =
+      (toBigInt(oldTx.maxPriorityFeePerGas) * (100n + bumpThreshold)) / 100n
+    const newMaxFeePerGas = feeData.maxFeePerGas * 2n
+
+    tx.maxFeePerGas =
+      bumpedMaxFeePerGas > newMaxFeePerGas
+        ? bumpedMaxFeePerGas
+        : newMaxFeePerGas
+    tx.maxPriorityFeePerGas =
+      bumpedMaxPriorityFeePerGas > feeData.maxPriorityFeePerGas
+        ? bumpedMaxPriorityFeePerGas
+        : feeData.maxPriorityFeePerGas
+    if (blobTx) {
+      const bumpedMaxFeePerBlobGas = toBigInt(oldTx.maxFeePerBlobGas) * 2n
+      const newMaxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
+      tx.maxFeePerBlobGas =
+        newMaxFeePerBlobGas > bumpedMaxFeePerBlobGas
+          ? newMaxFeePerBlobGas
+          : bumpedMaxFeePerBlobGas
+    }
+  } else {
+    tx.maxFeePerGas = feeData.maxFeePerGas * 2n
+    tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+    if (blobTx) {
+      tx.maxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
+    }
   }
 }
 
@@ -80,10 +115,10 @@ export const validateTxFeeBeforeMPCSend = async (
   // Assume the worst case scenario:
   // 1. Gas used in the n-th block is 100% of the gas limit
   // 2. We are sending a transaction in-between blocks, price fetched at block n, but tx send at block n+1
-  // In this case, the base fee in the next block will be 12.5% higher than the base fee we fetched.
-  // To avoid this situation, we need to make sure the tx's maxFeePerGas & maxFeePerBlobGas is at least 12.5%
-  // (let's make it 13%, since we are doing int calc instead float) higher than the base fee we fetched.
-  if (tx.maxFeePerGas < (feeData.maxFeePerGas * 113n) / 100n) {
+  // In this case, the base fee in the next block will be 50% higher than the base fee we fetched.
+  // To avoid this situation, we need to make sure the tx's maxFeePerGas & maxFeePerBlobGas is at least 50%
+  // higher than the base fee we fetched.
+  if (tx.maxFeePerGas < (feeData.maxFeePerGas * 150n) / 100n) {
     throw new Error(
       `Transaction maxFeePerGas ${tx.maxFeePerGas} is lower than current maxFeePerGas ${feeData.maxFeePerGas}`
     )
@@ -97,7 +132,7 @@ export const validateTxFeeBeforeMPCSend = async (
 
   if (tx.maxFeePerBlobGas) {
     const blobBaseFee = await getBlobBaseFee(l1Provider)
-    if (tx.maxFeePerBlobGas < (blobBaseFee * 113n) / 100n) {
+    if (tx.maxFeePerBlobGas < (blobBaseFee * 150n) / 100n) {
       throw new Error(
         `Transaction maxFeePerBlobGas ${tx.maxFeePerBlobGas} is lower than current blob base fee ${blobBaseFee}`
       )
@@ -145,14 +180,16 @@ export const submitTransactionWithYNATM = async (
       }
     }
 
-    hooks.beforeSendTransaction(fullTx)
+    await hooks.beforeSendTransaction(fullTx)
     try {
       const txResponse = await signer.sendTransaction(fullTx)
-      hooks.onTransactionResponse(txResponse)
-      return signer.provider.waitForTransaction(
+      await hooks.onTransactionResponse(txResponse)
+      const receipt = await signer.provider.waitForTransaction(
         txResponse.hash,
         numConfirmations
       )
+      await hooks.onTxReceipt(receipt)
+      return receipt
     } catch (err) {
       console.error('Error sending transaction:', err)
       throw err
@@ -187,15 +224,17 @@ export const submitSignedTransactionWithYNATM = async (
       signedTx
     ): Promise<ethers.TransactionReceipt> => {
       try {
-        hooks.beforeSendTransaction(tx)
+        await hooks.beforeSendTransaction(tx)
         const txResponse = await signer.provider.broadcastTransaction(signedTx)
-        hooks.onTransactionResponse(txResponse)
-        return signer.provider.waitForTransaction(
+        await hooks.onTransactionResponse(txResponse)
+        const txReceipt = await signer.provider.waitForTransaction(
           txResponse.hash,
           numConfirmations
         )
+        await hooks.onTxReceipt(txReceipt)
+        return txReceipt
       } catch (e) {
-        console.error('Error sending transaction:', e.message.substring(0, 100))
+        console.error('Error sending transaction:', e.message.substring(0, 200))
         throw e
       }
     }
@@ -244,6 +283,7 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
       hooks = {
         beforeSendTransaction: () => undefined,
         onTransactionResponse: () => undefined,
+        onTxReceipt: () => undefined,
       }
     }
     return submitTransactionWithYNATM(
@@ -264,6 +304,7 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
       hooks = {
         beforeSendTransaction: () => undefined,
         onTransactionResponse: () => undefined,
+        onTxReceipt: () => undefined,
       }
     }
     return submitSignedTransactionWithYNATM(

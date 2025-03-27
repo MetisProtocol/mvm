@@ -121,7 +121,8 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       blockOffset,
       logger,
       metrics,
-      mpcUrl.length > 0
+      mpcUrl.length > 0,
+      batchInboxStoragePath
     )
     this.validateBatch = validateBatch
     this.autoFixBatchOptions = autoFixBatchOptions
@@ -139,6 +140,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.inboxStorage = new InboxStorage(batchInboxStoragePath, logger)
     this.inboxSubmitter = new TransactionBatchSubmitterInbox(
       this.inboxStorage,
+      this.pendingStorage,
       this.inboxAddress,
       this.l1Provider,
       this.l2Provider,
