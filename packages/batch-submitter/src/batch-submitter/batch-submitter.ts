@@ -246,6 +246,7 @@ export abstract class BatchSubmitter {
           batchIndex: txResponse.nonce,
           txHash: txResponse.hash,
           from: txResponse.from,
+          nonce: txResponse.nonce,
           maxFeePerGas: toNumber(txResponse.maxFeePerGas),
           maxPriorityFeePerGas: toNumber(txResponse.maxPriorityFeePerGas),
           maxFeePerBlobGas: txResponse.maxFeePerBlobGas

@@ -9,6 +9,7 @@ const PENDING_TX_FILE_SUFFIX = '_pending.json'
 export interface PendingRecordInfo {
   batchIndex: number | bigint
   txHash: string
+  nonce: number
   from: string
   maxFeePerGas: number
   maxPriorityFeePerGas: number
@@ -30,6 +31,7 @@ export class PendingStorage {
       from: pending.from,
       batchIndex: toNumber(pending.batchIndex),
       hash: pending.txHash,
+      nonce: pending.nonce,
       maxFeePerGas: toNumber(pending.maxFeePerGas),
       maxPriorityFeePerGas: toNumber(pending.maxPriorityFeePerGas),
       maxFeePerBlobGas: pending.maxFeePerBlobGas,
@@ -78,6 +80,7 @@ export class PendingStorage {
       batchIndex: readJsonData.batchIndex,
       txHash: readJsonData.hash,
       from: readJsonData.from,
+      nonce: readJsonData.nonce,
       maxFeePerGas: readJsonData.maxFeePerGas,
       maxPriorityFeePerGas: readJsonData.maxPriorityFeePerGas,
       maxFeePerBlobGas: readJsonData.maxFeePerBlobGas

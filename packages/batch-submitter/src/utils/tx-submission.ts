@@ -45,6 +45,7 @@ export const setTxEIP1559Fees = async (
   if (
     oldTx &&
     Date.now() - oldTx.submissionTime > resubmissionTimeout &&
+    oldTx.nonce === tx.nonce &&
     !(await l1Provider.getTransactionReceipt(oldTx.txHash))
   ) {
     // pending tx exists, need to bump
@@ -122,10 +123,10 @@ export const validateTxFeeBeforeMPCSend = async (
   // Assume the worst case scenario:
   // 1. Gas used in the n-th block is 100% of the gas limit
   // 2. We are sending a transaction in-between blocks, price fetched at block n, but tx send at block n+1
-  // In this case, the base fee in the next block will be 50% higher than the base fee we fetched.
-  // To avoid this situation, we need to make sure the tx's maxFeePerGas & maxFeePerBlobGas is at least 50%
-  // higher than the base fee we fetched.
-  if (tx.maxFeePerGas < (feeData.maxFeePerGas * 150n) / 100n) {
+  // In this case, the base fee in the next block will be 12.5% higher than the base fee we fetched.
+  // To avoid this situation, we need to make sure the tx's maxFeePerGas & maxFeePerBlobGas is at least 12.5%
+  // (let's make it 13%, since we are doing int calc instead float) higher than the base fee we fetched.
+  if (tx.maxFeePerGas < (feeData.maxFeePerGas * 113n) / 100n) {
     throw new Error(
       `Transaction maxFeePerGas ${tx.maxFeePerGas} is lower than current maxFeePerGas ${feeData.maxFeePerGas}`
     )
@@ -139,7 +140,7 @@ export const validateTxFeeBeforeMPCSend = async (
 
   if (tx.maxFeePerBlobGas) {
     const blobBaseFee = await getBlobBaseFee(l1Provider)
-    if (tx.maxFeePerBlobGas < (blobBaseFee * 150n) / 100n) {
+    if (tx.maxFeePerBlobGas < (blobBaseFee * 113n) / 100n) {
       throw new Error(
         `Transaction maxFeePerBlobGas ${tx.maxFeePerBlobGas} is lower than current blob base fee ${blobBaseFee}`
       )
