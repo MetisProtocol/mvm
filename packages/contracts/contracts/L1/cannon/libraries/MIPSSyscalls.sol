@@ -44,7 +44,6 @@ library MIPSSyscalls {
     // unused syscalls
     uint32 internal constant SYS_CLOCK_GETTIME = 4263;
     uint32 internal constant SYS_GET_AFFINITY = 4240;
-    uint32 internal constant SYS_GETAFFINITY = 4240;
     uint32 internal constant SYS_MADVISE = 4218;
     uint32 internal constant SYS_RTSIGPROCMASK = 4195;
     uint32 internal constant SYS_SIGALTSTACK = 4206;
@@ -74,7 +73,6 @@ library MIPSSyscalls {
     uint32 internal constant SYS_TIMERCREATE = 4257;
     uint32 internal constant SYS_TIMERSETTIME = 4258;
     uint32 internal constant SYS_TIMERDELETE = 4261;
-    uint32 internal constant SYS_CLOCKGETTIME = 4263;
     uint32 internal constant SYS_MUNMAP = 4091;
 
     uint32 internal constant FD_STDIN = 0;
@@ -305,20 +303,22 @@ library MIPSSyscalls {
 
                 // Construct pre-image key from memory
                 // We use assembly for more precise ops, and no var count limit
+                // add a local a2 to avoid modification to _a2 not reflected in the assembly code
+                uint32 a2 = _a2;
                 assembly {
                     let alignment := and(_a1, 3) // the read might not start at an aligned address
                     let space := sub(4, alignment) // remaining space in memory word
-                    if lt(space, _a2) {_a2 := space} // if less space than data, shorten data
-                    key := shl(mul(_a2, 8), key) // shift key, make space for new info
-                    let mask := sub(shl(mul(_a2, 8), 1), 1) // mask for extracting value from memory
-                    mem := and(shr(mul(sub(space, _a2), 8), mem), mask) // align value to right, mask it
+                    if lt(space, a2) {a2 := space} // if less space than data, shorten data
+                    key := shl(mul(a2, 8), key) // shift key, make space for new info
+                    let mask := sub(shl(mul(a2, 8), 1), 1) // mask for extracting value from memory
+                    mem := and(shr(mul(sub(space, a2), 8), mem), mask) // align value to right, mask it
                     key := or(key, mem) // insert into key
                 }
 
                 // Write pre-image key to oracle
                 newPreimageKey_ = key;
                 newPreimageOffset_ = 0; // reset offset, to read new pre-image data from the start
-                v0_ = _a2;
+                v0_ = a2;
             } else {
                 v0_ = 0xFFffFFff;
                 v1_ = EBADF;

@@ -7,11 +7,14 @@ import {IDelayedWMetis} from "../interfaces/IDelayedWMetis.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title DelayedWMetis
 /// @notice DelayedWMetis is a wrapper for Metis token that allows for delayed withdrawals.
 /// @dev This contract follows the same pattern as DelayedWETH but for Metis ERC20 token
 contract DelayedWMetis is OwnableUpgradeable, IDelayedWMetis, ISemver {
+    using SafeERC20 for IERC20;
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -72,7 +75,7 @@ contract DelayedWMetis is OwnableUpgradeable, IDelayedWMetis, ISemver {
 
     /// @inheritdoc IDelayedWMetis
     function deposit(uint256 _amount) external {
-        METIS.transferFrom(msg.sender, address(this), _amount);
+        METIS.safeTransferFrom(msg.sender, address(this), _amount);
         balanceOf[msg.sender] += _amount;
         emit Deposit(msg.sender, _amount);
     }
@@ -101,7 +104,7 @@ contract DelayedWMetis is OwnableUpgradeable, IDelayedWMetis, ISemver {
 
         wd.amount -= _amount;
         balanceOf[msg.sender] -= _amount;
-        METIS.transfer(msg.sender, _amount);
+        METIS.safeTransfer(msg.sender, _amount);
         emit Withdrawal(msg.sender, _amount);
     }
 
@@ -110,7 +113,7 @@ contract DelayedWMetis is OwnableUpgradeable, IDelayedWMetis, ISemver {
         require(msg.sender == owner(), "DelayedWMetis: not owner");
         uint256 balance = METIS.balanceOf(address(this));
         uint256 amount = _amount < balance ? _amount : balance;
-        METIS.transfer(msg.sender, amount);
+        METIS.safeTransfer(msg.sender, amount);
     }
 
     /// @inheritdoc IDelayedWMetis

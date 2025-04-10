@@ -25,10 +25,13 @@ import {Types} from "../../libraries/Types.sol";
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title FaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.
 contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
+    using SafeERC20 for IERC20;
+
     ////////////////////////////////////////////////////////////////
     //                         State Vars                         //
     ////////////////////////////////////////////////////////////////
@@ -207,18 +210,18 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
 
         // Grab the latest anchor root.
         IMVMStateCommitmentChain stateCommitmentChain = IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME));
-        (bytes32 scRoot, uint256 rootBlockNumber) = stateCommitmentChain.findEarliestDisputableBatch(L2_CHAIN_ID);
+        (IMVMStateCommitmentChain.BatchInfo memory lastFinalized, IMVMStateCommitmentChain.BatchInfo memory earliestDisputable) = stateCommitmentChain.findEarliestDisputableBatch(L2_CHAIN_ID);
 
-        Hash root = Hash.wrap(scRoot);
+        Hash root = Hash.wrap(earliestDisputable.batchHeaderHash);
 
         // Should only happen if this is a new game type that hasn't been set up yet.
         if (root.raw() == bytes32(0)) revert AnchorRootNotFound();
 
         // we do not allow to dispute an already disputed batch
-        if (stateCommitmentChain.isDisputedBatch(scRoot)) revert ClaimAlreadyResolved();
+        if (stateCommitmentChain.isDisputedBatch(earliestDisputable.batchHeaderHash)) revert ClaimAlreadyResolved();
 
         // Set the starting output root.
-        startingOutputRoot = OutputRoot({l2BlockNumber: rootBlockNumber, root: root});
+        startingOutputRoot = OutputRoot({l2BlockNumber: lastFinalized.lastL2BlockNumber, root: Hash.wrap(lastFinalized.batchHeaderHash)});
 
         // Revert if the calldata size is not the expected length.
         //
@@ -243,7 +246,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
 
         // Do not allow the game to be initialized if the root claim corresponds to a block at or before the
         // configured starting block number.
-        if (l2BlockNumber() <= rootBlockNumber) revert UnexpectedRootClaim(rootClaim());
+        if (l2BlockNumber() < earliestDisputable.lastL2BlockNumber) revert UnexpectedRootClaim(rootClaim());
 
         IDelayedWMetis wmet = WMETIS;
         IERC20 met = wmet.metisToken();
@@ -266,7 +269,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
 
         // Convert the initial bond from METIS to WMETIS
         uint256 initialBond = met.balanceOf(address(this));
-        met.approve(address(wmet), initialBond);
+        met.safeApprove(address(wmet), initialBond);
         wmet.deposit(initialBond);
 
         // Set the game's starting timestamp
@@ -485,10 +488,10 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         // Transfer the bond from the sender to this contract
         if (requiredBond > 0) {
             IERC20 met = IERC20(wmet.metisToken());
-            met.transferFrom(msg.sender, address(this), requiredBond);
+            met.safeTransferFrom(msg.sender, address(this), requiredBond);
 
             // Approve and deposit the bond into wmet
-            met.approve(address(wmet), requiredBond);
+            met.safeApprove(address(wmet), requiredBond);
             wmet.deposit(requiredBond);
         }
 
@@ -870,7 +873,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         IERC20 met = wmet.metisToken();
 
         wmet.withdraw(_recipient, recipientCredit);
-        met.transfer(_recipient, recipientCredit);
+        met.safeTransfer(_recipient, recipientCredit);
     }
 
     /// @notice Returns the amount of time elapsed on the potential challenger to `_claimIndex`'s chess clock. Maxes

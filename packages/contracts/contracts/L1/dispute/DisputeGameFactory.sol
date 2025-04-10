@@ -4,7 +4,7 @@ pragma solidity 0.8.15;
 import {ISemver} from "../../universal/ISemver.sol";
 import {IDisputeGame} from "./interfaces/IDisputeGame.sol";
 import {IDisputeGameFactory} from "./interfaces/IDisputeGameFactory.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {LibClone} from "solady/src/utils/LibClone.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
@@ -15,9 +15,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///         mapping and an append only array. The timestamp of the creation time of the dispute game is packed tightly
 ///         into the storage slot with the address of the dispute game to make offchain discoverability of playable
 ///         dispute games easier.
-contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver {
+contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, ISemver {
     /// @dev Allows for the creation of clone proxies with immutable arguments.
     using LibClone for address;
+
+    bytes32 public constant GAME_CREATOR_ROLE = keccak256("GAME_CREATOR");
 
     struct DisputeInfo {
         GameType gameType;
@@ -52,7 +54,7 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
 
     /// @notice Constructs a new DisputeGameFactory contract.
     /// @param _metis The Metis ERC20 token contract
-    constructor(IERC20 _metis) OwnableUpgradeable() {
+    constructor(IERC20 _metis) AccessControlUpgradeable() {
         METIS = _metis;
         initialize(address(0));
     }
@@ -60,8 +62,8 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
     /// @notice Initializes the contract.
     /// @param _owner The owner of the contract.
     function initialize(address _owner) public initializer {
-        __Ownable_init();
-        _transferOwnership(_owner);
+        __AccessControl_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
     }
 
     /// @inheritdoc IDisputeGameFactory
@@ -121,7 +123,11 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
             bond: initBond,
             l1Head: parentHash
         });
-        disputeGameCreationRequests[keccak256(abi.encodePacked(_gameType, _extraData))] = info;
+
+        bytes32 uuid = keccak256(abi.encodePacked(_gameType, _extraData));
+        if (disputeGameCreationRequests[uuid].l1Head != bytes32(0)) revert AlreadyDisputed(uuid);
+
+        disputeGameCreationRequests[uuid] = info;
 
         emit DisputeGameRequested(msg.sender, _gameType, initBond, _extraData);
     }
@@ -133,7 +139,7 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
         bytes calldata _extraData
     )
     external
-    onlyOwner
+    onlyRole(GAME_CREATOR_ROLE)
     returns (IDisputeGame proxy_)
     {
         // Grab the implementation contract for the given `GameType`.
@@ -147,9 +153,6 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
         DisputeInfo memory info = disputeGameCreationRequests[requestUuid];
 
         if (info.l1Head == bytes32(0)) revert NoDisputeGameRequests();
-
-        // If the required initialization bond is not met, revert.
-        if (info.bond != initBonds[_gameType]) revert IncorrectBondAmount();
 
         // Clone the implementation contract and initialize it with the given parameters.
         //
@@ -254,13 +257,13 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
     }
 
     /// @inheritdoc IDisputeGameFactory
-    function setImplementation(GameType _gameType, IDisputeGame _impl) external onlyOwner {
+    function setImplementation(GameType _gameType, IDisputeGame _impl) external onlyRole(DEFAULT_ADMIN_ROLE) {
         gameImpls[_gameType] = _impl;
         emit ImplementationSet(address(_impl), _gameType);
     }
 
     /// @inheritdoc IDisputeGameFactory
-    function setInitBond(GameType _gameType, uint256 _initBond) external onlyOwner {
+    function setInitBond(GameType _gameType, uint256 _initBond) external onlyRole(DEFAULT_ADMIN_ROLE) {
         initBonds[_gameType] = _initBond;
         emit InitBondUpdated(_gameType, _initBond);
     }

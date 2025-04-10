@@ -11,6 +11,10 @@ import "./LibUDT.sol";
 /// @param gameType The unsupported game type.
     error NoImplementation(GameType gameType);
 
+/// @notice Thrown when a dispute request that already exists is attempted to be created.
+/// @param uuid The UUID of the dispute request that already exists.
+    error AlreadyDisputed(bytes32 uuid);
+
 /// @notice Thrown when a dispute game that already exists is attempted to be created.
 /// @param uuid The UUID of the dispute game that already exists.
     error GameAlreadyExists(Hash uuid);

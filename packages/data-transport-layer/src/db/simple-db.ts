@@ -75,7 +75,7 @@ export class SimpleDB {
         })
 
         stream.on('end', () => {
-          resolve(null) // 没有找到满足条件的值
+          resolve(null)
         })
       })
     } catch (err) {

@@ -80,9 +80,18 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function findEarliestDisputableBatch(uint256 _chainId) public view returns (bytes32, uint256) {
+    function findEarliestDisputableBatch(uint256 _chainId) public view returns (BatchInfo memory _lastFinalized, BatchInfo memory _earliestDisputable) {
         uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
-        return _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
+        (uint256 batchIndex, bytes32 batchHeaderHash, uint256 lastL2BlockNumberInBatch) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
+        _earliestDisputable = BatchInfo({
+            batchHeaderHash: batchHeaderHash,
+            lastL2BlockNumber: lastL2BlockNumberInBatch
+        });
+        bytes32 lastFinalizedBatchHeaderHash = batches().getByChainId(_chainId, batchIndex - 1);
+        _lastFinalized = BatchInfo({
+            batchHeaderHash: lastFinalizedBatchHeaderHash,
+            lastL2BlockNumber: batchLastL2BlockNumbers[lastFinalizedBatchHeaderHash]
+        });
     }
 
     /**
@@ -210,7 +219,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         return (timestamp, sequencer, lastBlockHash, lastBlockNumber);
     }
 
-    function _findBatchWithinTimeWindow(uint256 _chainId, uint256 earliestTime) public view returns (bytes32, uint256) {
+    function _findBatchWithinTimeWindow(uint256 _chainId, uint256 earliestTime) internal view returns (uint256, bytes32, uint256) {
         bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
 
         require(batchTimesOfChain.length > 0, "No disputable batch has been appended yet");
@@ -251,7 +260,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
             batchHeaderHash = batches().getByChainId(_chainId, ++batchIndex);
         }
 
-        return (batchHeaderHash, batchLastL2BlockNumbers[batchHeaderHash]);
+        return (batchIndex, batchHeaderHash, batchLastL2BlockNumbers[batchHeaderHash]);
     }
 
     /**
@@ -553,7 +562,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // clear the fdg extra data if needed
         if (_batchHeader.extraData.length >= 0x80) {
             (uint256 timestamp, , , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32, uint256));
-            (bytes32 anchoredBatchHeaderHash, ) = _findBatchWithinTimeWindow(_chainId, timestamp);
+            (, bytes32 anchoredBatchHeaderHash, ) = _findBatchWithinTimeWindow(_chainId, timestamp);
 
             bytes32 batchHeaderHash = Lib_OVMCodec.hashBatchHeader(_batchHeader);
             require(

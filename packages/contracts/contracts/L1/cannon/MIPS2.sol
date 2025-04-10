@@ -441,7 +441,7 @@ contract MIPS2 is ISemver {
                 // ignored
             } else if (syscall_no == sys.SYS_TIMERDELETE) {
                 // ignored
-            } else if (syscall_no == sys.SYS_CLOCKGETTIME) {
+            } else if (syscall_no == sys.SYS_CLOCK_GETTIME) {
                 // ignored
             } else if (syscall_no == sys.SYS_MUNMAP) {
                 // ignored

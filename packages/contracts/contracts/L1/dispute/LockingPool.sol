@@ -100,6 +100,9 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         slashRatio = _slashRatio;
         addressManager = _addressManager;
         config = _config;
+
+        emit SlashRatioUpdated(0, _slashRatio);
+        emit LockPeriodUpdated(0, _lockPeriod);
     }
 
     /// @notice Deposits tokens into the pool
@@ -129,11 +132,13 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @notice Requests to unlock tokens
     /// @param _amount Amount of tokens to unlock
     function unlock(uint256 _amount) external {
-        require(balanceOf[msg.sender] >= _amount, "LockingPool: insufficient balance");
-        
         WithdrawalRequest storage wd = withdrawals[msg.sender];
+        uint256 newAmount = wd.amount + _amount;
+
+        require(balanceOf[msg.sender] >= newAmount, "LockingPool: insufficient balance");
+
         wd.timestamp = block.timestamp;
-        wd.amount += _amount;
+        wd.amount = newAmount;
         
         emit Unlock(msg.sender, _amount);
     }

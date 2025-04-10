@@ -9,6 +9,14 @@ import { IChainStorageContainer } from "./IChainStorageContainer.sol";
  * @title IStateCommitmentChain
  */
 interface IMVMStateCommitmentChain {
+    /*************
+     * Types *
+     *************/
+    struct BatchInfo {
+        bytes32 batchHeaderHash;
+        uint256 lastL2BlockNumber;
+    }
+
     /**********
      * Events *
      **********/
@@ -31,9 +39,10 @@ interface IMVMStateCommitmentChain {
     /**
      * Get the earliest disputable state root.
      * @param _chainId chain id for the l2 chain.
-     * @return _earliestDisputableBatch Earliest disputable state root.
+     * @return _lastFinalized last finalized batch info.
+     * @return _earliestDisputable earliest disputable batch info.
      */
-    function findEarliestDisputableBatch(uint256 _chainId) external view returns (bytes32 _earliestDisputableBatch, uint256 blockNumber);
+    function findEarliestDisputableBatch(uint256 _chainId) external view returns (BatchInfo memory _lastFinalized, BatchInfo memory _earliestDisputable);
 
     function batches() external view returns (IChainStorageContainer);
 
