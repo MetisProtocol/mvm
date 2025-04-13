@@ -45,8 +45,13 @@ interface IDisputeGame is IInitializable {
     /// @return l1Head_ The parent hash of the L1 block when the dispute game was created.
     function l1Head() external pure returns (Hash l1Head_);
 
-    /// @notice Getter for the extra data.
+    /// @notice Getter for the creator of the dispute game.
     /// @dev `clones-with-immutable-args` argument #4
+    /// @return creator_ The creator of the dispute game.
+    function disputeCreator() external pure returns (address creator_);
+
+    /// @notice Getter for the extra data.
+    /// @dev `clones-with-immutable-args` argument #5
     /// @return extraData_ Any extra data supplied to the dispute game contract by the creator.
     function extraData() external pure returns (bytes memory extraData_);
 

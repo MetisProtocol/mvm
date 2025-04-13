@@ -21,6 +21,10 @@ import (
 )
 
 const (
+	gameCreatorRole = "0x9b2f12f1d3f61516c0ebe58c227a91273c07455ba15edc01d82cb364c3d54d02"
+)
+
+const (
 	methodGameCount         = "gameCount"
 	methodGameAtIndex       = "gameAtIndex"
 	methodGameImpls         = "gameImpls"
@@ -28,7 +32,7 @@ const (
 	methodCreateGame        = "create"
 	methodCreateDispute     = "dispute"
 	methodGames             = "games"
-	methodOwner             = "owner"
+	methodHasRole           = "hasRole"
 	methodGameRequests      = "disputeGameCreationRequests"
 	methodMetisTokenAddress = "METIS"
 
@@ -207,7 +211,7 @@ func (f *DisputeGameFactoryContract) GetAllGames(ctx context.Context, blockHash 
 }
 
 func (f *DisputeGameFactoryContract) CreateTx(ctx context.Context, traceType uint32, outputRoot common.Hash, l2BlockNum uint64) (txmgr.TxCandidate, error) {
-	if err := f.checkOwner(ctx); err != nil {
+	if err := f.checkRole(ctx); err != nil {
 		return txmgr.TxCandidate{}, err
 	}
 
@@ -301,14 +305,13 @@ func (f *DisputeGameFactoryContract) Addr() common.Address {
 	return f.contract.Addr()
 }
 
-func (f *DisputeGameFactoryContract) checkOwner(ctx context.Context) error {
-	res, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, f.contract.Call(methodOwner))
+func (f *DisputeGameFactoryContract) checkRole(ctx context.Context) error {
+	res, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, f.contract.Call(methodHasRole, common.HexToHash(gameCreatorRole), f.from))
 	if err != nil {
-		return fmt.Errorf("failed to fetch owner: %w", err)
+		return fmt.Errorf("failed to fetch role: %w", err)
 	}
-	owner := res.GetAddress(0)
-	if owner != f.from {
-		return fmt.Errorf("owner mismatch (only owner can create game): %v != %v", owner.Hex(), f.from.Hex())
+	if !res.GetBool(0) {
+		return fmt.Errorf("address %s is not permitted to create game", f.from.Hex())
 	}
 
 	return nil

@@ -229,15 +229,16 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         // in the factory, but are not used by the game, which would allow for multiple dispute games for the same
         // output proposal to be created.
         //
-        // Expected length: 0x7A
+        // Expected length: 0x8E
         // - 0x04 selector
-        // - 0x14 creator address
+        // - 0x14 game creator address
         // - 0x20 root claim
         // - 0x20 l1 head
+        // - 0x14 dispute creator address
         // - 0x20 extraData
         // - 0x02 CWIA bytes
         assembly {
-            if iszero(eq(calldatasize(), 0x7A)) {
+            if iszero(eq(calldatasize(), 0x8E)) {
             // Store the selector for `BadExtraData()` & revert
                 mstore(0x00, 0x9824bdab)
                 revert(0x1C, 0x04)
@@ -559,7 +560,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
 
     /// @inheritdoc IFaultDisputeGame
     function l2BlockNumber() public pure returns (uint256 l2BlockNumber_) {
-        l2BlockNumber_ = _getArgUint256(0x54);
+        l2BlockNumber_ = _getArgUint256(0x68);
     }
 
     /// @inheritdoc IFaultDisputeGame
@@ -751,14 +752,16 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
             // Distribute the bond to the appropriate party.
             if (_claimIndex == 0 && l2BlockNumberChallenged) {
                 // Special case: If the root claim has been challenged with the `challengeRootL2Block` function,
-                // the bond is always paid out to the issuer of that challenge.
-                address challenger = l2BlockNumberChallenger;
-                _distributeBond(challenger, subgameRootClaim);
-                subgameRootClaim.counteredBy = challenger;
+                // the bond is always paid out to the dispute creator.
+                _distributeBond(disputeCreator(), subgameRootClaim);
+                subgameRootClaim.counteredBy = l2BlockNumberChallenger;
             } else {
                 // If the parent was not successfully countered, pay out the parent's bond to the claimant.
-                // If the parent was successfully countered, pay out the parent's bond to the challenger.
-                _distributeBond(countered == address(0) ? subgameRootClaim.claimant : countered, subgameRootClaim);
+                // If the parent was successfully countered:
+                // 1. claimIndex is not 0: pay out the parent's bond to the challenger.
+                // 2. claimIndex is 0: pay out the parent's bond to the dispute creator
+                address challenger = _claimIndex == 0 ? disputeCreator() : countered;
+                _distributeBond(countered == address(0) ? subgameRootClaim.claimant : challenger, subgameRootClaim);
 
                 // Once a subgame is resolved, we percolate the result up the DAG so subsequent calls to
                 // resolveClaim will not need to traverse this subgame.
@@ -788,10 +791,15 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     }
 
     /// @inheritdoc IDisputeGame
+    function disputeCreator() public pure returns (address creator_) {
+        creator_ = _getArgAddress(0x54);
+    }
+
+    /// @inheritdoc IDisputeGame
     function extraData() public pure returns (bytes memory extraData_) {
         // The extra data starts at the second word within the cwia calldata and
         // is 32 bytes long.
-        extraData_ = _getArgBytes(0x54, 0x20);
+        extraData_ = _getArgBytes(0x68, 0x20);
     }
 
     /// @inheritdoc IDisputeGame

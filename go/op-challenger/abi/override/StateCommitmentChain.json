@@ -21,6 +21,16 @@
     "type": "constructor"
   },
   {
+    "inputs": [],
+    "name": "ClaimAlreadyResolved",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "UnregisteredGame",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -103,6 +113,19 @@
   },
   {
     "inputs": [],
+    "name": "DISPUTE_GAME_FACTORY_NAME",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "FRAUD_PROOF_WINDOW",
     "outputs": [
       {
@@ -138,6 +161,16 @@
         "internalType": "uint256",
         "name": "_shouldStartAtElement",
         "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_lastBatchBlockHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_lastBatchBlockNumber",
+        "type": "uint256"
       }
     ],
     "name": "appendStateBatch",
@@ -164,13 +197,66 @@
       },
       {
         "internalType": "string",
-        "name": "proposer",
+        "name": "_proposer",
         "type": "string"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_lastBatchBlockHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_lastBatchBlockNumber",
+        "type": "uint256"
       }
     ],
     "name": "appendStateBatchByChainId",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "batchLastL2BlockNumbers",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "batchTimes",
+    "outputs": [
+      {
+        "internalType": "bytes16",
+        "name": "",
+        "type": "bytes16"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -269,6 +355,73 @@
     "name": "deleteStateBatchByChainId",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "disputedBatches",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_chainId",
+        "type": "uint256"
+      }
+    ],
+    "name": "findEarliestDisputableBatch",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "batchHeaderHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastL2BlockNumber",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IMVMStateCommitmentChain.BatchInfo",
+        "name": "_lastFinalized",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "batchHeaderHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastL2BlockNumber",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IMVMStateCommitmentChain.BatchInfo",
+        "name": "_earliestDisputable",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -465,6 +618,25 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "stateHeaderHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "isDisputedBatch",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "libAddressManager",
     "outputs": [
@@ -494,6 +666,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "stateHeaderHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "saveDisputedBatch",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

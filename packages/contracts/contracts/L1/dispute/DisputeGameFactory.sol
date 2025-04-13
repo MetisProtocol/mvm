@@ -64,6 +64,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
     function initialize(address _owner) public initializer {
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
+        _grantRole(GAME_CREATOR_ROLE, _owner);
     }
 
     /// @inheritdoc IDisputeGameFactory
@@ -157,15 +158,16 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         // Clone the implementation contract and initialize it with the given parameters.
         //
         // CWIA Calldata Layout:
-        // ┌──────────────┬────────────────────────────────────┐
-        // │    Bytes     │            Description             │
-        // ├──────────────┼────────────────────────────────────┤
-        // │ [0, 20)      │ Game creator address               │
-        // │ [20, 52)     │ Root claim                         │
-        // │ [52, 84)     │ Parent block hash at creation time │
-        // │ [84, 84 + n) │ Extra data (opaque)                │
-        // └──────────────┴────────────────────────────────────┘
-        proxy_ = IDisputeGame(address(impl).clone(abi.encodePacked(msg.sender, _rootClaim, info.l1Head, _extraData)));
+        // ┌────────────────┬────────────────────────────────────┐
+        // │    Bytes       │            Description             │
+        // ├────────────────┼────────────────────────────────────┤
+        // │ [0, 20)        │ Game creator address               │
+        // │ [20, 52)       │ Root claim                         │
+        // │ [52, 84)       │ Parent block hash at creation time │
+        // │ [84, 104)      │ Dispute creator                    │
+        // │ [104, 104 + n) │ Extra data (opaque)                │
+        // └────────────────┴────────────────────────────────────┘
+        proxy_ = IDisputeGame(address(impl).clone(abi.encodePacked(msg.sender, _rootClaim, info.l1Head, info.sender, _extraData)));
 
         // Only transfer bond if it's not zero
         if (info.bond > 0) {
