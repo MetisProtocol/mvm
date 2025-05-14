@@ -1,11 +1,11 @@
+import { Logger } from '@eth-optimism/common-ts'
+import '@metis.io/core-utils'
+import * as kzg from 'c-kzg'
+import { randomUUID } from 'crypto'
+import { ethers, toBigInt, toNumber } from 'ethersv6'
 import * as http from 'http'
 import * as https from 'https'
 import { URL } from 'url'
-import { ethers, toBigInt, toNumber } from 'ethersv6'
-import { randomUUID } from 'crypto'
-import '@metis.io/core-utils'
-import * as kzg from 'c-kzg'
-import { Logger } from '@eth-optimism/common-ts'
 
 export class MpcClient {
   protected url: string
@@ -57,7 +57,6 @@ export class MpcClient {
       path: getUrl.pathname,
     }
     const resp = await this.httpRequest(this.url, getOptions)
-    console.debug('getLatestMpc resp', resp)
     if (!resp) {
       return null
     }
