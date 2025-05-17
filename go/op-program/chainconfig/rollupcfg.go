@@ -80,10 +80,9 @@ var (
 			},
 		},
 		BlobBatcherAddresses: []BatcherAddressAtHeight{
-			// FIXME: update this later, this is just a placeholder, since currently we don't have blob batcher address right now
 			{
-				Height:  19439547,
-				Address: common.HexToAddress("0x1A9da0aedA630dDf2748a453BF6d92560762D914"),
+				Height:  22472728,
+				Address: common.HexToAddress("0xae4d46bd9117cb017c5185844699c51107cb28a9"),
 			},
 		},
 	}

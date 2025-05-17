@@ -1,0 +1,419 @@
+{
+  "address": "0x6F9Ee75c5E6DC1A618dA3DE1e053CDea7e59981a",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_libAddressManager",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "enum iMVM_InboxSenderManager.InboxSenderType",
+              "name": "senderType",
+              "type": "uint8"
+            },
+            {
+              "internalType": "address",
+              "name": "sender",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct iMVM_InboxSenderManager.InboxSender[]",
+          "name": "_defaultInboxSenders",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inboxSender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "enum iMVM_InboxSenderManager.InboxSenderType",
+          "name": "inboxSenderType",
+          "type": "uint8"
+        }
+      ],
+      "name": "InboxSenderSet",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "CONFIG_OWNER_KEY",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "blockNumbers",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "enum iMVM_InboxSenderManager.InboxSenderType",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "name": "defaultInboxSender",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "enum iMVM_InboxSenderManager.InboxSenderType",
+          "name": "inboxSenderType",
+          "type": "uint8"
+        }
+      ],
+      "name": "getInboxSender",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "enum iMVM_InboxSenderManager.InboxSenderType",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "name": "inboxSenders",
+      "outputs": [
+        {
+          "internalType": "enum iMVM_InboxSenderManager.InboxSenderType",
+          "name": "senderType",
+          "type": "uint8"
+        },
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "libAddressManager",
+      "outputs": [
+        {
+          "internalType": "contract Lib_AddressManager",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "enum iMVM_InboxSenderManager.InboxSenderType",
+              "name": "senderType",
+              "type": "uint8"
+            },
+            {
+              "internalType": "address",
+              "name": "sender",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct iMVM_InboxSenderManager.InboxSender[]",
+          "name": "_inboxSenders",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "overwriteLastInboxSenders",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_name",
+          "type": "string"
+        }
+      ],
+      "name": "resolve",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "enum iMVM_InboxSenderManager.InboxSenderType",
+              "name": "senderType",
+              "type": "uint8"
+            },
+            {
+              "internalType": "address",
+              "name": "sender",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct iMVM_InboxSenderManager.InboxSender[]",
+          "name": "_inboxSenders",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "setInboxSenders",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x3b7c84a9af76258da13f607f57a2f9f304d8d85f88a4b91bc52a56102cece0ac",
+  "receipt": {
+    "to": null,
+    "from": "0x5345fCDCF5449a40df030798C195603d27691502",
+    "contractAddress": "0x6F9Ee75c5E6DC1A618dA3DE1e053CDea7e59981a",
+    "transactionIndex": 47,
+    "gasUsed": "945607",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x65197eda423fe99583cba18f1eaf0113ac82113ee1ec005dca84a2ec7137dc5e",
+    "transactionHash": "0x3b7c84a9af76258da13f607f57a2f9f304d8d85f88a4b91bc52a56102cece0ac",
+    "logs": [],
+    "blockNumber": 22473176,
+    "cumulativeGasUsed": "7882029",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x918778e825747a892b17C66fe7D24C618262867d",
+    [
+      {
+        "sender": "0x1A9da0aedA630dDf2748a453BF6d92560762D914",
+        "senderType": 0
+      },
+      {
+        "sender": "0xae4d46bd9117cb017c5185844699c51107cb28a9",
+        "senderType": 1
+      }
+    ]
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "83ecad5ab7a3e180fbc0abc26341617e",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.15+commit.e14f2714\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_libAddressManager\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"enum iMVM_InboxSenderManager.InboxSenderType\",\"name\":\"senderType\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"internalType\":\"struct iMVM_InboxSenderManager.InboxSender[]\",\"name\":\"_defaultInboxSenders\",\"type\":\"tuple[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"inboxSender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"enum iMVM_InboxSenderManager.InboxSenderType\",\"name\":\"inboxSenderType\",\"type\":\"uint8\"}],\"name\":\"InboxSenderSet\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"CONFIG_OWNER_KEY\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"blockNumbers\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"enum iMVM_InboxSenderManager.InboxSenderType\",\"name\":\"\",\"type\":\"uint8\"}],\"name\":\"defaultInboxSender\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"internalType\":\"enum iMVM_InboxSenderManager.InboxSenderType\",\"name\":\"inboxSenderType\",\"type\":\"uint8\"}],\"name\":\"getInboxSender\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"enum iMVM_InboxSenderManager.InboxSenderType\",\"name\":\"\",\"type\":\"uint8\"}],\"name\":\"inboxSenders\",\"outputs\":[{\"internalType\":\"enum iMVM_InboxSenderManager.InboxSenderType\",\"name\":\"senderType\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"libAddressManager\",\"outputs\":[{\"internalType\":\"contract Lib_AddressManager\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enum iMVM_InboxSenderManager.InboxSenderType\",\"name\":\"senderType\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"internalType\":\"struct iMVM_InboxSenderManager.InboxSender[]\",\"name\":\"_inboxSenders\",\"type\":\"tuple[]\"}],\"name\":\"overwriteLastInboxSenders\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_name\",\"type\":\"string\"}],\"name\":\"resolve\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enum iMVM_InboxSenderManager.InboxSenderType\",\"name\":\"senderType\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"internalType\":\"struct iMVM_InboxSenderManager.InboxSender[]\",\"name\":\"_inboxSenders\",\"type\":\"tuple[]\"}],\"name\":\"setInboxSenders\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"resolve(string)\":{\"params\":{\"_name\":\"Name to resolve an address for.\"},\"returns\":{\"_0\":\"Address associated with the given name.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"resolve(string)\":{\"notice\":\"Resolves the address associated with a given name.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/MVM/MVM_InboxSenderManager.sol\":\"MVM_InboxSenderManager\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    constructor() {\\n        _transferOwnership(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions anymore. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby removing any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0xa94b34880e3c1b0b931662cb1c09e5dfa6662f31cba80e07c5ee71cd135c9673\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\"},\"contracts/MVM/MVM_InboxSenderManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\nimport {Lib_AddressResolver} from \\\"../libraries/resolver/Lib_AddressResolver.sol\\\";\\nimport {iMVM_InboxSenderManager} from \\\"./iMVM_InboxSenderManager.sol\\\";\\n\\n/* Library Imports */\\n\\ncontract MVM_InboxSenderManager is iMVM_InboxSenderManager, Lib_AddressResolver {\\n    /*************\\n     * Constants *\\n     *************/\\n    string public constant CONFIG_OWNER_KEY = \\\"METIS_MANAGER\\\";\\n\\n    /*************\\n     * Variables *\\n     *************/\\n    // blockNumber => InboxSenderType => inboxSender\\n    mapping(uint256 => mapping(InboxSenderType => InboxSender)) public inboxSenders;\\n\\n    uint256[] public blockNumbers;\\n    mapping(InboxSenderType => address) public defaultInboxSender;\\n\\n    /***************\\n     * Constructor *\\n     ***************/\\n    constructor(address _libAddressManager, InboxSender[] memory _defaultInboxSenders)\\n        Lib_AddressResolver(_libAddressManager)\\n    {\\n        for (uint256 i = 0; i < _defaultInboxSenders.length; ++i) {\\n            defaultInboxSender[_defaultInboxSenders[i].senderType] = _defaultInboxSenders[i].sender;\\n        }\\n    }\\n\\n    /**********************\\n     * Function Modifiers *\\n     **********************/\\n    modifier onlyManager() {\\n        require(\\n            msg.sender == resolve(\\\"METIS_MANAGER\\\"),\\n            \\\"MVM_InboxSenderManager: Function can only be called by the METIS_MANAGER.\\\"\\n        );\\n        _;\\n    }\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n    function setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders)\\n        external\\n        override\\n        onlyManager\\n    {\\n        _setInboxSenders(blockNumber, _inboxSenders);\\n    }\\n\\n    // allow us to overwrite the last block number and its senders, just in case if we made any mistake\\n    function overwriteLastInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders)\\n        external\\n        override\\n        onlyManager\\n    {\\n        require(blockNumbers.length > 0, \\\"MVM_InboxSenderManager: No block to update.\\\");\\n\\n        // pop the last block\\n        uint256 lastBlockNumber = blockNumbers[blockNumbers.length - 1];\\n        blockNumbers.pop();\\n\\n        // clean up the last block senders\\n        mapping(InboxSenderType => InboxSender) storage lastInboxSenders = inboxSenders[lastBlockNumber];\\n        delete lastInboxSenders[InboxSenderType.InboxSender];\\n        delete lastInboxSenders[InboxSenderType.InboxBlobSender];\\n\\n        // write the new senders\\n        _setInboxSenders(blockNumber, _inboxSenders);\\n    }\\n\\n    function getInboxSender(uint256 blockNumber, InboxSenderType inboxSenderType) external view override returns (address) {\\n        uint256 blockNumerCounts = blockNumbers.length;\\n        if (blockNumerCounts == 0) {\\n            return defaultInboxSender[inboxSenderType];\\n        }\\n\\n        for (int256 i = int256(blockNumerCounts) - 1; i >= 0; i--) {\\n            if (blockNumbers[uint256(i)] <= blockNumber) {\\n                address sender = inboxSenders[blockNumbers[uint256(i)]][inboxSenderType].sender;\\n                if (sender != address(0)) {\\n                    return sender;\\n                }\\n            }\\n        }\\n\\n        return defaultInboxSender[inboxSenderType];\\n    }\\n\\n    /********************\\n     * Internal Functions *\\n     ********************/\\n    function _setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders)\\n    private\\n    {\\n        require(_inboxSenders.length > 0, \\\"MVM_InboxSenderManager: Inbox senders cannot be empty.\\\");\\n\\n        if (blockNumbers.length > 0) {\\n            require(\\n                blockNumber > blockNumbers[blockNumbers.length - 1],\\n                \\\"MVM_InboxSenderManager: Block number must be greater than the previous block number.\\\"\\n            );\\n        }\\n\\n        for (uint256 i = 0; i < _inboxSenders.length; ++i) {\\n            require(\\n                _inboxSenders[i].sender != address(0),\\n                \\\"MVM_InboxSenderManager: Inbox sender cannot be empty.\\\"\\n            );\\n            inboxSenders[blockNumber][_inboxSenders[i].senderType] = _inboxSenders[i];\\n            emit InboxSenderSet(blockNumber, _inboxSenders[i].sender, _inboxSenders[i].senderType);\\n        }\\n\\n        blockNumbers.push(blockNumber);\\n    }\\n}\\n\",\"keccak256\":\"0x5dbfd495267f72b3793e498302816efa0f9f006ec3cdcd0a3115cd4e5cd64420\",\"license\":\"MIT\"},\"contracts/MVM/iMVM_InboxSenderManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\ninterface iMVM_InboxSenderManager {\\n    enum InboxSenderType {\\n        InboxSender,\\n        InboxBlobSender\\n    }\\n\\n    struct InboxSender {\\n        InboxSenderType senderType;\\n        address sender;\\n    }\\n\\n    event InboxSenderSet(uint256 indexed blockNumber, address indexed inboxSender, InboxSenderType indexed inboxSenderType);\\n\\n    function defaultInboxSender(InboxSenderType senderType) external view returns (address);\\n\\n    function setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders) external;\\n\\n    function overwriteLastInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders) external;\\n\\n    function getInboxSender(uint256 blockNumber, InboxSenderType inboxSenderType) external view returns (address);\\n}\\n\",\"keccak256\":\"0xd703c3b63bbdfac4634173954a476ea2e7e3915fb2ffa4cc717da961f62a884a\",\"license\":\"MIT\"},\"contracts/libraries/resolver/Lib_AddressManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/* External Imports */\\nimport { Ownable } from \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\n\\n/**\\n * @title Lib_AddressManager\\n */\\ncontract Lib_AddressManager is Ownable {\\n    /**********\\n     * Events *\\n     **********/\\n\\n    event AddressSet(string indexed _name, address _newAddress, address _oldAddress);\\n\\n    /*************\\n     * Variables *\\n     *************/\\n\\n    mapping(bytes32 => address) private addresses;\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    /**\\n     * Changes the address associated with a particular name.\\n     * @param _name String name to associate an address with.\\n     * @param _address Address to associate with the name.\\n     */\\n    function setAddress(string memory _name, address _address) external onlyOwner {\\n        bytes32 nameHash = _getNameHash(_name);\\n        address oldAddress = addresses[nameHash];\\n        addresses[nameHash] = _address;\\n\\n        emit AddressSet(_name, _address, oldAddress);\\n    }\\n\\n    /**\\n     * Retrieves the address associated with a given name.\\n     * @param _name Name to retrieve an address for.\\n     * @return Address associated with the given name.\\n     */\\n    function getAddress(string memory _name) external view returns (address) {\\n        return addresses[_getNameHash(_name)];\\n    }\\n\\n    /**********************\\n     * Internal Functions *\\n     **********************/\\n\\n    /**\\n     * Computes the hash of a name.\\n     * @param _name Name to compute a hash for.\\n     * @return Hash of the given name.\\n     */\\n    function _getNameHash(string memory _name) internal pure returns (bytes32) {\\n        return keccak256(abi.encodePacked(_name));\\n    }\\n}\\n\",\"keccak256\":\"0xcde9b29429d512c549f7c1b8a033f161fa71c18cda08b241748663854196ae14\",\"license\":\"MIT\"},\"contracts/libraries/resolver/Lib_AddressResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.9;\\n\\n/* Library Imports */\\nimport { Lib_AddressManager } from \\\"./Lib_AddressManager.sol\\\";\\n\\n/**\\n * @title Lib_AddressResolver\\n */\\nabstract contract Lib_AddressResolver {\\n    /*************\\n     * Variables *\\n     *************/\\n\\n    Lib_AddressManager public libAddressManager;\\n\\n    /***************\\n     * Constructor *\\n     ***************/\\n\\n    /**\\n     * @param _libAddressManager Address of the Lib_AddressManager.\\n     */\\n    constructor(address _libAddressManager) {\\n        libAddressManager = Lib_AddressManager(_libAddressManager);\\n    }\\n\\n    /********************\\n     * Public Functions *\\n     ********************/\\n\\n    /**\\n     * Resolves the address associated with a given name.\\n     * @param _name Name to resolve an address for.\\n     * @return Address associated with the given name.\\n     */\\n    function resolve(string memory _name) public view returns (address) {\\n        return libAddressManager.getAddress(_name);\\n    }\\n}\\n\",\"keccak256\":\"0x515c4db671a28e2fe180201f6d11c0208c05f582ca3489fb6b8e81c27659bc62\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60806040523480156200001157600080fd5b50604051620011bf380380620011bf8339810160408190526200003491620001a3565b600080546001600160a01b0319166001600160a01b0384161781555b815181101562000109578181815181106200006f576200006f620002ab565b60200260200101516020015160036000848481518110620000945762000094620002ab565b6020026020010151600001516001811115620000b457620000b4620002c1565b6001811115620000c857620000c8620002c1565b8152602081019190915260400160002080546001600160a01b0319166001600160a01b03929092169190911790556200010181620002d7565b905062000050565b505050620002ff565b80516001600160a01b03811681146200012a57600080fd5b919050565b634e487b7160e01b600052604160045260246000fd5b604080519081016001600160401b03811182821017156200016a576200016a6200012f565b60405290565b604051601f8201601f191681016001600160401b03811182821017156200019b576200019b6200012f565b604052919050565b6000806040808486031215620001b857600080fd5b620001c38462000112565b602085810151919450906001600160401b0380821115620001e357600080fd5b818701915087601f830112620001f857600080fd5b8151818111156200020d576200020d6200012f565b6200021d848260051b0162000170565b818152848101925060069190911b8301840190898211156200023e57600080fd5b928401925b818410156200029b5785848b0312156200025d5760008081fd5b6200026762000145565b845160028110620002785760008081fd5b81526200028785870162000112565b818701528352928501929184019162000243565b8096505050505050509250929050565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052602160045260246000fd5b600060018201620002f857634e487b7160e01b600052601160045260246000fd5b5060010190565b610eb0806200030f6000396000f3fe608060405234801561001057600080fd5b50600436106100a35760003560e01c8063705e6ee211610076578063cd8bff331161005b578063cd8bff3314610175578063e6e9c87414610196578063efdf8c9b146101a957600080fd5b8063705e6ee214610139578063a5a5c24d1461014c57600080fd5b806311b1c93f146100a8578063299ca478146100bd578063461a4478146100ed578063669fdeb514610100575b600080fd5b6100bb6100b6366004610a54565b6101f5565b005b6000546100d0906001600160a01b031681565b6040516001600160a01b0390911681526020015b60405180910390f35b6100d06100fb366004610ae9565b6103e8565b61012c6040518060400160405280600d81526020016c26a2aa24a9afa6a0a720a3a2a960991b81525081565b6040516100e49190610b9a565b6100bb610147366004610a54565b610479565b6100d061015a366004610bff565b6003602052600090815260409020546001600160a01b031681565b610188610183366004610c23565b61054f565b6040519081526020016100e4565b6100d06101a4366004610c3c565b610570565b6101e76101b7366004610c3c565b600160209081526000928352604080842090915290825290205460ff81169061010090046001600160a01b031682565b6040516100e4929190610c82565b6102236040518060400160405280600d81526020016c26a2aa24a9afa6a0a720a3a2a960991b8152506103e8565b6001600160a01b0316336001600160a01b0316146102c05760405162461bcd60e51b815260206004820152604960248201527f4d564d5f496e626f7853656e6465724d616e616765723a2046756e6374696f6e60448201527f2063616e206f6e6c792062652063616c6c656420627920746865204d455449536064820152682fa6a0a720a3a2a91760b91b608482015260a4015b60405180910390fd5b6002546103355760405162461bcd60e51b815260206004820152602b60248201527f4d564d5f496e626f7853656e6465724d616e616765723a204e6f20626c6f636b60448201527f20746f207570646174652e00000000000000000000000000000000000000000060648201526084016102b7565b600280546000919061034990600190610cd2565b8154811061035957610359610ce9565b90600052602060002001549050600280548061037757610377610cff565b6000828152602080822060001990840181018390559092019092558282526001808252604080842084805292839052808420805474ffffffffffffffffffffffffffffffffffffffffff1990811690915591845290922080549092169091556103e18585856106e9565b5050505050565b600080546040517fbf40fac10000000000000000000000000000000000000000000000000000000081526001600160a01b039091169063bf40fac190610432908590600401610b9a565b602060405180830381865afa15801561044f573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104739190610d2a565b92915050565b6104a76040518060400160405280600d81526020016c26a2aa24a9afa6a0a720a3a2a960991b8152506103e8565b6001600160a01b0316336001600160a01b03161461053f5760405162461bcd60e51b815260206004820152604960248201527f4d564d5f496e626f7853656e6465724d616e616765723a2046756e6374696f6e60448201527f2063616e206f6e6c792062652063616c6c656420627920746865204d455449536064820152682fa6a0a720a3a2a91760b91b608482015260a4016102b7565b61054a8383836106e9565b505050565b6002818154811061055f57600080fd5b600091825260209091200154905081565b6002546000908082036105c7576003600084600181111561059357610593610c6c565b60018111156105a4576105a4610c6c565b81526020810191909152604001600020546001600160a01b031691506104739050565b60006105d4600183610d47565b90505b6000811261069f5784600282815481106105f3576105f3610ce9565b90600052602060002001541161068d576000600160006002848154811061061c5761061c610ce9565b90600052602060002001548152602001908152602001600020600086600181111561064957610649610c6c565b600181111561065a5761065a610c6c565b815260208101919091526040016000205461010090046001600160a01b03169050801561068b579250610473915050565b505b8061069781610d9f565b9150506105d7565b50600360008460018111156106b6576106b6610c6c565b60018111156106c7576106c7610c6c565b81526020810191909152604001600020546001600160a01b0316949350505050565b8061075c5760405162461bcd60e51b815260206004820152603660248201527f4d564d5f496e626f7853656e6465724d616e616765723a20496e626f7820736560448201527f6e646572732063616e6e6f7420626520656d7074792e0000000000000000000060648201526084016102b7565b60025415610829576002805461077490600190610cd2565b8154811061078457610784610ce9565b906000526020600020015483116108295760405162461bcd60e51b815260206004820152605460248201527f4d564d5f496e626f7853656e6465724d616e616765723a20426c6f636b206e7560448201527f6d626572206d7573742062652067726561746572207468616e2074686520707260648201527f6576696f757320626c6f636b206e756d6265722e000000000000000000000000608482015260a4016102b7565b60005b81811015610a1957600083838381811061084857610848610ce9565b90506040020160200160208101906108609190610dbc565b6001600160a01b0316036108dc5760405162461bcd60e51b815260206004820152603560248201527f4d564d5f496e626f7853656e6465724d616e616765723a20496e626f7820736560448201527f6e6465722063616e6e6f7420626520656d7074792e000000000000000000000060648201526084016102b7565b8282828181106108ee576108ee610ce9565b90506040020160016000868152602001908152602001600020600085858581811061091b5761091b610ce9565b6109319260206040909202019081019150610bff565b600181111561094257610942610c6c565b600181111561095357610953610c6c565b8152602001908152602001600020818161096d9190610dd9565b90505082828281811061098257610982610ce9565b6109989260206040909202019081019150610bff565b60018111156109a9576109a9610c6c565b8383838181106109bb576109bb610ce9565b90506040020160200160208101906109d39190610dbc565b6001600160a01b0316857fc45e836600cb2bb55f0347a02935415dba86cc30cce9ed0ca83927a0988d887260405160405180910390a4610a1281610e61565b905061082c565b5050600280546001810182556000919091527f405787fa12a823e0f2b7631cc41b3ba8828b3321ca811111fa75cd3aa3bb5ace019190915550565b600080600060408486031215610a6957600080fd5b83359250602084013567ffffffffffffffff80821115610a8857600080fd5b818601915086601f830112610a9c57600080fd5b813581811115610aab57600080fd5b8760208260061b8501011115610ac057600080fd5b6020830194508093505050509250925092565b634e487b7160e01b600052604160045260246000fd5b600060208284031215610afb57600080fd5b813567ffffffffffffffff80821115610b1357600080fd5b818401915084601f830112610b2757600080fd5b813581811115610b3957610b39610ad3565b604051601f8201601f19908116603f01168101908382118183101715610b6157610b61610ad3565b81604052828152876020848701011115610b7a57600080fd5b826020860160208301376000928101602001929092525095945050505050565b600060208083528351808285015260005b81811015610bc757858101830151858201604001528201610bab565b81811115610bd9576000604083870101525b50601f01601f1916929092016040019392505050565b60028110610bfc57600080fd5b50565b600060208284031215610c1157600080fd5b8135610c1c81610bef565b9392505050565b600060208284031215610c3557600080fd5b5035919050565b60008060408385031215610c4f57600080fd5b823591506020830135610c6181610bef565b809150509250929050565b634e487b7160e01b600052602160045260246000fd5b6040810160028410610ca457634e487b7160e01b600052602160045260246000fd5b9281526001600160a01b039190911660209091015290565b634e487b7160e01b600052601160045260246000fd5b600082821015610ce457610ce4610cbc565b500390565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052603160045260246000fd5b6001600160a01b0381168114610bfc57600080fd5b600060208284031215610d3c57600080fd5b8151610c1c81610d15565b600080831283600160ff1b01831281151615610d6557610d65610cbc565b837f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff018313811615610d9957610d99610cbc565b50500390565b6000600160ff1b8203610db457610db4610cbc565b506000190190565b600060208284031215610dce57600080fd5b8135610c1c81610d15565b8135610de481610bef565b60028110610e0257634e487b7160e01b600052602160045260246000fd5b815460ff821691508160ff1982161783556020840135610e2181610d15565b74ffffffffffffffffffffffffffffffffffffffff008160081b168374ffffffffffffffffffffffffffffffffffffffffff198416171784555050505050565b600060018201610e7357610e73610cbc565b506001019056fea2646970667358221220906ab0281c5448d8dd365f74643d3ff7eb278a8cfc96176e6d586c7635a5aa8a64736f6c634300080f0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100a35760003560e01c8063705e6ee211610076578063cd8bff331161005b578063cd8bff3314610175578063e6e9c87414610196578063efdf8c9b146101a957600080fd5b8063705e6ee214610139578063a5a5c24d1461014c57600080fd5b806311b1c93f146100a8578063299ca478146100bd578063461a4478146100ed578063669fdeb514610100575b600080fd5b6100bb6100b6366004610a54565b6101f5565b005b6000546100d0906001600160a01b031681565b6040516001600160a01b0390911681526020015b60405180910390f35b6100d06100fb366004610ae9565b6103e8565b61012c6040518060400160405280600d81526020016c26a2aa24a9afa6a0a720a3a2a960991b81525081565b6040516100e49190610b9a565b6100bb610147366004610a54565b610479565b6100d061015a366004610bff565b6003602052600090815260409020546001600160a01b031681565b610188610183366004610c23565b61054f565b6040519081526020016100e4565b6100d06101a4366004610c3c565b610570565b6101e76101b7366004610c3c565b600160209081526000928352604080842090915290825290205460ff81169061010090046001600160a01b031682565b6040516100e4929190610c82565b6102236040518060400160405280600d81526020016c26a2aa24a9afa6a0a720a3a2a960991b8152506103e8565b6001600160a01b0316336001600160a01b0316146102c05760405162461bcd60e51b815260206004820152604960248201527f4d564d5f496e626f7853656e6465724d616e616765723a2046756e6374696f6e60448201527f2063616e206f6e6c792062652063616c6c656420627920746865204d455449536064820152682fa6a0a720a3a2a91760b91b608482015260a4015b60405180910390fd5b6002546103355760405162461bcd60e51b815260206004820152602b60248201527f4d564d5f496e626f7853656e6465724d616e616765723a204e6f20626c6f636b60448201527f20746f207570646174652e00000000000000000000000000000000000000000060648201526084016102b7565b600280546000919061034990600190610cd2565b8154811061035957610359610ce9565b90600052602060002001549050600280548061037757610377610cff565b6000828152602080822060001990840181018390559092019092558282526001808252604080842084805292839052808420805474ffffffffffffffffffffffffffffffffffffffffff1990811690915591845290922080549092169091556103e18585856106e9565b5050505050565b600080546040517fbf40fac10000000000000000000000000000000000000000000000000000000081526001600160a01b039091169063bf40fac190610432908590600401610b9a565b602060405180830381865afa15801561044f573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104739190610d2a565b92915050565b6104a76040518060400160405280600d81526020016c26a2aa24a9afa6a0a720a3a2a960991b8152506103e8565b6001600160a01b0316336001600160a01b03161461053f5760405162461bcd60e51b815260206004820152604960248201527f4d564d5f496e626f7853656e6465724d616e616765723a2046756e6374696f6e60448201527f2063616e206f6e6c792062652063616c6c656420627920746865204d455449536064820152682fa6a0a720a3a2a91760b91b608482015260a4016102b7565b61054a8383836106e9565b505050565b6002818154811061055f57600080fd5b600091825260209091200154905081565b6002546000908082036105c7576003600084600181111561059357610593610c6c565b60018111156105a4576105a4610c6c565b81526020810191909152604001600020546001600160a01b031691506104739050565b60006105d4600183610d47565b90505b6000811261069f5784600282815481106105f3576105f3610ce9565b90600052602060002001541161068d576000600160006002848154811061061c5761061c610ce9565b90600052602060002001548152602001908152602001600020600086600181111561064957610649610c6c565b600181111561065a5761065a610c6c565b815260208101919091526040016000205461010090046001600160a01b03169050801561068b579250610473915050565b505b8061069781610d9f565b9150506105d7565b50600360008460018111156106b6576106b6610c6c565b60018111156106c7576106c7610c6c565b81526020810191909152604001600020546001600160a01b0316949350505050565b8061075c5760405162461bcd60e51b815260206004820152603660248201527f4d564d5f496e626f7853656e6465724d616e616765723a20496e626f7820736560448201527f6e646572732063616e6e6f7420626520656d7074792e0000000000000000000060648201526084016102b7565b60025415610829576002805461077490600190610cd2565b8154811061078457610784610ce9565b906000526020600020015483116108295760405162461bcd60e51b815260206004820152605460248201527f4d564d5f496e626f7853656e6465724d616e616765723a20426c6f636b206e7560448201527f6d626572206d7573742062652067726561746572207468616e2074686520707260648201527f6576696f757320626c6f636b206e756d6265722e000000000000000000000000608482015260a4016102b7565b60005b81811015610a1957600083838381811061084857610848610ce9565b90506040020160200160208101906108609190610dbc565b6001600160a01b0316036108dc5760405162461bcd60e51b815260206004820152603560248201527f4d564d5f496e626f7853656e6465724d616e616765723a20496e626f7820736560448201527f6e6465722063616e6e6f7420626520656d7074792e000000000000000000000060648201526084016102b7565b8282828181106108ee576108ee610ce9565b90506040020160016000868152602001908152602001600020600085858581811061091b5761091b610ce9565b6109319260206040909202019081019150610bff565b600181111561094257610942610c6c565b600181111561095357610953610c6c565b8152602001908152602001600020818161096d9190610dd9565b90505082828281811061098257610982610ce9565b6109989260206040909202019081019150610bff565b60018111156109a9576109a9610c6c565b8383838181106109bb576109bb610ce9565b90506040020160200160208101906109d39190610dbc565b6001600160a01b0316857fc45e836600cb2bb55f0347a02935415dba86cc30cce9ed0ca83927a0988d887260405160405180910390a4610a1281610e61565b905061082c565b5050600280546001810182556000919091527f405787fa12a823e0f2b7631cc41b3ba8828b3321ca811111fa75cd3aa3bb5ace019190915550565b600080600060408486031215610a6957600080fd5b83359250602084013567ffffffffffffffff80821115610a8857600080fd5b818601915086601f830112610a9c57600080fd5b813581811115610aab57600080fd5b8760208260061b8501011115610ac057600080fd5b6020830194508093505050509250925092565b634e487b7160e01b600052604160045260246000fd5b600060208284031215610afb57600080fd5b813567ffffffffffffffff80821115610b1357600080fd5b818401915084601f830112610b2757600080fd5b813581811115610b3957610b39610ad3565b604051601f8201601f19908116603f01168101908382118183101715610b6157610b61610ad3565b81604052828152876020848701011115610b7a57600080fd5b826020860160208301376000928101602001929092525095945050505050565b600060208083528351808285015260005b81811015610bc757858101830151858201604001528201610bab565b81811115610bd9576000604083870101525b50601f01601f1916929092016040019392505050565b60028110610bfc57600080fd5b50565b600060208284031215610c1157600080fd5b8135610c1c81610bef565b9392505050565b600060208284031215610c3557600080fd5b5035919050565b60008060408385031215610c4f57600080fd5b823591506020830135610c6181610bef565b809150509250929050565b634e487b7160e01b600052602160045260246000fd5b6040810160028410610ca457634e487b7160e01b600052602160045260246000fd5b9281526001600160a01b039190911660209091015290565b634e487b7160e01b600052601160045260246000fd5b600082821015610ce457610ce4610cbc565b500390565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052603160045260246000fd5b6001600160a01b0381168114610bfc57600080fd5b600060208284031215610d3c57600080fd5b8151610c1c81610d15565b600080831283600160ff1b01831281151615610d6557610d65610cbc565b837f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff018313811615610d9957610d99610cbc565b50500390565b6000600160ff1b8203610db457610db4610cbc565b506000190190565b600060208284031215610dce57600080fd5b8135610c1c81610d15565b8135610de481610bef565b60028110610e0257634e487b7160e01b600052602160045260246000fd5b815460ff821691508160ff1982161783556020840135610e2181610d15565b74ffffffffffffffffffffffffffffffffffffffff008160081b168374ffffffffffffffffffffffffffffffffffffffffff198416171784555050505050565b600060018201610e7357610e73610cbc565b506001019056fea2646970667358221220906ab0281c5448d8dd365f74643d3ff7eb278a8cfc96176e6d586c7635a5aa8a64736f6c634300080f0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "resolve(string)": {
+        "params": {
+          "_name": "Name to resolve an address for."
+        },
+        "returns": {
+          "_0": "Address associated with the given name."
+        }
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "resolve(string)": {
+        "notice": "Resolves the address associated with a given name."
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 33544,
+        "contract": "contracts/MVM/MVM_InboxSenderManager.sol:MVM_InboxSenderManager",
+        "label": "libAddressManager",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_contract(Lib_AddressManager)33536"
+      },
+      {
+        "astId": 27501,
+        "contract": "contracts/MVM/MVM_InboxSenderManager.sol:MVM_InboxSenderManager",
+        "label": "inboxSenders",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_mapping(t_uint256,t_mapping(t_enum(InboxSenderType)31732,t_struct(InboxSender)31738_storage))"
+      },
+      {
+        "astId": 27504,
+        "contract": "contracts/MVM/MVM_InboxSenderManager.sol:MVM_InboxSenderManager",
+        "label": "blockNumbers",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_array(t_uint256)dyn_storage"
+      },
+      {
+        "astId": 27509,
+        "contract": "contracts/MVM/MVM_InboxSenderManager.sol:MVM_InboxSenderManager",
+        "label": "defaultInboxSender",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_enum(InboxSenderType)31732,t_address)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_uint256)dyn_storage": {
+        "base": "t_uint256",
+        "encoding": "dynamic_array",
+        "label": "uint256[]",
+        "numberOfBytes": "32"
+      },
+      "t_contract(Lib_AddressManager)33536": {
+        "encoding": "inplace",
+        "label": "contract Lib_AddressManager",
+        "numberOfBytes": "20"
+      },
+      "t_enum(InboxSenderType)31732": {
+        "encoding": "inplace",
+        "label": "enum iMVM_InboxSenderManager.InboxSenderType",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_enum(InboxSenderType)31732,t_address)": {
+        "encoding": "mapping",
+        "key": "t_enum(InboxSenderType)31732",
+        "label": "mapping(enum iMVM_InboxSenderManager.InboxSenderType => address)",
+        "numberOfBytes": "32",
+        "value": "t_address"
+      },
+      "t_mapping(t_enum(InboxSenderType)31732,t_struct(InboxSender)31738_storage)": {
+        "encoding": "mapping",
+        "key": "t_enum(InboxSenderType)31732",
+        "label": "mapping(enum iMVM_InboxSenderManager.InboxSenderType => struct iMVM_InboxSenderManager.InboxSender)",
+        "numberOfBytes": "32",
+        "value": "t_struct(InboxSender)31738_storage"
+      },
+      "t_mapping(t_uint256,t_mapping(t_enum(InboxSenderType)31732,t_struct(InboxSender)31738_storage))": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => mapping(enum iMVM_InboxSenderManager.InboxSenderType => struct iMVM_InboxSenderManager.InboxSender))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_enum(InboxSenderType)31732,t_struct(InboxSender)31738_storage)"
+      },
+      "t_struct(InboxSender)31738_storage": {
+        "encoding": "inplace",
+        "label": "struct iMVM_InboxSenderManager.InboxSender",
+        "members": [
+          {
+            "astId": 31735,
+            "contract": "contracts/MVM/MVM_InboxSenderManager.sol:MVM_InboxSenderManager",
+            "label": "senderType",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_enum(InboxSenderType)31732"
+          },
+          {
+            "astId": 31737,
+            "contract": "contracts/MVM/MVM_InboxSenderManager.sol:MVM_InboxSenderManager",
+            "label": "sender",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_address"
+          }
+        ],
+        "numberOfBytes": "32"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}
