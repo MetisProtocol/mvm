@@ -70,6 +70,9 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @notice Emitted when tokens are slashed
     event Slashed(address indexed recipient, uint256 amount);
 
+    /// @notice Emitted when tokens are slashed by timeout
+    event TimeoutSlashed(address indexed sender, address indexed recipient, uint256 amount);
+
     /// @notice Emitted when slash ratio is updated
     event SlashRatioUpdated(uint256 oldRatio, uint256 newRatio);
 
@@ -242,6 +245,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
 
         // Transfer the actual slashed amount
         token.safeTransfer(_recipient, actualSlashedAmount);
+        emit TimeoutSlashed(sender, _recipient, actualSlashedAmount);
     }
 
     /// @notice Slashes a percentage of tokens from the pool
