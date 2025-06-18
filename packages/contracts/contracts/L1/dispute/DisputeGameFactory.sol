@@ -145,6 +145,8 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         emit DisputeGameRequested(msg.sender, _gameType, initBond, _extraData);
     }
 
+    /// @notice Handles the timeout of a dispute request.
+    /// @param _uuid The unique identifier of the timeout dispute request.
     function disputeTimeout(bytes32 _uuid) external {
         // Check if the dispute request is still valid
         uint256 requestTimestamp = disputeRequestTimestamps[_uuid];
