@@ -93,7 +93,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         __Ownable_init();
         _transferOwnership(_owner);
 
-        require(slashRatio <= 10000, "LockingPool: invalid slash ratio");
+        require(_slashRatio <= 10000, "LockingPool: invalid slash ratio");
 
         token = IERC20(_token);
         lockPeriod = _lockPeriod;
