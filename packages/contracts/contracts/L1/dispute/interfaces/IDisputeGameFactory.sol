@@ -58,10 +58,10 @@ interface IDisputeGameFactory {
             bytes32 l1Head_
         );
 
-    /// @notice Returns the timestamp of the creation of a dispute game.
-    /// @param _gameUUID The unique identifier of the dispute game.
-    /// @return timestamp_ The timestamp of the creation of the dispute game.
-    function disputeRequestTimestamps(bytes32 _gameUUID) external view returns (uint256 timestamp_);
+    /// @notice Returns the timestamp of the creation of a dispute request.
+    /// @param _requestUuid The unique identifier of the dispute request.
+    /// @return timestamp_ The timestamp of the creation of the dispute request.
+    function disputeRequestTimestamps(bytes32 _requestUuid) external view returns (uint256 timestamp_);
 
     /// @notice The total number of dispute games created by this factory.
     /// @return gameCount_ The total number of dispute games created by this factory.
