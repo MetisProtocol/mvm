@@ -1,11 +1,14 @@
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import {
   deployWithOZTransparentProxy,
+  getDeployedContract,
   registerAddress,
 } from '../src/hardhat-deploy-ethers'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
+
+  const addressManager = await getDeployedContract(hre, 'Lib_AddressManager')
 
   const factory = await deployWithOZTransparentProxy({
     hre,
@@ -15,6 +18,7 @@ const deployFn: DeployFunction = async (hre) => {
       constructorArgs: [
         // metis token address
         (hre as any).deployConfig.mvmMetisAddress,
+        addressManager,
       ],
       unsafeAllow: ['constructor', 'state-variable-immutable'],
     },
