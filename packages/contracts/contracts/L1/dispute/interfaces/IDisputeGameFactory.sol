@@ -50,29 +50,6 @@ interface IDisputeGameFactory {
         bytes extraData;
     }
 
-        /// @notice Returns the dispute game creation request for the given UUID
-    /// @param _uuid The UUID of the dispute game creation request
-    /// @return gameType_ The type of the DisputeGame
-    /// @return sender_ The address of the sender
-    /// @return bond_ The bond (in wei) for initializing the game type
-    /// @return l1Head_ The L1 head of the dispute game creation request
-    function disputeGameCreationRequests(
-        bytes32 _uuid
-    )
-        external
-        view
-        returns (
-            GameType gameType_,
-            address sender_,
-            uint256 bond_,
-            bytes32 l1Head_
-        );
-
-    /// @notice Returns the timestamp of the creation of a dispute request.
-    /// @param _requestUuid The unique identifier of the dispute request.
-    /// @return timestamp_ The timestamp of the creation of the dispute request.
-    function disputeRequestTimestamps(bytes32 _requestUuid) external view returns (uint256 timestamp_);
-
     /// @notice The total number of dispute games created by this factory.
     /// @return gameCount_ The total number of dispute games created by this factory.
     function gameCount() external view returns (uint256 gameCount_);
