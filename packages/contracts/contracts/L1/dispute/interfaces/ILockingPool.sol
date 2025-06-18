@@ -7,4 +7,8 @@ interface ILockingPool {
     /// @notice Slashes a percentage of tokens from the pool
     /// @param _recipient Address to receive the slashed tokens
     function slash(address _recipient) external;
-} 
+
+    /// @notice Slashes a percentage of tokens from the pool after a timeout
+    /// @param _recipient Address to receive the slashed tokens
+    function timeoutSlash(address _recipient) external;
+}

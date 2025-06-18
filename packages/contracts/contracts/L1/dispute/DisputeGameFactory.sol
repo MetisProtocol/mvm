@@ -2,8 +2,10 @@
 pragma solidity 0.8.15;
 
 import {ISemver} from "../../universal/ISemver.sol";
+import {ILockingPool} from "./interfaces/ILockingPool.sol";
 import {IDisputeGame} from "./interfaces/IDisputeGame.sol";
 import {IDisputeGameFactory} from "./interfaces/IDisputeGameFactory.sol";
+import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {LibClone} from "solady/src/utils/LibClone.sol";
 import "contracts/L1/dispute/lib/Types.sol";
@@ -19,7 +21,9 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
     /// @dev Allows for the creation of clone proxies with immutable arguments.
     using LibClone for address;
 
+    string internal constant LOCKING_POOL_NAME = "FaultProofLockingPool";
     bytes32 public constant GAME_CREATOR_ROLE = keccak256("GAME_CREATOR");
+    uint256 public constant DISPUTE_TIMEOUT_PERIOD = 2 days;
 
     struct DisputeInfo {
         GameType gameType;
@@ -34,6 +38,9 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
 
     /// @notice The Metis ERC20 token contract
     IERC20 public immutable METIS;
+
+    /// @notice The address manager contract.
+    Lib_AddressManager internal immutable ADDRESS_MANAGER;
 
     /// @inheritdoc IDisputeGameFactory
     mapping(GameType => IDisputeGame) public gameImpls;
@@ -57,8 +64,9 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
 
     /// @notice Constructs a new DisputeGameFactory contract.
     /// @param _metis The Metis ERC20 token contract
-    constructor(IERC20 _metis) AccessControlUpgradeable() {
+    constructor(IERC20 _metis, Lib_AddressManager _addressManager) AccessControlUpgradeable() {
         METIS = _metis;
+        ADDRESS_MANAGER = _addressManager;
         initialize(address(0));
     }
 
@@ -135,6 +143,38 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         disputeRequestTimestamps[uuid] = block.timestamp;
 
         emit DisputeGameRequested(msg.sender, _gameType, initBond, _extraData);
+    }
+
+    function disputeTimeout(bytes32 _uuid) external {
+        // Check if the dispute request is still valid
+        uint256 requestTimestamp = disputeRequestTimestamps[_uuid];
+        require (
+            requestTimestamp > 0
+            && block.timestamp > requestTimestamp + DISPUTE_TIMEOUT_PERIOD
+            , "Factory: dispute request not timed out"
+        );
+
+        // Check if the dispute request exists
+        DisputeInfo memory info = disputeGameCreationRequests[_uuid];
+        require(info.sender == msg.sender, "Factory: invalid sender");
+
+        address lockingPool = ADDRESS_MANAGER.getAddress(LOCKING_POOL_NAME);
+        require(lockingPool != address(0), "Factory: invalid locking pool address");
+
+        // Attempt to slash the bond from the locking pool
+        try ILockingPool(lockingPool).timeoutSlash(msg.sender) {}
+        catch {}
+
+        // Refund the bond to the sender
+        if (info.bond > 0) {
+            METIS.transfer(info.sender, info.bond);
+        }
+
+        // Delete the dispute request
+        delete disputeGameCreationRequests[_uuid];
+        delete disputeRequestTimestamps[_uuid];
+
+        emit DisputeRequestTimeout(_uuid, info.sender, info.bond);
     }
 
     /// @inheritdoc IDisputeGameFactory

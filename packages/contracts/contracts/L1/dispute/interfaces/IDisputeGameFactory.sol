@@ -15,6 +15,16 @@ interface IDisputeGameFactory {
     //. @param extraData Any extra data that should be provided to the created dispute game.
     event DisputeGameRequested(address indexed requestor, GameType indexed gameType, uint256 bond, bytes extraData);
 
+    /// @notice Emitted when a dispute request times out
+    /// @param requestUuid The unique identifier of the dispute request
+    /// @param sender The address of the sender
+    /// @param bond The bond (in wei) for initializing the game type
+    event DisputeRequestTimeout(
+        bytes32 indexed requestUuid,
+        address indexed sender,
+        uint256 bond
+    );
+
     /// @notice Emitted when a new dispute game is created
     /// @param disputeProxy The address of the dispute game proxy
     /// @param gameType The type of the dispute game proxy's implementation

@@ -26,7 +26,6 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     }
 
     string public constant DISPUTE_GAME_FACTORY_NAME = "DisputeGameFactory";
-    uint256 public constant DISPUTE_TIMEOUT_PERIOD = 2 days;
 
     /// @notice The token being locked in the pool
     IERC20 public token;
@@ -63,9 +62,6 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
 
     /// @notice Emitted when tokens are withdrawn
     event Withdraw(address indexed user, uint256 amount);
-
-    /// @notice Emitted when tokens are slashed by timeout
-    event TimeoutSlashed(address indexed sender, address indexed recipient, uint256 amount);
 
     /// @notice Emitted when tokens are slashed
     event Slashed(address indexed recipient, uint256 amount);
@@ -113,7 +109,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _amount Amount of tokens to deposit
     function deposit(uint256 _amount) external {
         require(_amount > 0, "LockingPool: zero deposit");
-        
+
         token.safeTransferFrom(msg.sender, address(this), _amount);
         balanceOf[msg.sender] += _amount;
         totalLocked += _amount;
@@ -129,7 +125,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         if (!depositedBefore) {
             depositedSequencers.push(msg.sender);
         }
-        
+
         emit Deposit(msg.sender, _amount);
     }
 
@@ -143,7 +139,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
 
         wd.timestamp = block.timestamp;
         wd.amount = newAmount;
-        
+
         emit Unlock(msg.sender, _amount);
     }
 
@@ -151,7 +147,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _amount Amount of tokens to withdraw
     function withdraw(uint256 _amount) external {
         require(!config.paused(), "LockingPool: contract is paused");
-        
+
         WithdrawalRequest storage wd = withdrawals[msg.sender];
         require(wd.amount >= _amount, "LockingPool: insufficient unlocked withdrawal");
         require(wd.timestamp > 0, "LockingPool: withdrawal not unlocked");
@@ -159,7 +155,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
             wd.timestamp + lockPeriod <= block.timestamp,
             "LockingPool: withdrawal delay not met"
         );
-        
+
         wd.amount -= _amount;
         balanceOf[msg.sender] -= _amount;
         totalLocked -= _amount;
@@ -174,35 +170,19 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
                 }
             }
         }
-        
+
         token.safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
     }
 
     /// @notice Slashes tokens from the pool when a dispute is unhandled after timeout period
     /// @param _recipient Address to receive the slashed tokens
-    /// @param _uuid The unique identifier of the dispute request
-    function timeoutSlash(address _recipient, bytes32 _uuid) external {
+    function timeoutSlash(address _recipient) external {
         require(_recipient != address(0), "LockingPool: invalid recipient");
         require(totalLocked > 0, "LockingPool: no tokens to slash");
 
-        IDisputeGameFactory disputeGameFactory = IDisputeGameFactory(
-            addressManager.getAddress(DISPUTE_GAME_FACTORY_NAME)
-        );
-        require(
-            address(disputeGameFactory) != address(0),
-            "LockingPool: dispute game factory not set"
-        );
-
-        (, address sender, , ) = disputeGameFactory.disputeGameCreationRequests(
-            _uuid
-        );
-        uint256 timestamp = disputeGameFactory.disputeRequestTimestamps(_uuid);
-        require(sender == msg.sender, "LockingPool: invalid sender");
-        require(
-            timestamp > 0 && timestamp + DISPUTE_TIMEOUT_PERIOD <= block.timestamp,
-            "LockingPool: timeout not met"
-        );
+        address disputeGameFactory = addressManager.getAddress(DISPUTE_GAME_FACTORY_NAME);
+        require(msg.sender == disputeGameFactory, "LockingPool: caller must be a dispute game factory");
 
         // Track actual slashed amount
         uint256 actualSlashedAmount;
@@ -238,7 +218,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
 
         // Transfer the actual slashed amount
         token.safeTransfer(_recipient, actualSlashedAmount);
-        emit TimeoutSlashed(sender, _recipient, actualSlashedAmount);
+        emit Slashed(_recipient, actualSlashedAmount);
     }
 
     /// @notice Slashes a percentage of tokens from the pool
@@ -270,11 +250,11 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
 
         // Track actual slashed amount
         uint256 actualSlashedAmount;
-        
+
         // Cache users array to avoid multiple storage reads
         address[] memory users = depositedSequencers;
         uint256 usersLength = users.length;
-        
+
         // First pass: calculate actual slashed amount
         for (uint256 i; i < usersLength;) {
             address user = users[i];
@@ -325,12 +305,12 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _user User address
     /// @return amount Amount requested for withdrawal
     /// @return timestamp Timestamp of the withdrawal request
-    function getWithdrawalRequest(address _user) 
-        external 
-        view 
-        returns (uint256 amount, uint256 timestamp) 
+    function getWithdrawalRequest(address _user)
+        external
+        view
+        returns (uint256 amount, uint256 timestamp)
     {
         WithdrawalRequest memory wd = withdrawals[_user];
         return (wd.amount, wd.timestamp);
     }
-} 
+}
