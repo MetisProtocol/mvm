@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {MetisConfig} from "../config/MetisConfig.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IDisputeGameFactory} from "../dispute/interfaces/IDisputeGameFactory.sol";
-import {IFaultDisputeGame} from "../dispute/interfaces/IFaultDisputeGame.sol";
-import {IDisputeGame} from "../dispute/interfaces/IDisputeGame.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { MetisConfig } from "../config/MetisConfig.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IDisputeGameFactory } from "../dispute/interfaces/IDisputeGameFactory.sol";
+import { IFaultDisputeGame } from "../dispute/interfaces/IFaultDisputeGame.sol";
+import { IDisputeGame } from "../dispute/interfaces/IDisputeGame.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
-import {ILockingPool} from "./interfaces/ILockingPool.sol";
-import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
+import { ILockingPool } from "./interfaces/ILockingPool.sol";
+import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
 
 /// @title LockingPool
 /// @notice A locking pool contract that allows users to lock tokens with a delayed withdrawal mechanism
@@ -26,6 +28,8 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     }
 
     string public constant DISPUTE_GAME_FACTORY_NAME = "DisputeGameFactory";
+
+    uint256 public constant DISPUTE_TIMEOUT_PERIOD = 1 days;
 
     /// @notice The token being locked in the pool
     IERC20 public token;
@@ -73,8 +77,14 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     event LockPeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
 
     constructor() {
-        initialize(address(0), address(0), 0,0,
-            Lib_AddressManager(address(0)), MetisConfig(address(0)));
+        initialize(
+            address(0),
+            address(0),
+            0,
+            0,
+            Lib_AddressManager(address(0)),
+            MetisConfig(address(0))
+        );
     }
 
     /// @notice Initializes the contract
@@ -84,12 +94,14 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _slashRatio Initial slash ratio (base 10000)
     /// @param _addressManager The AddressManager contract address
     /// @param _config The MetisConfig contract address
-    function initialize(address _owner,
+    function initialize(
+        address _owner,
         address _token,
         uint256 _lockPeriod,
         uint256 _slashRatio,
         Lib_AddressManager _addressManager,
-        MetisConfig _config) public initializer {
+        MetisConfig _config
+    ) public initializer {
         __Ownable_init();
         _transferOwnership(_owner);
 
@@ -109,7 +121,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _amount Amount of tokens to deposit
     function deposit(uint256 _amount) external {
         require(_amount > 0, "LockingPool: zero deposit");
-        
+
         token.safeTransferFrom(msg.sender, address(this), _amount);
         balanceOf[msg.sender] += _amount;
         totalLocked += _amount;
@@ -125,7 +137,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         if (!depositedBefore) {
             depositedSequencers.push(msg.sender);
         }
-        
+
         emit Deposit(msg.sender, _amount);
     }
 
@@ -139,7 +151,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
 
         wd.timestamp = block.timestamp;
         wd.amount = newAmount;
-        
+
         emit Unlock(msg.sender, _amount);
     }
 
@@ -147,7 +159,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _amount Amount of tokens to withdraw
     function withdraw(uint256 _amount) external {
         require(!config.paused(), "LockingPool: contract is paused");
-        
+
         WithdrawalRequest storage wd = withdrawals[msg.sender];
         require(wd.amount >= _amount, "LockingPool: insufficient unlocked withdrawal");
         require(wd.timestamp > 0, "LockingPool: withdrawal not unlocked");
@@ -155,7 +167,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
             wd.timestamp + lockPeriod <= block.timestamp,
             "LockingPool: withdrawal delay not met"
         );
-        
+
         wd.amount -= _amount;
         balanceOf[msg.sender] -= _amount;
         totalLocked -= _amount;
@@ -170,9 +182,66 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
                 }
             }
         }
-        
+
         token.safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
+    }
+
+    function timeoutSlash(address _recipient, bytes32 _uuid) external {
+        require(_recipient != address(0), "LockingPool: invalid recipient");
+        require(totalLocked > 0, "LockingPool: no tokens to slash");
+
+        IDisputeGameFactory disputeGameFactory = IDisputeGameFactory(
+            addressManager.getAddress(DISPUTE_GAME_FACTORY_NAME)
+        );
+        require(
+            address(disputeGameFactory) != address(0),
+            "LockingPool: dispute game factory not set"
+        );
+
+        (, address sender, , , uint256 timestamp) = disputeGameFactory.disputeGameCreationRequests(
+            _uuid
+        );
+        require(sender == msg.sender, "LockingPool: invalid sender");
+        require(
+            timestamp + DISPUTE_TIMEOUT_PERIOD <= block.timestamp,
+            "LockingPool: timeout not met"
+        );
+
+        // Track actual slashed amount
+        uint256 actualSlashedAmount;
+
+        // Cache users array to avoid multiple storage reads
+        address[] memory users = depositedSequencers;
+        uint256 usersLength = users.length;
+
+        // First pass: calculate actual slashed amount
+        for (uint256 i; i < usersLength; ) {
+            address user = users[i];
+            uint256 userBalance = balanceOf[user];
+            if (userBalance > 0) {
+                // Calculate user's slash amount
+                uint256 userSlashAmount = (userBalance * slashRatio) / 10000;
+                if (userSlashAmount > 0) {
+                    actualSlashedAmount += userSlashAmount;
+                    // Update user balance
+                    balanceOf[user] = userBalance - userSlashAmount;
+                }
+            }
+            // Gas optimization for loops
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Require some tokens were actually slashed
+        require(actualSlashedAmount > 0, "LockingPool: slash amount too small");
+
+        // Update total locked amount
+        totalLocked -= actualSlashedAmount;
+
+        // Transfer the actual slashed amount
+        token.safeTransfer(_recipient, actualSlashedAmount);
     }
 
     /// @notice Slashes a percentage of tokens from the pool
@@ -186,9 +255,14 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         (GameType gameType, Claim rootClaim, bytes memory extraData) = game.gameData();
 
         // Get the verified address of the game based on the game data
-        IDisputeGameFactory disputeGameFactory = IDisputeGameFactory(addressManager.getAddress(DISPUTE_GAME_FACTORY_NAME));
-        require(address(disputeGameFactory) != address(0), "LockingPool: dispute game factory not set");
-        (IDisputeGame factoryRegisteredGame,) = disputeGameFactory.games({
+        IDisputeGameFactory disputeGameFactory = IDisputeGameFactory(
+            addressManager.getAddress(DISPUTE_GAME_FACTORY_NAME)
+        );
+        require(
+            address(disputeGameFactory) != address(0),
+            "LockingPool: dispute game factory not set"
+        );
+        (IDisputeGame factoryRegisteredGame, ) = disputeGameFactory.games({
             _gameType: gameType,
             _rootClaim: rootClaim,
             _extraData: extraData
@@ -204,13 +278,13 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
 
         // Track actual slashed amount
         uint256 actualSlashedAmount;
-        
+
         // Cache users array to avoid multiple storage reads
         address[] memory users = depositedSequencers;
         uint256 usersLength = users.length;
-        
+
         // First pass: calculate actual slashed amount
-        for (uint256 i; i < usersLength;) {
+        for (uint256 i; i < usersLength; ) {
             address user = users[i];
             uint256 userBalance = balanceOf[user];
             if (userBalance > 0) {
@@ -223,7 +297,9 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
                 }
             }
             // Gas optimization for loops
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         // Require some tokens were actually slashed
@@ -259,12 +335,10 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _user User address
     /// @return amount Amount requested for withdrawal
     /// @return timestamp Timestamp of the withdrawal request
-    function getWithdrawalRequest(address _user) 
-        external 
-        view 
-        returns (uint256 amount, uint256 timestamp) 
-    {
+    function getWithdrawalRequest(
+        address _user
+    ) external view returns (uint256 amount, uint256 timestamp) {
         WithdrawalRequest memory wd = withdrawals[_user];
         return (wd.amount, wd.timestamp);
     }
-} 
+}

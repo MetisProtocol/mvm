@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IDisputeGame} from "./IDisputeGame.sol";
+import { IDisputeGame } from "./IDisputeGame.sol";
 
 import "contracts/L1/dispute/lib/Types.sol";
 
@@ -13,13 +13,22 @@ interface IDisputeGameFactory {
     /// @param gameType The type of the dispute game
     /// @param bond The bond (in wei) for initializing the game type
     //. @param extraData Any extra data that should be provided to the created dispute game.
-    event DisputeGameRequested(address indexed requestor, GameType indexed gameType, uint256 bond, bytes extraData);
+    event DisputeGameRequested(
+        address indexed requestor,
+        GameType indexed gameType,
+        uint256 bond,
+        bytes extraData
+    );
 
     /// @notice Emitted when a new dispute game is created
     /// @param disputeProxy The address of the dispute game proxy
     /// @param gameType The type of the dispute game proxy's implementation
     /// @param rootClaim The root claim of the dispute game
-    event DisputeGameCreated(address indexed disputeProxy, GameType indexed gameType, Claim indexed rootClaim);
+    event DisputeGameCreated(
+        address indexed disputeProxy,
+        GameType indexed gameType,
+        Claim indexed rootClaim
+    );
 
     /// @notice Emitted when a new game implementation added to the factory
     /// @param impl The implementation contract for the given `GameType`.
@@ -31,6 +40,15 @@ interface IDisputeGameFactory {
     /// @param newBond The new bond (in wei) for initializing the game type.
     event InitBondUpdated(GameType indexed gameType, uint256 indexed newBond);
 
+    /// @notice Information about a dispute game creation request
+    struct DisputeInfo {
+        GameType gameType;
+        address sender;
+        uint256 bond;
+        bytes32 l1Head;
+        uint256 timestamp;
+    }
+
     /// @notice Information about a dispute game found in a `findLatestGames` search.
     struct GameSearchResult {
         uint256 index;
@@ -39,6 +57,26 @@ interface IDisputeGameFactory {
         Claim rootClaim;
         bytes extraData;
     }
+
+    /// @notice Returns the dispute game creation request for the given UUID
+    /// @param _uuid The UUID of the dispute game creation request
+    /// @return gameType_ The type of the DisputeGame
+    /// @return sender_ The address of the sender
+    /// @return bond_ The bond (in wei) for initializing the game type
+    /// @return l1Head_ The L1 head of the dispute game creation request
+    /// @return timestamp_ The timestamp of the dispute game creation request
+    function disputeGameCreationRequests(
+        bytes32 _uuid
+    )
+        external
+        view
+        returns (
+            GameType gameType_,
+            address sender_,
+            uint256 bond_,
+            bytes32 l1Head_,
+            uint256 timestamp_
+        );
 
     /// @notice The total number of dispute games created by this factory.
     /// @return gameCount_ The total number of dispute games created by this factory.
@@ -57,10 +95,7 @@ interface IDisputeGameFactory {
         GameType _gameType,
         Claim _rootClaim,
         bytes calldata _extraData
-    )
-    external
-    view
-    returns (IDisputeGame proxy_, Timestamp timestamp_);
+    ) external view returns (IDisputeGame proxy_, Timestamp timestamp_);
 
     /// @notice `gameAtIndex` returns the dispute game contract address and its creation timestamp
     ///          at the given index. Each created dispute game increments the underlying index.
@@ -69,10 +104,9 @@ interface IDisputeGameFactory {
     /// @return timestamp_ The timestamp of the creation of the dispute game.
     /// @return proxy_ The clone of the `DisputeGame` created with the given parameters.
     ///         Returns `address(0)` if nonexistent.
-    function gameAtIndex(uint256 _index)
-    external
-    view
-    returns (GameType gameType_, Timestamp timestamp_, IDisputeGame proxy_);
+    function gameAtIndex(
+        uint256 _index
+    ) external view returns (GameType gameType_, Timestamp timestamp_, IDisputeGame proxy_);
 
     /// @notice `gameImpls` is a mapping that maps `GameType`s to their respective
     ///         `IDisputeGame` implementations.
@@ -101,9 +135,7 @@ interface IDisputeGameFactory {
         GameType _gameType,
         Claim _rootClaim,
         bytes calldata _extraData
-    )
-    external
-    returns (IDisputeGame proxy_);
+    ) external returns (IDisputeGame proxy_);
 
     /// @notice Sets the implementation contract for a specific `GameType`.
     /// @dev May only be called by the `owner`.
@@ -128,10 +160,7 @@ interface IDisputeGameFactory {
         GameType _gameType,
         Claim _rootClaim,
         bytes memory _extraData
-    )
-    external
-    pure
-    returns (Hash uuid_);
+    ) external pure returns (Hash uuid_);
 
     /// @notice Finds the `_n` most recent `GameId`'s of type `_gameType` starting at `_start`. If there are less than
     ///         `_n` games of type `_gameType` starting at `_start`, then the returned array will be shorter than `_n`.
@@ -142,8 +171,5 @@ interface IDisputeGameFactory {
         GameType _gameType,
         uint256 _start,
         uint256 _n
-    )
-    external
-    view
-    returns (GameSearchResult[] memory games_);
+    ) external view returns (GameSearchResult[] memory games_);
 }

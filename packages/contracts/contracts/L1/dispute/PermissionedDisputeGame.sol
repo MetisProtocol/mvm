@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IDelayedWMetis} from "./interfaces/IDelayedWMetis.sol";
-import { FaultDisputeGame, IFaultDisputeGame, IBigStepper, IInitializable } from "contracts/L1/dispute/FaultDisputeGame.sol";
+import { IDelayedWMetis } from "./interfaces/IDelayedWMetis.sol";
+import {
+    FaultDisputeGame,
+    IFaultDisputeGame,
+    IBigStepper,
+    IInitializable
+} from "contracts/L1/dispute/FaultDisputeGame.sol";
 import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
@@ -20,7 +25,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
     address internal immutable PROPOSER;
 
     /// @notice The challenger role is allowed to participate in the dispute game.
-    address internal immutable CHALLENGER;
+    address internal CHALLENGER;
 
     /// @notice Modifier that gates access to the `challenger` and `proposer` roles.
     modifier onlyAuthorized() {
@@ -41,7 +46,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
     /// @param _addressManager Address manager contract.
     /// @param _l2ChainId Chain ID of the L2 network this contract argues about.
     /// @param _proposer Address that is allowed to create instances of this contract.
-    /// @param _challenger Address that is allowed to challenge instances of this contract.
+    /// @param _challenger Address that is allowed to challenge instances of this contract. (deprecated)
     constructor(
         GameType _gameType,
         Claim _absolutePrestate,
@@ -56,21 +61,20 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         address _proposer,
         address _challenger
     )
-    FaultDisputeGame(
-    _gameType,
-    _absolutePrestate,
-    _maxGameDepth,
-    _splitDepth,
-    _clockExtension,
-    _maxClockDuration,
-    _vm,
-    _wmetis,
-    _addressManager,
-    _l2ChainId
-    )
+        FaultDisputeGame(
+            _gameType,
+            _absolutePrestate,
+            _maxGameDepth,
+            _splitDepth,
+            _clockExtension,
+            _maxClockDuration,
+            _vm,
+            _wmetis,
+            _addressManager,
+            _l2ChainId
+        )
     {
         PROPOSER = _proposer;
-        CHALLENGER = _challenger;
     }
 
     /// @inheritdoc IFaultDisputeGame
@@ -79,11 +83,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         bool _isAttack,
         bytes calldata _stateData,
         bytes calldata _proof
-    )
-    public
-    override
-    onlyAuthorized
-    {
+    ) public override onlyAuthorized {
         super.step(_claimIndex, _isAttack, _stateData, _proof);
     }
 
@@ -97,11 +97,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         uint256 _challengeIndex,
         Claim _claim,
         bool _isAttack
-    )
-    public
-    override
-    onlyAuthorized
-    {
+    ) public override onlyAuthorized {
         super.move(_disputed, _challengeIndex, _claim, _isAttack);
     }
 
@@ -109,6 +105,9 @@ contract PermissionedDisputeGame is FaultDisputeGame {
     function initialize() public payable override {
         // The creator of the dispute game must be the proposer EOA.
         if (tx.origin != PROPOSER) revert BadAuth();
+
+        // read sender from CWIA Calldata
+        CHALLENGER = disputeCreator();
 
         // Fallthrough initialization.
         super.initialize();
