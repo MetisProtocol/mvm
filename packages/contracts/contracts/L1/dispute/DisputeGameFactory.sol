@@ -53,7 +53,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
     mapping(bytes32 => DisputeInfo) public disputeGameCreationRequests;
 
     /// @notice Mapping of dispute UUIDs to timestamps when disputes were requested.
-    mapping(bytes32 => uint256) public disputeTimestamps;
+    mapping(bytes32 => uint256) public disputeRequestTimestamps;
 
     /// @notice Constructs a new DisputeGameFactory contract.
     /// @param _metis The Metis ERC20 token contract
@@ -132,7 +132,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         if (disputeGameCreationRequests[uuid].l1Head != bytes32(0)) revert AlreadyDisputed(uuid);
 
         disputeGameCreationRequests[uuid] = info;
-        disputeTimestamps[uuid] = block.timestamp;
+        disputeRequestTimestamps[uuid] = block.timestamp;
 
         emit DisputeGameRequested(msg.sender, _gameType, initBond, _extraData);
     }
@@ -195,6 +195,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         _disputeGames[uuid] = id;
         _disputeGameList.push(id);
         delete disputeGameCreationRequests[requestUuid];
+        delete disputeRequestTimestamps[requestUuid];
         emit DisputeGameCreated(address(proxy_), _gameType, _rootClaim);
     }
 
