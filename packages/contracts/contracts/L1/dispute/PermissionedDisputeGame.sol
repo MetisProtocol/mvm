@@ -2,10 +2,10 @@
 pragma solidity 0.8.15;
 
 import {IDelayedWMetis} from "./interfaces/IDelayedWMetis.sol";
-import { FaultDisputeGame, IFaultDisputeGame, IBigStepper, IInitializable } from "contracts/L1/dispute/FaultDisputeGame.sol";
+import { FaultDisputeGame, IFaultDisputeGame, IBigStepper, IInitializable } from "./FaultDisputeGame.sol";
 import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
-import "contracts/L1/dispute/lib/Types.sol";
-import "contracts/L1/dispute/lib/Errors.sol";
+import "./lib/Types.sol";
+import "./lib/Errors.sol";
 
 /// @title PermissionedDisputeGame
 /// @notice PermissionedDisputeGame is a contract that inherits from `FaultDisputeGame`, and contains two roles:

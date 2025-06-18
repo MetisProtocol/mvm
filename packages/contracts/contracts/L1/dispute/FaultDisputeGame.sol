@@ -2,8 +2,8 @@
 pragma solidity 0.8.15;
 
 import "./interfaces/ILockingPool.sol";
-import "contracts/L1/dispute/lib/Errors.sol";
-import "contracts/L1/dispute/lib/Types.sol";
+import "./lib/Errors.sol";
+import "./lib/Types.sol";
 import {Clone} from "solady/src/utils/Clone.sol";
 import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
 import {Hashing} from "../../libraries/Hashing.sol";
@@ -11,7 +11,7 @@ import {IBigStepper} from "./interfaces/IBigStepper.sol";
 import {IDelayedWMetis} from "./interfaces/IDelayedWMetis.sol";
 import {IDisputeGame} from "./interfaces/IDisputeGame.sol";
 import {IFaultDisputeGame} from "./interfaces/IFaultDisputeGame.sol";
-import {IInitializable} from "contracts/L1/dispute/interfaces/IInitializable.sol";
+import {IInitializable} from "./interfaces/IInitializable.sol";
 import {IMVMStateCommitmentChain} from "../rollup/IMVMStateCommitmentChain.sol";
 import {IPreimageOracle} from "../cannon/interfaces/IPreimageOracle.sol";
 import {ISemver} from "../../universal/ISemver.sol";

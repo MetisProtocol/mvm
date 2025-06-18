@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IInitializable} from "./IInitializable.sol";
 
-import "contracts/L1/dispute/lib/Types.sol";
+import "../lib/Types.sol";
 
 /// @title IDisputeGame
 /// @notice The generic interface for a DisputeGame contract.
