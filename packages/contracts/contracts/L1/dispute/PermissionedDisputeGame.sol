@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { IDelayedWMetis } from "./interfaces/IDelayedWMetis.sol";
-import {
-    FaultDisputeGame,
-    IFaultDisputeGame,
-    IBigStepper,
-    IInitializable
-} from "contracts/L1/dispute/FaultDisputeGame.sol";
+import {IDelayedWMetis} from "./interfaces/IDelayedWMetis.sol";
+import { FaultDisputeGame, IFaultDisputeGame, IBigStepper, IInitializable } from "contracts/L1/dispute/FaultDisputeGame.sol";
 import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
@@ -61,18 +56,18 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         address _proposer,
         address _challenger
     )
-        FaultDisputeGame(
-            _gameType,
-            _absolutePrestate,
-            _maxGameDepth,
-            _splitDepth,
-            _clockExtension,
-            _maxClockDuration,
-            _vm,
-            _wmetis,
-            _addressManager,
-            _l2ChainId
-        )
+    FaultDisputeGame(
+    _gameType,
+    _absolutePrestate,
+    _maxGameDepth,
+    _splitDepth,
+    _clockExtension,
+    _maxClockDuration,
+    _vm,
+    _wmetis,
+    _addressManager,
+    _l2ChainId
+    )
     {
         PROPOSER = _proposer;
     }
@@ -83,7 +78,11 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         bool _isAttack,
         bytes calldata _stateData,
         bytes calldata _proof
-    ) public override onlyAuthorized {
+    )
+    public
+    override
+    onlyAuthorized
+    {
         super.step(_claimIndex, _isAttack, _stateData, _proof);
     }
 
@@ -97,7 +96,11 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         uint256 _challengeIndex,
         Claim _claim,
         bool _isAttack
-    ) public override onlyAuthorized {
+    )
+    public
+    override
+    onlyAuthorized
+    {
         super.move(_disputed, _challengeIndex, _claim, _isAttack);
     }
 
@@ -108,6 +111,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
 
         // read sender from CWIA Calldata
         CHALLENGER = disputeCreator();
+        require(CHALLENGER != address(0), "Challenger not correctly set");
 
         // Fallthrough initialization.
         super.initialize();

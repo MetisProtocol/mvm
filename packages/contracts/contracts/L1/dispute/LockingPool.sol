@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { MetisConfig } from "../config/MetisConfig.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IDisputeGameFactory } from "../dispute/interfaces/IDisputeGameFactory.sol";
-import { IFaultDisputeGame } from "../dispute/interfaces/IFaultDisputeGame.sol";
-import { IDisputeGame } from "../dispute/interfaces/IDisputeGame.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {MetisConfig} from "../config/MetisConfig.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IDisputeGameFactory} from "../dispute/interfaces/IDisputeGameFactory.sol";
+import {IFaultDisputeGame} from "../dispute/interfaces/IFaultDisputeGame.sol";
+import {IDisputeGame} from "../dispute/interfaces/IDisputeGame.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
-import { ILockingPool } from "./interfaces/ILockingPool.sol";
-import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
+import {ILockingPool} from "./interfaces/ILockingPool.sol";
+import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
 
 /// @title LockingPool
 /// @notice A locking pool contract that allows users to lock tokens with a delayed withdrawal mechanism
@@ -28,8 +26,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     }
 
     string public constant DISPUTE_GAME_FACTORY_NAME = "DisputeGameFactory";
-
-    uint256 public constant DISPUTE_TIMEOUT_PERIOD = 1 days;
+    uint256 public constant DISPUTE_TIMEOUT_PERIOD = 2 days;
 
     /// @notice The token being locked in the pool
     IERC20 public token;
@@ -67,11 +64,11 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @notice Emitted when tokens are withdrawn
     event Withdraw(address indexed user, uint256 amount);
 
-    /// @notice Emitted when tokens are slashed
-    event Slashed(address indexed recipient, uint256 amount);
-
     /// @notice Emitted when tokens are slashed by timeout
     event TimeoutSlashed(address indexed sender, address indexed recipient, uint256 amount);
+
+    /// @notice Emitted when tokens are slashed
+    event Slashed(address indexed recipient, uint256 amount);
 
     /// @notice Emitted when slash ratio is updated
     event SlashRatioUpdated(uint256 oldRatio, uint256 newRatio);
@@ -80,14 +77,8 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     event LockPeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
 
     constructor() {
-        initialize(
-            address(0),
-            address(0),
-            0,
-            0,
-            Lib_AddressManager(address(0)),
-            MetisConfig(address(0))
-        );
+        initialize(address(0), address(0), 0,0,
+            Lib_AddressManager(address(0)), MetisConfig(address(0)));
     }
 
     /// @notice Initializes the contract
@@ -97,14 +88,12 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _slashRatio Initial slash ratio (base 10000)
     /// @param _addressManager The AddressManager contract address
     /// @param _config The MetisConfig contract address
-    function initialize(
-        address _owner,
+    function initialize(address _owner,
         address _token,
         uint256 _lockPeriod,
         uint256 _slashRatio,
         Lib_AddressManager _addressManager,
-        MetisConfig _config
-    ) public initializer {
+        MetisConfig _config) public initializer {
         __Ownable_init();
         _transferOwnership(_owner);
 
@@ -202,9 +191,10 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
             "LockingPool: dispute game factory not set"
         );
 
-        (, address sender, , , uint256 timestamp) = disputeGameFactory.disputeGameCreationRequests(
+        (, address sender, , ) = disputeGameFactory.disputeGameCreationRequests(
             _uuid
         );
+        uint256 timestamp = disputeGameFactory.disputeTimestamps(_uuid);
         require(sender == msg.sender, "LockingPool: invalid sender");
         require(
             timestamp + DISPUTE_TIMEOUT_PERIOD <= block.timestamp,
@@ -259,14 +249,9 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         (GameType gameType, Claim rootClaim, bytes memory extraData) = game.gameData();
 
         // Get the verified address of the game based on the game data
-        IDisputeGameFactory disputeGameFactory = IDisputeGameFactory(
-            addressManager.getAddress(DISPUTE_GAME_FACTORY_NAME)
-        );
-        require(
-            address(disputeGameFactory) != address(0),
-            "LockingPool: dispute game factory not set"
-        );
-        (IDisputeGame factoryRegisteredGame, ) = disputeGameFactory.games({
+        IDisputeGameFactory disputeGameFactory = IDisputeGameFactory(addressManager.getAddress(DISPUTE_GAME_FACTORY_NAME));
+        require(address(disputeGameFactory) != address(0), "LockingPool: dispute game factory not set");
+        (IDisputeGame factoryRegisteredGame,) = disputeGameFactory.games({
             _gameType: gameType,
             _rootClaim: rootClaim,
             _extraData: extraData
@@ -288,7 +273,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
         uint256 usersLength = users.length;
 
         // First pass: calculate actual slashed amount
-        for (uint256 i; i < usersLength; ) {
+        for (uint256 i; i < usersLength;) {
             address user = users[i];
             uint256 userBalance = balanceOf[user];
             if (userBalance > 0) {
@@ -301,9 +286,7 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
                 }
             }
             // Gas optimization for loops
-            unchecked {
-                ++i;
-            }
+            unchecked { ++i; }
         }
 
         // Require some tokens were actually slashed
@@ -339,9 +322,11 @@ contract LockingPool is OwnableUpgradeable, ILockingPool {
     /// @param _user User address
     /// @return amount Amount requested for withdrawal
     /// @return timestamp Timestamp of the withdrawal request
-    function getWithdrawalRequest(
-        address _user
-    ) external view returns (uint256 amount, uint256 timestamp) {
+    function getWithdrawalRequest(address _user)
+        external
+        view
+        returns (uint256 amount, uint256 timestamp)
+    {
         WithdrawalRequest memory wd = withdrawals[_user];
         return (wd.amount, wd.timestamp);
     }
