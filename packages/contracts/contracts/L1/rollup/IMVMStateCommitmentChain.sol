@@ -32,6 +32,8 @@ interface IMVMStateCommitmentChain {
 
     event StateBatchDeleted(uint256 _chainId, uint256 indexed _batchIndex, bytes32 _batchRoot);
 
+    event BatchDisputedOnTimeout(uint256 indexed _chainId, uint256 _batchIndex, bytes32 _batchRoot);
+
     /********************
      * Public Functions *
      ********************/
@@ -100,6 +102,20 @@ interface IMVMStateCommitmentChain {
         external
         view
         returns (bool _inside);
+
+    /**
+     * Saves a batch as disputed due to timeout.
+     * @param _chainId chain id for the l2 chain.
+     * @param _uuid uuid of the dispute request.
+     * @param _l2BlockNumber l2 block number of the batch.
+     * @param _batchIndex batch index of the batch.
+     */
+    function saveDisputedBatchTimeout(
+        uint256 _chainId,
+        bytes32 _uuid,
+        uint256 _l2BlockNumber,
+        uint256 _batchIndex
+    ) external;
 
     /**
      * Saves a batch as disputed.

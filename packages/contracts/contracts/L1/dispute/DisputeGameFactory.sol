@@ -11,6 +11,7 @@ import {LibClone} from "solady/src/utils/LibClone.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IMVMStateCommitmentChain } from "../rollup/IMVMStateCommitmentChain.sol";
 
 /// @title DisputeGameFactory
 /// @notice A factory contract for creating `IDisputeGame` contracts. All created dispute games are stored in both a
@@ -146,26 +147,47 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
     }
 
     /// @notice Handles the timeout of a dispute request.
-    /// @param _uuid The unique identifier of the timeout dispute request.
-    function disputeTimeout(bytes32 _uuid) external {
+    /// @param _gameType The type of game being disputed.
+    /// @param _extraData The extra data for the game.
+    /// @param _batchIndex The index of the batch to dispute. Start from 0
+    function disputeTimeout(
+        GameType _gameType,
+        bytes calldata _extraData,
+        uint256 _batchIndex
+    ) external {
+        // Compute the UUID from gameType and extraData (same as dispute() function)
+        bytes32 requestUuid = keccak256(abi.encodePacked(_gameType, _extraData));
+
         // Check if the dispute request is still valid
-        uint256 requestTimestamp = disputeRequestTimestamps[_uuid];
-        require (
-            requestTimestamp > 0
-            && block.timestamp > requestTimestamp + DISPUTE_TIMEOUT_PERIOD
-            , "Factory: dispute request not timed out"
+        uint256 requestTimestamp = disputeRequestTimestamps[requestUuid];
+        require(
+            requestTimestamp > 0 && block.timestamp > requestTimestamp + DISPUTE_TIMEOUT_PERIOD,
+            "Factory: dispute request not timed out"
         );
 
         // Check if the dispute request exists
-        DisputeInfo memory info = disputeGameCreationRequests[_uuid];
+        DisputeInfo memory info = disputeGameCreationRequests[requestUuid];
         require(info.sender == msg.sender, "Factory: invalid sender");
 
         address lockingPool = ADDRESS_MANAGER.getAddress(LOCKING_POOL_NAME);
         require(lockingPool != address(0), "Factory: invalid locking pool address");
 
+        // Call saveDisputedBatchTimeout to mark the batch as disputed
+        // We use the default chain ID since this is Metis-specific
+        uint256 chainId = 1088; // DEFAULT_CHAINID from MVM_StateCommitmentChain
+
+        // Get the State Commitment Chain
+        IMVMStateCommitmentChain scc = IMVMStateCommitmentChain(
+            ADDRESS_MANAGER.getAddress("StateCommitmentChain")
+        );
+
+        uint256 blockNumber = abi.decode(_extraData, (uint256));
+
+        // Now call saveDisputedBatchTimeout with the correct batch index
+        try scc.saveDisputedBatchTimeout(chainId, requestUuid, blockNumber, _batchIndex) {} catch {}
+
         // Attempt to slash the bond from the locking pool
-        try ILockingPool(lockingPool).timeoutSlash(msg.sender) {}
-        catch {}
+        try ILockingPool(lockingPool).timeoutSlash(msg.sender) {} catch {}
 
         // Refund the bond to the sender
         if (info.bond > 0) {
@@ -173,10 +195,10 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         }
 
         // Delete the dispute request
-        delete disputeGameCreationRequests[_uuid];
-        delete disputeRequestTimestamps[_uuid];
+        delete disputeGameCreationRequests[requestUuid];
+        delete disputeRequestTimestamps[requestUuid];
 
-        emit DisputeRequestTimeout(_uuid, info.sender, info.bond);
+        emit DisputeRequestTimeout(requestUuid, info.sender, info.bond);
     }
 
     /// @inheritdoc IDisputeGameFactory

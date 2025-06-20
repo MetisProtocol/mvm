@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 /* Library Imports */
+import "../L1/dispute/interfaces/IDisputeGameFactory.sol";
 import "../L1/dispute/interfaces/IFaultDisputeGame.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
@@ -177,6 +178,52 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
     function isDisputedBatch(bytes32 stateHeaderHash) public view returns (bool) {
         return disputedBatches[stateHeaderHash];
+    }
+
+    function saveDisputedBatchTimeout(
+        uint256 _chainId,
+        bytes32 _uuid,
+        uint256 _l2BlockNumber,
+        uint256 _batchIndex
+    ) public {
+        // Grab the game and game data.
+        IDisputeGameFactory factory = IDisputeGameFactory(resolve(DISPUTE_GAME_FACTORY_NAME));
+        require(address(factory) == msg.sender, "factory only");
+
+        // Validate that the provided batch index is correct
+        // We need to find what the earliest disputable batch would be NOW (at timeout)
+        // This simulates what the game initialization would have done
+        uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
+        (
+            uint256 earliestBatchIndex,
+            bytes32 earliestBatchHeaderHash,
+
+        ) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
+
+        require(_batchIndex >= earliestBatchIndex, "invalid batch index");
+
+        // Get the batch header hash for the provided index
+        bytes32 stateHeaderHash = batches().getByChainId(_chainId, _batchIndex);
+        require(stateHeaderHash != bytes32(0), "batch not found");
+
+        // Check if this batch is already disputed
+        if (disputedBatches[stateHeaderHash]) revert ClaimAlreadyResolved();
+
+        // Get the batch start/end L2 block number
+        bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
+        uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash];
+        uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash] - 1;
+
+        // CRITICAL: Validate that L2 block number falls within the batch range
+        require(
+            _l2BlockNumber >= batchBlockNumberStart && _l2BlockNumber <= batchBlockNumberEnd,
+            "L2 block number not in batch range"
+        );
+
+        disputedBatches[stateHeaderHash] = true;
+
+        // Emit an event for tracking
+        emit BatchDisputedOnTimeout(_chainId, _batchIndex, stateHeaderHash);
     }
 
     function saveDisputedBatch(bytes32 stateHeaderHash) public {
