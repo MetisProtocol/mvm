@@ -8,8 +8,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IDisputeGameFactory} from "../dispute/interfaces/IDisputeGameFactory.sol";
 import {IFaultDisputeGame} from "../dispute/interfaces/IFaultDisputeGame.sol";
 import {IDisputeGame} from "../dispute/interfaces/IDisputeGame.sol";
-import "contracts/L1/dispute/lib/Types.sol";
-import "contracts/L1/dispute/lib/Errors.sol";
+import "./lib/Types.sol";
+import "./lib/Errors.sol";
 import {ILockingPool} from "./interfaces/ILockingPool.sol";
 import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
 

@@ -8,8 +8,8 @@ import {IDisputeGameFactory} from "./interfaces/IDisputeGameFactory.sol";
 import {Lib_AddressManager} from "../../libraries/resolver/Lib_AddressManager.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {LibClone} from "solady/src/utils/LibClone.sol";
-import "contracts/L1/dispute/lib/Types.sol";
-import "contracts/L1/dispute/lib/Errors.sol";
+import "./lib/Types.sol";
+import "./lib/Errors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IMVMStateCommitmentChain } from "../rollup/IMVMStateCommitmentChain.sol";
 
