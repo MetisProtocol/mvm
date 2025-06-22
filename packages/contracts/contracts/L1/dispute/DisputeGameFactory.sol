@@ -180,6 +180,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         IMVMStateCommitmentChain scc = IMVMStateCommitmentChain(
             ADDRESS_MANAGER.getAddress("StateCommitmentChain")
         );
+        require(address(scc) != address(0), "Factory: invalid State Commitment Chain address");
 
         uint256 blockNumber = abi.decode(_extraData, (uint256));
 

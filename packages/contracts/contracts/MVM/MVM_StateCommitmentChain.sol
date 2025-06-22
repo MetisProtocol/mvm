@@ -211,8 +211,8 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
         // Get the batch start/end L2 block number
         bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
-        uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash];
-        uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash] - 1;
+        uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
+        uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash];
 
         // CRITICAL: Validate that L2 block number falls within the batch range
         require(
