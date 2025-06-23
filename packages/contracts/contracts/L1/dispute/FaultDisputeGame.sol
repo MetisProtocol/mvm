@@ -662,7 +662,7 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
             }
 
             // Mark batch as disputed
-            IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME)).saveDisputedBatch(claimData[0].claim.raw());
+            IMVMStateCommitmentChain(ADDRESS_MANAGER.getAddress(SCC_NAME)).saveDisputedBatch(claimData[0].claim.raw(), startingOutputRoot.l2BlockNumber + 1);
         }
     }
 

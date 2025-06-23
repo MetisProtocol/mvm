@@ -67,6 +67,12 @@ interface IMVMStateCommitmentChain {
     function getLastSequencerTimestamp() external view returns (uint256 _lastSequencerTimestamp);
 
     /**
+     * Finds the earliest disputable block number.
+     * @return _earliestDisputedBlockNumber Earliest disputable block number.
+     */
+    function earliestDisputedBlockNumber() external view returns (uint256 _earliestDisputedBlockNumber);
+
+    /**
      * Appends a batch of state roots to the chain.
      * @param _batch Batch of state roots.
      * @param _shouldStartAtElement Index of the element at which this batch should start.
@@ -121,7 +127,7 @@ interface IMVMStateCommitmentChain {
      * Saves a batch as disputed.
      * @param stateHeaderHash Hash of the disputed state header.
      */
-    function saveDisputedBatch(bytes32 stateHeaderHash) external;
+    function saveDisputedBatch(bytes32 stateHeaderHash, uint256 _blockNumber) external;
 
     /**
      * Checks if a batch is disputed.

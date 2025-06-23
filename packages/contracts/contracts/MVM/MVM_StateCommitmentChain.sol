@@ -53,6 +53,8 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     // value: whether the batch is disputed
     mapping(bytes32 => bool) public disputedBatches;
 
+    uint256 public earliestDisputedBlockNumber;
+
     /***************
      * Constructor *
      ***************/
@@ -221,12 +223,15 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         );
 
         disputedBatches[stateHeaderHash] = true;
+        if (earliestDisputedBlockNumber == 0 || _l2BlockNumber < earliestDisputedBlockNumber) {
+            earliestDisputedBlockNumber = _l2BlockNumber;
+        }
 
         // Emit an event for tracking
         emit BatchDisputedOnTimeout(_chainId, _batchIndex, stateHeaderHash);
     }
 
-    function saveDisputedBatch(bytes32 stateHeaderHash) public {
+    function saveDisputedBatch(bytes32 stateHeaderHash, uint256 _blockNumber) public {
         // Grab the game and game data.
         IFaultDisputeGame game = IFaultDisputeGame(msg.sender);
         (GameType gameType, Claim rootClaim, bytes memory extraData) = game.gameData();
@@ -244,6 +249,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // We only record the disputed batch if the challenger wins.
         if (game.status() == GameStatus.CHALLENGER_WINS) {
             disputedBatches[stateHeaderHash] = true;
+            if (earliestDisputedBlockNumber == 0 || _blockNumber < earliestDisputedBlockNumber) {
+                earliestDisputedBlockNumber = _blockNumber;
+            }
         }
     }
 
