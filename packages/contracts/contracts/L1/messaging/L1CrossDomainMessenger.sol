@@ -484,8 +484,9 @@ contract L1CrossDomainMessenger is
             resolve("StateCommitmentChain")
         );
 
-        return (_proof.stateRootBatchHeader.prevTotalElements + _proof.stateRootBatchHeader.batchSize <
-            ovmStateCommitmentChain.earliestDisputedBlockNumber() &&
+        return ((ovmStateCommitmentChain.earliestDisputedBlockNumber() == 0 ||
+            _proof.stateRootBatchHeader.prevTotalElements + _proof.stateRootBatchHeader.batchSize <
+            ovmStateCommitmentChain.earliestDisputedBlockNumber()) &&
             !ovmStateCommitmentChain.insideFraudProofWindow(_proof.stateRootBatchHeader) &&
             ovmStateCommitmentChain.verifyStateCommitmentByChainId(
                 _chainId,
