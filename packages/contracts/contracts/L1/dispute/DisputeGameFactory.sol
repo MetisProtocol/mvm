@@ -172,10 +172,6 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         address lockingPool = ADDRESS_MANAGER.getAddress(LOCKING_POOL_NAME);
         require(lockingPool != address(0), "Factory: invalid locking pool address");
 
-        // Call saveDisputedBatchTimeout to mark the batch as disputed
-        // We use the default chain ID since this is Metis-specific
-        uint256 chainId = 1088; // DEFAULT_CHAINID from MVM_StateCommitmentChain
-
         // Get the State Commitment Chain
         IMVMStateCommitmentChain scc = IMVMStateCommitmentChain(
             ADDRESS_MANAGER.getAddress("StateCommitmentChain")
@@ -184,11 +180,15 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
 
         uint256 blockNumber = abi.decode(_extraData, (uint256));
 
-        // Now call saveDisputedBatchTimeout with the correct batch index
-        try scc.saveDisputedBatchTimeout(chainId, requestUuid, blockNumber, _batchIndex) {} catch {}
+        /// Attempt to call saveDisputedBatchTimeout with the correct batch index
+        /// @notice saveDisputedBatchTimeout might revert due to various reasons, such as the batch not being found.
+        ///         In that case, we catch the error and continue with the timeout process.
+        try scc.saveDisputedBatchTimeout(scc.DEFAULT_CHAINID(), requestUuid, blockNumber, _batchIndex) {} catch {}
 
-        // Attempt to slash the bond from the locking pool
-        try ILockingPool(lockingPool).timeoutSlash(msg.sender) {} catch {}
+        // Slash the bond from the locking pool if the total locked amount is greater than zero
+        if (ILockingPool(lockingPool).totalLocked() > 0) {
+            ILockingPool(lockingPool).timeoutSlash(msg.sender);
+        }
 
         // Refund the bond to the sender
         if (info.bond > 0) {

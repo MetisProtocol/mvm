@@ -48,6 +48,8 @@ interface IMVMStateCommitmentChain {
 
     function batches() external view returns (IChainStorageContainer);
 
+    function DEFAULT_CHAINID() external view returns (uint256);
+
     /**
      * Retrieves the total number of elements submitted.
      * @return _totalElements Total submitted elements.

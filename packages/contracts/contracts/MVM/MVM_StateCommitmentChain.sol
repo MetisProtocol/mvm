@@ -189,8 +189,8 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         uint256 _batchIndex
     ) public {
         // Grab the game and game data.
-        IDisputeGameFactory factory = IDisputeGameFactory(resolve(DISPUTE_GAME_FACTORY_NAME));
-        require(address(factory) == msg.sender, "factory only");
+        address factory = resolve(DISPUTE_GAME_FACTORY_NAME);
+        require(factory == msg.sender, "factory only");
 
         // Validate that the provided batch index is correct
         // We need to find what the earliest disputable batch would be NOW (at timeout)
