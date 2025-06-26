@@ -25,6 +25,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
     string internal constant LOCKING_POOL_NAME = "FaultProofLockingPool";
     bytes32 public constant GAME_CREATOR_ROLE = keccak256("GAME_CREATOR");
     uint256 public constant DISPUTE_TIMEOUT_PERIOD = 2 days;
+    uint256 public immutable DEFAULT_CHAIN_ID;
 
     struct DisputeInfo {
         GameType gameType;
@@ -65,9 +66,10 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
 
     /// @notice Constructs a new DisputeGameFactory contract.
     /// @param _metis The Metis ERC20 token contract
-    constructor(IERC20 _metis, Lib_AddressManager _addressManager) AccessControlUpgradeable() {
+    constructor(IERC20 _metis, Lib_AddressManager _addressManager, uint256 _defaultChainId) AccessControlUpgradeable() {
         METIS = _metis;
         ADDRESS_MANAGER = _addressManager;
+        DEFAULT_CHAIN_ID = _defaultChainId;
         initialize(address(0));
     }
 
@@ -183,7 +185,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         /// Attempt to call saveDisputedBatchTimeout with the correct batch index
         /// @notice saveDisputedBatchTimeout might revert due to various reasons, such as the batch not being found.
         ///         In that case, we catch the error and continue with the timeout process.
-        try scc.saveDisputedBatchTimeout(scc.DEFAULT_CHAINID(), requestUuid, blockNumber, _batchIndex) {} catch {}
+        try scc.saveDisputedBatchTimeout(DEFAULT_CHAIN_ID, requestUuid, blockNumber, _batchIndex) {} catch {}
 
         // Slash the bond from the locking pool if the total locked amount is greater than zero
         if (ILockingPool(lockingPool).totalLocked() > 0) {
