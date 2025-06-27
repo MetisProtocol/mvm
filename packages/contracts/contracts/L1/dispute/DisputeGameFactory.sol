@@ -24,7 +24,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
 
     string internal constant LOCKING_POOL_NAME = "FaultProofLockingPool";
     bytes32 public constant GAME_CREATOR_ROLE = keccak256("GAME_CREATOR");
-    uint256 public constant DISPUTE_TIMEOUT_PERIOD = 2 days;
+    uint256 public immutable DISPUTE_TIMEOUT_PERIOD;
     uint256 public immutable DEFAULT_CHAIN_ID;
 
     struct DisputeInfo {
@@ -66,9 +66,15 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
 
     /// @notice Constructs a new DisputeGameFactory contract.
     /// @param _metis The Metis ERC20 token contract
-    constructor(IERC20 _metis, Lib_AddressManager _addressManager, uint256 _defaultChainId) AccessControlUpgradeable() {
+    constructor(
+        IERC20 _metis,
+        Lib_AddressManager _addressManager,
+        uint256 _timeoutPeriod,
+        uint256 _defaultChainId
+    ) AccessControlUpgradeable() {
         METIS = _metis;
         ADDRESS_MANAGER = _addressManager;
+        DISPUTE_TIMEOUT_PERIOD = _timeoutPeriod;
         DEFAULT_CHAIN_ID = _defaultChainId;
         initialize(address(0));
     }
