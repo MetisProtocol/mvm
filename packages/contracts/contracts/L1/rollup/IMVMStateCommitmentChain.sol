@@ -32,6 +32,8 @@ interface IMVMStateCommitmentChain {
 
     event StateBatchDeleted(uint256 _chainId, uint256 indexed _batchIndex, bytes32 _batchRoot);
 
+    event BatchDisputedOnTimeout(uint256 indexed _chainId, uint256 _batchIndex, bytes32 _batchRoot);
+
     /********************
      * Public Functions *
      ********************/
@@ -63,6 +65,12 @@ interface IMVMStateCommitmentChain {
      * @return _lastSequencerTimestamp Last sequencer batch timestamp.
      */
     function getLastSequencerTimestamp() external view returns (uint256 _lastSequencerTimestamp);
+
+    /**
+     * Finds the earliest disputable block number.
+     * @return _earliestDisputedBlockNumber Earliest disputable block number.
+     */
+    function earliestDisputedBlockNumber() external view returns (uint256 _earliestDisputedBlockNumber);
 
     /**
      * Appends a batch of state roots to the chain.
@@ -102,10 +110,24 @@ interface IMVMStateCommitmentChain {
         returns (bool _inside);
 
     /**
+     * Saves a batch as disputed due to timeout.
+     * @param _chainId chain id for the l2 chain.
+     * @param _uuid uuid of the dispute request.
+     * @param _l2BlockNumber l2 block number of the batch.
+     * @param _batchIndex batch index of the batch.
+     */
+    function saveDisputedBatchTimeout(
+        uint256 _chainId,
+        bytes32 _uuid,
+        uint256 _l2BlockNumber,
+        uint256 _batchIndex
+    ) external;
+
+    /**
      * Saves a batch as disputed.
      * @param stateHeaderHash Hash of the disputed state header.
      */
-    function saveDisputedBatch(bytes32 stateHeaderHash) external;
+    function saveDisputedBatch(bytes32 stateHeaderHash, uint256 _blockNumber) external;
 
     /**
      * Checks if a batch is disputed.

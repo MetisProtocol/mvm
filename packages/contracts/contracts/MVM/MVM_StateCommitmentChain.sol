@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 /* Library Imports */
+import "../L1/dispute/interfaces/IDisputeGameFactory.sol";
 import "../L1/dispute/interfaces/IFaultDisputeGame.sol";
 import "contracts/L1/dispute/lib/Types.sol";
 import "contracts/L1/dispute/lib/Errors.sol";
@@ -51,6 +52,8 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     // key: state batch hash
     // value: whether the batch is disputed
     mapping(bytes32 => bool) public disputedBatches;
+
+    uint256 public earliestDisputedBlockNumber;
 
     /***************
      * Constructor *
@@ -179,7 +182,56 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         return disputedBatches[stateHeaderHash];
     }
 
-    function saveDisputedBatch(bytes32 stateHeaderHash) public {
+    function saveDisputedBatchTimeout(
+        uint256 _chainId,
+        bytes32 _uuid,
+        uint256 _l2BlockNumber,
+        uint256 _batchIndex
+    ) public {
+        // Grab the game and game data.
+        address factory = resolve(DISPUTE_GAME_FACTORY_NAME);
+        require(factory == msg.sender, "factory only");
+
+        // Validate that the provided batch index is correct
+        // We need to find what the earliest disputable batch would be NOW (at timeout)
+        // This simulates what the game initialization would have done
+        uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
+        (
+            uint256 earliestBatchIndex,
+            bytes32 earliestBatchHeaderHash,
+
+        ) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
+
+        require(_batchIndex >= earliestBatchIndex, "invalid batch index");
+
+        // Get the batch header hash for the provided index
+        bytes32 stateHeaderHash = batches().getByChainId(_chainId, _batchIndex);
+        require(stateHeaderHash != bytes32(0), "batch not found");
+
+        // Check if this batch is already disputed
+        if (disputedBatches[stateHeaderHash]) revert ClaimAlreadyResolved();
+
+        // Get the batch start/end L2 block number
+        bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
+        uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
+        uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash];
+
+        // CRITICAL: Validate that L2 block number falls within the batch range
+        require(
+            _l2BlockNumber >= batchBlockNumberStart && _l2BlockNumber <= batchBlockNumberEnd,
+            "L2 block number not in batch range"
+        );
+
+        disputedBatches[stateHeaderHash] = true;
+        if (earliestDisputedBlockNumber == 0 || _l2BlockNumber < earliestDisputedBlockNumber) {
+            earliestDisputedBlockNumber = _l2BlockNumber;
+        }
+
+        // Emit an event for tracking
+        emit BatchDisputedOnTimeout(_chainId, _batchIndex, stateHeaderHash);
+    }
+
+    function saveDisputedBatch(bytes32 stateHeaderHash, uint256 _blockNumber) public {
         // Grab the game and game data.
         IFaultDisputeGame game = IFaultDisputeGame(msg.sender);
         (GameType gameType, Claim rootClaim, bytes memory extraData) = game.gameData();
@@ -197,6 +249,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // We only record the disputed batch if the challenger wins.
         if (game.status() == GameStatus.CHALLENGER_WINS) {
             disputedBatches[stateHeaderHash] = true;
+            if (earliestDisputedBlockNumber == 0 || _blockNumber < earliestDisputedBlockNumber) {
+                earliestDisputedBlockNumber = _blockNumber;
+            }
         }
     }
 

@@ -14,7 +14,7 @@ import { Lib_CrossDomainUtils } from "../../libraries/bridge/Lib_CrossDomainUtil
 /* Interface Imports */
 import { IL1CrossDomainMessenger } from "./IL1CrossDomainMessenger.sol";
 import { ICanonicalTransactionChain } from "../rollup/ICanonicalTransactionChain.sol";
-import { IStateCommitmentChain } from "../rollup/IStateCommitmentChain.sol";
+import { IMVMStateCommitmentChain } from "../rollup/IMVMStateCommitmentChain.sol";
 import { iMVM_DiscountOracle } from "../../MVM/iMVM_DiscountOracle.sol";
 
 /* External Imports */
@@ -379,7 +379,7 @@ contract L1CrossDomainMessenger is
         view
         returns (bool)
     {
-        IStateCommitmentChain ovmStateCommitmentChain = IStateCommitmentChain(
+        IMVMStateCommitmentChain ovmStateCommitmentChain = IMVMStateCommitmentChain(
             resolve("StateCommitmentChain")
         );
 
@@ -480,11 +480,14 @@ contract L1CrossDomainMessenger is
         view
         returns (bool)
     {
-        IStateCommitmentChain ovmStateCommitmentChain = IStateCommitmentChain(
+        IMVMStateCommitmentChain ovmStateCommitmentChain = IMVMStateCommitmentChain(
             resolve("StateCommitmentChain")
         );
 
-        return (!ovmStateCommitmentChain.insideFraudProofWindow(_proof.stateRootBatchHeader) &&
+        return ((ovmStateCommitmentChain.earliestDisputedBlockNumber() == 0 ||
+            _proof.stateRootBatchHeader.prevTotalElements + _proof.stateRootBatchHeader.batchSize <
+            ovmStateCommitmentChain.earliestDisputedBlockNumber()) &&
+            !ovmStateCommitmentChain.insideFraudProofWindow(_proof.stateRootBatchHeader) &&
             ovmStateCommitmentChain.verifyStateCommitmentByChainId(
                 _chainId,
                 _proof.stateRoot,
