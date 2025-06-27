@@ -19,6 +19,8 @@ const deployFn: DeployFunction = async (hre) => {
         // metis token address
         (hre as any).deployConfig.mvmMetisAddress,
         addressManager,
+        (hre as any).deployConfig.faultDisputeTimeout,
+        (hre as any).deployConfig.l2chainid, // L2 chain ID
       ],
       unsafeAllow: ['constructor', 'state-variable-immutable'],
     },
