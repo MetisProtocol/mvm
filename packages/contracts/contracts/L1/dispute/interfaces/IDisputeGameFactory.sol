@@ -100,7 +100,8 @@ interface IDisputeGameFactory {
     /// @dev Emits a `DisputeGameRequested` event.
     /// @param _gameType The type of the dispute game.
     /// @param _extraData Any extra data that should be provided to the created dispute game.
-    function dispute(GameType _gameType, bytes calldata _extraData) external;
+    /// @param _batchId The batch ID of the dispute game.
+    function dispute(GameType _gameType, bytes calldata _extraData, uint256 _batchId) external;
 
     /// @notice Creates a new DisputeGame proxy contract.
     /// @param _gameType The type of the DisputeGame - used to decide the proxy implementation.

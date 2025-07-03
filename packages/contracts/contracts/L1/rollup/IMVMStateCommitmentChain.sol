@@ -39,6 +39,20 @@ interface IMVMStateCommitmentChain {
      ********************/
 
     /**
+     * Get the fraud proof window duration.
+     * @return the fraud proof window duration in seconds.
+     */
+    function FRAUD_PROOF_WINDOW() external view returns (uint256);
+
+    /**
+     * Get the batch time for a given batch id.
+     * @param _chainId chain id for the l2 chain.
+     * @param _index the index of the batch.
+     * @return the bytes16 timestamp of the batch.
+     */
+    function batchTimes(uint256 _chainId, uint256 _index) external view returns (bytes16);
+
+    /**
      * Get the earliest disputable state root.
      * @param _chainId chain id for the l2 chain.
      * @return _lastFinalized last finalized batch info.

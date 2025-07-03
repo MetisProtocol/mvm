@@ -118,7 +118,19 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
     }
 
     /// @inheritdoc IDisputeGameFactory
-    function dispute(GameType _gameType, bytes calldata _extraData) external {
+    function dispute(GameType _gameType, bytes calldata _extraData, uint256 _batchIndex) external {
+        // Get the State Commitment Chain
+        IMVMStateCommitmentChain scc = IMVMStateCommitmentChain(
+            ADDRESS_MANAGER.getAddress("StateCommitmentChain")
+        );
+        require(address(scc) != address(0), "Factory: invalid State Commitment Chain address");
+
+        uint256 batchTime = uint256(uint128(scc.batchTimes(DEFAULT_CHAIN_ID, _batchIndex)) >> 64);
+        require(
+            batchTime > block.timestamp - scc.FRAUD_PROOF_WINDOW() + DISPUTE_TIMEOUT_PERIOD,
+            "Factory: block number is not disputable"
+        );
+
         // Grab the implementation contract for the given `GameType`.
         IDisputeGame impl = gameImpls[_gameType];
 
@@ -145,7 +157,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
             l1Head: parentHash
         });
 
-        bytes32 uuid = keccak256(abi.encodePacked(_gameType, _extraData));
+        bytes32 uuid = keccak256(abi.encodePacked(_gameType, _extraData, _batchIndex));
         if (disputeGameCreationRequests[uuid].l1Head != bytes32(0)) revert AlreadyDisputed(uuid);
 
         disputeGameCreationRequests[uuid] = info;
@@ -164,7 +176,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         uint256 _batchIndex
     ) external {
         // Compute the UUID from gameType and extraData (same as dispute() function)
-        bytes32 requestUuid = keccak256(abi.encodePacked(_gameType, _extraData));
+        bytes32 requestUuid = keccak256(abi.encodePacked(_gameType, _extraData, _batchIndex));
 
         // Check if the dispute request is still valid
         uint256 requestTimestamp = disputeRequestTimestamps[requestUuid];
