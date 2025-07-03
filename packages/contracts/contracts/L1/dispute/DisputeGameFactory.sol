@@ -12,6 +12,7 @@ import "./lib/Types.sol";
 import "./lib/Errors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IMVMStateCommitmentChain } from "../rollup/IMVMStateCommitmentChain.sol";
+import { IMVMStateCommitmentChain } from "../rollup/IMVMStateCommitmentChain.sol";
 
 /// @title DisputeGameFactory
 /// @notice A factory contract for creating `IDisputeGame` contracts. All created dispute games are stored in both a
@@ -24,6 +25,8 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
 
     string internal constant LOCKING_POOL_NAME = "FaultProofLockingPool";
     bytes32 public constant GAME_CREATOR_ROLE = keccak256("GAME_CREATOR");
+    uint256 public immutable DISPUTE_TIMEOUT_PERIOD;
+    uint256 public immutable DEFAULT_CHAIN_ID;
     uint256 public immutable DISPUTE_TIMEOUT_PERIOD;
     uint256 public immutable DEFAULT_CHAIN_ID;
 
@@ -72,8 +75,16 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         uint256 _timeoutPeriod,
         uint256 _defaultChainId
     ) AccessControlUpgradeable() {
+    constructor(
+        IERC20 _metis,
+        Lib_AddressManager _addressManager,
+        uint256 _timeoutPeriod,
+        uint256 _defaultChainId
+    ) AccessControlUpgradeable() {
         METIS = _metis;
         ADDRESS_MANAGER = _addressManager;
+        DISPUTE_TIMEOUT_PERIOD = _timeoutPeriod;
+        DEFAULT_CHAIN_ID = _defaultChainId;
         DISPUTE_TIMEOUT_PERIOD = _timeoutPeriod;
         DEFAULT_CHAIN_ID = _defaultChainId;
         initialize(address(0));

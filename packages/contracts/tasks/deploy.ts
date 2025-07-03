@@ -134,6 +134,12 @@ task('deploy')
     undefined,
     types.string
   )
+  .addOptionalParam(
+    'faultDisputeTimeout',
+    'the timeout for fault proof dispute game',
+    undefined,
+    types.int
+  )
   .setAction(async (args, hre: any, runSuper) => {
     // Necessary because hardhat doesn't let us attach non-optional parameters to existing tasks.
     const validateAddressArg = (argName: string) => {
