@@ -193,6 +193,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // Get the batch start/end L2 block number
         bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
         uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
+        require(batchBlockNumberStart > 1, "Batch start block number must be greater than 1");
         uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash];
         require(_l2BlockNumber >= batchBlockNumberStart && _l2BlockNumber <= batchBlockNumberEnd, "L2 block number not in batch range");
 
@@ -234,6 +235,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // Get the batch start/end L2 block number
         bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
         uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
+        require(batchBlockNumberStart > 1, "Batch start block number must be greater than 1");
         uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash];
 
         // CRITICAL: Validate that L2 block number falls within the batch range
