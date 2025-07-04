@@ -119,6 +119,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
 
     /// @inheritdoc IDisputeGameFactory
     function dispute(GameType _gameType, bytes calldata _extraData, uint256 _batchIndex) external {
+        require(_batchIndex > 0, "Factory: batch index must be greater than 0");
         // Get the State Commitment Chain
         IMVMStateCommitmentChain scc = IMVMStateCommitmentChain(
             ADDRESS_MANAGER.getAddress("StateCommitmentChain")

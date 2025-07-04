@@ -191,6 +191,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         require(stateHeaderHash != bytes32(0), "batch not found");
 
         // Get the batch start/end L2 block number
+        // @notice _batchIndex must be greater than 0, otherwise we cannot find the previous batch header hash
         bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
         uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
         require(batchBlockNumberStart > 1, "Batch start block number must be greater than 1");
