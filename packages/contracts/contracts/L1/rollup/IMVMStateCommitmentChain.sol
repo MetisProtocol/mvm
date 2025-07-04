@@ -135,13 +135,11 @@ interface IMVMStateCommitmentChain {
     /**
      * Saves a batch as disputed due to timeout.
      * @param _chainId chain id for the l2 chain.
-     * @param _uuid uuid of the dispute request.
      * @param _l2BlockNumber l2 block number of the batch.
      * @param _batchIndex batch index of the batch.
      */
     function saveDisputedBatchTimeout(
         uint256 _chainId,
-        bytes32 _uuid,
         uint256 _l2BlockNumber,
         uint256 _batchIndex
     ) external;

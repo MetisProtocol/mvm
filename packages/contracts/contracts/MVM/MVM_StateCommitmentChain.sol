@@ -206,7 +206,6 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
      */
     function saveDisputedBatchTimeout(
         uint256 _chainId,
-        bytes32 _uuid,
         uint256 _l2BlockNumber,
         uint256 _batchIndex
     ) public {
@@ -218,11 +217,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // We need to find what the earliest disputable batch would be NOW (at timeout)
         // This simulates what the game initialization would have done
         uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
-        (
-            uint256 earliestBatchIndex,
-            bytes32 earliestBatchHeaderHash,
-
-        ) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
+        (uint256 earliestBatchIndex, , ) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
 
         require(_batchIndex >= earliestBatchIndex, "invalid batch index");
 

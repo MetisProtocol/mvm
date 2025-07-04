@@ -161,7 +161,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
             l1Head: parentHash
         });
 
-        bytes32 uuid = keccak256(abi.encodePacked(_gameType, _extraData, _batchIndex));
+        bytes32 uuid = keccak256(abi.encodePacked(_gameType, _extraData));
         if (disputeGameCreationRequests[uuid].l1Head != bytes32(0)) revert AlreadyDisputed(uuid);
 
         disputeGameCreationRequests[uuid] = info;
@@ -180,7 +180,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         uint256 _batchIndex
     ) external {
         // Compute the UUID from gameType and extraData (same as dispute() function)
-        bytes32 requestUuid = keccak256(abi.encodePacked(_gameType, _extraData, _batchIndex));
+        bytes32 requestUuid = keccak256(abi.encodePacked(_gameType, _extraData));
 
         // Check if the dispute request is still valid
         uint256 requestTimestamp = disputeRequestTimestamps[requestUuid];
@@ -207,7 +207,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         /// Attempt to call saveDisputedBatchTimeout with the correct batch index
         /// @notice saveDisputedBatchTimeout might revert due to various reasons, such as the batch not being found.
         ///         In that case, we catch the error and continue with the timeout process.
-        try scc.saveDisputedBatchTimeout(DEFAULT_CHAIN_ID, requestUuid, blockNumber, _batchIndex) {} catch {}
+        try scc.saveDisputedBatchTimeout(DEFAULT_CHAIN_ID, blockNumber, _batchIndex) {} catch {}
 
         // Slash the bond from the locking pool if the total locked amount is greater than zero
         if (ILockingPool(lockingPool).totalLocked() > 0) {
