@@ -53,6 +53,15 @@ interface IMVMStateCommitmentChain {
     function batchTimes(uint256 _chainId, uint256 _index) external view returns (bytes16);
 
     /**
+     * Get the batch block hash for a given batch id.
+     * @param _chainId chain id for the l2 chain.
+     * @param _batchIndex the index of the batch.
+     * @param _l2BlockNumber the l2 block number of the batch.
+     * @return the bytes32 block hash of the batch.
+     */
+    function checkBatchBlock(uint256 _chainId, uint256 _batchIndex, uint256 _l2BlockNumber) external view returns (bytes32);
+
+    /**
      * Get the earliest disputable state root.
      * @param _chainId chain id for the l2 chain.
      * @return _lastFinalized last finalized batch info.
@@ -140,6 +149,7 @@ interface IMVMStateCommitmentChain {
     /**
      * Saves a batch as disputed.
      * @param stateHeaderHash Hash of the disputed state header.
+     * @param _blockNumber Block number of the disputed batch.
      */
     function saveDisputedBatch(bytes32 stateHeaderHash, uint256 _blockNumber) external;
 

@@ -125,6 +125,9 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         );
         require(address(scc) != address(0), "Factory: invalid State Commitment Chain address");
 
+        // checks if the batch contains the block number
+        scc.checkBatchBlock(DEFAULT_CHAIN_ID, _batchIndex, abi.decode(_extraData, (uint256)));
+
         uint256 batchTime = uint256(uint128(scc.batchTimes(DEFAULT_CHAIN_ID, _batchIndex)) >> 64);
         require(
             batchTime > block.timestamp - scc.FRAUD_PROOF_WINDOW() + DISPUTE_TIMEOUT_PERIOD,

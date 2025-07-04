@@ -182,6 +182,26 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         return disputedBatches[stateHeaderHash];
     }
 
+    /**
+     * @inheritdoc IMVMStateCommitmentChain
+     */
+    function checkBatchBlock(uint256 _chainId, uint256 _batchIndex, uint256 _l2BlockNumber) public view returns (bytes32) {
+        // Get the batch header hash for the provided index
+        bytes32 stateHeaderHash = batches().getByChainId(_chainId, _batchIndex);
+        require(stateHeaderHash != bytes32(0), "batch not found");
+
+        // Get the batch start/end L2 block number
+        bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
+        uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
+        uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash];
+        require(_l2BlockNumber >= batchBlockNumberStart && _l2BlockNumber <= batchBlockNumberEnd, "L2 block number not in batch range");
+
+        return stateHeaderHash;
+    }
+
+    /**
+     * @inheritdoc IMVMStateCommitmentChain
+     */
     function saveDisputedBatchTimeout(
         uint256 _chainId,
         bytes32 _uuid,
@@ -231,6 +251,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         emit BatchDisputedOnTimeout(_chainId, _batchIndex, stateHeaderHash);
     }
 
+    /**
+     * @inheritdoc IMVMStateCommitmentChain
+     */
     function saveDisputedBatch(bytes32 stateHeaderHash, uint256 _blockNumber) public {
         // Grab the game and game data.
         IFaultDisputeGame game = IFaultDisputeGame(msg.sender);
