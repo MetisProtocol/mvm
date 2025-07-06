@@ -31,7 +31,7 @@ func (t *TokenApprover) ApproveToken(ctx context.Context, spender common.Address
 
 	rct, err := t.txMgr.Send(ctx, txCandidate)
 	if err != nil {
-		fmt.Errorf("failed to send tx: %w", err)
+		return fmt.Errorf("failed to send tx: %w", err)
 	}
 	if rct.Status != types.ReceiptStatusSuccessful {
 		return fmt.Errorf("approve token transaction (%v) reverted", rct.TxHash.Hex())
