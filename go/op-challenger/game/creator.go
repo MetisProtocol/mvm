@@ -403,16 +403,23 @@ func (m *gameCreator) processDisputeGameRequest(block *EventBlocks) error {
 	}
 
 	for _, receipt := range block.Receipts {
-		event := m.decodeStateDisputedEvent(receipt)
-		if event == nil {
-			continue
-		}
+		for _, log := range receipt.Logs {
+			sender, gameType, bond, extraData, err := m.factoryContract.DecodeDisputeGameRequestedLog2(log)
+			if err != nil {
+				continue
+			}
+			event := &DisputeGameRequest{
+				Requestor: sender,
+				GameType:  gameType,
+				Bond:      bond,
+				ExtraData: extraData,
+			}
+			m.logger.Info("dispute game request found", "event", event.Requestor, "gameType", event.GameType,
+				"bond", event.Bond.Uint64(), "extraData", hexutil.Encode(event.ExtraData))
 
-		m.logger.Info("dispute game request found", "event", event.Requestor, "gameType", event.GameType,
-			"bond", event.Bond.Uint64(), "extraData", hexutil.Encode(event.ExtraData))
-
-		if err := m.handleDisputeGameRequest(event, block.Header.Time); err != nil {
-			return err
+			if err := m.handleDisputeGameRequest(event, block.Header.Time); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -637,20 +644,6 @@ func (m *gameCreator) getNumber(key string) (uint64, error) {
 	}
 
 	return new(big.Int).SetBytes(raw).Uint64(), nil
-}
-
-func (m *gameCreator) decodeStateDisputedEvent(receipt *ethtypes.Receipt) *DisputeGameRequest {
-	sender, gameType, bond, extraData, err := m.factoryContract.DecodeDisputeGameRequestedLog(receipt)
-	if err != nil {
-		return nil
-	}
-
-	return &DisputeGameRequest{
-		Requestor: sender,
-		GameType:  gameType,
-		Bond:      bond,
-		ExtraData: extraData,
-	}
 }
 
 func (m *gameCreator) Mode() string {

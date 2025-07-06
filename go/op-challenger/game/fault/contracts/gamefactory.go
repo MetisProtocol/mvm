@@ -280,6 +280,20 @@ func (f *DisputeGameFactoryContract) DecodeDisputeGameRequestedLog(rcpt *ethType
 	return common.Address{}, 0, nil, nil, fmt.Errorf("%w: %v", ErrEventNotFound, eventDisputeGameRequested)
 }
 
+func (f *DisputeGameFactoryContract) DecodeDisputeGameRequestedLog2(log *ethTypes.Log) (common.Address, uint32, *big.Int, []byte, error) {
+	if log.Address != f.contract.Addr() {
+		return common.Address{}, 0, nil, nil, fmt.Errorf("log not from contract %s", f.contract.Addr().Hex())
+	}
+	name, result, err := f.contract.DecodeEvent(log)
+	if err != nil {
+		return common.Address{}, 0, nil, nil, fmt.Errorf("failed to decode event: %w", err)
+	}
+	if name != eventDisputeGameRequested {
+		return common.Address{}, 0, nil, nil, fmt.Errorf("event %s not found in log", eventDisputeGameRequested)
+	}
+	return result.GetAddress(0), result.GetUint32(1), result.GetBigInt(2), result.GetBytes(3), nil
+}
+
 func (f *DisputeGameFactoryContract) DecodeDisputeGameCreatedLog(rcpt *ethTypes.Receipt) (common.Address, uint32, common.Hash, error) {
 	for _, log := range rcpt.Logs {
 		if log.Address != f.contract.Addr() {
