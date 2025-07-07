@@ -223,7 +223,7 @@ func (f *DisputeGameFactoryContract) CreateTx(ctx context.Context, traceType uin
 	return candidate, err
 }
 
-func (f *DisputeGameFactoryContract) CreateDisputeTx(ctx context.Context, traceType uint32, l2BlockNum uint64) (txmgr.TxCandidate, error) {
+func (f *DisputeGameFactoryContract) CreateDisputeTx(ctx context.Context, traceType uint32, l2BlockNum uint64, batchIndex *big.Int) (txmgr.TxCandidate, error) {
 	result, err := f.multiCaller.SingleCall(ctx, rpcblock.Latest, f.contract.Call(methodInitBonds, traceType))
 	if err != nil {
 		return txmgr.TxCandidate{}, fmt.Errorf("failed to fetch init bond: %w", err)
@@ -243,7 +243,7 @@ func (f *DisputeGameFactoryContract) CreateDisputeTx(ctx context.Context, traceT
 		return txmgr.TxCandidate{}, InsufficientBalance
 	}
 
-	call := f.contract.Call(methodCreateDispute, traceType, common.BigToHash(big.NewInt(int64(l2BlockNum))).Bytes())
+	call := f.contract.Call(methodCreateDispute, traceType, common.BigToHash(big.NewInt(int64(l2BlockNum))).Bytes(), new(big.Int).Set(batchIndex))
 	candidate, err := call.ToTxCandidate()
 	if err != nil {
 		return txmgr.TxCandidate{}, err

@@ -551,6 +551,9 @@ func (f *FaultDisputeGameContractLatest) txWithBond(ctx context.Context, positio
 	}
 
 	metis, err := delayedMetis.GetMetis(ctx)
+	if err != nil {
+		return txmgr.TxCandidate{}, fmt.Errorf("failed to get Metis contract: %w", err)
+	}
 
 	// Check allowance
 	allowance, balance, err := metis.GetAllowanceAndBalance(ctx, rpcblock.Latest, f.from, f.contract.Addr())

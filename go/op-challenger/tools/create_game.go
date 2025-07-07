@@ -45,8 +45,8 @@ func (g *GameCreator) CreateGame(ctx context.Context, outputRoot common.Hash, tr
 	return gameAddr, nil
 }
 
-func (g *GameCreator) CreateDispute(ctx context.Context, traceType uint64, l2BlockNum uint64) (uint32, *big.Int, *big.Int, error) {
-	txCandidate, err := g.contract.CreateDisputeTx(ctx, uint32(traceType), l2BlockNum)
+func (g *GameCreator) CreateDispute(ctx context.Context, traceType, l2BlockNum, batchIndex uint64) (uint32, *big.Int, *big.Int, error) {
+	txCandidate, err := g.contract.CreateDisputeTx(ctx, uint32(traceType), l2BlockNum, new(big.Int).SetUint64(batchIndex))
 	if err != nil {
 		return 0, nil, nil, err
 	}

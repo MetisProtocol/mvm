@@ -21,6 +21,7 @@ import (
 func CreateDispute(ctx *cli.Context) error {
 	traceType := ctx.String(TraceTypeFlag.Name)
 	l2BlockNum := ctx.Uint64(L2BlockNumFlag.Name)
+	batchIndex := ctx.Uint64(BatchIndexNumFlag.Name)
 
 	contract, txMgr, err := NewContractWithTxMgr[*contracts.DisputeGameFactoryContract](ctx, flags.FactoryAddress,
 		func(ctx context.Context, metricer contractMetrics.ContractMetricer, address common.Address, caller *batching.MultiCaller, from common.Address) (*contracts.DisputeGameFactoryContract, error) {
@@ -32,7 +33,7 @@ func CreateDispute(ctx *cli.Context) error {
 
 	creator := tools.NewGameCreator(contract, txMgr)
 
-	gameType, bond, l2Block, err := creator.CreateDispute(ctx.Context, uint64(types.TraceType(traceType).GameType()), l2BlockNum)
+	gameType, bond, l2Block, err := creator.CreateDispute(ctx.Context, uint64(types.TraceType(traceType).GameType()), l2BlockNum, batchIndex)
 	if err != nil {
 		if errors.Is(err, contracts.InsufficientAllowance) {
 			token, txMgr, err := NewContractWithTxMgr[*contracts.MetisTokenContract](ctx, func(ctx *cli.Context) (common.Address, error) {

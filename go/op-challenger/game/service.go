@@ -229,9 +229,6 @@ func (s *Service) initRollupClient(ctx context.Context, cfg *config.Config) erro
 	}
 
 	rollupClient := rollup.NewClient(cfg.RollupRpc, l2ChainId)
-	if err != nil {
-		return err
-	}
 	s.rollupClient = rollupClient
 	return nil
 }

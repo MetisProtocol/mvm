@@ -35,6 +35,11 @@ var (
 		Usage:   "The l2 block number for the game.",
 		EnvVars: opservice.PrefixEnvVar(flags.EnvVarPrefix, "L2_BLOCK_NUM"),
 	}
+	BatchIndexNumFlag = &cli.StringFlag{
+		Name:    "batch-index",
+		Usage:   "The batch index number for the game.",
+		EnvVars: opservice.PrefixEnvVar(flags.EnvVarPrefix, "BATCH_INDEX"),
+	}
 )
 
 func CreateGame(ctx *cli.Context) error {

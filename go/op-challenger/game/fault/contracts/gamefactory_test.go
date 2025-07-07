@@ -290,15 +290,16 @@ func TestCreateDisputeTx(t *testing.T) {
 	stubRpc, factory := setupDisputeGameFactoryTest(t)
 	traceType := uint32(123)
 	l2BlockNum := common.BigToHash(big.NewInt(456)).Bytes()
+	batchIndex := big.NewInt(789)
 	bond := big.NewInt(49284294829)
 	balance := big.NewInt(49284294829)
 	metisAddr := common.Address{0x01, 0x02, 0x03}
 	stubRpc.SetResponse(factoryAddr, methodInitBonds, rpcblock.Latest, []interface{}{traceType}, []interface{}{bond})
-	stubRpc.SetResponse(factoryAddr, methodCreateDispute, rpcblock.Latest, []interface{}{traceType, l2BlockNum}, nil)
+	stubRpc.SetResponse(factoryAddr, methodCreateDispute, rpcblock.Latest, []interface{}{traceType, l2BlockNum, batchIndex}, nil)
 	stubRpc.AddContract(metisAddr, override.LoadMetisTokenABI())
 	stubRpc.SetResponse(metisAddr, methodMetisBalanceOf, rpcblock.Latest, []interface{}{common.Address{}}, []interface{}{balance})
 	stubRpc.SetResponse(metisAddr, methodMetisAllowance, rpcblock.Latest, []interface{}{common.Address{}, factoryAddr}, []interface{}{balance})
-	tx, err := factory.CreateDisputeTx(context.Background(), traceType, uint64(456))
+	tx, err := factory.CreateDisputeTx(context.Background(), traceType, uint64(456), batchIndex)
 	require.NoError(t, err)
 	stubRpc.VerifyTxCandidate(tx)
 }

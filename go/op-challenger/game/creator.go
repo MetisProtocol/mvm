@@ -107,6 +107,7 @@ func newCreator(logger log.Logger,
 		// only disputer needs l2 client
 		if l2Source, err = l2client.DialContext(ctx, cfg.L2Rpc); err != nil {
 			logger.Crit("failed to dial L2 client", "err", err)
+			cancel()
 			return nil
 		}
 	}
@@ -116,6 +117,7 @@ func newCreator(logger log.Logger,
 	if _, err := os.Stat(datadir); os.IsNotExist(err) {
 		if err := os.MkdirAll(datadir, os.ModePerm); err != nil {
 			logger.Crit("failed to create game creator data dir", "err", err)
+			cancel()
 			return nil
 		}
 	}
@@ -123,6 +125,7 @@ func newCreator(logger log.Logger,
 	db, err := leveldb.OpenFile(datadir, nil)
 	if err != nil {
 		logger.Crit("failed to open db", "err", err)
+		cancel()
 		return nil
 	}
 
@@ -131,6 +134,7 @@ func newCreator(logger log.Logger,
 	metisToken, err := factoryContract.GetMetisTokenContractAddress(context.TODO())
 	if err != nil {
 		logger.Crit("failed to get metis token contract address", "err", err)
+		cancel()
 		return nil
 	}
 
@@ -560,7 +564,7 @@ func (m *gameCreator) createDisputeGameRequest(event *StateBatchAppended) error 
 	l2Block := rollup.ExtraData(event.ExtraData).L2BlockNumber()
 	gameType := uint32(m.cfg.GameCreationTraceType.GameType())
 
-	txCandidate, err := m.factoryContract.CreateDisputeTx(m.ctx, gameType, l2Block.Uint64())
+	txCandidate, err := m.factoryContract.CreateDisputeTx(m.ctx, gameType, l2Block.Uint64(), event.BatchIndex)
 	if err != nil {
 		if errors.Is(err, contracts.InsufficientAllowance) {
 			m.logger.Warn("Insufficient allowance, approving token")
@@ -579,7 +583,7 @@ func (m *gameCreator) createDisputeGameRequest(event *StateBatchAppended) error 
 				return errors.New("approve token transaction reverted")
 			}
 
-			txCandidate, err = m.factoryContract.CreateDisputeTx(m.ctx, gameType, l2Block.Uint64())
+			txCandidate, err = m.factoryContract.CreateDisputeTx(m.ctx, gameType, l2Block.Uint64(), event.BatchIndex)
 			if err != nil {
 				return fmt.Errorf("failed to create dispute transaction: %w", err)
 			}
