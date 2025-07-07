@@ -182,9 +182,30 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         return disputedBatches[stateHeaderHash];
     }
 
+    /**
+     * @inheritdoc IMVMStateCommitmentChain
+     */
+    function checkBatchBlock(uint256 _chainId, uint256 _batchIndex, uint256 _l2BlockNumber) public view returns (bytes32) {
+        // Get the batch header hash for the provided index
+        bytes32 stateHeaderHash = batches().getByChainId(_chainId, _batchIndex);
+        require(stateHeaderHash != bytes32(0), "batch not found");
+
+        // Get the batch start/end L2 block number
+        // @notice _batchIndex must be greater than 0, otherwise we cannot find the previous batch header hash
+        bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
+        uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
+        require(batchBlockNumberStart > 1, "Batch start block number must be greater than 1");
+        uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash];
+        require(_l2BlockNumber >= batchBlockNumberStart && _l2BlockNumber <= batchBlockNumberEnd, "L2 block number not in batch range");
+
+        return stateHeaderHash;
+    }
+
+    /**
+     * @inheritdoc IMVMStateCommitmentChain
+     */
     function saveDisputedBatchTimeout(
         uint256 _chainId,
-        bytes32 _uuid,
         uint256 _l2BlockNumber,
         uint256 _batchIndex
     ) public {
@@ -196,11 +217,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // We need to find what the earliest disputable batch would be NOW (at timeout)
         // This simulates what the game initialization would have done
         uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
-        (
-            uint256 earliestBatchIndex,
-            bytes32 earliestBatchHeaderHash,
-
-        ) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
+        (uint256 earliestBatchIndex, , ) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
 
         require(_batchIndex >= earliestBatchIndex, "invalid batch index");
 
@@ -214,6 +231,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // Get the batch start/end L2 block number
         bytes32 prevBatchHeaderHash = batches().getByChainId(_chainId, _batchIndex - 1);
         uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
+        require(batchBlockNumberStart > 1, "Batch start block number must be greater than 1");
         uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash];
 
         // CRITICAL: Validate that L2 block number falls within the batch range
@@ -231,6 +249,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         emit BatchDisputedOnTimeout(_chainId, _batchIndex, stateHeaderHash);
     }
 
+    /**
+     * @inheritdoc IMVMStateCommitmentChain
+     */
     function saveDisputedBatch(bytes32 stateHeaderHash, uint256 _blockNumber) public {
         // Grab the game and game data.
         IFaultDisputeGame game = IFaultDisputeGame(msg.sender);

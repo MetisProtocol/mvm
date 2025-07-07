@@ -118,7 +118,23 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
     }
 
     /// @inheritdoc IDisputeGameFactory
-    function dispute(GameType _gameType, bytes calldata _extraData) external {
+    function dispute(GameType _gameType, bytes calldata _extraData, uint256 _batchIndex) external {
+        require(_batchIndex > 0, "Factory: batch index must be greater than 0");
+        // Get the State Commitment Chain
+        IMVMStateCommitmentChain scc = IMVMStateCommitmentChain(
+            ADDRESS_MANAGER.getAddress("StateCommitmentChain")
+        );
+        require(address(scc) != address(0), "Factory: invalid State Commitment Chain address");
+
+        // checks if the batch contains the block number
+        scc.checkBatchBlock(DEFAULT_CHAIN_ID, _batchIndex, abi.decode(_extraData, (uint256)));
+
+        uint256 batchTime = uint256(uint128(scc.batchTimes(DEFAULT_CHAIN_ID, _batchIndex)) >> 64);
+        require(
+            batchTime > block.timestamp - scc.FRAUD_PROOF_WINDOW() + DISPUTE_TIMEOUT_PERIOD,
+            "Factory: block number is not disputable"
+        );
+
         // Grab the implementation contract for the given `GameType`.
         IDisputeGame impl = gameImpls[_gameType];
 
@@ -191,7 +207,7 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         /// Attempt to call saveDisputedBatchTimeout with the correct batch index
         /// @notice saveDisputedBatchTimeout might revert due to various reasons, such as the batch not being found.
         ///         In that case, we catch the error and continue with the timeout process.
-        try scc.saveDisputedBatchTimeout(DEFAULT_CHAIN_ID, requestUuid, blockNumber, _batchIndex) {} catch {}
+        try scc.saveDisputedBatchTimeout(DEFAULT_CHAIN_ID, blockNumber, _batchIndex) {} catch {}
 
         // Slash the bond from the locking pool if the total locked amount is greater than zero
         if (ILockingPool(lockingPool).totalLocked() > 0) {
