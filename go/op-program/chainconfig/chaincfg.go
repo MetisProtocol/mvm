@@ -53,16 +53,40 @@ var (
 			Epoch:  30000,
 		},
 	}
+	MetisDevnetChainConfig = &params.ChainConfig{
+		ChainID:             big.NewInt(57005),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.Hash{},
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		ShanghaiBlock:       big.NewInt(0),
+		EWASMBlock:          nil,
+		Clique: &params.CliqueConfig{
+			Period: 0,
+			Epoch:  30000,
+		},
+	}
 )
 
 var l2ChainNamesByChainID = map[uint64]string{
 	59902: "metis-sepolia",
 	1088:  "metis-andromeda",
+	57005: "metis-devnet",
 }
 
 var l2ChainConfigsByChainID = map[uint64]*params.ChainConfig{
 	59902: MetisSepoliaChainConfig,
 	1088:  MetisAndromedaChainConfig,
+	57005: MetisDevnetChainConfig,
 }
 
 var l2RollupConfigsByChainID = map[uint64]*RollupConfig{
@@ -76,6 +100,8 @@ func handleLegacyName(name string) string {
 		return "metis-andromeda"
 	case "sepolia":
 		return "metis-sepolia"
+	case "devnet":
+		return "metis-devnet"
 	default:
 		return name
 	}
@@ -92,6 +118,8 @@ func ChainByName(name string) *params.ChainConfig {
 		return MetisSepoliaChainConfig
 	case "metis-andromeda":
 		return MetisAndromedaChainConfig
+	case "metis-devnet":
+		return MetisDevnetChainConfig
 	}
 
 	return nil

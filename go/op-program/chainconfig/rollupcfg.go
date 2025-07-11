@@ -40,11 +40,13 @@ func (c RollupConfig) Check() error {
 	if c.CTCAddress == (common.Address{}) {
 		return errors.New("missing CTCAddress")
 	}
-	if len(c.TxChainBatcherAddresses) == 0 {
-		return errors.New("missing TxChainBatcherAddresses")
-	}
-	if len(c.BlobBatcherAddresses) == 0 {
-		return errors.New("missing BlobBatcherAddresses")
+	if c.L1ChainId.Cmp(MetisDevnetRollupConfig.L1ChainId) != 0 {
+		if len(c.TxChainBatcherAddresses) == 0 {
+			return errors.New("missing TxChainBatcherAddresses")
+		}
+		if len(c.BlobBatcherAddresses) == 0 {
+			return errors.New("missing BlobBatcherAddresses")
+		}
 	}
 	return nil
 }
@@ -85,5 +87,13 @@ var (
 				Address: common.HexToAddress("0xae4d46bd9117cb017c5185844699c51107cb28a9"),
 			},
 		},
+	}
+	MetisDevnetRollupConfig = &RollupConfig{
+		L1ChainId:               big.NewInt(48815),
+		InboxAddress:            common.HexToAddress("0x000000000000000000000000000000000000beaf"),
+		SCCAddress:              common.HexToAddress("0x7448072cffa6BA326083ec237cC864D4Add5141e"),
+		CTCAddress:              common.HexToAddress("0x2e9fBdC103dFf5157dd7E7556d25e8a4bc22679e"),
+		TxChainBatcherAddresses: []BatcherAddressAtHeight{},
+		BlobBatcherAddresses:    []BatcherAddressAtHeight{},
 	}
 )
