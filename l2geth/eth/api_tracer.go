@@ -465,7 +465,6 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 		results = make([]*txTraceResult, len(txs))
 	)
 	// Feed the transactions into the tracers and return
-	var failed error
 	for i, tx := range txs {
 		// Generate the next state snapshot fast without tracing
 		msg, _ := tx.AsMessage(signer)
@@ -482,10 +481,6 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 		statedb.Finalise(api.eth.blockchain.Config().IsEIP158(block.Number()))
 	}
 
-	// If execution failed in between, abort
-	if failed != nil {
-		return nil, failed
-	}
 	return results, nil
 }
 
