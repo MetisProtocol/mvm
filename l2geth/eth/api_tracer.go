@@ -463,40 +463,10 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 
 		txs     = block.Transactions()
 		results = make([]*txTraceResult, len(txs))
-
-		pend = new(sync.WaitGroup)
-		jobs = make(chan *txTraceTask, len(txs))
 	)
-	threads := runtime.NumCPU()
-	if threads > len(txs) {
-		threads = len(txs)
-	}
-	for th := 0; th < threads; th++ {
-		pend.Add(1)
-		go func() {
-			defer pend.Done()
-
-			// Fetch and execute the next transaction trace tasks
-			for task := range jobs {
-				tx := txs[task.index]
-				msg, _ := tx.AsMessage(signer)
-				vmctx := core.NewEVMContext(msg, block.Header(), api.eth.blockchain, nil)
-
-				res, err := api.traceTx(ctx, msg, vmctx, task.statedb, config)
-				if err != nil {
-					results[task.index] = &txTraceResult{Error: err.Error(), TxHash: tx.Hash()}
-					continue
-				}
-				results[task.index] = &txTraceResult{Result: res, TxHash: tx.Hash()}
-			}
-		}()
-	}
 	// Feed the transactions into the tracers and return
 	var failed error
 	for i, tx := range txs {
-		// Send the trace task over for execution
-		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
-
 		// Generate the next state snapshot fast without tracing
 		msg, _ := tx.AsMessage(signer)
 		vmctx := core.NewEVMContext(msg, block.Header(), api.eth.blockchain, nil)
@@ -506,12 +476,16 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 			failed = err
 			break
 		}
+		res, err := api.traceTx(ctx, msg, vmctx, statedb, config)
+		if err != nil {
+			results[i] = &txTraceResult{Error: err.Error(), TxHash: tx.Hash()}
+			continue
+		}
+		results[i] = &txTraceResult{Result: res, TxHash: tx.Hash()}
 		// Finalize the state so any modifications are written to the trie
 		// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
 		statedb.Finalise(vmenv.ChainConfig().IsEIP158(block.Number()))
 	}
-	close(jobs)
-	pend.Wait()
 
 	// If execution failed in between, abort
 	if failed != nil {
