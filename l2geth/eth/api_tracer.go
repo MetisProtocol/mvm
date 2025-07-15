@@ -471,7 +471,6 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 		msg, _ := tx.AsMessage(signer)
 		vmctx := core.NewEVMContext(msg, block.Header(), api.eth.blockchain, nil)
 
-		vmenv := vm.NewEVM(vmctx, statedb, api.eth.blockchain.Config(), vm.Config{})
 		res, err := api.traceTx(ctx, msg, vmctx, statedb, config)
 		if err != nil {
 			results[i] = &txTraceResult{Error: err.Error(), TxHash: tx.Hash()}
@@ -480,7 +479,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 		}
 		// Finalize the state so any modifications are written to the trie
 		// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
-		statedb.Finalise(vmenv.ChainConfig().IsEIP158(block.Number()))
+		statedb.Finalise(api.eth.blockchain.Config().IsEIP158(block.Number()))
 	}
 
 	// If execution failed in between, abort
