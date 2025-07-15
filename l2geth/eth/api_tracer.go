@@ -472,7 +472,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 
 		res, err := api.traceTx(ctx, msg, vmctx, statedb, config)
 		if err != nil {
-			results[i] = &txTraceResult{Error: err.Error(), TxHash: tx.Hash()}
+			results[i] = &txTraceResult{Result: res, Error: err.Error(), TxHash: tx.Hash()}
 		} else {
 			results[i] = &txTraceResult{Result: res, TxHash: tx.Hash()}
 		}
@@ -760,9 +760,6 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message core.Message, v
 	vmenv := vm.NewEVM(vmctx, statedb, chainConfig, vm.Config{Debug: true, Tracer: tracer})
 
 	ret, gas, failed, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()))
-	if err != nil {
-		return nil, fmt.Errorf("tracing failed: %v", err)
-	}
 	// Depending on the tracer type, format and return the output
 	switch tracer := tracer.(type) {
 	case *vm.StructLogger:
@@ -771,7 +768,7 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message core.Message, v
 			Failed:      failed,
 			ReturnValue: fmt.Sprintf("%x", ret),
 			StructLogs:  ethapi.FormatLogs(tracer.StructLogs()),
-		}, nil
+		}, err
 
 	case *tracers.Tracer:
 		return tracer.GetResult()
