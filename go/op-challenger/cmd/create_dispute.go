@@ -70,6 +70,7 @@ func createDisputeFlags() []cli.Flag {
 		flags.FactoryAddressFlag,
 		TraceTypeFlag,
 		L2BlockNumFlag,
+		BatchIndexNumFlag,
 	}
 	cliFlags = append(cliFlags, txmgr.CLIFlagsWithDefaults(flags.EnvVarPrefix, txmgr.DefaultChallengerFlagValues)...)
 	cliFlags = append(cliFlags, oplog.CLIFlags(flags.EnvVarPrefix)...)
