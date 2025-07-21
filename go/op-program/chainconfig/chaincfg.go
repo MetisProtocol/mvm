@@ -92,6 +92,7 @@ var l2ChainConfigsByChainID = map[uint64]*params.ChainConfig{
 var l2RollupConfigsByChainID = map[uint64]*RollupConfig{
 	59902: MetisSepoliaRollupConfig,
 	1088:  MetisAndromedaRollupConfig,
+	57005: MetisDevnetRollupConfig,
 }
 
 func handleLegacyName(name string) string {
