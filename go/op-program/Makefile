@@ -1,6 +1,13 @@
 GITCOMMIT ?= $(shell git rev-parse HEAD)
 GITDATE ?= $(shell git show -s --format='%ct')
-VERSION ?= v0.0.0
+VERSION := $(shell git describe --tags --exact-match 2>/dev/null)
+
+# if VERSION is empty, then populate it with branch's name
+ifeq (,$(VERSION))
+	VERSION := $(shell git rev-parse --abbrev-ref HEAD)
+	GITDATE := "develop"
+	GITCOMMIT := "develop"
+endif
 
 LDFLAGSSTRING +=-X main.GitCommit=$(GITCOMMIT)
 LDFLAGSSTRING +=-X main.GitDate=$(GITDATE)
