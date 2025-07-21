@@ -28,24 +28,43 @@ type RollupConfig struct {
 }
 
 func (c RollupConfig) Check() error {
-	if c.L1ChainId == nil {
-		return errors.New("missing L1ChainId")
+	if c.L1ChainId == nil || c.L1ChainId.Sign() <= 0 {
+		return errors.New("invalid L1ChainId")
 	}
+
 	if c.InboxAddress == (common.Address{}) {
 		return errors.New("missing InboxAddress")
 	}
+
 	if c.SCCAddress == (common.Address{}) {
 		return errors.New("missing SCCAddress")
 	}
+
 	if c.CTCAddress == (common.Address{}) {
 		return errors.New("missing CTCAddress")
 	}
-	if c.L1ChainId.Cmp(MetisDevnetRollupConfig.L1ChainId) != 0 {
-		if len(c.TxChainBatcherAddresses) == 0 {
-			return errors.New("missing TxChainBatcherAddresses")
+
+	if len(c.TxChainBatcherAddresses) == 0 {
+		return errors.New("missing TxChainBatcherAddresses")
+	}
+	for idx, item := range c.TxChainBatcherAddresses {
+		if idx == 0 {
+			continue
 		}
-		if len(c.BlobBatcherAddresses) == 0 {
-			return errors.New("missing BlobBatcherAddresses")
+		if item.Height < c.TxChainBatcherAddresses[idx-1].Height {
+			return errors.New("TxChainBatcherAddresses must be sorted by height in descending order")
+		}
+	}
+
+	if len(c.BlobBatcherAddresses) == 0 {
+		return errors.New("missing BlobBatcherAddresses")
+	}
+	for idx, item := range c.BlobBatcherAddresses {
+		if idx == 0 {
+			continue
+		}
+		if item.Height < c.BlobBatcherAddresses[idx-1].Height {
+			return errors.New("BlobBatcherAddresses must be sorted by height in descending order")
 		}
 	}
 	return nil
@@ -89,11 +108,21 @@ var (
 		},
 	}
 	MetisDevnetRollupConfig = &RollupConfig{
-		L1ChainId:               big.NewInt(48815),
-		InboxAddress:            common.HexToAddress("0x000000000000000000000000000000000000beaf"),
-		SCCAddress:              common.HexToAddress("0x7448072cffa6BA326083ec237cC864D4Add5141e"),
-		CTCAddress:              common.HexToAddress("0x2e9fBdC103dFf5157dd7E7556d25e8a4bc22679e"),
-		TxChainBatcherAddresses: []BatcherAddressAtHeight{},
-		BlobBatcherAddresses:    []BatcherAddressAtHeight{},
+		L1ChainId:    big.NewInt(48815),
+		InboxAddress: common.HexToAddress("0x000000000000000000000000000000000000beaf"),
+		SCCAddress:   common.HexToAddress("0x7448072cffa6BA326083ec237cC864D4Add5141e"),
+		CTCAddress:   common.HexToAddress("0x2e9fBdC103dFf5157dd7E7556d25e8a4bc22679e"),
+		TxChainBatcherAddresses: []BatcherAddressAtHeight{
+			{
+				Height:  0,
+				Address: common.HexToAddress("0x100222702c050613c5b9264bBE71DfB1B6796b3F"),
+			},
+		},
+		BlobBatcherAddresses: []BatcherAddressAtHeight{
+			{
+				Height:  0,
+				Address: common.HexToAddress("0xc18bf42c912491804b613c33ea4f213a2f762df8"),
+			},
+		},
 	}
 )
