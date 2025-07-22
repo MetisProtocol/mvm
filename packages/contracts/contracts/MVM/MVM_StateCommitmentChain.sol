@@ -90,6 +90,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
             batchHeaderHash: batchHeaderHash,
             lastL2BlockNumber: lastL2BlockNumberInBatch
         });
+        if (batchIndex == 0) {
+            revert NoFinalizedBatchFound();
+        }
         bytes32 lastFinalizedBatchHeaderHash = batches().getByChainId(_chainId, batchIndex - 1);
         _lastFinalized = BatchInfo({
             batchHeaderHash: lastFinalizedBatchHeaderHash,

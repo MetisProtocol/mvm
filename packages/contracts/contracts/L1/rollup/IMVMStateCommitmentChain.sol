@@ -244,4 +244,9 @@ interface IMVMStateCommitmentChain {
         uint256 _chainId,
         Lib_OVMCodec.ChainBatchHeader memory _batchHeader
     ) external view returns (bool _inside);
+
+    /**
+     * The Error thrown when no finalized batch is found.
+     */
+    error NoFinalizedBatchFound();
 }
