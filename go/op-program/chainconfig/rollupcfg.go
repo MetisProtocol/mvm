@@ -4,7 +4,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type InboxSenderType uint8
@@ -115,7 +115,7 @@ var (
 		TxChainBatcherAddresses: []BatcherAddressAtHeight{
 			{
 				Height:  0,
-				Address: common.HexToAddress("0x100222702c050613c5b9264bBE71DfB1B6796b3F"),
+				Address: common.HexToAddress("0xA645Bc062284D97CAd5Dcd877706bD672aB84759"),
 			},
 		},
 		BlobBatcherAddresses: []BatcherAddressAtHeight{
