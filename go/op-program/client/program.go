@@ -164,24 +164,24 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 	// since we will only submit one tx per block, so when reverse walking the l1 chain,
 	// the tx order will always be txChain tx --> nth submitted blob tx --> (n-1)th submitted blob tx --> ... --> 1st submitted blob tx
 	for l1Header := l1Oracle.HeaderByBlockHash(l1Head); ; l1Header = l1Oracle.HeaderByBlockHash(l1Header.ParentHash()) {
-		var txChainBatcher, blobBatcher *common.Address
-		for _, batcherAddressAtHeight := range rollupCfg.TxChainBatcherAddresses {
-			if l1Header.NumberU64() >= batcherAddressAtHeight.Height {
-				txChainBatcher = (*common.Address)(&batcherAddressAtHeight.Address)
+		var txChainBatcher, blobBatcher common.Address
+		for _, item := range rollupCfg.TxChainBatcherAddresses {
+			if l1Header.NumberU64() >= item.Height {
+				txChainBatcher = item.Address
 				logger.Debug("Found tx chain batcher address", "block", l1Header.NumberU64(), "address", txChainBatcher.Hex())
 				break
 			}
 		}
 
-		for _, batcherAddressAtHeight := range rollupCfg.BlobBatcherAddresses {
-			if l1Header.NumberU64() >= batcherAddressAtHeight.Height {
-				blobBatcher = (*common.Address)(&batcherAddressAtHeight.Address)
+		for _, item := range rollupCfg.BlobBatcherAddresses {
+			if l1Header.NumberU64() >= item.Height {
+				blobBatcher = item.Address
 				logger.Debug("Found blob batcher address", "block", l1Header.NumberU64(), "address", blobBatcher.Hex())
 				break
 			}
 		}
 
-		if txChainBatcher == nil || blobBatcher == nil {
+		if txChainBatcher == (common.Address{}) || blobBatcher == (common.Address{}) {
 			logger.Error("Batcher address not found", "block", l1Header.NumberU64())
 			return nil, nil, nil, nil, -1, fmt.Errorf("no batcher address found for height %d", l1Header.NumberU64())
 		}
@@ -248,7 +248,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 					continue
 				}
 
-				if from != *txChainBatcher && from != *blobBatcher {
+				if from != txChainBatcher && from != blobBatcher {
 					// ignore invalid inbox txs
 					logger.Debug("tx is not from tx chain batcher or blob batcher", "tx", tx.Hash().Hex(), "from", from.Hex())
 					continue
@@ -274,7 +274,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 				continue
 			}
 
-			if from == *txChainBatcher && to == common.Address(rollupCfg.InboxAddress) {
+			if from == txChainBatcher && to == rollupCfg.InboxAddress {
 				logger.Info("Processing tx chain tx", "tx", tx.Hash().Hex())
 				// decode tx chain data
 				var txChainData opprog.BatchSubmissionData
@@ -303,7 +303,7 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 					TotalBlobTxCount: uint64(len(txChainData.BlobTxHashes)),
 					BlobTransactions: make([]*opprog.BlobTxInfo, 0, len(txChainData.BlobTxHashes)),
 				})
-			} else if from == *blobBatcher && tx.Type() == ethtypes.BlobTxType && to == common.Address(rollupCfg.InboxAddress) {
+			} else if from == blobBatcher && tx.Type() == ethtypes.BlobTxType && to == rollupCfg.InboxAddress {
 				// collect blob txs
 				batchIndex, ok := blobTxReverseIndex[tx.Hash()]
 				if !ok {
@@ -342,10 +342,10 @@ func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
 					slices.Reverse(rawBatchInfos)
 					return
 				}
-			} else if to == common.Address(rollupCfg.SCCAddress) && disputedBatchHeader == nil {
+			} else if to == rollupCfg.SCCAddress && disputedBatchHeader == nil {
 				// collect state commitment batch header
 				for _, log := range receipt.Logs {
-					if log.Address != common.Address(rollupCfg.SCCAddress) || len(log.Topics) < 2 {
+					if log.Address != rollupCfg.SCCAddress || len(log.Topics) < 2 {
 						// ignore invalid event
 						continue
 					}
