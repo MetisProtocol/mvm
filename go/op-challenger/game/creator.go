@@ -95,7 +95,7 @@ func newCreator(logger log.Logger,
 	l1Source *l1client.Client,
 	dtlSource rollup.RollupClient,
 	txMgr txmgr.TxManager,
-	cfg *config.Config) *gameCreator {
+	cfg *config.Config) (*gameCreator, error) {
 	var (
 		l2Source *l2client.Client
 		err      error
@@ -103,12 +103,16 @@ func newCreator(logger log.Logger,
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	defer func() {
+		if err != nil {
+			cancel()
+		}
+	}()
+
 	if !cfg.GameCreatorMode {
 		// only disputer needs l2 client
 		if l2Source, err = l2client.DialContext(ctx, cfg.L2Rpc); err != nil {
-			logger.Crit("failed to dial L2 client", "err", err)
-			cancel()
-			return nil
+			return nil, fmt.Errorf("failed to connect to L2 RPC: %w", err)
 		}
 	}
 
@@ -116,26 +120,20 @@ func newCreator(logger log.Logger,
 	// check data dir existence
 	if _, err := os.Stat(datadir); os.IsNotExist(err) {
 		if err := os.MkdirAll(datadir, os.ModePerm); err != nil {
-			logger.Crit("failed to create game creator data dir", "err", err)
-			cancel()
-			return nil
+			return nil, fmt.Errorf("failed to create game creator data dir: %w", err)
 		}
 	}
 
+	logger.Info("Open game creator database", "datadir", datadir)
 	db, err := leveldb.OpenFile(datadir, nil)
 	if err != nil {
-		logger.Crit("failed to open db", "err", err)
-		cancel()
-		return nil
+		return nil, fmt.Errorf("failed to open game creator database: %w", err)
 	}
 
-	sccABI := abi.LoadSCCABI()
-	factoryABI := abi.LoadDisputeGameFactoryABI()
-	metisToken, err := factoryContract.GetMetisTokenContractAddress(context.TODO())
+	sccABI, factoryABI := abi.LoadSCCABI(), abi.LoadDisputeGameFactoryABI()
+	metisToken, err := factoryContract.GetMetisTokenContractAddress(ctx)
 	if err != nil {
-		logger.Crit("failed to get metis token contract address", "err", err)
-		cancel()
-		return nil
+		return nil, fmt.Errorf("failed to get metis token contract address: %w", err)
 	}
 
 	return &gameCreator{
@@ -155,7 +153,7 @@ func newCreator(logger log.Logger,
 		cfg:             cfg,
 		sccABI:          sccABI,
 		factoryABI:      factoryABI,
-	}
+	}, nil
 }
 
 // blockProcessor is a function type that processes a single block and its events
@@ -192,6 +190,7 @@ func (m *gameCreator) processNewBlocks(eventID []byte, processor blockProcessor)
 
 	nextToSync := highestSynced + 1
 	if highestSynced == 0 {
+		m.logger.Info("no blocks synced yet, starting from L1 start block", "start_block", m.cfg.L1StartBlock)
 		nextToSync = m.cfg.L1StartBlock
 	}
 
@@ -698,6 +697,9 @@ func (m *gameCreator) StartMonitoring() {
 
 func (m *gameCreator) StopMonitoring() {
 	m.cancel()
+	if err := m.db.Close(); err != nil {
+		m.logger.Error("failed to close game creator database", "err", err)
+	}
 }
 
 func shouldRetry(err error) bool {

@@ -125,7 +125,9 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 	}
 
 	s.initMonitor(cfg)
-	s.initGameCreator(cfg)
+	if err := s.initGameCreator(cfg); err != nil {
+		return err
+	}
 
 	s.metrics.RecordInfo(version.SimpleWithMeta)
 	s.metrics.RecordUp()
@@ -265,10 +267,11 @@ func (s *Service) initMonitor(cfg *config.Config) {
 	s.monitor = newGameMonitor(s.logger, s.l1Clock, s.factoryContract, s.sched, s.preimages, cfg.GameWindow, s.claimer, cfg.GameAllowlist, s.pollClient)
 }
 
-func (s *Service) initGameCreator(cfg *config.Config) {
-	s.creator = newCreator(s.logger,
+func (s *Service) initGameCreator(cfg *config.Config) (err error) {
+	s.creator, err = newCreator(s.logger,
 		batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize),
 		s.factoryContract, s.l1Client, s.rollupClient, s.txMgr, cfg)
+	return err
 }
 
 func (s *Service) Start(ctx context.Context) error {
