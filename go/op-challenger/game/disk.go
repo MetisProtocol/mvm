@@ -39,6 +39,10 @@ func (d *diskManager) RemoveAllExcept(keep []common.Address) error {
 			// deleting things like OS generated files.
 			continue
 		}
+		if entry.Name() == "game-creator" {
+			// Skip the game creator directory itself.
+			continue
+		}
 		name := entry.Name()[len(gameDirPrefix):]
 		addr := common.HexToAddress(name)
 		if addr == (common.Address{}) {
