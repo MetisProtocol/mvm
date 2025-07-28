@@ -1,6 +1,4 @@
 /* Imports: External */
-import { Contract, ethers, EventLog, toBigInt, toNumber } from 'ethersv6'
-import { MerkleTree } from 'merkletreejs'
 import { getContractDefinition } from '@metis.io/contracts'
 import {
   EventArgsSequencerBatchAppended,
@@ -11,6 +9,8 @@ import {
   toHexString,
   toRpcHexString,
 } from '@metis.io/core-utils'
+import { Contract, ethers, EventLog, toBigInt, toNumber } from 'ethersv6'
+import { MerkleTree } from 'merkletreejs'
 
 /* Imports: Internal */
 import {
@@ -61,7 +61,25 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
 
     if (!batchSubmissionEvent) {
       throw new Error(
-        `Well, this really shouldn't happen. A SequencerBatchAppended event doesn't have a corresponding TransactionBatchAppended event.`
+        `A SequencerBatchAppended event doesn't have a corresponding TransactionBatchAppended event. txHash: ${event.transactionHash}`
+      )
+    }
+
+    if (!(batchSubmissionEvent instanceof EventLog)) {
+      throw new Error(
+        `A TransactionBatchAppended event is not an EventLog. txHash: ${event.transactionHash}`
+      )
+    }
+
+    if (
+      batchSubmissionEvent.args._prevTotalElements === undefined ||
+      batchSubmissionEvent.args._batchIndex === undefined ||
+      batchSubmissionEvent.args._batchSize === undefined ||
+      batchSubmissionEvent.args._batchRoot === undefined ||
+      batchSubmissionEvent.args._extraData === undefined
+    ) {
+      throw new Error(
+        `A TransactionBatchAppended event is missing some of its arguments. txHash: ${event.transactionHash}`
       )
     }
 
@@ -73,11 +91,11 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       l1TransactionData: l1Transaction.data,
       gasLimit: `${SEQUENCER_GAS_LIMIT}`,
 
-      prevTotalElements: event.args._prevTotalElements,
-      batchIndex: event.args._batchIndex,
-      batchSize: event.args._batchSize,
-      batchRoot: event.args._batchRoot,
-      batchExtraData: event.args._extraData,
+      prevTotalElements: batchSubmissionEvent.args._prevTotalElements,
+      batchIndex: batchSubmissionEvent.args._batchIndex,
+      batchSize: batchSubmissionEvent.args._batchSize,
+      batchRoot: batchSubmissionEvent.args._batchRoot,
+      batchExtraData: batchSubmissionEvent.args._extraData,
 
       // blob related, not used in old sequencer batch
       blobIndex: 0,
