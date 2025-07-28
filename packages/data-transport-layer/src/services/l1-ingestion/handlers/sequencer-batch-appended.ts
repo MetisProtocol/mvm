@@ -91,9 +91,9 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       l1TransactionData: l1Transaction.data,
       gasLimit: `${SEQUENCER_GAS_LIMIT}`,
 
-      prevTotalElements: batchSubmissionEvent.args._prevTotalElements,
-      batchIndex: batchSubmissionEvent.args._batchIndex,
-      batchSize: batchSubmissionEvent.args._batchSize,
+      prevTotalElements: toNumber(batchSubmissionEvent.args._prevTotalElements),
+      batchIndex: toNumber(batchSubmissionEvent.args._batchIndex),
+      batchSize: toNumber(batchSubmissionEvent.args._batchSize),
       batchRoot: batchSubmissionEvent.args._batchRoot,
       batchExtraData: batchSubmissionEvent.args._extraData,
 
