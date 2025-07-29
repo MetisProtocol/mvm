@@ -9,7 +9,7 @@ replace (
 	github.com/ethereum-optimism/optimism/go/cannon => ../cannon
 	github.com/ethereum-optimism/optimism/go/op-preimage => ../op-preimage
 	github.com/ethereum-optimism/optimism/go/op-program => ../op-program
-	github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101503.0
+	github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101503.4-rc.1
 )
 
 require (

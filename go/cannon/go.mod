@@ -7,7 +7,7 @@ toolchain go1.22.7
 replace (
 	github.com/MetisProtocol/mvm/l2geth => ../../l2geth
 	github.com/ethereum-optimism/optimism/go/op-preimage => ../op-preimage
-	github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101503.0
+	github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101503.4-rc.1
 )
 
 require (
