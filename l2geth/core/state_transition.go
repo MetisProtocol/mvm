@@ -310,7 +310,7 @@ func (st *StateTransition) TransitionDbWithBlockNumber(blockNumber uint64) (ret 
 			log.Debug("zero address with value called. skipping vm execution")
 		} else {
 			// NOTE: andromeda peer & replica
-			if rcfg.ChainID == 1088 && (blockNumber == 3247675 || blockNumber == 3247681) {
+			if st.evm.ChainConfig().ChainID.Int64() == 1088 && (blockNumber == 3247675 || blockNumber == 3247681) {
 				_ = st.useGas(100000)
 			}
 			// log.Debug("getting in vm", "gas", st.gas, "value", st.value, "sender", msg.From(), "gasprice", st.gasPrice)

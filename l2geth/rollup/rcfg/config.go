@@ -1,19 +1,18 @@
 package rcfg
 
 import (
-	"fmt"
 	"math/big"
 	"os"
 	"strconv"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/log"
 )
 
 // UsingOVM is used to enable or disable functionality necessary for the OVM.
 var (
-	UsingOVM               bool
+	UsingOVM               bool = true
 	PeerHealthCheckSeconds int64
-	ChainID                uint64
 	DeSeqBlock             uint64
 	SeqValidHeight         uint64
 )
@@ -47,8 +46,6 @@ var (
 )
 
 func init() {
-	UsingOVM = os.Getenv("USING_OVM") == "true"
-
 	deseqHeight := os.Getenv("DESEQBLOCK")
 	if deseqHeight == "" {
 		DeSeqBlock = ^uint64(0)
@@ -71,17 +68,6 @@ func init() {
 		PeerHealthCheckSeconds = parsed
 	}
 
-	envChainID := os.Getenv("CHAIN_ID")
-	if envChainID == "" {
-		ChainID = ^uint64(0)
-	} else {
-		parsed, err := strconv.ParseUint(envChainID, 0, 64)
-		if err != nil {
-			panic(err)
-		}
-		ChainID = parsed
-	}
-
 	envSvh := os.Getenv("SEQSET_VALID_HEIGHT")
 	if envSvh == "" {
 		SeqValidHeight = ^uint64(0)
@@ -100,5 +86,5 @@ func init() {
 		}
 	}
 
-	fmt.Println("rcfg UsingOVM ", UsingOVM, " envChainID ", envChainID, "envSeqValidHeight", envSvh, "defaultSeqAdderss", DefaultSeqAdderss.Hex())
+	log.Debug("rcfg", "envSeqValidHeight", envSvh, "defaultSeqAdderss", DefaultSeqAdderss.Hex())
 }
