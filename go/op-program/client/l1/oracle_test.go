@@ -4,11 +4,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"testing"
 
-	"github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -102,7 +100,7 @@ func TestGetBlob(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Get random blob
 			rng := rand.New(rand.NewSource(567 + int64(tc.blobIndex)))
-			blob, blobCommitment, err := RandomBlob(rng)
+			blob, blobCommitment, err := testutils.RandomBlob(rng)
 			require.NoError(t, err)
 			// And random block ref
 			blockRef := testutils.RandomBlockRef(rng)
@@ -171,22 +169,6 @@ func TestPreimageOracleBlockByHash(t *testing.T) {
 	}
 }
 
-func RandomBlob(rng *rand.Rand) (kzg4844.Blob, kzg4844.Commitment, error) {
-	var blob kzg4844.Blob
-	for i := 0; i < params.BlobTxFieldElementsPerBlob; i++ {
-		fieldEl := fr.NewElement(0)
-		randVal := new(big.Int).SetUint64(rng.Uint64())
-		fieldEl.SetBigInt(randVal)
-
-		fieldElBytes := fieldEl.Bytes()
-		copy(blob[i*32:(i+1)*32], fieldElBytes[:])
-	}
-
-	commitment, err := kzg4844.BlobToCommitment(&blob)
-
-	return blob, commitment, err
-}
-
 // TestInitRootsOfUnity validates that the roots of unity are constructed and ordered correctly such that the
 // root at index i can be used to compute the field element at index i in a blob
 func TestInitRootsOfUnity(t *testing.T) {
@@ -195,7 +177,7 @@ func TestInitRootsOfUnity(t *testing.T) {
 
 	// Create a blob with random data
 	rng := rand.New(rand.NewSource(123))
-	blob, blobCommitment, err := RandomBlob(rng)
+	blob, blobCommitment, err := testutils.RandomBlob(rng)
 	require.NoError(t, err)
 
 	// Verify we can generate each field element using the ordered roots of unity

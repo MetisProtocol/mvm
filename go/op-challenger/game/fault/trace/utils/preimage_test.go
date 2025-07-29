@@ -4,11 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"testing"
 
-	"github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
 	gokzg4844 "github.com/crate-crypto/go-kzg-4844"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -20,6 +18,7 @@ import (
 	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
+	"github.com/ethereum-optimism/optimism/op-service/testutils"
 )
 
 func TestPreimageLoader_NoPreimage(t *testing.T) {
@@ -65,25 +64,9 @@ func TestPreimageLoader_SimpleTypes(t *testing.T) {
 	}
 }
 
-func RandomBlob(rng *rand.Rand) (kzg4844.Blob, kzg4844.Commitment, error) {
-	var blob kzg4844.Blob
-	for i := 0; i < params.BlobTxFieldElementsPerBlob; i++ {
-		fieldEl := fr.NewElement(0)
-		randVal := new(big.Int).SetUint64(rng.Uint64())
-		fieldEl.SetBigInt(randVal)
-
-		fieldElBytes := fieldEl.Bytes()
-		copy(blob[i*32:(i+1)*32], fieldElBytes[:])
-	}
-
-	commitment, err := kzg4844.BlobToCommitment(&blob)
-
-	return blob, commitment, err
-}
-
 func TestPreimageLoader_BlobPreimage(t *testing.T) {
 	rng := rand.New(rand.NewSource(999))
-	blob, commitment, err := RandomBlob(rng)
+	blob, commitment, err := testutils.RandomBlob(rng)
 	require.NoError(t, err)
 
 	indices := []uint64{0, 1, 24, 2222, 4095}

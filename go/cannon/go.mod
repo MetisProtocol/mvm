@@ -12,17 +12,17 @@ replace (
 
 require (
 	github.com/MetisProtocol/mvm/l2geth v0.0.0-00010101000000-000000000000
-	github.com/ethereum-optimism/optimism v1.12.0
+	github.com/ethereum-optimism/optimism v1.13.2
 	github.com/ethereum-optimism/optimism/go/op-preimage v0.0.0-00010101000000-000000000000
 	github.com/ethereum/go-ethereum v1.15.3
 	github.com/pkg/profile v1.7.0
 	github.com/stretchr/testify v1.10.0
-	github.com/urfave/cli/v2 v2.27.5
+	github.com/urfave/cli/v2 v2.27.6
 	golang.org/x/term v0.28.0
 )
 
 require (
-	github.com/BurntSushi/toml v1.4.0 // indirect
+	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.2 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20170210015632-ea17b1a17847 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -52,7 +52,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
