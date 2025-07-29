@@ -23,4 +23,28 @@ export const addressEvent = {
       },
     ],
   },
+  '11155111': {
+    CanonicalTransactionChain: [
+      {
+        Address: '0x5435d351e0aCc874579eC67Ba46440ee6AC892b8',
+        Start: 0,
+      },
+    ],
+    Proxy__MVM_CanonicalTransaction: [
+      {
+        Address: '0x6281F34652359cfBa1781D84DAb939f99aaa0e29',
+        Start: 0,
+      },
+    ],
+    StateCommitmentChain: [
+      {
+        Address: '0xA059B3307f534943Ee6c710D9582B42543847Eb1',
+        Start: 0,
+      },
+      {
+        Address: '0x9DCC53737FcB3E86a17CF435ca3c15390D4FC7Ed',
+        Start: 5535344,
+      },
+    ],
+  },
 }
