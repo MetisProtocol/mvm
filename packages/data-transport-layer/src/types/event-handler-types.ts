@@ -1,3 +1,4 @@
+import { EventLog, Provider } from 'ethersv6'
 import { TransportDB } from '../db/transport-db'
 import {
   BlockEntry,
@@ -6,7 +7,6 @@ import {
   TransactionBatchEntry,
   TransactionEntry,
 } from './database-types'
-import { EventLog, Provider } from 'ethersv6'
 
 export type TypedEthersEvent<T> = EventLog & {
   args: T
@@ -21,6 +21,7 @@ export type ParseEventHandler<TEventArgs, TExtraData, TParsedEvent> = (
   event: TypedEthersEvent<TEventArgs>,
   extraData: TExtraData,
   l2ChainId: number,
+  l1ChainId: number,
   options: any
 ) => Promise<TParsedEvent>
 

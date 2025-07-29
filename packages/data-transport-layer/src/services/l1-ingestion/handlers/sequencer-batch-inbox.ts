@@ -80,8 +80,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
         : 0,
     }
   },
-  parseEvent: async (event, extraData, l2ChainId, options) => {
-    const l1Client = new ethers.JsonRpcProvider(options.l1RpcProvider)
+  parseEvent: async (event, extraData, l2ChainId, l1ChainId, options) => {
     const blockEntries: BlockEntry[] = []
 
     // [1: DA type] [1: compress type] [32: batch index] [32: L2 start] [4: total blocks, max 65535] [<DATA> { [3: txs count] [5 block timestamp = l1 timestamp of txs] [32 l1BlockNumber of txs, get it from tx0] [1: TX type 0-sequencer 1-enqueue] [3 tx data length] [raw tx data] [3 sign length *sequencerTx*] [sign data] [20 l1Origin *enqueue*] [32 queueIndex *enqueue*].. } ...]
@@ -140,7 +139,6 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
       }
 
       // fetch blobs from cl
-      const l1ChainId = (await l1Client.getNetwork()).chainId
       const blobTxHashes = []
       for (let i = 0; i < contextData.length; i += 32) {
         blobTxHashes.push(ethers.hexlify(contextData.subarray(i, i + 32)))

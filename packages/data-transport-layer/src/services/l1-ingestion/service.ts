@@ -122,6 +122,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     dbOfL2: TransportDB
     contracts: OptimismContracts
     l1RpcProvider: Provider
+    l1ChainId: number
     startingL1BlockNumber: number
     startingL1BatchIndex: number
     defaultInboxSenders: string[]
@@ -158,6 +159,12 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     } else {
       this.state.l1RpcProvider = this.options.l1RpcProvider
     }
+
+    const network = await this.state.l1RpcProvider.getNetwork()
+    this.state.l1ChainId = toNumber(network.chainId)
+    this.logger.info('Using L1 RPC Provider', {
+      l1ChainId: this.state.l1ChainId,
+    })
 
     this.logger.info('Using AddressManager', {
       addressManager: this.options.addressManager,
@@ -644,6 +651,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           null,
           extraData,
           this.options.l2ChainId,
+          this.state.l1ChainId,
           this.options
         )
         this.logger.info('Storing Inbox Batch:', {
@@ -756,6 +764,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             event,
             extraData,
             chainId,
+            this.state.l1ChainId,
             this.options
           )
           let db = this.state.db
@@ -792,9 +801,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     contractName: string,
     blockNumber: number
   ): Promise<string> {
-    const chainId = (
-      await this.state.l1RpcProvider.getNetwork()
-    ).chainId.toString()
+    const chainId = this.state.l1ChainId.toString()
     if (addressEvent[chainId]) {
       this.logger.info(
         `Reading from local ${contractName}, chainId is ${chainId}`

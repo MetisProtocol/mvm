@@ -1,9 +1,9 @@
-import { ethers, toBigInt } from 'ethersv6'
+import { toBigInt } from 'ethersv6'
 
 /* Imports: Internal */
-import { expect } from '../../../../setup'
 import { handleEventsSequencerBatchAppended } from '../../../../../src/services/l1-ingestion/handlers/sequencer-batch-appended'
 import { SequencerBatchAppendedExtraData } from '../../../../../src/types'
+import { expect } from '../../../../setup'
 
 describe('Event Handlers: CanonicalTransactionChain.SequencerBatchAppended', () => {
   describe('handleEventsSequencerBatchAppended.parseEvent', () => {
@@ -28,7 +28,13 @@ describe('Event Handlers: CanonicalTransactionChain.SequencerBatchAppended', () 
     }
 
     it('should error on malformed transaction data', async () => {
-      const input1: [any, SequencerBatchAppendedExtraData, number, any] = [
+      const input1: [
+        any,
+        SequencerBatchAppendedExtraData,
+        number,
+        number,
+        any
+      ] = [
         {
           args: {
             _startingQueueIndex: toBigInt(0),
@@ -43,6 +49,7 @@ describe('Event Handlers: CanonicalTransactionChain.SequencerBatchAppended', () 
           ...exampleExtraData,
         }, // extraData
         0, // l2ChainId
+        1, // l1ChainId
         {}, // options
       ]
 
