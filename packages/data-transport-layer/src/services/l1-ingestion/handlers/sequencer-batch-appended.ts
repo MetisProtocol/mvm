@@ -102,7 +102,7 @@ export const handleEventsSequencerBatchAppended: EventHandlerSet<
       blobCount: 0,
     }
   },
-  parseEvent: async (event, extraData, l2ChainId, options) => {
+  parseEvent: async (event, extraData, l2ChainId, _, options) => {
     const transactionEntries: TransactionEntry[] = []
 
     // It's easier to deal with this data if it's a Buffer.

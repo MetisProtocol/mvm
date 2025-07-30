@@ -1,15 +1,15 @@
 /* Imports: External */
 import { getContractDefinition } from '@metis.io/contracts'
-import { Interface, toNumber, ethers } from 'ethersv6'
+import { ethers, Interface, toNumber } from 'ethersv6'
 
 /* Imports: Internal */
 import {
   EventArgsStateBatchAppended,
-  StateRootBatchEntry,
+  EventHandlerSet,
   StateBatchAppendedExtraData,
   StateBatchAppendedParsedEvent,
+  StateRootBatchEntry,
   StateRootEntry,
-  EventHandlerSet,
 } from '../../../types'
 import { MissingElementError } from './errors'
 
@@ -38,7 +38,7 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
       l1TransactionData: l1Transaction.data,
     }
   },
-  parseEvent: async (event, extraData, chainId, options) => {
+  parseEvent: async (event, extraData, l2ChainId, _, options) => {
     const decodeTx = (abi: string) =>
       new Interface(getContractDefinition(abi).abi).decodeFunctionData(
         'appendStateBatchByChainId',
