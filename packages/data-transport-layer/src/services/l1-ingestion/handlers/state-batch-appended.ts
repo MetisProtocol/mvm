@@ -46,7 +46,8 @@ export const handleEventsStateBatchAppended: EventHandlerSet<
       )[1]
 
     let stateRoots: any
-    const chainDb = await options.dbs.getTransportDbByChainId(l2ChainId)
+    // Note: we use options.l2ChainId here because it's just for a metadata
+    const chainDb = await options.dbs.getTransportDbByChainId(options.l2ChainId)
     const upgrades = await chainDb.getUpgrades()
     if (upgrades && upgrades.fpUpgraded) {
       stateRoots = decodeTx('IMVMStateCommitmentChain')
