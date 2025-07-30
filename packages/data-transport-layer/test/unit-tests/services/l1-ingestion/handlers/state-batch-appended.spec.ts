@@ -1,7 +1,7 @@
 import { expect } from '../../../../setup'
 
 /* Imports: External */
-import { Block, toBigInt, toNumber } from 'ethersv6'
+import { toBigInt, toNumber } from 'ethersv6'
 
 /* Imports: Internal */
 import { handleEventsStateBatchAppended } from '../../../../../src/services/l1-ingestion/handlers/state-batch-appended'
@@ -73,9 +73,10 @@ describe('Event Handlers: CanonicalTransactionChain.StateBatchAppended', () => {
         l1TransactionHash:
           '0x4ca72484e93cdb50fe1089984db152258c2bbffc2534dcafbfe032b596bd5b49',
       }
-      const input1: [any, StateBatchAppendedExtraData, number, any] = [
+      const input1: [any, StateBatchAppendedExtraData, number, number, any] = [
         event,
         extraData,
+        0,
         0,
         {},
       ]
