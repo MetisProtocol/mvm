@@ -30,6 +30,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 )
 
 var (
@@ -203,6 +204,11 @@ func (p *peer) MarkTransaction(hash common.Hash) {
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendTransactions(txs types.Transactions) error {
+	// If the peer is using OVM, we don't send transactions via p2p
+	if rcfg.UsingOVM {
+		return nil
+	}
+
 	// Mark all the transactions as known, but ensure we don't overflow our limits
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())
@@ -216,6 +222,11 @@ func (p *peer) SendTransactions(txs types.Transactions) error {
 // AsyncSendTransactions queues list of transactions propagation to a remote
 // peer. If the peer's broadcast queue is full, the event is silently dropped.
 func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
+	// If the peer is using OVM, we don't send transactions via p2p
+	if rcfg.UsingOVM {
+		return
+	}
+
 	select {
 	case p.queuedTxs <- txs:
 		// Mark all the transactions as known, but ensure we don't overflow our limits
