@@ -409,7 +409,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 			// log.Debug("Special info in worker: newWorkLoop timer.C", "resubmit", resubmit, "cmp to DeSeqBlock", w.chain.CurrentBlock().NumberU64()+1)
 			seqModel, mpcEnabled := w.eth.SyncService().GetSeqAndMpcStatus()
-			log.Info("Miner newWorkLoop time.C", "seqModel", seqModel, "mpcEnabled", mpcEnabled, "isRunning", w.isRunning(), "resubmit", resubmit)
+			log.Debug("Miner newWorkLoop time.C", "seqModel", seqModel, "mpcEnabled", mpcEnabled, "isRunning", w.isRunning(), "resubmit", resubmit)
 			if !seqModel {
 				continue
 			}
@@ -418,7 +418,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() && resubmit {
 				// Short circuit if no new transaction arrives.
 				if atomic.LoadInt32(&w.newTxs) == 0 {
-					log.Info("Miner newWorkLoop time.C, timer reset by w.newTxs empty")
+					log.Debug("Miner newWorkLoop time.C, timer reset by w.newTxs empty")
 					timer.Reset(recommit)
 					continue
 				}
