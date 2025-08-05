@@ -2001,7 +2001,7 @@ func (s *SyncService) syncQueueTransactionRange(start, end uint64) error {
 	log.Info("Syncing enqueue transactions range", "start", start, "end", end)
 	for i := start; i <= end; i++ {
 		// NOTE, andromeda queue
-		if s.bc.Config().ChainID.Int64() == 1088 && (i == 20397 || i == 37446) {
+		if s.bc.Config().IsMetisMainnet() && (i == 20397 || i == 37446) {
 			continue
 		}
 		tx, err := s.client.GetEnqueue(i)
