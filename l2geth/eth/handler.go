@@ -394,30 +394,6 @@ func (pm *ProtocolManager) removePeer(id string) {
 	}
 }
 
-// start a ticker to resolve peer block writter abort by future blocks
-func (pm *ProtocolManager) startFetcherTicker() {
-	// NOTE 20210724
-	pm.tickerFetcherSync = time.NewTicker(5 * time.Second)
-	for {
-		select {
-		case <-pm.tickerFetcherSync.C:
-			ts := time.Now().Unix()
-			if rcfg.PeerHealthCheckSeconds > 0 && pm.peerSyncTime > 0 && ts-pm.peerSyncTime > rcfg.PeerHealthCheckSeconds {
-				// restart peer connection
-				log.Info("Need reconnect peers", "seconds", ts-pm.peerSyncTime, "peers len", pm.peers.Len())
-
-				peerList := pm.peers.peers
-				for _, p := range peerList {
-					pm.removePeer(p.id)
-					pm.handle(p)
-				}
-				pm.peerSyncTime = time.Now().Unix()
-				log.Info("All peers reconnecting", "peers len", pm.peers.Len())
-			}
-		}
-	}
-}
-
 func (pm *ProtocolManager) Start(maxPeers int) {
 	pm.maxPeers = maxPeers
 
@@ -433,8 +409,6 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	// start sync handlers
 	go pm.syncer()
 	go pm.txsyncLoop()
-
-	go pm.startFetcherTicker()
 }
 
 func (pm *ProtocolManager) Stop() {
@@ -915,6 +889,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
 			break
 		}
+		// Don't process transactions via p2p
+		if rcfg.UsingOVM {
+			return nil
+		}
 		// Transactions can be processed, parse all of them and deliver to the pool
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
@@ -1042,7 +1020,7 @@ func (pm *ProtocolManager) NodeInfo() *NodeInfo {
 }
 
 func (pm *ProtocolManager) HasRPCModule(rpcName string) bool {
-	if pm.nodeHTTPModules == nil || len(pm.nodeHTTPModules) == 0 {
+	if len(pm.nodeHTTPModules) == 0 {
 		return false
 	}
 
