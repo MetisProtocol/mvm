@@ -1,5 +1,4 @@
 /* Imports: External */
-import { Block, ethers, toNumber, TransactionResponse } from 'ethersv6'
 import {
   fromHexString,
   L2Transaction,
@@ -10,8 +9,10 @@ import {
   toHexString,
   zlibDecompress,
 } from '@metis.io/core-utils'
+import { Block, ethers, toNumber, TransactionResponse } from 'ethersv6'
 
 /* Imports: Internal */
+import { fetchBatches } from '../../../da/blob'
 import {
   BlockEntry,
   DecodedSequencerBatchTransaction,
@@ -23,8 +24,6 @@ import {
 } from '../../../types'
 import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
 import { BlobDataExpiredError, MissingElementError } from './errors'
-import { fetchBatches } from '../../../da/blob'
-import { toHex } from 'hardhat/internal/util/bigint'
 
 export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
   SequencerBatchAppendedExtraData,
@@ -341,7 +340,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
                     origin: isSequencerTx ? ethers.ZeroAddress : tx.l1TxOrigin,
                     data: isSequencerTx ? tx.rawTransaction : tx.data,
                     queueOrigin: isSequencerTx ? 'sequencer' : 'l1',
-                    value: isSequencerTx ? toHex(tx.value) : '0x0',
+                    value: isSequencerTx ? '0x' + tx.value.toString(16) : '0x0',
                     queueIndex: isSequencerTx ? null : tx.nonce,
                     decoded: isSequencerTx
                       ? decodeSequencerBatchTransaction(
@@ -440,7 +439,7 @@ const decodeSequencerBatchTransaction = (
     nonce: decodedTx.nonce.toString(),
     gasPrice: decodedTx.gasPrice.toString(),
     gasLimit: decodedTx.gasLimit.toString(),
-    value: toHex(decodedTx.value),
+    value: '0x' + decodedTx.value.toString(16),
     target: decodedTx.to ? toHexString(decodedTx.to) : null,
     data: toHexString(decodedTx.data),
     sig: {

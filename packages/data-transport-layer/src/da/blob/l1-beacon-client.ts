@@ -127,4 +127,9 @@ export class L1BeaconClient {
       return Math.floor((timestamp - genesisTime) / secondsPerSlot)
     }
   }
+
+  async getChainId(): Promise<string> {
+    const response = await this.beaconChainConfigPromise
+    return response.data.DEPOSIT_NETWORK_ID
+  }
 }

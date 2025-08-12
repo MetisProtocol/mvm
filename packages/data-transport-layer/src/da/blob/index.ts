@@ -1,6 +1,5 @@
 import { ethers } from 'ethersv6'
-import { Frame, parseFrames } from './frame'
-import { L1BeaconClient } from './l1-beacon-client'
+import { BlobDataExpiredError } from '../../services/l1-ingestion/handlers/errors'
 import {
   BatchData,
   batchReader,
@@ -9,7 +8,8 @@ import {
   RawSpanBatch,
   SpanBatchType,
 } from './channel'
-import { BlobDataExpiredError } from '../../services/l1-ingestion/handlers/errors'
+import { Frame, parseFrames } from './frame'
+import { L1BeaconClient } from './l1-beacon-client'
 
 const blobExpireBlocks = 4096 * 32
 
@@ -25,14 +25,21 @@ interface FetchBatchesConfig {
   l1Beacon: string // l1 beacon chain url
 }
 
+let chainIdHasChecked = false // whether chain id has been checked
+
 // fetch l2 batches from l1 chain
 export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
   const l1RpcProvider = new ethers.JsonRpcProvider(fetchConf.l1Rpc)
   const l1BeaconProvider = new L1BeaconClient(fetchConf.l1Beacon)
-  try {
-    await l1BeaconProvider.checkVersion()
-  } catch (e) {
-    throw new Error('Failed to ping beacon chain, connection error')
+
+  if (!chainIdHasChecked) {
+    const checkId = await l1BeaconProvider.getChainId()
+    if (Number(checkId) !== fetchConf.chainId) {
+      throw new Error(
+        `Chain ID mismatch: Beacon ${checkId} !== Expected ${fetchConf.chainId}`
+      )
+    }
+    chainIdHasChecked = true
   }
 
   const latestBlock = await l1RpcProvider.getBlockNumber()
