@@ -492,6 +492,11 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
             "State batches can only be deleted within the fraud proof window."
         );
 
+        bytes32 stateHeaderHash = batches().getByChainId(_chainId, _batchHeader.batchIndex);
+        require(disputedBatches[stateHeaderHash], "Batch is not disputed");
+        earliestDisputedBlockNumber = 0;
+        disputedBatches[stateHeaderHash] = false;
+
         _deleteBatchByChainId(_chainId, _batchHeader);
     }
 
