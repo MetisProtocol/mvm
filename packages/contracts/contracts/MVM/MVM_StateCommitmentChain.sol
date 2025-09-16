@@ -12,7 +12,7 @@ import { IMVMStateCommitmentChain } from "../L1/rollup/IMVMStateCommitmentChain.
 
 /* Interface Imports */
 import { IStateCommitmentChain } from "../L1/rollup/IStateCommitmentChain.sol";
-// import { ICanonicalTransactionChain } from "../L1/rollup/ICanonicalTransactionChain.sol";
+import { iMVM_ProposerRegistry } from "./iMVM_ProposerRegistry.sol";
 import { Lib_AddressResolver } from "../libraries/resolver/Lib_AddressResolver.sol";
 import { Lib_MerkleTree } from "../libraries/utils/Lib_MerkleTree.sol";
 import { Lib_OVMCodec } from "../libraries/codec/Lib_OVMCodec.sol";
@@ -39,6 +39,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     uint256 public DEFAULT_CHAINID = 1088;
 
     string constant public DISPUTE_GAME_FACTORY_NAME = "DisputeGameFactory";
+    string public constant MVM_PROPOSER_REGISTRY_NAME = "MVM_ProposerRegistry";
 
     /*****************
      * Public States *
@@ -133,11 +134,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
      * @inheritdoc IMVMStateCommitmentChain
      */
     function appendStateBatch(bytes32[] memory _batch, uint256 _shouldStartAtElement, bytes32 _lastBatchBlockHash, uint256 _lastBatchBlockNumber) external {
-        //require (1==0, "don't use");
-        string memory proposer = string(
-            abi.encodePacked(Lib_Uint.uint2str(DEFAULT_CHAINID), "_MVM_Proposer")
-        );
-        appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, proposer, _lastBatchBlockHash, _lastBatchBlockNumber);
+        appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, "1088_MVM_Proposer", _lastBatchBlockHash, _lastBatchBlockNumber);
     }
 
     /**
@@ -440,17 +437,11 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
             "Actual batch start index does not match expected start index."
         );
 
-        address proposerAddr = resolve(_proposer);
+        require(keccak256(abi.encodePacked(_proposer)) == keccak256(abi.encodePacked(Lib_Uint.uint2str(_chainId), "_MVM_Proposer")), "Proposer name mismatch");
 
-        // Proposers must have previously staked at the BondManager
-        require(
-            IBondManager(resolve("BondManager")).isCollateralizedByChainId(
-                _chainId,
-                msg.sender,
-                proposerAddr
-            ),
-            "Proposer does not have enough collateral posted"
-        );
+        // msg sender must be the proposer
+        address proposerAddr = iMVM_ProposerRegistry(resolve(MVM_PROPOSER_REGISTRY_NAME)).getProposer(_chainId);    
+        require(proposerAddr == msg.sender,"Proposer is not the current proposer for this chain");
 
         require(_batch.length > 0, "Cannot submit an empty state batch.");
 
