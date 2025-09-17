@@ -426,7 +426,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         uint256 _chainId,
         bytes32[] memory _batch,
         uint256 _shouldStartAtElement,
-        string memory _proposer,
+        string memory, // Note: _proposerName, not used
         bytes32 _lastBatchBlockHash,
         uint256 _lastBatchBlockNumber
     ) public override {
@@ -437,21 +437,12 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
             "Actual batch start index does not match expected start index."
         );
 
-        require(keccak256(abi.encodePacked(_proposer)) == keccak256(abi.encodePacked(Lib_Uint.uint2str(_chainId), "_MVM_Proposer")), "Proposer name mismatch");
-
         // msg sender must be the proposer
-        address proposerAddr = iMVM_ProposerRegistry(resolve(MVM_PROPOSER_REGISTRY_NAME)).getProposer(_chainId);    
-        require(proposerAddr == msg.sender,"Proposer is not the current proposer for this chain");
+        address proposerAddr = iMVM_ProposerRegistry(resolve(MVM_PROPOSER_REGISTRY_NAME))
+            .getProposer(_chainId);
+        require(proposerAddr == msg.sender, "Proposer is not the current proposer for this chain");
 
         require(_batch.length > 0, "Cannot submit an empty state batch.");
-
-        // Not check this when submit transaction batch to inbox address
-        // require(
-        //     getTotalElementsByChainId(_chainId) + _batch.length <=
-        //         ICanonicalTransactionChain(resolve("CanonicalTransactionChain"))
-        //             .getTotalElementsByChainId(_chainId),
-        //     "Number of state roots cannot exceed the number of canonical transactions."
-        // );
 
         // Pass the block's timestamp and the publisher of the data
         // to be used in the fraud proofs
