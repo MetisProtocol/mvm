@@ -38,7 +38,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
     uint256 public DEFAULT_CHAINID = 1088;
 
-    string constant public DISPUTE_GAME_FACTORY_NAME = "DisputeGameFactory";
+    string public constant DISPUTE_GAME_FACTORY_NAME = "DisputeGameFactory";
     string public constant MVM_PROPOSER_REGISTRY_NAME = "MVM_ProposerRegistry";
 
     /*****************
@@ -84,9 +84,15 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function findEarliestDisputableBatch(uint256 _chainId) public view returns (BatchInfo memory _lastFinalized, BatchInfo memory _earliestDisputable) {
+    function findEarliestDisputableBatch(
+        uint256 _chainId
+    ) public view returns (BatchInfo memory _lastFinalized, BatchInfo memory _earliestDisputable) {
         uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
-        (uint256 batchIndex, bytes32 batchHeaderHash, uint256 lastL2BlockNumberInBatch) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
+        (
+            uint256 batchIndex,
+            bytes32 batchHeaderHash,
+            uint256 lastL2BlockNumberInBatch
+        ) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
         _earliestDisputable = BatchInfo({
             batchHeaderHash: batchHeaderHash,
             lastL2BlockNumber: lastL2BlockNumberInBatch
@@ -133,8 +139,20 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function appendStateBatch(bytes32[] memory _batch, uint256 _shouldStartAtElement, bytes32 _lastBatchBlockHash, uint256 _lastBatchBlockNumber) external {
-        appendStateBatchByChainId(DEFAULT_CHAINID, _batch, _shouldStartAtElement, "1088_MVM_Proposer", _lastBatchBlockHash, _lastBatchBlockNumber);
+    function appendStateBatch(
+        bytes32[] memory _batch,
+        uint256 _shouldStartAtElement,
+        bytes32 _lastBatchBlockHash,
+        uint256 _lastBatchBlockNumber
+    ) external {
+        appendStateBatchByChainId(
+            DEFAULT_CHAINID,
+            _batch,
+            _shouldStartAtElement,
+            "1088_MVM_Proposer",
+            _lastBatchBlockHash,
+            _lastBatchBlockNumber
+        );
     }
 
     /**
@@ -158,11 +176,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function insideFraudProofWindow(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)
-        public
-        view
-        returns (bool _inside)
-    {
+    function insideFraudProofWindow(
+        Lib_OVMCodec.ChainBatchHeader memory _batchHeader
+    ) public view returns (bool _inside) {
         (uint256 timestamp, , , ) = _decodeExtraData(_batchHeader.extraData);
 
         require(timestamp != 0, "Batch header timestamp cannot be zero");
@@ -185,7 +201,11 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function checkBatchBlock(uint256 _chainId, uint256 _batchIndex, uint256 _l2BlockNumber) public view returns (bytes32) {
+    function checkBatchBlock(
+        uint256 _chainId,
+        uint256 _batchIndex,
+        uint256 _l2BlockNumber
+    ) public view returns (bytes32) {
         // Get the batch header hash for the provided index
         bytes32 stateHeaderHash = batches().getByChainId(_chainId, _batchIndex);
         require(stateHeaderHash != bytes32(0), "batch not found");
@@ -196,7 +216,10 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         uint256 batchBlockNumberStart = batchLastL2BlockNumbers[prevBatchHeaderHash] + 1;
         require(batchBlockNumberStart > 1, "Batch start block number must be greater than 1");
         uint256 batchBlockNumberEnd = batchLastL2BlockNumbers[stateHeaderHash];
-        require(_l2BlockNumber >= batchBlockNumberStart && _l2BlockNumber <= batchBlockNumberEnd, "L2 block number not in batch range");
+        require(
+            _l2BlockNumber >= batchBlockNumberStart && _l2BlockNumber <= batchBlockNumberEnd,
+            "L2 block number not in batch range"
+        );
 
         return stateHeaderHash;
     }
@@ -217,7 +240,10 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         // We need to find what the earliest disputable batch would be NOW (at timeout)
         // This simulates what the game initialization would have done
         uint256 earliestDisputableTime = block.timestamp - FRAUD_PROOF_WINDOW;
-        (uint256 earliestBatchIndex, , ) = _findBatchWithinTimeWindow(_chainId, earliestDisputableTime);
+        (uint256 earliestBatchIndex, , ) = _findBatchWithinTimeWindow(
+            _chainId,
+            earliestDisputableTime
+        );
 
         require(_batchIndex >= earliestBatchIndex, "invalid batch index");
 
@@ -259,8 +285,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
         // Grab the verified address of the game based on the game data.
         // slither-disable-next-line unused-return
-        (IDisputeGame factoryRegisteredGame,) =
-                            IDisputeGameFactory(resolve(DISPUTE_GAME_FACTORY_NAME)).games({ _gameType: gameType, _rootClaim: rootClaim, _extraData: extraData });
+        (IDisputeGame factoryRegisteredGame, ) = IDisputeGameFactory(
+            resolve(DISPUTE_GAME_FACTORY_NAME)
+        ).games({ _gameType: gameType, _rootClaim: rootClaim, _extraData: extraData });
 
         // Must be a valid game.
         if (address(factoryRegisteredGame) != address(game)) revert UnregisteredGame();
@@ -280,7 +307,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
      * Internal Functions *
      **********************/
 
-    function _decodeExtraData(bytes memory _extraData) internal pure returns (uint256, address, bytes32, uint256) {
+    function _decodeExtraData(
+        bytes memory _extraData
+    ) internal pure returns (uint256, address, bytes32, uint256) {
         uint256 timestamp;
         address sequencer;
         bytes32 lastBlockHash;
@@ -288,14 +317,20 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         if (_extraData.length == 0x40) {
             (timestamp, sequencer) = abi.decode(_extraData, (uint256, address));
         } else if (_extraData.length == 0x80) {
-            (timestamp, sequencer, lastBlockHash, lastBlockNumber) = abi.decode(_extraData, (uint256, address, bytes32, uint256));
+            (timestamp, sequencer, lastBlockHash, lastBlockNumber) = abi.decode(
+                _extraData,
+                (uint256, address, bytes32, uint256)
+            );
         } else {
             revert("Invalid extra data length");
         }
         return (timestamp, sequencer, lastBlockHash, lastBlockNumber);
     }
 
-    function _findBatchWithinTimeWindow(uint256 _chainId, uint256 earliestTime) internal view returns (uint256, bytes32, uint256) {
+    function _findBatchWithinTimeWindow(
+        uint256 _chainId,
+        uint256 earliestTime
+    ) internal view returns (uint256, bytes32, uint256) {
         bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
 
         require(batchTimesOfChain.length > 0, "No disputable batch has been appended yet");
@@ -345,7 +380,7 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
      * @return _inside Whether or not the batch is inside the fraud proof window.
      */
     function _insideFraudProofWindowByChainId(
-       uint256 _timestamp
+        uint256 _timestamp
     ) internal view returns (bool _inside) {
         require(_timestamp != 0, "Batch header timestamp cannot be zero");
         return _timestamp + FRAUD_PROOF_WINDOW > block.timestamp;
@@ -366,11 +401,10 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
      * @param _lastSequencerTimestamp Timestamp of the last batch submitted by the sequencer.
      * @return Encoded batch context.
      */
-    function _makeBatchExtraData(uint40 _totalElements, uint40 _lastSequencerTimestamp)
-        internal
-        pure
-        returns (bytes27)
-    {
+    function _makeBatchExtraData(
+        uint40 _totalElements,
+        uint40 _lastSequencerTimestamp
+    ) internal pure returns (bytes27) {
         bytes27 extraData;
         assembly {
             extraData := _totalElements
@@ -384,12 +418,9 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function getTotalElementsByChainId(uint256 _chainId)
-        public
-        view
-        override
-        returns (uint256 _totalElements)
-    {
+    function getTotalElementsByChainId(
+        uint256 _chainId
+    ) public view override returns (uint256 _totalElements) {
         (uint40 totalElements, ) = _getBatchExtraDataByChainId(_chainId);
         return uint256(totalElements);
     }
@@ -397,24 +428,18 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function getTotalBatchesByChainId(uint256 _chainId)
-        public
-        view
-        override
-        returns (uint256 _totalBatches)
-    {
+    function getTotalBatchesByChainId(
+        uint256 _chainId
+    ) public view override returns (uint256 _totalBatches) {
         return batches().lengthByChainId(_chainId);
     }
 
     /**
      * @inheritdoc IMVMStateCommitmentChain
      */
-    function getLastSequencerTimestampByChainId(uint256 _chainId)
-        public
-        view
-        override
-        returns (uint256 _lastSequencerTimestamp)
-    {
+    function getLastSequencerTimestampByChainId(
+        uint256 _chainId
+    ) public view override returns (uint256 _lastSequencerTimestamp) {
         (, uint40 lastSequencerTimestamp) = _getBatchExtraDataByChainId(_chainId);
         return uint256(lastSequencerTimestamp);
     }
@@ -542,11 +567,10 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
      * @param _lastSequencerTimestamp Timestamp of the last batch submitted by the sequencer.
      * @return Encoded batch context.
      */
-    function _makeBatchExtraDataByChainId(uint40 _totalElements, uint40 _lastSequencerTimestamp)
-        internal
-        pure
-        returns (bytes27)
-    {
+    function _makeBatchExtraDataByChainId(
+        uint40 _totalElements,
+        uint40 _lastSequencerTimestamp
+    ) internal pure returns (bytes27) {
         bytes27 extraData;
         assembly {
             extraData := _totalElements
@@ -606,8 +630,14 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
         );
 
         bytes16[] storage batchTimesOfChain = batchTimes[_chainId];
-        batchTimesOfChain.push(bytes16(uint128(uint256(lastSequencerTimestamp) << 64) | uint128(batchHeader.batchIndex)));
-        batchLastL2BlockNumbers[batchHeaderHash] = batchHeader.prevTotalElements + batchHeader.batchSize;
+        batchTimesOfChain.push(
+            bytes16(
+                uint128(uint256(lastSequencerTimestamp) << 64) | uint128(batchHeader.batchIndex)
+            )
+        );
+        batchLastL2BlockNumbers[batchHeaderHash] =
+            batchHeader.prevTotalElements +
+            batchHeader.batchSize;
     }
 
     /**
@@ -627,7 +657,10 @@ contract MVM_StateCommitmentChain is IMVMStateCommitmentChain, Lib_AddressResolv
 
         // clear the fdg extra data if needed
         if (_batchHeader.extraData.length >= 0x80) {
-            (uint256 timestamp, , , ) = abi.decode(_batchHeader.extraData, (uint256, address, bytes32, uint256));
+            (uint256 timestamp, , , ) = abi.decode(
+                _batchHeader.extraData,
+                (uint256, address, bytes32, uint256)
+            );
             (, bytes32 anchoredBatchHeaderHash, ) = _findBatchWithinTimeWindow(_chainId, timestamp);
 
             bytes32 batchHeaderHash = Lib_OVMCodec.hashBatchHeader(_batchHeader);
