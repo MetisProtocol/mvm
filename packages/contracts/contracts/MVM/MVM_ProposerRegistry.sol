@@ -14,6 +14,8 @@ import { iMVM_ProposerRegistry } from "./iMVM_ProposerRegistry.sol";
 contract MVM_ProposerRegistry is Ownable, iMVM_ProposerRegistry {
     mapping(uint256 => address) public proposers;
 
+    event ProposerSet(uint256 indexed chainId, address indexed proposer);
+
     // Initialize the contract with the deployer as the owner
     // The owner is the security council minority multisig
     constructor(address _owner) {
@@ -24,6 +26,7 @@ contract MVM_ProposerRegistry is Ownable, iMVM_ProposerRegistry {
     // Note: the proposer can be a zero address to disable proposals from that chain
     function setProposer(uint256 _chainId, address _proposer) external override onlyOwner {
         proposers[_chainId] = _proposer;
+        emit ProposerSet(_chainId, _proposer);
     }
 
     function getProposer(uint256 _chainId) external view override returns (address) {
