@@ -13,13 +13,18 @@ class DefaultRequestHandler implements BeaconChainRequestHandler {
   }
 
   async request(url: string, params?: any): Promise<any> {
-    const response = await axios.get(`${url}`, {
+    const response = await axios.get(url, {
       baseURL: this.baseUrl,
       params,
+      validateStatus: null, // we'll handle status codes manually
     })
 
     if (response.status !== 200) {
-      throw new Error(`Failed to fetch ${url} from beacon chain`)
+      throw new Error(
+        `Failed to fetch ${url} from beacon chain with status code ${
+          response.status
+        }: Data: ${JSON.stringify(response.data)}`
+      )
     }
 
     return response.data
