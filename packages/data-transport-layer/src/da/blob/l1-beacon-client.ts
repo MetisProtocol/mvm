@@ -1,87 +1,30 @@
-import axios from 'axios'
+import axios, { AxiosInstance } from 'axios'
 import { Blob } from './blob'
 
-interface BeaconChainRequestHandler {
-  request(url: string, params?: any): Promise<any>
-}
-
-class DefaultRequestHandler implements BeaconChainRequestHandler {
-  private readonly baseUrl: string
-
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl
-  }
-
-  async request(url: string, params?: any): Promise<any> {
-    const response = await axios.get(url, {
-      baseURL: this.baseUrl,
-      params,
-      validateStatus: null, // we'll handle status codes manually
-    })
-
-    if (response.status !== 200) {
-      throw new Error(
-        `Failed to fetch ${url} from beacon chain with status code ${
-          response.status
-        }: Data: ${JSON.stringify(response.data)}`
-      )
-    }
-
-    return response.data
-  }
-}
-
-class DrpcRequestHandler extends DefaultRequestHandler {
-  private readonly token?: string
-
-  constructor(baseUrl: string) {
-    // base url format is: https://lb.drpc.org/rest/eth-beacon-chain-sepolia?dkey={token}
-    // we need to parse the url first and extract the base url and the token
-    const url = new URL(baseUrl)
-    const searchParams = new URLSearchParams(url.search)
-
-    super(url.origin + url.pathname)
-
-    this.token = searchParams.get('dkey')
-  }
-
-  async request(url: string, params?: any): Promise<any> {
-    params = params || {}
-    if (this.token) {
-      params.dkey = this.token
-    }
-
-    return super.request(url, params)
-  }
-}
-
-class HandlerFactory {
-  static createHandler(baseUrl: string): BeaconChainRequestHandler {
-    const url = new URL(baseUrl)
-    if (url.hostname.includes('drpc.org')) {
-      return new DrpcRequestHandler(baseUrl)
-    }
-
-    return new DefaultRequestHandler(baseUrl)
-  }
-}
-
 export class L1BeaconClient {
-  private readonly handler: BeaconChainRequestHandler
+  private readonly http: AxiosInstance
 
   public readonly beaconChainGenesisPromise: Promise<any>
-
   public readonly beaconChainConfigPromise: Promise<any>
 
-  constructor(baseUrl: string) {
-    this.handler = HandlerFactory.createHandler(baseUrl)
+  constructor(endpoint: string) {
+    const parsed = new URL(endpoint)
+
+    // extract baseURL (origin + pathname, trim trailing slash)
+    const normalizedPath = parsed.pathname.endsWith('/')
+      ? parsed.pathname.slice(0, -1)
+      : parsed.pathname
+    const baseURL = `${parsed.origin}${normalizedPath}`
+
+    // create axios instance with baseURL and default params from endpoint.searchParams
+    const defaultParams = Object.fromEntries(parsed.searchParams)
+    this.http = axios.create({
+      baseURL,
+      params: defaultParams,
+    })
 
     this.beaconChainGenesisPromise = this.request(`eth/v1/beacon/genesis`)
     this.beaconChainConfigPromise = this.request(`eth/v1/config/spec`)
-  }
-
-  async request(url: string, params?: any): Promise<any> {
-    return this.handler.request(url, params)
   }
 
   // checks the beacon chain version, usually just use this as a ping method
@@ -136,5 +79,30 @@ export class L1BeaconClient {
   async getChainId(): Promise<string> {
     const response = await this.beaconChainConfigPromise
     return response.data.DEPOSIT_NETWORK_ID
+  }
+
+  private async request(
+    url: string,
+    params?: Record<string, unknown>
+  ): Promise<any> {
+    // Use axios instance so baseURL and default params are handled correctly.
+    // Provided `params` will override defaults.
+    const response = await this.http.request({
+      url,
+      method: 'GET',
+      params: params ?? undefined,
+      validateStatus: () => true, // handle status manually below
+    })
+
+    // accept any 2xx as success
+    if (!(response.status >= 200 && response.status < 300)) {
+      throw new Error(
+        `Failed to fetch ${url} from beacon chain with status code ${
+          response.status
+        }: Data: ${JSON.stringify(response.data)}`
+      )
+    }
+
+    return response.data
   }
 }
