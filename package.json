@@ -34,6 +34,7 @@
     "patch-package": "^6.4.7",
     "prettier": "^2.3.1",
     "prettier-plugin-solidity": "^1.0.0-beta.18",
+    "rimraf": "^6.0.1",
     "solhint-plugin-prettier": "^0.0.5",
     "typescript": "^4.3.5"
   },
@@ -57,5 +58,8 @@
     "@codechecks/client": "^0.1.11",
     "ethersv6": "npm:ethers@~6.13.4"
   },
-  "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72"
+  "resolutions": {
+    "node-gyp": "^9.4.0"
+  },
+  "packageManager": "yarn@4.10.3"
 }
