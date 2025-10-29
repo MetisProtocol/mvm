@@ -15,9 +15,9 @@ RUN apk add --update --no-cache git curl python3 bash jq ca-certificates
 
 WORKDIR /opt/optimism/
 
-COPY --from=builder /optimism/*.json /optimism/yarn.lock ./
+COPY --from=builder /optimism/*.json /optimism/yarn.lock /optimism/.yarnrc.yml ./
+COPY --from=builder /optimism/.yarn ./.yarn
 COPY --from=builder /optimism/node_modules ./node_modules
-RUN corepack prepare && corepack enable
 
 # copy deps (would have been nice if docker followed the symlinks required)
 COPY --from=builder /optimism/packages/core-utils/package.json ./packages/core-utils/package.json
@@ -27,7 +27,6 @@ COPY --from=builder /optimism/packages/core-utils/dist ./packages/core-utils/dis
 WORKDIR /opt/optimism/packages/contracts
 COPY --from=builder /optimism/packages/contracts/dist ./dist
 COPY --from=builder /optimism/packages/contracts/*.json ./
-COPY --from=builder /optimism/packages/contracts/node_modules ./node_modules
 COPY --from=builder /optimism/packages/contracts/artifacts ./artifacts
 COPY --from=builder /optimism/packages/contracts/src ./src
 
@@ -41,7 +40,8 @@ COPY packages/contracts/test/helpers/constants.ts ./test/helpers/constants.ts
 COPY packages/contracts/scripts ./scripts
 
 COPY --chmod=775 ./ops/scripts/deployer.sh .
-ENTRYPOINT ["yarn", "--cwd", "packages/contracts", "run", "deploy"]
+RUN corepack prepare && corepack enable
+ENTRYPOINT ["yarn", "run", "deploy"]
 
 FROM node:22-alpine AS dtl
 RUN apk add --no-cache curl bash jq ca-certificates

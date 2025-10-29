@@ -12,3 +12,5 @@ l2geth/signer/fourbyte
 l2geth/cmd/puppeth
 l2geth/cmd/clef
 go/gas-oracle/gas-oracle
+packages/**/dist
+packages/**/node_modules
