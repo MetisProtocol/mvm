@@ -56,7 +56,7 @@
   "dependencies": {
     "@changesets/cli": "^2.16.0",
     "@codechecks/client": "^0.1.11",
-    "ethersv6": "npm:ethers@~6.13.4"
+    "ethersv6": "github:ericlee42/ethers#metis"
   },
   "resolutions": {
     "node-gyp": "^9.4.0"

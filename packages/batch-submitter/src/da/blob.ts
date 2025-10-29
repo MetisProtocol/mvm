@@ -1,11 +1,11 @@
-import { createHash } from 'crypto'
 import {
-  Blob as CBlob,
   blobToKzgCommitment,
   Bytes48,
+  Blob as CBlob,
   computeBlobKzgProof,
   verifyBlobKzgProof,
 } from 'c-kzg'
+import { createHash } from 'crypto'
 import { Frame } from './types'
 
 const BlobSize = 4096 * 32

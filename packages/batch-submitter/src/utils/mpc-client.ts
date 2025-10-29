@@ -2,7 +2,7 @@ import { Logger } from '@eth-optimism/common-ts'
 import '@metis.io/core-utils'
 import * as kzg from 'c-kzg'
 import { randomUUID } from 'crypto'
-import { ethers, toBigInt, toNumber } from 'ethersv6'
+import { ethers, toBigInt, toNumber, TransactionLike } from 'ethersv6'
 import * as http from 'http'
 import * as https from 'https'
 import { URL } from 'url'
@@ -186,7 +186,7 @@ export class MpcClient {
     })
 
     // call mpc to sign tx
-    const unsignedTx: any = {
+    const unsignedTx: TransactionLike<string> = {
       data: tx.data,
       nonce: toNumber(tx.nonce),
       to: tx.to,
@@ -233,13 +233,13 @@ export class MpcClient {
             throw new Error('maxFeePerBlobGas is required for blob tx')
           }
 
-          if (!tx.blobs || !tx.blobVersionedHashes) {
-            throw new Error('blobs and their hashes are required for blob tx')
+          if (!tx.blobs) {
+            throw new Error('blobs are required for blob tx')
           }
 
           unsignedTx.maxFeePerBlobGas = toBigInt(tx.maxFeePerBlobGas)
+          unsignedTx.blobVersion = tx.blobVersion
           unsignedTx.blobs = tx.blobs
-          unsignedTx.blobVersionedHashes = tx.blobVersionedHashes
           unsignedTx.kzg = kzg
         }
       }

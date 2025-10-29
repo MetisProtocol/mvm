@@ -51,7 +51,7 @@
   "dependencies": {
     "@metis.io/minio": "^7.0.28",
     "chai": "^4.3.4",
-    "ethersv6": "npm:ethers@~6.13.4",
+    "ethersv6": "github:ericlee42/ethers#metis",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.2.32"
   }
