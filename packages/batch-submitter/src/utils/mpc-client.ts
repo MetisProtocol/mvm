@@ -238,10 +238,10 @@ export class MpcClient {
           }
 
           unsignedTx.maxFeePerBlobGas = toBigInt(tx.maxFeePerBlobGas)
+          unsignedTx.blobVersion = 1
           unsignedTx.blobs = tx.blobs
           unsignedTx.blobVersionedHashes = tx.blobVersionedHashes
           unsignedTx.kzg = kzg
-          unsignedTx.blobVersion = 1
         }
       }
     }
