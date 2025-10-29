@@ -233,14 +233,13 @@ export class MpcClient {
             throw new Error('maxFeePerBlobGas is required for blob tx')
           }
 
-          if (!tx.blobs || !tx.blobVersionedHashes) {
-            throw new Error('blobs and their hashes are required for blob tx')
+          if (!tx.blobs) {
+            throw new Error('blobs are required for blob tx')
           }
 
           unsignedTx.maxFeePerBlobGas = toBigInt(tx.maxFeePerBlobGas)
-          unsignedTx.blobVersion = 1
+          unsignedTx.blobVersion = tx.blobVersion
           unsignedTx.blobs = tx.blobs
-          unsignedTx.blobVersionedHashes = tx.blobVersionedHashes
           unsignedTx.kzg = kzg
         }
       }
