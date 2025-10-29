@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:22-alpine
 
 # bring in the config files for installing deps
 COPY [ \

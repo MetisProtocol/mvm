@@ -1,5 +1,5 @@
 #syntax=docker/dockerfile:1
-FROM node:20-bullseye-slim AS builder
+FROM node:22-bullseye-slim AS builder
 RUN apt update -y \
     && apt install -y git python3 python3-dev pkg-config libusb-1.0-0-dev make g++ gcc build-essential libudev-dev
 WORKDIR /optimism
@@ -10,13 +10,14 @@ RUN corepack prepare && corepack enable
 RUN yarn install --immutable
 RUN yarn build
 
-FROM node:20-alpine AS deployer
+FROM node:22-alpine AS deployer
 RUN apk add --update --no-cache git curl python3 bash jq ca-certificates
 
 WORKDIR /opt/optimism/
 
 COPY --from=builder /optimism/*.json /optimism/yarn.lock ./
 COPY --from=builder /optimism/node_modules ./node_modules
+RUN corepack prepare && corepack enable
 
 # copy deps (would have been nice if docker followed the symlinks required)
 COPY --from=builder /optimism/packages/core-utils/package.json ./packages/core-utils/package.json
@@ -40,10 +41,9 @@ COPY packages/contracts/test/helpers/constants.ts ./test/helpers/constants.ts
 COPY packages/contracts/scripts ./scripts
 
 COPY --chmod=775 ./ops/scripts/deployer.sh .
-ENTRYPOINT yarn run deploy
+ENTRYPOINT ["yarn", "--cwd", "packages/contracts", "run", "deploy"]
 
-
-FROM node:20-alpine AS dtl
+FROM node:22-alpine AS dtl
 RUN apk add --no-cache curl bash jq ca-certificates
 
 WORKDIR /opt/optimism
@@ -73,7 +73,7 @@ COPY --chmod=775 ./ops/scripts/dtl.sh .
 VOLUME [ "/data" ]
 ENTRYPOINT ["./dtl.sh"]
 
-FROM node:20-alpine AS relayer
+FROM node:22-alpine AS relayer
 RUN apk add --no-cache curl bash jq ca-certificates
 
 WORKDIR /opt/optimism
@@ -103,7 +103,7 @@ COPY --from=builder /optimism/packages/message-relayer/node_modules ./node_modul
 COPY  --chmod=775 ./ops/scripts/relayer.sh .
 ENTRYPOINT ["./relayer.sh"]
 
-FROM node:20-alpine AS batch-submitter
+FROM node:22-alpine AS batch-submitter
 RUN apk add --no-cache curl bash jq ca-certificates
 
 WORKDIR /opt/optimism
