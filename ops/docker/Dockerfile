@@ -1,27 +1,14 @@
 #syntax=docker/dockerfile:1
-FROM node:20-bookworm-slim AS builder
+FROM node:20-bullseye-slim AS builder
 RUN apt update -y \
     && apt install -y git python3 python3-dev pkg-config libusb-1.0-0-dev make g++ gcc build-essential libudev-dev
 WORKDIR /optimism
 
-# Install depenendencies
-COPY *.json yarn.lock ./
-COPY packages/core-utils/package.json ./packages/core-utils/package.json
-COPY packages/common-ts/package.json ./packages/common-ts/package.json
-COPY packages/contracts/package.json ./packages/contracts/package.json
-COPY packages/data-transport-layer/package.json ./packages/data-transport-layer/package.json
-COPY packages/batch-submitter/package.json ./packages/batch-submitter/package.json
-COPY packages/message-relayer/package.json ./packages/message-relayer/package.json
-COPY packages/replica-healthcheck/package.json ./packages/replica-healthcheck/package.json
-COPY packages/regenesis-surgery/package.json ./packages/regenesis-surgery/package.json
-COPY integration-tests/package.json ./integration-tests/package.json
+# Install dependencies
+COPY . .
 RUN corepack prepare && corepack enable
 RUN yarn install --immutable
-# Build projects
-COPY ./packages ./packages
-COPY ./integration-tests ./integration-tests
 RUN yarn build
-RUN yarn workspace @eth-optimism/integration-tests build
 
 FROM node:20-alpine AS deployer
 RUN apk add --update --no-cache git curl python3 bash jq ca-certificates
