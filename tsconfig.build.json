@@ -13,9 +13,7 @@
     "skipLibCheck": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "typeRoots": [
-      "node_modules/@types"
-    ]
+    "typeRoots": []
   },
   "exclude": [
     "node_modules",

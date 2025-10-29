@@ -1,12 +1,11 @@
 #syntax=docker/dockerfile:1
-FROM node:18-bullseye-slim AS builder
+FROM node:20-bookworm-slim AS builder
 RUN apt update -y \
-    && apt install -y git python3 pkg-config libusb-1.0-0-dev make g++ gcc build-essential libudev-dev
+    && apt install -y git python3 python3-dev pkg-config libusb-1.0-0-dev make g++ gcc build-essential libudev-dev
 WORKDIR /optimism
 
 # Install depenendencies
 COPY *.json yarn.lock ./
-COPY patches ./patches
 COPY packages/core-utils/package.json ./packages/core-utils/package.json
 COPY packages/common-ts/package.json ./packages/common-ts/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
@@ -16,15 +15,15 @@ COPY packages/message-relayer/package.json ./packages/message-relayer/package.js
 COPY packages/replica-healthcheck/package.json ./packages/replica-healthcheck/package.json
 COPY packages/regenesis-surgery/package.json ./packages/regenesis-surgery/package.json
 COPY integration-tests/package.json ./integration-tests/package.json
-RUN yarn install --frozen-lockfile
+RUN corepack prepare && corepack enable
+RUN yarn install --immutable
 # Build projects
 COPY ./packages ./packages
 COPY ./integration-tests ./integration-tests
 RUN yarn build
 RUN yarn workspace @eth-optimism/integration-tests build
 
-
-FROM node:18-alpine AS deployer
+FROM node:20-alpine AS deployer
 RUN apk add --update --no-cache git curl python3 bash jq ca-certificates
 
 WORKDIR /opt/optimism/
@@ -57,7 +56,7 @@ COPY --chmod=775 ./ops/scripts/deployer.sh .
 ENTRYPOINT yarn run deploy
 
 
-FROM node:18-alpine AS dtl
+FROM node:20-alpine AS dtl
 RUN apk add --no-cache curl bash jq ca-certificates
 
 WORKDIR /opt/optimism
@@ -87,7 +86,7 @@ COPY --chmod=775 ./ops/scripts/dtl.sh .
 VOLUME [ "/data" ]
 ENTRYPOINT ["./dtl.sh"]
 
-FROM node:18-alpine AS relayer
+FROM node:20-alpine AS relayer
 RUN apk add --no-cache curl bash jq ca-certificates
 
 WORKDIR /opt/optimism
@@ -117,7 +116,7 @@ COPY --from=builder /optimism/packages/message-relayer/node_modules ./node_modul
 COPY  --chmod=775 ./ops/scripts/relayer.sh .
 ENTRYPOINT ["./relayer.sh"]
 
-FROM node:18-alpine AS batch-submitter
+FROM node:20-alpine AS batch-submitter
 RUN apk add --no-cache curl bash jq ca-certificates
 
 WORKDIR /opt/optimism
@@ -146,3 +145,4 @@ COPY --from=builder /optimism/packages/batch-submitter/node_modules ./node_modul
 COPY --chmod=775 ./ops/scripts/batches.sh .
 VOLUME [ "/data" ]
 ENTRYPOINT ["./batches.sh"]
+

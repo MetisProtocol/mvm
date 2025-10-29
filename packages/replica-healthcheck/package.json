@@ -31,8 +31,8 @@
   "dependencies": {
     "@eth-optimism/common-ts": "0.1.5",
     "@metis.io/core-utils": "^0.6.1",
-    "ethers": "^5.4.5",
     "dotenv": "^10.0.0",
+    "ethers": "^5.4.5",
     "express": "^4.17.1",
     "express-prom-bundle": "^6.3.6",
     "node-cron": "^3.0.0",

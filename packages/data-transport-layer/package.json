@@ -36,9 +36,8 @@
     "axios": "^0.21.1",
     "bcfg": "^0.1.6",
     "bfj": "^7.0.2",
-    "rlp": "^3.0.0",
-    "c-kzg": "^4.0.1",
     "browser-or-node": "^1.3.0",
+    "c-kzg": "^4.0.1",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "ethersv6": "npm:ethers@~6.13.4",
@@ -48,7 +47,8 @@
     "levelup": "^4.4.0",
     "merkletreejs": "^0.3.10",
     "node-fetch": "^2.6.1",
-    "pako": "^2.1.0"
+    "pako": "^2.1.0",
+    "rlp": "^3.0.0"
   },
   "devDependencies": {
     "@types/browser-or-node": "^1.3.0",
