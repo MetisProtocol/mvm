@@ -1,14 +1,4 @@
 /* External Imports */
-import { Promise as bPromise } from 'bluebird'
-import {
-  ethers,
-  Provider,
-  Signer,
-  toBeHex,
-  toBigInt,
-  TransactionReceipt,
-  TransactionRequest,
-} from 'ethersv6'
 import { Logger } from '@eth-optimism/common-ts'
 import {
   encodeHex,
@@ -22,18 +12,24 @@ import {
   toHexString,
   zlibCompressHexString,
 } from '@metis.io/core-utils'
+import { Promise as bPromise } from 'bluebird'
+import {
+  ethers,
+  Provider,
+  Signer,
+  toBeHex,
+  toBigInt,
+  TransactionReceipt,
+  TransactionRequest,
+} from 'ethersv6'
 
 /* Internal Imports */
-import {
-  checkGasFee,
-  MpcClient,
-  setTxEIP1559Fees,
-  TransactionSubmitter,
-  validateTxFeeBeforeMPCSend,
-} from '../utils'
-import { InboxStorage } from '../storage'
 import { TxSubmissionHooks } from '..'
+import { CompressionAlgo } from '../da/channel-compressor'
 import { ChannelManager } from '../da/channel-manager'
+import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE, TX_GAS } from '../da/consts'
+import { blobFork } from '../da/fork'
+import { SpanBatch } from '../da/span-batch'
 import {
   BatchToInbox,
   BatchToInboxElement,
@@ -41,10 +37,15 @@ import {
   InboxBatchParams,
   TxData,
 } from '../da/types'
-import { CompressionAlgo } from '../da/channel-compressor'
-import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE, TX_GAS } from '../da/consts'
-import { SpanBatch } from '../da/span-batch'
+import { InboxStorage } from '../storage'
 import { PendingStorage } from '../storage/pending-storage'
+import {
+  checkGasFee,
+  MpcClient,
+  setTxEIP1559Fees,
+  TransactionSubmitter,
+  validateTxFeeBeforeMPCSend,
+} from '../utils'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
@@ -238,8 +239,14 @@ export class TransactionBatchSubmitterInbox {
           gasLimit: TX_GAS,
           chainId,
           nonce,
-          blobs,
-          blobVersionedHashes: blobs.map((blob) => blob.versionedHash),
+          blobs: blobs.map((b) => b.data),
+        }
+
+        if (
+          blobFork[Number(chainId)] &&
+          Math.floor(Date.now() / 1e3) >= blobFork[Number(chainId)]
+        ) {
+          blobTx.blobVersion = 1
         }
 
         // mpc model can use ynatm
@@ -270,6 +277,7 @@ export class TransactionBatchSubmitterInbox {
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
                 // force set tx type to 3, just bypass the tx type inferring bug in ethers
                 signedTxUnmarshaled.type = 3
+                signedTxUnmarshaled.blobVersion = blobTx.blobVersion
                 signedTxUnmarshaled.blobs = blobTx.blobs
                 signedTxUnmarshaled.kzg = blobTx.kzg
                 // repack the tx
