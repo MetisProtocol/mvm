@@ -42,11 +42,6 @@ const config: HardhatUserConfig = {
       url: 'http://andromeda.metis.io/?owner=1088',
       saveDeployments: false,
     },
-    trial: {
-      chainId: 666,
-      url: 'https://dev.metis.io/?owner=666',
-      accounts: [privateKey],
-    },
   },
   mocha: {
     timeout: 50000,
@@ -106,6 +101,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+    customChains: [],
   },
 }
 
@@ -126,6 +122,21 @@ if (
         apiUrl: process.env.CONTRACTS_EXPLORER_API,
       },
     },
+  }
+
+  if (
+    process.env.CONTRACTS_CHAIN_ID &&
+    process.env.CONTRACTS_EXPLORER_API &&
+    process.env.CONTRACTS_EXPLORER_URL
+  ) {
+    config.etherscan.customChains.push({
+      network: process.env.CONTRACTS_TARGET_NETWORK,
+      chainId: Number(process.env.CONTRACTS_CHAIN_ID),
+      urls: {
+        apiURL: process.env.CONTRACTS_EXPLORER_API,
+        browserURL: process.env.CONTRACTS_EXPLORER_URL,
+      },
+    })
   }
 }
 

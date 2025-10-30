@@ -3142,7 +3142,7 @@ __metadata:
     "@ethersproject/hardware-wallets": "npm:^5.4.0"
     "@ethersproject/transactions": "npm:^5.4.0"
     "@nomiclabs/hardhat-ethers": "npm:^2.0.2"
-    "@nomiclabs/hardhat-etherscan": "npm:^2.1.6"
+    "@nomiclabs/hardhat-etherscan": "npm:^3.1.0"
     "@nomiclabs/hardhat-waffle": "npm:^2.0.1"
     "@openzeppelin/contracts": "npm:4.7.3"
     "@openzeppelin/contracts-upgradeable": "npm:4.7.3"
@@ -3616,7 +3616,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nomiclabs/hardhat-etherscan@npm:^2.1.5, @nomiclabs/hardhat-etherscan@npm:^2.1.6":
+"@nomiclabs/hardhat-etherscan@npm:^2.1.5":
   version: 2.1.8
   resolution: "@nomiclabs/hardhat-etherscan@npm:2.1.8"
   dependencies:
@@ -3630,6 +3630,26 @@ __metadata:
   peerDependencies:
     hardhat: ^2.0.4
   checksum: 10c0/bd57706c67bde82197fc378d2fb6405707828bcadc59fa2b8d851a14a7a4f1f9da3a33e938eead48572933acb8185478f10db9d5d8acb37322c294ba05611b8a
+  languageName: node
+  linkType: hard
+
+"@nomiclabs/hardhat-etherscan@npm:^3.1.0":
+  version: 3.1.8
+  resolution: "@nomiclabs/hardhat-etherscan@npm:3.1.8"
+  dependencies:
+    "@ethersproject/abi": "npm:^5.1.2"
+    "@ethersproject/address": "npm:^5.0.2"
+    cbor: "npm:^8.1.0"
+    chalk: "npm:^2.4.2"
+    debug: "npm:^4.1.1"
+    fs-extra: "npm:^7.0.1"
+    lodash: "npm:^4.17.11"
+    semver: "npm:^6.3.0"
+    table: "npm:^6.8.0"
+    undici: "npm:^5.14.0"
+  peerDependencies:
+    hardhat: ^2.0.4
+  checksum: 10c0/7869e14506794f4ca2da147b99e0775a1e7d1afc3fd35fae53d65a1a01df67748a583e99fd4ef557af2cba4ed59ed1400510ef72b0728d64de67dbbc5742746f
   languageName: node
   linkType: hard
 
@@ -7816,6 +7836,15 @@ __metadata:
     bignumber.js: "npm:^9.0.1"
     nofilter: "npm:^1.0.4"
   checksum: 10c0/d39e14a05930648c6446b107aee3653e1b1ce8195dd121cb65790d9091202d8d98af0e4c17787f38bbc33fadc969ca99c94b40c144b84ce1e406a7f411c3ccf4
+  languageName: node
+  linkType: hard
+
+"cbor@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "cbor@npm:8.1.0"
+  dependencies:
+    nofilter: "npm:^3.1.0"
+  checksum: 10c0/a836e2e7ea0efb1b9c4e5a4be906c57113d730cc42293a34072e0164ed110bb8ac035dc7dca2e3ebb641bd4b37e00fdbbf09c951aa864b3d4888a6ed8c6243f7
   languageName: node
   linkType: hard
 
@@ -16904,7 +16933,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nofilter@npm:^3.0.2":
+"nofilter@npm:^3.0.2, nofilter@npm:^3.1.0":
   version: 3.1.0
   resolution: "nofilter@npm:3.1.0"
   checksum: 10c0/92459f3864a067b347032263f0b536223cbfc98153913b5dce350cb39c8470bc1813366e41993f22c33cc6400c0f392aa324a4b51e24c22040635c1cdb046499
@@ -21453,7 +21482,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"table@npm:^6.0.9, table@npm:^6.8.1":
+"table@npm:^6.0.9, table@npm:^6.8.0, table@npm:^6.8.1":
   version: 6.9.0
   resolution: "table@npm:6.9.0"
   dependencies:
