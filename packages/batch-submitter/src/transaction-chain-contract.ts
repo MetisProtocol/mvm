@@ -7,7 +7,6 @@ import {
 } from '@metis.io/core-utils'
 import {
   Contract,
-  keccak256,
   toBeHex,
   toBigInt,
   TransactionRequest,
@@ -30,10 +29,6 @@ export { AppendSequencerBatchParams, BatchContext, encodeAppendSequencerBatch }
  * Internal Functions *
  *********************/
 
-const APPEND_SEQUENCER_BATCH_METHOD_ID = keccak256(
-  Buffer.from('appendSequencerBatchByChainId()', 'utf-8').toString('hex')
-).slice(0, 10)
-
 const appendSequencerBatch = async (
   CanonicalTransactionChain: Contract,
   batch: AppendSequencerBatchParams,
@@ -52,7 +47,7 @@ export const getEncodedCalldata = async (
   batch: AppendSequencerBatchParams,
   opts?: EncodeSequencerBatchOptions
 ): Promise<string> => {
-  const methodId = APPEND_SEQUENCER_BATCH_METHOD_ID
+  const methodId = '0xa8cda37b' // appendSequencerBatchByChainId()
   const calldata = await encodeAppendSequencerBatch(batch, opts)
   return methodId + encodeHex(batch.chainId, 64) + remove0x(calldata)
 }
