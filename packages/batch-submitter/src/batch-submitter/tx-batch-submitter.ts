@@ -4,6 +4,7 @@ import { Promise as bPromise } from 'bluebird'
 import {
   Contract,
   ethers,
+  isAddress,
   JsonRpcProvider,
   Signer,
   toNumber,
@@ -301,10 +302,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     )
     const localInboxRecord = await this.inboxStorage.getLatestConfirmedTx()
     const useBatchInbox =
-      this.inboxAddress &&
-      this.inboxAddress.length === 42 &&
-      this.inboxAddress.startsWith('0x') &&
-      batchIndexStart <= batchIndexCtcNext
+      isAddress(this.inboxAddress) && batchIndexStart <= batchIndexCtcNext
     // read next batch index from local storage and inbox tx hash
     let batchIndexNext = batchIndexCtcNext
     if (localInboxRecord) {

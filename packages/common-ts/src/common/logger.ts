@@ -1,9 +1,9 @@
-import pino, { LoggerOptions as PinoLoggerOptions } from 'pino'
+import { NodeOptions } from '@sentry/node'
+import pino, { LevelWithSilent, LoggerOptions as PinoLoggerOptions } from 'pino'
 import pinoms, { Streams } from 'pino-multi-stream'
 import { createWriteStream } from 'pino-sentry'
-import { NodeOptions } from '@sentry/node'
 
-export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
+export type LogLevel = LevelWithSilent
 
 export interface LoggerOptions {
   name: string
@@ -25,13 +25,15 @@ export class Logger {
     const loggerOptions: PinoLoggerOptions = {
       name: options.name,
 
-      level: options.level || 'debug',
+      level: options.level,
 
       // Remove pid and hostname considering production runs inside docker
       base: null,
     }
 
-    let loggerStreams: Streams = [{ stream: process.stdout }]
+    let loggerStreams: Streams = [
+      { stream: process.stdout, level: loggerOptions.level as LogLevel },
+    ]
     if (options.sentryOptions) {
       loggerStreams.push({
         level: 'error',

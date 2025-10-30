@@ -1,17 +1,17 @@
 // channelBuilder.ts
+import { Logger } from '@eth-optimism/common-ts'
+import { L2Block } from '@metis.io/core-utils'
 import { ethers } from 'ethersv6'
+import { ChannelCompressor } from './channel-compressor'
+import { CHANNEL_FULL_ERR, MAX_BLOB_SIZE } from './consts'
+import { SpanChannelOut } from './span-channel-out'
 import {
   BatchToInboxElement,
   ChannelConfig,
   Frame,
   RollupConfig,
 } from './types'
-import { SpanChannelOut } from './span-channel-out'
-import { L2Block, remove0x } from '@metis.io/core-utils'
-import { ChannelCompressor } from './channel-compressor'
-import { CHANNEL_FULL_ERR, MAX_BLOB_SIZE } from './consts'
 import { maxDataSize } from './utils'
-import { Logger } from '@eth-optimism/common-ts'
 
 export class ChannelBuilder {
   public spanChannelOut: SpanChannelOut
@@ -65,7 +65,7 @@ export class ChannelBuilder {
       const startTime = Date.now()
       await this.spanChannelOut.addBlock(block, epoch.hash)
       const endTime = Date.now()
-      this.logger.info(
+      this.logger.debug(
         `Adding block ${block.blockNumber} took ${endTime - startTime} ms`
       )
       return

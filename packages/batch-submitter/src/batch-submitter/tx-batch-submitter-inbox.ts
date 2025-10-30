@@ -135,7 +135,7 @@ export class TransactionBatchSubmitterInbox {
     }
     metrics.numTxPerBatch.observe(endBlock - startBlock)
     const l1tipHeight = await signer.provider.getBlockNumber()
-    this.logger.debug('Submitting batch to inbox.', {
+    this.logger.info('Submitting batch to inbox.', {
       calldata: batchParams,
       l1tipHeight,
     })
