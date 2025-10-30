@@ -1,6 +1,7 @@
-import 'solidity-coverage'
 import * as dotenv from 'dotenv'
+import 'solidity-coverage'
 
+import { HardhatUserConfig } from 'hardhat/config'
 import {
   DEFAULT_ACCOUNTS_HARDHAT,
   RUN_OVM_TEST_GAS,
@@ -8,17 +9,17 @@ import {
 
 // Hardhat plugins
 import '@nomiclabs/hardhat-ethers'
-import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-etherscan'
+import '@nomiclabs/hardhat-waffle'
 import '@openzeppelin/hardhat-upgrades'
-import 'hardhat-deploy'
 import '@typechain/hardhat'
+import 'hardhat-deploy'
+import 'hardhat-gas-reporter'
 import './tasks/deploy'
 import './tasks/l2-gasprice'
 import './tasks/set-owner'
 import './tasks/whitelist'
 import './tasks/withdraw-fees'
-import 'hardhat-gas-reporter'
 
 // Load environment variables from .env
 dotenv.config()
@@ -28,7 +29,7 @@ const privateKey =
   process.env.PRIVATE_KEY ||
   '0x0000000000000000000000000000000000000000000000000000000000000000' // this is to avoid hardhat error
 
-const config = {
+const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       accounts: DEFAULT_ACCOUNTS_HARDHAT,
@@ -40,16 +41,6 @@ const config = {
     andromeda: {
       url: 'http://andromeda.metis.io/?owner=1088',
       saveDeployments: false,
-    },
-    stardust: {
-      chainId: 588,
-      url: 'https://stardust.metis.io/?owner=588',
-      accounts: [privateKey],
-    },
-    goerli: {
-      chainId: 599,
-      url: 'https://goerli.metis.io/?owner=589',
-      accounts: [privateKey],
     },
     trial: {
       chainId: 666,
@@ -129,6 +120,12 @@ if (
     live: true,
     saveDeployments: true,
     tags: [process.env.CONTRACTS_TARGET_NETWORK],
+    verify: {
+      etherscan: {
+        apiKey: process.env.ETHERSCAN_API_KEY,
+        apiUrl: process.env.CONTRACTS_EXPLORER_API,
+      },
+    },
   }
 }
 
