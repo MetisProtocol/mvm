@@ -13,6 +13,7 @@ import {
   zlibCompressHexString,
 } from '@metis.io/core-utils'
 import { Promise as bPromise } from 'bluebird'
+import * as kzg from 'c-kzg'
 import {
   ethers,
   Provider,
@@ -135,7 +136,7 @@ export class TransactionBatchSubmitterInbox {
     }
     metrics.numTxPerBatch.observe(endBlock - startBlock)
     const l1tipHeight = await signer.provider.getBlockNumber()
-    this.logger.info('Submitting batch to inbox.', {
+    this.logger.debug('Submitting batch to inbox.', {
       calldata: batchParams,
       l1tipHeight,
     })
@@ -277,9 +278,9 @@ export class TransactionBatchSubmitterInbox {
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
                 // force set tx type to 3, just bypass the tx type inferring bug in ethers
                 signedTxUnmarshaled.type = 3
+                signedTxUnmarshaled.kzg = kzg
                 signedTxUnmarshaled.blobVersion = blobTx.blobVersion
                 signedTxUnmarshaled.blobs = blobTx.blobs
-                signedTxUnmarshaled.kzg = blobTx.kzg
                 // repack the tx
                 return signedTxUnmarshaled.serialized
               },

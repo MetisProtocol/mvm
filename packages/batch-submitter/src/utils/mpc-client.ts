@@ -106,7 +106,7 @@ export class MpcClient {
       path: getUrl.pathname,
     }
     const resp = await this.httpRequest(this.url, getOptions)
-    this.logger.info('get mpc sign resp', {
+    this.logger.debug('got mpc sign resp', {
       resp,
     })
     if (!resp) {
@@ -238,9 +238,9 @@ export class MpcClient {
           }
 
           unsignedTx.maxFeePerBlobGas = toBigInt(tx.maxFeePerBlobGas)
+          unsignedTx.kzg = kzg
           unsignedTx.blobVersion = tx.blobVersion
           unsignedTx.blobs = tx.blobs
-          unsignedTx.kzg = kzg
         }
       }
     }

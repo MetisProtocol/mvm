@@ -242,7 +242,7 @@ export const submitSignedTransactionWithYNATM = async (
         await hooks.onTxReceipt(txReceipt)
         return txReceipt
       } catch (e) {
-        console.error('Error sending transaction:', e.message.substring(0, 200))
+        console.error('Error sending transaction:', e.message)
         throw e
       }
     }
