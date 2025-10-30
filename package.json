@@ -1,17 +1,12 @@
 {
-  "name": "optimism",
+  "name": "mvm",
   "version": "1.0.0",
-  "author": "Optimism PBC",
+  "author": "Metis Team",
   "license": "MIT",
   "workspaces": {
     "packages": [
       "packages/*",
-      "l2geth",
-      "integration-tests",
       "specs",
-      "go/gas-oracle",
-      "go/batch-submitter",
-      "ops/docker/builder",
       "ops/docker/hardhat"
     ]
   },
@@ -29,7 +24,6 @@
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-react": "^7.24.0",
     "eslint-plugin-unicorn": "^32.0.1",
-    "husky": "^6.0.0",
     "lerna": "^4.0.0",
     "patch-package": "^6.4.7",
     "prettier": "^2.3.1",
@@ -54,8 +48,6 @@
     "release": "yarn build && yarn changeset publish"
   },
   "dependencies": {
-    "@changesets/cli": "^2.16.0",
-    "@codechecks/client": "^0.1.11",
     "ethersv6": "github:ericlee42/ethers#metis"
   },
   "resolutions": {
