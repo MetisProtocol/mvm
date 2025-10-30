@@ -1,13 +1,13 @@
 // span-channel-out.ts
+import { Logger } from '@eth-optimism/common-ts'
+import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
 import { ethers, randomBytes } from 'ethersv6'
 import RLP from 'rlp'
 import { ChannelCompressor } from './channel-compressor'
-import { SpanBatch } from './span-batch'
-import { SingularBatch } from './singular-batch'
-import { BatchToInboxElement, Frame } from './types'
 import { CHANNEL_FULL_ERR, FRAME_OVERHEAD_SIZE } from './consts'
-import { L2Transaction, QueueOrigin } from '@metis.io/core-utils'
-import { Logger } from '@eth-optimism/common-ts'
+import { SingularBatch } from './singular-batch'
+import { SpanBatch } from './span-batch'
+import { BatchToInboxElement, Frame } from './types'
 
 export class SpanChannelOut {
   private _id: Uint8Array
@@ -105,7 +105,7 @@ export class SpanChannelOut {
 
     await this.spanBatch.appendSingularBatch(batch)
 
-    this.logger.info('Appended singular batch', {
+    this.logger.debug('Appended singular batch', {
       l2Block: batch.blockNumber,
     })
   }

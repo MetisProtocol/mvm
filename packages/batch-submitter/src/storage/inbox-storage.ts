@@ -1,8 +1,8 @@
 /* Imports: External */
-import * as fs from 'fs/promises'
-import * as path from 'path'
 import { Logger } from '@eth-optimism/common-ts'
 import { toBigInt, toNumber } from 'ethersv6'
+import * as fs from 'fs/promises'
+import * as path from 'path'
 
 const INBOX_OK_FILE = 'inbox_ok.json'
 const INBOX_FAIL_FILE = 'inbox_fail.json'
@@ -81,7 +81,9 @@ export class InboxStorage {
         txHash: readJsonData.hash,
       }
     } catch (readError) {
-      this.logger.error('Error reading ok_tx file:', readError)
+      if (readError.code !== 'ENOENT') {
+        this.logger.error('Error reading ok_tx file', readError)
+      }
     }
     return null
   }

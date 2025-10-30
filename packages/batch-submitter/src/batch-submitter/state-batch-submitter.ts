@@ -1,4 +1,7 @@
 /* External Imports */
+import { Logger, Metrics } from '@eth-optimism/common-ts'
+import { getContractDefinition } from '@metis.io/contracts'
+import { Bytes32, L2Block, remove0x, RollupInfo } from '@metis.io/core-utils'
 import { Promise as bPromise } from 'bluebird'
 import {
   Contract,
@@ -8,12 +11,10 @@ import {
   toNumber,
   TransactionReceipt,
 } from 'ethersv6'
-import { getContractDefinition } from '@metis.io/contracts'
-import { Bytes32, L2Block, remove0x, RollupInfo } from '@metis.io/core-utils'
-import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
 import { BatchSubmitter, BlockRange } from '.'
+import { InboxStorage } from '../storage'
 import {
   checkGasFee,
   MpcClient,
@@ -21,7 +22,6 @@ import {
   TransactionSubmitter,
   validateTxFeeBeforeMPCSend,
 } from '../utils'
-import { InboxStorage } from '../storage'
 
 export class StateBatchSubmitter extends BatchSubmitter {
   // TODO: Change this so that we calculate start = scc.totalElements() and end = ctc.totalElements()!
@@ -100,6 +100,10 @@ export class StateBatchSubmitter extends BatchSubmitter {
   /*****************************
    * Batch Submitter Overrides *
    ****************************/
+
+  public _submitType(): string {
+    return 'state'
+  }
 
   public async _updateChainInfo(): Promise<void> {
     const info: RollupInfo = await this._getRollupInfo()
@@ -251,7 +255,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
         )
       }
       this.logger.info(
-        'No state commitments to submit. Skipping batch submission...'
+        'No state commitments to submit. Skipping batch submission...',
+        { startBlock, endBlock }
       )
       return
     }
@@ -344,12 +349,17 @@ export class StateBatchSubmitter extends BatchSubmitter {
       // mpc model can use ynatm
       // tx.gasPrice = gasPrice
 
-      this.logger.info('submitting with mpc address', { mpcAddress, txUnsign })
+      this.logger.info('submitting state with mpc address', {
+        mpcAddress,
+        startBlock,
+        endBlock,
+        txUnsign,
+      })
 
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return this.transactionSubmitter.submitSignedTransaction(
           txUnsign,
-          async (gasPrice) => {
+          async () => {
             try {
               await setTxEIP1559Fees(
                 txUnsign,
@@ -380,8 +390,10 @@ export class StateBatchSubmitter extends BatchSubmitter {
       )
     }
 
-    this.logger.info('Submitting batch.', {
+    this.logger.info('Submitting state batch.', {
       chainId: this.l2ChainId,
+      startBlock,
+      endBlock,
       proposer,
     })
     const submitTransaction = (): Promise<TransactionReceipt> => {

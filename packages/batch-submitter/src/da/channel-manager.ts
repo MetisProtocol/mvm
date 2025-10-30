@@ -1,13 +1,13 @@
+import { Logger } from '@eth-optimism/common-ts'
 import { ethers, hexlify } from 'ethersv6'
 import { Channel } from './channel'
+import { CHANNEL_FULL_ERR } from './consts'
 import {
   BatchToInboxElement,
   ChannelConfig,
   RollupConfig,
   TxData,
 } from './types'
-import { CHANNEL_FULL_ERR } from './consts'
-import { Logger } from '@eth-optimism/common-ts'
 
 export class ChannelManager {
   private blocks: BatchToInboxElement[] = []
@@ -33,7 +33,7 @@ export class ChannelManager {
     const dataPending = this.currentChannel && this.currentChannel.hasTxData()
 
     this.logger.info('Requested tx data', {
-      l1Head,
+      l1Head: l1Head.toString(),
       txDataPending: dataPending,
       blocksPending: this.blocks.length,
     })
@@ -69,7 +69,7 @@ export class ChannelManager {
 
     this.logger.info('Created channel', {
       id: hexlify(newChannel.id()),
-      l1Head,
+      l1Head: l1Head.toString(),
       l1OriginLastClosedChannel: this.l1OriginLastClosedChannel,
       blocks_pending: this.blocks.length,
       batch_type: cfg.batchType,
@@ -128,7 +128,7 @@ export class ChannelManager {
     this.blocks.push(block)
     this.tip = block.hash
 
-    this.logger.info('Added new L2 block to channel', {
+    this.logger.debug('Added new L2 block to channel', {
       count: this.blocks.length,
       new: block.blockNumber,
       newTimestamp: block.timestamp,

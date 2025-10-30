@@ -1,19 +1,18 @@
 /* External Imports */
 import {
-  Contract,
-  toBeHex,
-  toBigInt,
-  TransactionRequest,
-  TransactionResponse,
-} from 'ethersv6'
-import { keccak256 } from 'ethers/lib/utils'
-import {
   BatchContext,
   encodeAppendSequencerBatch,
   EncodeSequencerBatchOptions,
   remove0x,
 } from '@metis.io/core-utils'
-import { Promise } from 'bluebird'
+import {
+  Contract,
+  keccak256,
+  toBeHex,
+  toBigInt,
+  TransactionRequest,
+  TransactionResponse,
+} from 'ethersv6'
 
 interface AppendSequencerBatchParams {
   chainId: number
@@ -25,15 +24,15 @@ interface AppendSequencerBatchParams {
   seqSigns: string[] // de-sequencer block sign, length equals sequencerTx
 }
 
-export { encodeAppendSequencerBatch, BatchContext, AppendSequencerBatchParams }
+export { AppendSequencerBatchParams, BatchContext, encodeAppendSequencerBatch }
 
 /**********************
  * Internal Functions *
  *********************/
 
 const APPEND_SEQUENCER_BATCH_METHOD_ID = keccak256(
-  Buffer.from('appendSequencerBatchByChainId()')
-).slice(2, 10)
+  Buffer.from('appendSequencerBatchByChainId()', 'utf-8').toString('hex')
+).slice(0, 10)
 
 const appendSequencerBatch = async (
   CanonicalTransactionChain: Contract,
@@ -55,10 +54,5 @@ export const getEncodedCalldata = async (
 ): Promise<string> => {
   const methodId = APPEND_SEQUENCER_BATCH_METHOD_ID
   const calldata = await encodeAppendSequencerBatch(batch, opts)
-  return (
-    '0x' +
-    remove0x(methodId) +
-    encodeHex(batch.chainId, 64) +
-    remove0x(calldata)
-  )
+  return methodId + encodeHex(batch.chainId, 64) + remove0x(calldata)
 }

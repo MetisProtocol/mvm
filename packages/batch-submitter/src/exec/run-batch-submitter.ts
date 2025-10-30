@@ -1,11 +1,16 @@
 /* External Imports */
+import {
+  createMetricsServer,
+  Logger,
+  LogLevel,
+  Metrics,
+} from '@eth-optimism/common-ts'
 import { Bcfg, L2Provider, MinioConfig } from '@metis.io/core-utils'
 import * as Sentry from '@sentry/node'
-import { createMetricsServer, Logger, Metrics } from '@eth-optimism/common-ts'
-import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethersv6'
-import * as dotenv from 'dotenv'
 import Config from 'bcfg'
 import { loadTrustedSetup } from 'c-kzg'
+import * as dotenv from 'dotenv'
+import { ethers, HDNodeWallet, JsonRpcProvider, Signer, Wallet } from 'ethersv6'
 
 /* Internal Imports */
 import {
@@ -149,11 +154,15 @@ export const run = async () => {
     // Initialize Sentry for Batch Submitter deployed to a network
     logger = new Logger({
       name,
+      level: (process.env.LOG_LEVEL as LogLevel) || 'info',
       sentryOptions,
     })
   } else {
     // Skip initializing Sentry
-    logger = new Logger({ name })
+    logger = new Logger({
+      name,
+      level: (process.env.LOG_LEVEL as LogLevel) || 'info',
+    })
   }
 
   const useHardhat = config.bool('use-hardhat', !!env.USE_HARDHAT)

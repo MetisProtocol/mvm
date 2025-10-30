@@ -182,7 +182,7 @@ export class MpcClient {
 
     this.logger.info('signing tx with mpc', {
       mpcId,
-      timeoutMilli,
+      timeout: timeoutMilli / 1e3 + 's',
     })
 
     // call mpc to sign tx

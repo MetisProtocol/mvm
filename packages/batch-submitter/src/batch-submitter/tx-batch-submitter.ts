@@ -1,4 +1,5 @@
 /* External Imports */
+import { getContractDefinition } from '@metis.io/contracts'
 import { Promise as bPromise } from 'bluebird'
 import {
   Contract,
@@ -8,8 +9,8 @@ import {
   toNumber,
   TransactionReceipt,
 } from 'ethersv6'
-import { getContractDefinition } from '@metis.io/contracts'
 
+import { Logger, Metrics } from '@eth-optimism/common-ts'
 import {
   Batch,
   BatchElement,
@@ -22,7 +23,6 @@ import {
   RollupInfo,
   toHexString,
 } from '@metis.io/core-utils'
-import { Logger, Metrics } from '@eth-optimism/common-ts'
 
 /* Internal Imports */
 import {
@@ -32,8 +32,8 @@ import {
 } from '../transaction-chain-contract'
 
 import { BatchSubmitter, BlockRange, TransactionBatchSubmitterInbox } from '.'
-import { MpcClient, sequencerSetABI, TransactionSubmitter } from '../utils'
 import { InboxStorage } from '../storage'
+import { MpcClient, sequencerSetABI, TransactionSubmitter } from '../utils'
 
 export interface AutoFixBatchOptions {
   fixDoublePlayedDeposits: boolean
@@ -163,6 +163,10 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   /*****************************
    * Batch Submitter Overrides *
    ****************************/
+
+  public _submitType(): string {
+    return 'tx'
+  }
 
   public async _updateChainInfo(): Promise<void> {
     const info: RollupInfo = await this._getRollupInfo()
@@ -431,7 +435,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     }
 
     if (useInbox) {
-      this.logger.debug('Will submit batch to inbox address', {
+      this.logger.info('Submit batch to inbox address', {
         startBlock,
         endBlock,
         nextBatchIndex,
@@ -513,7 +517,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     }
     this.metrics.numTxPerBatch.observe(endBlock - startBlock)
     const l1tipHeight = await this.signer.provider.getBlockNumber()
-    this.logger.debug('Submitting batch.', {
+    this.logger.debug('Submitting tx batch.', {
       calldata: batchParams,
       l1tipHeight,
     })

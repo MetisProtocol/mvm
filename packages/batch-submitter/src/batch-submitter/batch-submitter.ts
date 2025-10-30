@@ -1,12 +1,13 @@
 /* External Imports */
+import { Logger, Metrics } from '@eth-optimism/common-ts'
+import { getContractDefinition } from '@metis.io/contracts'
+import { RollupInfo, sleep } from '@metis.io/core-utils'
 import { Contract, ethers, JsonRpcProvider, toNumber } from 'ethersv6'
 import { Counter, Gauge, Histogram } from 'prom-client'
-import { RollupInfo, sleep } from '@metis.io/core-utils'
-import { Logger, Metrics } from '@eth-optimism/common-ts'
+
 /* Internal Imports */
-import { TxSubmissionHooks } from '..'
-import { getContractDefinition } from '@metis.io/contracts'
 import { PendingStorage } from '../storage/pending-storage'
+import { TxSubmissionHooks } from '../utils/tx-submission'
 
 export interface BlockRange {
   start: number
@@ -70,6 +71,7 @@ export abstract class BatchSubmitter {
   public abstract _updateChainInfo(): Promise<void>
   public abstract _mpcBalanceCheck(): Promise<boolean>
   public abstract _updateFPUpgradeStatus(): Promise<void>
+  public abstract _submitType(): string
 
   public async submitNextBatch(): Promise<ethers.TransactionReceipt> {
     if (typeof this.l2ChainId === 'undefined') {
@@ -91,6 +93,7 @@ export abstract class BatchSubmitter {
 
     this.logger.info('Readying to submit next batch...', {
       l2ChainId: this.l2ChainId,
+      kind: this._submitType(),
       batchSubmitterAddress: await this.signer.getAddress(),
     })
 
