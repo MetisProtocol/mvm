@@ -138,10 +138,9 @@ interface ICanonicalTransactionChain {
      * @param _index Index of the queue element to access.
      * @return _element Queue element at the given index.
      */
-    function getQueueElement(uint256 _index)
-        external
-        view
-        returns (Lib_OVMCodec.QueueElement memory _element);
+    function getQueueElement(
+        uint256 _index
+    ) external view returns (Lib_OVMCodec.QueueElement memory _element);
 
     /**
      * Returns the timestamp of the last transaction.
@@ -174,11 +173,7 @@ interface ICanonicalTransactionChain {
      * @param _gasLimit Gas limit for the given transaction.
      * @param _data Transaction data.
      */
-    function enqueue(
-        address _target,
-        uint256 _gasLimit,
-        bytes memory _data
-    ) external;
+    function enqueue(address _target, uint256 _gasLimit, bytes memory _data) external;
 
     /**
      * Allows the sequencer to append a batch of transactions.
@@ -202,20 +197,18 @@ interface ICanonicalTransactionChain {
      * @param _chainId identity for the l2 chain.
      * @return _totalElements Total submitted elements.
      */
-    function getTotalElementsByChainId(uint256 _chainId)
-        external
-        view
-        returns (uint256 _totalElements);
+    function getTotalElementsByChainId(
+        uint256 _chainId
+    ) external view returns (uint256 _totalElements);
 
     /**
      * Retrieves the total number of batches submitted.
      * @param _chainId identity for the l2 chain.
      * @return _totalBatches Total submitted batches.
      */
-    function getTotalBatchesByChainId(uint256 _chainId)
-        external
-        view
-        returns (uint256 _totalBatches);
+    function getTotalBatchesByChainId(
+        uint256 _chainId
+    ) external view returns (uint256 _totalBatches);
 
     /**
      * Returns the index of the next element to be enqueued.
@@ -230,10 +223,10 @@ interface ICanonicalTransactionChain {
      * @param _index Index of the queue element to access.
      * @return _element Queue element at the given index.
      */
-    function getQueueElementByChainId(uint256 _chainId, uint256 _index)
-        external
-        view
-        returns (Lib_OVMCodec.QueueElement memory _element);
+    function getQueueElementByChainId(
+        uint256 _chainId,
+        uint256 _index
+    ) external view returns (Lib_OVMCodec.QueueElement memory _element);
 
     /**
      * Returns the timestamp of the last transaction.
@@ -295,8 +288,10 @@ interface ICanonicalTransactionChain {
         // bytes[] _transactionDataFields
     ) external;
 
-    function pushQueueByChainId(uint256 _chainId, Lib_OVMCodec.QueueElement calldata _object)
-        external;
+    function pushQueueByChainId(
+        uint256 _chainId,
+        Lib_OVMCodec.QueueElement calldata _object
+    ) external;
 
     function setQueueByChainId(
         uint256 _chainId,
@@ -316,11 +311,7 @@ interface ICanonicalTransactionChain {
         bytes27 _globalMetadata
     ) external;
 
-    function setBatchByChainId(
-        uint256 _chainId,
-        uint256 _index,
-        bytes32 _object
-    ) external;
+    function setBatchByChainId(uint256 _chainId, uint256 _index, bytes32 _object) external;
 
     function getBatchByChainId(uint256 _chainId, uint256 _index) external view returns (bytes32);
 

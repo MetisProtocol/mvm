@@ -45,8 +45,8 @@ contract L2CrossDomainMessenger is IL2CrossDomainMessenger {
     modifier onlyWhitelisted() {
         require(
             OVM_DeployerWhitelist(Lib_PredeployAddresses.DEPLOYER_WHITELIST).isXDomainSenderAllowed(
-                    msg.sender
-                ),
+                msg.sender
+            ),
             // solhint-disable-next-line max-line-length
             "L2 to L1 messages are restricted to whitelisted senders."
         );

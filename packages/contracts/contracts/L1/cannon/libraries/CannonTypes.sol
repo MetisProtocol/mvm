@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-    using LPPMetadataLib for LPPMetaData global;
+using LPPMetadataLib for LPPMetaData global;
 
 /// @notice Packed LPP metadata.
 /// ┌─────────────┬────────────────────────────────────────────┐
@@ -14,44 +14,62 @@ pragma solidity 0.8.15;
 /// │ [160, 192)  │ Bytes Processed (Non-inclusive of Padding) │
 /// │ [192, 256)  │ Countered                                  │
 /// └─────────────┴────────────────────────────────────────────┘
-    type LPPMetaData is bytes32;
+type LPPMetaData is bytes32;
 
 /// @notice LPP metadata UDT extension functions.
 library LPPMetadataLib {
     uint256 private constant U64_MASK = 0xFFFFFFFFFFFFFFFF;
     uint256 private constant U32_MASK = 0xFFFFFFFF;
 
-    function setTimestamp(LPPMetaData _self, uint64 _timestamp) internal pure returns (LPPMetaData self_) {
+    function setTimestamp(
+        LPPMetaData _self,
+        uint64 _timestamp
+    ) internal pure returns (LPPMetaData self_) {
         assembly {
             self_ := or(shl(192, _timestamp), and(_self, not(shl(192, U64_MASK))))
         }
     }
 
-    function setPartOffset(LPPMetaData _self, uint32 _partOffset) internal pure returns (LPPMetaData self_) {
+    function setPartOffset(
+        LPPMetaData _self,
+        uint32 _partOffset
+    ) internal pure returns (LPPMetaData self_) {
         assembly {
             self_ := or(shl(160, _partOffset), and(_self, not(shl(160, U32_MASK))))
         }
     }
 
-    function setClaimedSize(LPPMetaData _self, uint32 _claimedSize) internal pure returns (LPPMetaData self_) {
+    function setClaimedSize(
+        LPPMetaData _self,
+        uint32 _claimedSize
+    ) internal pure returns (LPPMetaData self_) {
         assembly {
             self_ := or(shl(128, _claimedSize), and(_self, not(shl(128, U32_MASK))))
         }
     }
 
-    function setBlocksProcessed(LPPMetaData _self, uint32 _blocksProcessed) internal pure returns (LPPMetaData self_) {
+    function setBlocksProcessed(
+        LPPMetaData _self,
+        uint32 _blocksProcessed
+    ) internal pure returns (LPPMetaData self_) {
         assembly {
             self_ := or(shl(96, _blocksProcessed), and(_self, not(shl(96, U32_MASK))))
         }
     }
 
-    function setBytesProcessed(LPPMetaData _self, uint32 _bytesProcessed) internal pure returns (LPPMetaData self_) {
+    function setBytesProcessed(
+        LPPMetaData _self,
+        uint32 _bytesProcessed
+    ) internal pure returns (LPPMetaData self_) {
         assembly {
             self_ := or(shl(64, _bytesProcessed), and(_self, not(shl(64, U32_MASK))))
         }
     }
 
-    function setCountered(LPPMetaData _self, bool _countered) internal pure returns (LPPMetaData self_) {
+    function setCountered(
+        LPPMetaData _self,
+        bool _countered
+    ) internal pure returns (LPPMetaData self_) {
         assembly {
             self_ := or(_countered, and(_self, not(U64_MASK)))
         }

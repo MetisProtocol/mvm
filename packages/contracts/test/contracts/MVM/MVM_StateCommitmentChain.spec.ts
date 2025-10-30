@@ -95,13 +95,13 @@ describe('MVM_StateCommitmentChain', () => {
   describe('findEarliestDisputableBatch', () => {
     const DEFAULT_CHAINID = 1088
     const batch = [NON_NULL_BYTES32]
-    
+
     beforeEach(async () => {
       // Set CTC mock to return sufficient elements
       Mock__CanonicalTransactionChain.smocked.getTotalElementsByChainId.will.return.with(
         batch.length * 10 // Support 10 batches
       )
-      
+
       // Add 10 batches
       for (let i = 0; i < 10; i++) {
         // Add time interval between batches
@@ -118,11 +118,15 @@ describe('MVM_StateCommitmentChain', () => {
     })
 
     it('should return the first batch when all batches are within fraud proof window', async () => {
-      const [batchHeaderHash, lastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
-      
+      const [batchHeaderHash, lastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+
       // Get first batch info for comparison
-      const firstBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, 0)
-      
+      const firstBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        0
+      )
+
       // Verify it returns the first batch
       expect(batchHeaderHash).to.equal(firstBatchHash)
       expect(lastL2BlockNumber).to.equal(1) // Because each batch contains one element
@@ -130,11 +134,12 @@ describe('MVM_StateCommitmentChain', () => {
 
     it('should revert when no batches have been submitted', async () => {
       // Create new StateCommitmentChain instance with no batches
-      const newStateCommitmentChain = await Factory__StateCommitmentChain.deploy(
-        AddressManager.address,
-        60 * 60 * 24 * 7, // 1 week fraud proof window
-        60 * 30 // 30 minute sequencer publish window
-      )
+      const newStateCommitmentChain =
+        await Factory__StateCommitmentChain.deploy(
+          AddressManager.address,
+          60 * 60 * 24 * 7, // 1 week fraud proof window
+          60 * 30 // 30 minute sequencer publish window
+        )
 
       await expect(
         newStateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
@@ -144,12 +149,19 @@ describe('MVM_StateCommitmentChain', () => {
     it('should correctly handle fraud proof window', async () => {
       // Increase time to make some batches out of fraud proof window
       const FRAUD_PROOF_WINDOW = await StateCommitmentChain.FRAUD_PROOF_WINDOW()
-      await increaseEthTime(ethers.provider, FRAUD_PROOF_WINDOW.div(2).toNumber())
+      await increaseEthTime(
+        ethers.provider,
+        FRAUD_PROOF_WINDOW.div(2).toNumber()
+      )
 
-      const [batchHeaderHash, lastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
-      
+      const [batchHeaderHash, lastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+
       // Should still return the first disputable batch
-      const firstBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, 0)
+      const firstBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        0
+      )
       expect(batchHeaderHash).to.equal(firstBatchHash)
       expect(lastL2BlockNumber).to.equal(1)
     })
@@ -157,7 +169,10 @@ describe('MVM_StateCommitmentChain', () => {
     it('should return the first batch within fraud proof window when some batches are expired', async () => {
       // First make the first 5 batches expire by moving time forward
       const FRAUD_PROOF_WINDOW = await StateCommitmentChain.FRAUD_PROOF_WINDOW()
-      await increaseEthTime(ethers.provider, FRAUD_PROOF_WINDOW.toNumber() + 300) // Add 5 minutes extra
+      await increaseEthTime(
+        ethers.provider,
+        FRAUD_PROOF_WINDOW.toNumber() + 300
+      ) // Add 5 minutes extra
 
       // Add 5 more recent batches
       for (let i = 10; i < 15; i++) {
@@ -174,12 +189,16 @@ describe('MVM_StateCommitmentChain', () => {
         await increaseEthTime(ethers.provider, 60) // Increase by 60 seconds
       }
 
-      const [batchHeaderHash, lastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
-      
+      const [batchHeaderHash, lastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+
       // Should return the first batch that is still within the fraud proof window
       // This should be the 10th batch (index 9)
-      const expectedBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, 10)
-      
+      const expectedBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        10
+      )
+
       expect(batchHeaderHash).to.equal(expectedBatchHash)
       expect(lastL2BlockNumber).to.equal(11) // Because this is the 11th batch (1-based)
 
@@ -192,16 +211,19 @@ describe('MVM_StateCommitmentChain', () => {
         extraData: ethers.utils.defaultAbiCoder.encode(
           ['uint256', 'address', 'bytes32', 'uint256'],
           [
-            await getEthTime(ethers.provider) - 300, // Approximate timestamp of this batch
+            (await getEthTime(ethers.provider)) - 300, // Approximate timestamp of this batch
             await sequencer.getAddress(),
             ethers.utils.hexZeroPad(ethers.utils.hexlify(10), 32),
-            11
+            11,
           ]
-        )
+        ),
       }
-      
+
       expect(
-        await StateCommitmentChain.insideFraudProofWindowByChainId(DEFAULT_CHAINID, batchHeader)
+        await StateCommitmentChain.insideFraudProofWindowByChainId(
+          DEFAULT_CHAINID,
+          batchHeader
+        )
       ).to.be.true
     })
 
@@ -219,7 +241,10 @@ describe('MVM_StateCommitmentChain', () => {
     it('should handle case when only the last batch is within fraud proof window', async () => {
       // First expire all existing batches
       const FRAUD_PROOF_WINDOW = await StateCommitmentChain.FRAUD_PROOF_WINDOW()
-      await increaseEthTime(ethers.provider, FRAUD_PROOF_WINDOW.toNumber() + 300)
+      await increaseEthTime(
+        ethers.provider,
+        FRAUD_PROOF_WINDOW.toNumber() + 300
+      )
 
       // Add one more recent batch
       const lastBatchIndex = 10
@@ -232,10 +257,14 @@ describe('MVM_StateCommitmentChain', () => {
         lastBatchIndex + 1
       )
 
-      const [batchHeaderHash, lastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
-      
+      const [batchHeaderHash, lastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+
       // Should return the last batch
-      const expectedBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, lastBatchIndex)
+      const expectedBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        lastBatchIndex
+      )
       expect(batchHeaderHash).to.equal(expectedBatchHash)
       expect(lastL2BlockNumber).to.equal(lastBatchIndex + 1)
     })
@@ -247,11 +276,15 @@ describe('MVM_StateCommitmentChain', () => {
       // Move time forward
       await increaseEthTime(ethers.provider, timeToMove)
 
-      const [batchHeaderHash, lastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
-      
+      const [batchHeaderHash, lastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+
       // Should return the second batch (index 1) as it's the first one still within the window
       const expectedBatchIndex = 9
-      const expectedBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, expectedBatchIndex)
+      const expectedBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        expectedBatchIndex
+      )
       expect(batchHeaderHash).to.equal(expectedBatchHash)
       expect(lastL2BlockNumber).to.equal(expectedBatchIndex + 1)
     })
@@ -259,12 +292,15 @@ describe('MVM_StateCommitmentChain', () => {
     it('should handle case with multiple batches submitted at the same timestamp', async () => {
       // First expire all existing batches
       const FRAUD_PROOF_WINDOW = await StateCommitmentChain.FRAUD_PROOF_WINDOW()
-      await increaseEthTime(ethers.provider, FRAUD_PROOF_WINDOW.toNumber() + 300)
+      await increaseEthTime(
+        ethers.provider,
+        FRAUD_PROOF_WINDOW.toNumber() + 300
+      )
 
       // Add multiple batches at the same timestamp
       const startIndex = 10
       const timestamp = await getEthTime(ethers.provider)
-      
+
       for (let i = 0; i < 3; i++) {
         await StateCommitmentChain.connect(sequencer).appendStateBatchByChainId(
           DEFAULT_CHAINID,
@@ -276,17 +312,21 @@ describe('MVM_StateCommitmentChain', () => {
         )
       }
 
-      const [batchHeaderHash, lastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
-      
+      const [batchHeaderHash, lastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+
       // Should return the first batch of the group
-      const expectedBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, startIndex)
+      const expectedBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        startIndex
+      )
       expect(batchHeaderHash).to.equal(expectedBatchHash)
       expect(lastL2BlockNumber).to.equal(startIndex + 1)
     })
 
     it('should handle case with different chain IDs', async () => {
       const DIFFERENT_CHAINID = 1089
-      
+
       // Add a batch to different chain ID
       await StateCommitmentChain.connect(sequencer).appendStateBatchByChainId(
         DIFFERENT_CHAINID,
@@ -298,14 +338,24 @@ describe('MVM_StateCommitmentChain', () => {
       )
 
       // Should still return correct batch for original chain ID
-      const [batchHeaderHash, lastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
-      const firstBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, 0)
+      const [batchHeaderHash, lastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+      const firstBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        0
+      )
       expect(batchHeaderHash).to.equal(firstBatchHash)
       expect(lastL2BlockNumber).to.equal(1)
 
       // Should work for different chain ID as well
-      const [diffChainBatchHash, diffChainL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DIFFERENT_CHAINID)
-      const expectedBatchHash = await ChainStorageContainer.getByChainId(DIFFERENT_CHAINID, 0)
+      const [diffChainBatchHash, diffChainL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(
+          DIFFERENT_CHAINID
+        )
+      const expectedBatchHash = await ChainStorageContainer.getByChainId(
+        DIFFERENT_CHAINID,
+        0
+      )
       expect(diffChainBatchHash).to.equal(expectedBatchHash)
       expect(diffChainL2BlockNumber).to.equal(1)
     })
@@ -313,7 +363,10 @@ describe('MVM_StateCommitmentChain', () => {
     it('should correctly handle batch deletion and subsequent queries', async () => {
       // First add some batches and move time forward to make first few batches disputable
       const FRAUD_PROOF_WINDOW = await StateCommitmentChain.FRAUD_PROOF_WINDOW()
-      await increaseEthTime(ethers.provider, FRAUD_PROOF_WINDOW.div(2).toNumber())
+      await increaseEthTime(
+        ethers.provider,
+        FRAUD_PROOF_WINDOW.div(2).toNumber()
+      )
 
       // Get the batch to delete (let's delete batch at index 5)
       const batchIndexToDelete = 5
@@ -323,8 +376,8 @@ describe('MVM_StateCommitmentChain', () => {
         StateCommitmentChain.filters.StateBatchAppended()
       )
       const batchEvent = events.find(
-        event => 
-          event.args._chainId.eq(DEFAULT_CHAINID) && 
+        (event) =>
+          event.args._chainId.eq(DEFAULT_CHAINID) &&
           event.args._batchIndex.eq(batchIndexToDelete)
       )
 
@@ -338,13 +391,18 @@ describe('MVM_StateCommitmentChain', () => {
         batchRoot: batchEvent.args._batchRoot,
         batchSize: batchEvent.args._batchSize,
         prevTotalElements: batchEvent.args._prevTotalElements,
-        extraData: batchEvent.args._extraData
+        extraData: batchEvent.args._extraData,
       }
 
       // Store some data for later comparison
-      const originalBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, batchIndexToDelete)
-      const originalTotalElements = await StateCommitmentChain.getTotalElementsByChainId(DEFAULT_CHAINID)
-      const originalTotalBatches = await StateCommitmentChain.getTotalBatchesByChainId(DEFAULT_CHAINID)
+      const originalBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        batchIndexToDelete
+      )
+      const originalTotalElements =
+        await StateCommitmentChain.getTotalElementsByChainId(DEFAULT_CHAINID)
+      const originalTotalBatches =
+        await StateCommitmentChain.getTotalBatchesByChainId(DEFAULT_CHAINID)
 
       // Set up the fraud verifier address
       await AddressManager.setAddress(
@@ -360,16 +418,21 @@ describe('MVM_StateCommitmentChain', () => {
 
       // Verify the deletion was successful
       // 1. Total elements should be reduced
-      expect(await StateCommitmentChain.getTotalElementsByChainId(DEFAULT_CHAINID))
-        .to.equal(batchToDelete.prevTotalElements)
+      expect(
+        await StateCommitmentChain.getTotalElementsByChainId(DEFAULT_CHAINID)
+      ).to.equal(batchToDelete.prevTotalElements)
 
       // 2. Total batches should be reduced
-      expect(await StateCommitmentChain.getTotalBatchesByChainId(DEFAULT_CHAINID))
-        .to.equal(batchIndexToDelete)
+      expect(
+        await StateCommitmentChain.getTotalBatchesByChainId(DEFAULT_CHAINID)
+      ).to.equal(batchIndexToDelete)
 
       // 3. Previous batches should still be accessible and unchanged
       for (let i = 0; i < batchIndexToDelete; i++) {
-        const batchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, i)
+        const batchHash = await ChainStorageContainer.getByChainId(
+          DEFAULT_CHAINID,
+          i
+        )
         expect(batchHash).to.not.equal(ethers.constants.HashZero)
       }
 
@@ -381,8 +444,8 @@ describe('MVM_StateCommitmentChain', () => {
       // After deleting batch 5, we want batch 4 to be the last disputable batch
       // Get batch 4's timestamp from its event
       const batch4Event = events.find(
-        event => 
-          event.args._chainId.eq(DEFAULT_CHAINID) && 
+        (event) =>
+          event.args._chainId.eq(DEFAULT_CHAINID) &&
           event.args._batchIndex.eq(batchIndexToDelete - 1)
       )
       if (!batch4Event) {
@@ -399,14 +462,21 @@ describe('MVM_StateCommitmentChain', () => {
       // We want batch 4 to be just inside the fraud proof window
       // Current time + timeToMove = batch4Timestamp + FRAUD_PROOF_WINDOW
       const currentTime = await getEthTime(ethers.provider)
-      const timeToMove = batch4Timestamp.add(FRAUD_PROOF_WINDOW).sub(currentTime).sub(10) // Leave 10 seconds buffer
+      const timeToMove = batch4Timestamp
+        .add(FRAUD_PROOF_WINDOW)
+        .sub(currentTime)
+        .sub(10) // Leave 10 seconds buffer
 
       // Move time forward
       await increaseEthTime(ethers.provider, timeToMove.toNumber())
 
       // 5. findEarliestDisputableBatch should return batch 4
-      const [batchHeaderHash, lastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
-      const lastValidBatch = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, batchIndexToDelete - 1)
+      const [batchHeaderHash, lastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+      const lastValidBatch = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        batchIndexToDelete - 1
+      )
       expect(batchHeaderHash).to.equal(lastValidBatch)
       expect(lastL2BlockNumber).to.equal(batchIndexToDelete) // Should be 5 since it's batch 4 + 1
 
@@ -428,14 +498,18 @@ describe('MVM_StateCommitmentChain', () => {
       )
 
       // The new batch should be queryable
-      const newBatchHash = await ChainStorageContainer.getByChainId(DEFAULT_CHAINID, newBatchIndex)
+      const newBatchHash = await ChainStorageContainer.getByChainId(
+        DEFAULT_CHAINID,
+        newBatchIndex
+      )
       expect(newBatchHash).to.not.equal(ethers.constants.HashZero)
       expect(newBatchHash).to.not.equal(originalBatchHash)
 
       // And it should be the only disputable batch now
-      const [newBatchHeaderHash, newLastL2BlockNumber] = await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
+      const [newBatchHeaderHash, newLastL2BlockNumber] =
+        await StateCommitmentChain.findEarliestDisputableBatch(DEFAULT_CHAINID)
       expect(newBatchHeaderHash).to.equal(newBatchHash)
       expect(newLastL2BlockNumber).to.equal(newBatchIndex + 1)
     })
   })
-}) 
+})

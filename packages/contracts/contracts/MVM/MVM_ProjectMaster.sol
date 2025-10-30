@@ -6,11 +6,7 @@ contract MVM_ProjectMaster {
     uint256 projectStake;
     string projectURL;
 
-    constructor(
-        address owner,
-        uint256 stake,
-        string memory url
-    ) public {
+    constructor(address owner, uint256 stake, string memory url) public {
         projectOwner = owner;
         projectStake = stake;
         projectURL = url;

@@ -47,11 +47,7 @@ interface IL1StandardBridge is IL1ERC20Bridge {
      *        solely as a convenience for external contracts. Aside from enforcing a maximum
      *        length, these contracts provide no guarantees about its content.
      */
-    function depositETHTo(
-        address _to,
-        uint32 _l2Gas,
-        bytes calldata _data
-    ) external payable;
+    function depositETHTo(address _to, uint32 _l2Gas, bytes calldata _data) external payable;
 
     function depositETHByChainId(
         uint256 _chainId,

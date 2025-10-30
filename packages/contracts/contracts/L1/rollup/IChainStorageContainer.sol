@@ -51,11 +51,7 @@ interface IChainStorageContainer {
      * @param _index position.
      * @param _object A 32 byte value to insert into the container.
      */
-    function setByChainId(
-        uint256 _chainId,
-        uint256 _index,
-        bytes32 _object
-    ) external;
+    function setByChainId(uint256 _chainId, uint256 _index, bytes32 _object) external;
 
     /**
      * Retrieves an object from the container.
@@ -116,11 +112,7 @@ interface IChainStorageContainer {
      * @param _object A 32 byte value to insert into the container.
      * @param _globalMetadata New global metadata for the container.
      */
-    function pushByChainId(
-        uint256 _chainId,
-        bytes32 _object,
-        bytes27 _globalMetadata
-    ) external;
+    function pushByChainId(uint256 _chainId, bytes32 _object, bytes27 _globalMetadata) external;
 
     /**
      * Retrieves an object from the container.

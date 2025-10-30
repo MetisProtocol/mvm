@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {Storage} from "../../libraries/Storage.sol";
-import {ISemver} from "../../universal/ISemver.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { Storage } from "../../libraries/Storage.sol";
+import { ISemver } from "../../universal/ISemver.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /// @custom:audit none This contracts is not yet audited.
 /// @title MetisConfig
@@ -40,7 +40,7 @@ contract MetisConfig is Initializable, ISemver {
 
     /// @notice Constructs the SuperchainConfig contract.
     constructor() {
-        initialize({_guardian: address(0), _paused: false});
+        initialize({ _guardian: address(0), _paused: false });
     }
 
     /// @notice Initializer.

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {ISemver} from "../../universal/ISemver.sol";
-import {IPreimageOracle} from "./interfaces/IPreimageOracle.sol";
-import {PreimageKeyLib} from "./PreimageKeyLib.sol";
-import {MIPSInstructions as ins} from "./libraries/MIPSInstructions.sol";
-import {MIPSSyscalls as sys} from "./libraries/MIPSSyscalls.sol";
-import {MIPSState as st} from "./libraries/MIPSState.sol";
-import {MIPSMemory} from "./libraries/MIPSMemory.sol";
+import { ISemver } from "../../universal/ISemver.sol";
+import { IPreimageOracle } from "./interfaces/IPreimageOracle.sol";
+import { PreimageKeyLib } from "./PreimageKeyLib.sol";
+import { MIPSInstructions as ins } from "./libraries/MIPSInstructions.sol";
+import { MIPSSyscalls as sys } from "./libraries/MIPSSyscalls.sol";
+import { MIPSState as st } from "./libraries/MIPSState.sol";
+import { MIPSMemory } from "./libraries/MIPSMemory.sol";
 
 /// @title MIPS
 /// @notice The MIPS contract emulates a single MIPS instruction.
@@ -68,21 +68,21 @@ contract MIPS is ISemver {
     /// @return out_ The hashed MIPS state.
     function outputState() internal returns (bytes32 out_) {
         assembly {
-        // copies 'size' bytes, right-aligned in word at 'from', to 'to', incl. trailing data
+            // copies 'size' bytes, right-aligned in word at 'from', to 'to', incl. trailing data
             function copyMem(from, to, size) -> fromOut, toOut {
                 mstore(to, mload(add(from, sub(32, size))))
                 fromOut := add(from, 32)
                 toOut := add(to, size)
             }
 
-        // From points to the MIPS State
+            // From points to the MIPS State
             let from := 0x80
 
-        // Copy to the free memory pointer
+            // Copy to the free memory pointer
             let start := mload(0x40)
             let to := start
 
-        // Copy state to free memory
+            // Copy state to free memory
             from, to := copyMem(from, to, 32) // memRoot
             from, to := copyMem(from, to, 32) // preimageKey
             from, to := copyMem(from, to, 4) // preimageOffset
@@ -98,39 +98,53 @@ contract MIPS is ISemver {
             from, to := copyMem(from, to, 8) // step
             from := add(from, 32) // offset to registers
 
-        // Verify that the value of exited is valid (0 or 1)
+            // Verify that the value of exited is valid (0 or 1)
             if gt(exited, 1) {
-            // revert InvalidExitedValue();
+                // revert InvalidExitedValue();
                 let ptr := mload(0x40)
                 mstore(ptr, shl(224, 0x0136cc76))
                 revert(ptr, 0x04)
             }
 
-        // Copy registers
-            for {let i := 0} lt(i, 32) {i := add(i, 1)} {from, to := copyMem(from, to, 4)}
+            // Copy registers
+            for {
+                let i := 0
+            } lt(i, 32) {
+                i := add(i, 1)
+            } {
+                from, to := copyMem(from, to, 4)
+            }
 
-        // Clean up end of memory
+            // Clean up end of memory
             mstore(to, 0)
 
-        // Log the resulting MIPS state, for debugging
+            // Log the resulting MIPS state, for debugging
             log0(start, sub(to, start))
 
-        // Determine the VM status
+            // Determine the VM status
             let status := 0
             switch exited
             case 1 {
                 switch exitCode
                 // VMStatusValid
-                case 0 {status := 0}
+                case 0 {
+                    status := 0
+                }
                 // VMStatusInvalid
-                case 1 {status := 1}
+                case 1 {
+                    status := 1
+                }
                 // VMStatusPanic
-                default {status := 2}
+                default {
+                    status := 2
+                }
             }
             // VMStatusUnfinished
-            default {status := 3}
+            default {
+                status := 3
+            }
 
-        // Compute the hash of the resulting MIPS state and set the status byte
+            // Compute the hash of the resulting MIPS state and set the status byte
             out_ := keccak256(start, sub(to, start))
             out_ := or(and(not(shl(248, 0xFF)), out_), shl(248, status))
         }
@@ -141,14 +155,16 @@ contract MIPS is ISemver {
     /// @return out_ The hashed MIPS state.
     function handleSyscall(bytes32 _localContext) internal returns (bytes32 out_) {
         unchecked {
-        // Load state from memory
+            // Load state from memory
             State memory state;
             assembly {
                 state := 0x80
             }
 
-        // Load the syscall numbers and args from the registers
-            (uint32 syscall_no, uint32 a0, uint32 a1, uint32 a2,) = sys.getSyscallArgs(state.registers);
+            // Load the syscall numbers and args from the registers
+            (uint32 syscall_no, uint32 a0, uint32 a1, uint32 a2, ) = sys.getSyscallArgs(
+                state.registers
+            );
 
             uint32 v0 = 0;
             uint32 v1 = 0;
@@ -207,38 +223,42 @@ contract MIPS is ISemver {
     /// @param _proof The encoded proof data for leaves within the MIPS VM's memory.
     /// @param _localContext The local key context for the preimage oracle. Optional, can be set as a constant
     ///                      if the caller only requires one set of local keys.
-    function step(bytes calldata _stateData, bytes calldata _proof, bytes32 _localContext) public returns (bytes32) {
+    function step(
+        bytes calldata _stateData,
+        bytes calldata _proof,
+        bytes32 _localContext
+    ) public returns (bytes32) {
         unchecked {
             State memory state;
 
-        // Packed calldata is ~6 times smaller than state size
+            // Packed calldata is ~6 times smaller than state size
             assembly {
                 if iszero(eq(state, 0x80)) {
-                // expected state mem offset check
+                    // expected state mem offset check
                     revert(0, 0)
                 }
                 if iszero(eq(mload(0x40), shl(5, 48))) {
-                // expected memory check
+                    // expected memory check
                     revert(0, 0)
                 }
                 if iszero(eq(_stateData.offset, 132)) {
-                // 32*4+4=132 expected state data offset
+                    // 32*4+4=132 expected state data offset
                     revert(0, 0)
                 }
                 if iszero(eq(_proof.offset, STEP_PROOF_OFFSET)) {
-                // 132+32+256=420 expected proof offset
+                    // 132+32+256=420 expected proof offset
                     revert(0, 0)
                 }
 
                 function putField(callOffset, memOffset, size) -> callOffsetOut, memOffsetOut {
-                // calldata is packed, thus starting left-aligned, shift-right to pad and right-align
+                    // calldata is packed, thus starting left-aligned, shift-right to pad and right-align
                     let w := shr(shl(3, sub(32, size)), calldataload(callOffset))
                     mstore(memOffset, w)
                     callOffsetOut := add(callOffset, size)
                     memOffsetOut := add(memOffset, 32)
                 }
 
-            // Unpack state from calldata into memory
+                // Unpack state from calldata into memory
                 let c := _stateData.offset // calldata offset
                 let m := 0x80 // mem offset
                 c, m := putField(c, m, 32) // memRoot
@@ -254,44 +274,53 @@ contract MIPS is ISemver {
                 let exited := mload(sub(m, 32))
                 c, m := putField(c, m, 8) // step
 
-            // Verify that the value of exited is valid (0 or 1)
+                // Verify that the value of exited is valid (0 or 1)
                 if gt(exited, 1) {
-                // revert InvalidExitedValue();
+                    // revert InvalidExitedValue();
                     let ptr := mload(0x40)
                     mstore(ptr, shl(224, 0x0136cc76))
                     revert(ptr, 0x04)
                 }
 
-            // Compiler should have done this already
+                // Compiler should have done this already
                 if iszero(eq(mload(m), add(m, 32))) {
-                // expected registers offset check
+                    // expected registers offset check
                     revert(0, 0)
                 }
 
-            // Unpack register calldata into memory
+                // Unpack register calldata into memory
                 m := add(m, 32)
-                for {let i := 0} lt(i, 32) {i := add(i, 1)} {c, m := putField(c, m, 4)}
+                for {
+                    let i := 0
+                } lt(i, 32) {
+                    i := add(i, 1)
+                } {
+                    c, m := putField(c, m, 4)
+                }
             }
 
-        // Don't change state once exited
+            // Don't change state once exited
             if (state.exited) {
                 return outputState();
             }
 
             state.step += 1;
 
-        // instruction fetch
+            // instruction fetch
             uint256 insnProofOffset = MIPSMemory.memoryProofOffset(STEP_PROOF_OFFSET, 0);
-            (uint32 insn, uint32 opcode, uint32 fun) =
-                                ins.getInstructionDetails(state.pc, state.memRoot, insnProofOffset);
+            (uint32 insn, uint32 opcode, uint32 fun) = ins.getInstructionDetails(
+                state.pc,
+                state.memRoot,
+                insnProofOffset
+            );
 
-        // Handle syscall separately
-        // syscall (can read and write)
+            // Handle syscall separately
+            // syscall (can read and write)
             if (opcode == 0 && fun == 0xC) {
                 return handleSyscall(_localContext);
             }
 
-        // Exec the rest of the step logic
+            // Exec the rest of the step logic
             st.CpuScalars memory cpu = getCpuScalars(state);
             (state.memRoot) = ins.execMipsCoreStepLogic({
                 _cpu: cpu,
@@ -309,7 +338,8 @@ contract MIPS is ISemver {
     }
 
     function getCpuScalars(State memory _state) internal pure returns (st.CpuScalars memory) {
-        return st.CpuScalars({pc: _state.pc, nextPC: _state.nextPC, lo: _state.lo, hi: _state.hi});
+        return
+            st.CpuScalars({ pc: _state.pc, nextPC: _state.nextPC, lo: _state.lo, hi: _state.hi });
     }
 
     function setStateCpuScalars(State memory _state, st.CpuScalars memory _cpu) internal pure {

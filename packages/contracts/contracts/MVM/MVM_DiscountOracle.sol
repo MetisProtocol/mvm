@@ -28,9 +28,10 @@ contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver {
         _;
     }
 
-    constructor(address _addressManager, uint256 _initialDiscount)
-        Lib_AddressResolver(_addressManager)
-    {
+    constructor(
+        address _addressManager,
+        uint256 _initialDiscount
+    ) Lib_AddressResolver(_addressManager) {
         discount = _initialDiscount;
         minL2Gas = 200_000;
         allowAllXDomainSenders = false;
@@ -52,11 +53,10 @@ contract MVM_DiscountOracle is iMVM_DiscountOracle, Lib_AddressResolver {
         minL2Gas = _minL2Gas;
     }
 
-    function setWhitelistedXDomainSender(address _sender, bool _isWhitelisted)
-        external
-        override
-        onlyManager
-    {
+    function setWhitelistedXDomainSender(
+        address _sender,
+        bool _isWhitelisted
+    ) external override onlyManager {
         xDomainWL[_sender] = _isWhitelisted;
     }
 

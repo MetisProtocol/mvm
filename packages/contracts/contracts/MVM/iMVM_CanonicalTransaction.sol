@@ -129,10 +129,10 @@ interface iMVM_CanonicalTransaction {
     /**
      * Gets the verifier stake cost of ETH by batch index.
      */
-    function getStakeCostByBatch(uint256 _chainId, uint256 _batchIndex)
-        external
-        view
-        returns (uint256);
+    function getStakeCostByBatch(
+        uint256 _chainId,
+        uint256 _batchIndex
+    ) external view returns (uint256);
 
     /**
      * Sets batch transaction data slice size per submit.
@@ -270,9 +270,5 @@ interface iMVM_CanonicalTransaction {
      * @param _batchIndex batch index of CTC.
      * @param _blockNumber block number.
      */
-    function withdrawStake(
-        uint256 _chainId,
-        uint256 _batchIndex,
-        uint256 _blockNumber
-    ) external;
+    function withdrawStake(uint256 _chainId, uint256 _batchIndex, uint256 _blockNumber) external;
 }

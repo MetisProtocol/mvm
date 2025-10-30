@@ -59,7 +59,11 @@ interface IMVMStateCommitmentChain {
      * @param _l2BlockNumber the l2 block number of the batch.
      * @return the bytes32 block hash of the batch.
      */
-    function checkBatchBlock(uint256 _chainId, uint256 _batchIndex, uint256 _l2BlockNumber) external view returns (bytes32);
+    function checkBatchBlock(
+        uint256 _chainId,
+        uint256 _batchIndex,
+        uint256 _l2BlockNumber
+    ) external view returns (bytes32);
 
     /**
      * Get the earliest disputable state root.
@@ -67,7 +71,9 @@ interface IMVMStateCommitmentChain {
      * @return _lastFinalized last finalized batch info.
      * @return _earliestDisputable earliest disputable batch info.
      */
-    function findEarliestDisputableBatch(uint256 _chainId) external view returns (BatchInfo memory _lastFinalized, BatchInfo memory _earliestDisputable);
+    function findEarliestDisputableBatch(
+        uint256 _chainId
+    ) external view returns (BatchInfo memory _lastFinalized, BatchInfo memory _earliestDisputable);
 
     function batches() external view returns (IChainStorageContainer);
 
@@ -93,7 +99,10 @@ interface IMVMStateCommitmentChain {
      * Finds the earliest disputable block number.
      * @return _earliestDisputedBlockNumber Earliest disputable block number.
      */
-    function earliestDisputedBlockNumber() external view returns (uint256 _earliestDisputedBlockNumber);
+    function earliestDisputedBlockNumber()
+        external
+        view
+        returns (uint256 _earliestDisputedBlockNumber);
 
     /**
      * Appends a batch of state roots to the chain.
@@ -102,7 +111,12 @@ interface IMVMStateCommitmentChain {
      * @param _lastBatchBlockHash Block hash of the last batch.
      * @param _lastBatchBlockNumber Block number of the last batch.
      */
-    function appendStateBatch(bytes32[] calldata _batch, uint256 _shouldStartAtElement, bytes32 _lastBatchBlockHash, uint256 _lastBatchBlockNumber) external;
+    function appendStateBatch(
+        bytes32[] calldata _batch,
+        uint256 _shouldStartAtElement,
+        bytes32 _lastBatchBlockHash,
+        uint256 _lastBatchBlockNumber
+    ) external;
 
     /**
      * Deletes all state roots after (and including) a given batch.
@@ -127,10 +141,9 @@ interface IMVMStateCommitmentChain {
      * @param _batchHeader Header of the batch to check.
      * @return _inside Whether or not the batch is inside the fraud proof window.
      */
-    function insideFraudProofWindow(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)
-        external
-        view
-        returns (bool _inside);
+    function insideFraudProofWindow(
+        Lib_OVMCodec.ChainBatchHeader memory _batchHeader
+    ) external view returns (bool _inside);
 
     /**
      * Saves a batch as disputed due to timeout.
@@ -167,30 +180,27 @@ interface IMVMStateCommitmentChain {
      * @param _chainId identity for the l2 chain.
      * @return _totalElements Total submitted elements.
      */
-    function getTotalElementsByChainId(uint256 _chainId)
-        external
-        view
-        returns (uint256 _totalElements);
+    function getTotalElementsByChainId(
+        uint256 _chainId
+    ) external view returns (uint256 _totalElements);
 
     /**
      * Retrieves the total number of batches submitted.
      * @param _chainId identity for the l2 chain.
      * @return _totalBatches Total submitted batches.
      */
-    function getTotalBatchesByChainId(uint256 _chainId)
-        external
-        view
-        returns (uint256 _totalBatches);
+    function getTotalBatchesByChainId(
+        uint256 _chainId
+    ) external view returns (uint256 _totalBatches);
 
     /**
      * Retrieves the timestamp of the last batch submitted by the sequencer.
      * @param _chainId identity for the l2 chain.
      * @return _lastSequencerTimestamp Last sequencer batch timestamp.
      */
-    function getLastSequencerTimestampByChainId(uint256 _chainId)
-        external
-        view
-        returns (uint256 _lastSequencerTimestamp);
+    function getLastSequencerTimestampByChainId(
+        uint256 _chainId
+    ) external view returns (uint256 _lastSequencerTimestamp);
 
     /**
      * Appends a batch of state roots to the chain.

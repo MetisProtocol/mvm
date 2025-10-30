@@ -11,14 +11,15 @@ library LibKeccak {
 
     /// @notice The round constants for the keccak256 hash function. Packed in memory for efficient reading during the
     ///         permutation.
-    bytes internal constant ROUND_CONSTANTS = abi.encode(
-        0x00000000000000010000000000008082800000000000808a8000000080008000, // r1,r2,r3,r4
-        0x000000000000808b000000008000000180000000800080818000000000008009, // r5,r6,r7,r8
-        0x000000000000008a00000000000000880000000080008009000000008000000a, // r9,r10,r11,r12
-        0x000000008000808b800000000000008b80000000000080898000000000008003, // r13,r14,r15,r16
-        0x80000000000080028000000000000080000000000000800a800000008000000a, // r17,r18,r19,r20
-        0x8000000080008081800000000000808000000000800000018000000080008008 // r21,r22,r23,r24
-    );
+    bytes internal constant ROUND_CONSTANTS =
+        abi.encode(
+            0x00000000000000010000000000008082800000000000808a8000000080008000, // r1,r2,r3,r4
+            0x000000000000808b000000008000000180000000800080818000000000008009, // r5,r6,r7,r8
+            0x000000000000008a00000000000000880000000080008009000000008000000a, // r9,r10,r11,r12
+            0x000000008000808b800000000000008b80000000000080898000000000008003, // r13,r14,r15,r16
+            0x80000000000080028000000000000080000000000000800a800000008000000a, // r17,r18,r19,r20
+            0x8000000080008081800000000000808000000000800000018000000080008008 // r21,r22,r23,r24
+        );
 
     /// @notice A mask for 64-bit values.
     uint64 private constant U64_MASK = 0xFFFFFFFFFFFFFFFF;
@@ -34,45 +35,47 @@ library LibKeccak {
         bytes memory roundConstants = ROUND_CONSTANTS;
 
         assembly {
-        // Add 32 to the state matrix pointer to skip the data location field.
+            // Add 32 to the state matrix pointer to skip the data location field.
             let stateMatrixPtr := add(_stateMatrix, 0x20)
             let rcPtr := add(roundConstants, 0x20)
 
-        // set a state element in the passed `StateMatrix` struct memory ptr.
+            // set a state element in the passed `StateMatrix` struct memory ptr.
             function setStateElem(ptr, idx, data) {
                 mstore(add(ptr, shl(0x05, idx)), and(data, U64_MASK))
             }
 
-        // fetch a state element from the passed `StateMatrix` struct memory ptr.
+            // fetch a state element from the passed `StateMatrix` struct memory ptr.
             function stateElem(ptr, idx) -> elem {
                 elem := mload(add(ptr, shl(0x05, idx)))
             }
 
-        // 64 bit logical shift
+            // 64 bit logical shift
             function shl64(a, b) -> val {
                 val := and(shl(a, b), U64_MASK)
             }
 
-        // Performs an indivudual rho + pi computation, to be used in the full `thetaRhoPi` chain.
+            // Performs an indivudual rho + pi computation, to be used in the full `thetaRhoPi` chain.
             function rhoPi(ptr, destIdx, srcIdx, fact, dt) {
                 let xs1 := xor(stateElem(ptr, srcIdx), dt)
                 let res := xor(shl(fact, xs1), shr(sub(64, fact), xs1))
                 setStateElem(ptr, destIdx, res)
             }
 
-        // xor a column in the state matrix
+            // xor a column in the state matrix
             function xorColumn(ptr, col) -> val {
-                val :=
-                xor(
-                    xor(xor(stateElem(ptr, col), stateElem(ptr, add(col, 5))), stateElem(ptr, add(col, 10))),
+                val := xor(
+                    xor(
+                        xor(stateElem(ptr, col), stateElem(ptr, add(col, 5))),
+                        stateElem(ptr, add(col, 10))
+                    ),
                     xor(stateElem(ptr, add(col, 15)), stateElem(ptr, add(col, 20)))
                 )
             }
 
-        // Performs the `theta`, `rho`, and `pi` steps of the Keccak-f[1600] permutation on
-        // the passed `StateMatrix` struct memory ptr.
+            // Performs the `theta`, `rho`, and `pi` steps of the Keccak-f[1600] permutation on
+            // the passed `StateMatrix` struct memory ptr.
             function thetaRhoPi(ptr) {
-            // Theta
+                // Theta
                 let C0 := xorColumn(ptr, 0)
                 let C1 := xorColumn(ptr, 1)
                 let C2 := xorColumn(ptr, 2)
@@ -114,7 +117,7 @@ library LibKeccak {
                 setStateElem(ptr, 10, A1)
             }
 
-        // Inner `chi` function, unrolled in `chi` for performance.
+            // Inner `chi` function, unrolled in `chi` for performance.
             function innerChi(ptr, start) {
                 let A0 := stateElem(ptr, start)
                 let A1 := stateElem(ptr, add(start, 1))
@@ -129,7 +132,7 @@ library LibKeccak {
                 setStateElem(ptr, add(start, 4), xor(A4, and(not(A0), A1)))
             }
 
-        // Performs the `chi` step of the Keccak-f[1600] permutation on the passed `StateMatrix` struct memory ptr
+            // Performs the `chi` step of the Keccak-f[1600] permutation on the passed `StateMatrix` struct memory ptr
             function chi(ptr) {
                 innerChi(ptr, 0)
                 innerChi(ptr, 5)
@@ -138,17 +141,17 @@ library LibKeccak {
                 innerChi(ptr, 20)
             }
 
-        // Perform the full Keccak-f[1600] permutation on a `StateMatrix` struct memory ptr for a given round.
+            // Perform the full Keccak-f[1600] permutation on a `StateMatrix` struct memory ptr for a given round.
             function permute(ptr, roundsPtr, round) {
-            // Theta, Rho, Pi, Chi
+                // Theta, Rho, Pi, Chi
                 thetaRhoPi(ptr)
                 chi(ptr)
-            // Iota
+                // Iota
                 let roundConst := shr(192, mload(add(roundsPtr, shl(0x03, round))))
                 setStateElem(ptr, 0, xor(stateElem(ptr, 0), roundConst))
             }
 
-        // Unroll the permutation loop.
+            // Unroll the permutation loop.
             permute(stateMatrixPtr, rcPtr, 0)
             permute(stateMatrixPtr, rcPtr, 1)
             permute(stateMatrixPtr, rcPtr, 2)
@@ -179,28 +182,29 @@ library LibKeccak {
     /// @notice Absorb a fixed-sized block into the sponge.
     function absorb(StateMatrix memory _stateMatrix, bytes memory _input) internal pure {
         assembly {
-        // The input must be 1088 bits long.
-            if iszero(eq(mload(_input), 136)) {revert(0, 0)}
+            // The input must be 1088 bits long.
+            if iszero(eq(mload(_input), 136)) {
+                revert(0, 0)
+            }
 
             let dataPtr := add(_input, 0x20)
             let statePtr := add(_stateMatrix, 0x20)
 
-        // set a state element in the passed `StateMatrix` struct memory ptr.
+            // set a state element in the passed `StateMatrix` struct memory ptr.
             function setStateElem(ptr, idx, data) {
                 mstore(add(ptr, shl(0x05, idx)), and(data, U64_MASK))
             }
 
-        // fetch a state element from the passed `StateMatrix` struct memory ptr.
+            // fetch a state element from the passed `StateMatrix` struct memory ptr.
             function stateElem(ptr, idx) -> elem {
                 elem := mload(add(ptr, shl(0x05, idx)))
             }
 
-        // Inner sha3 absorb XOR function
+            // Inner sha3 absorb XOR function
             function absorbInner(stateMatrixPtr, inputPtr, idx) {
                 let boWord := mload(add(inputPtr, shl(3, idx)))
 
-                let res :=
-                or(
+                let res := or(
                     or(
                         or(shl(56, byte(7, boWord)), shl(48, byte(6, boWord))),
                         or(shl(40, byte(5, boWord)), shl(32, byte(4, boWord)))
@@ -213,7 +217,7 @@ library LibKeccak {
                 setStateElem(stateMatrixPtr, idx, xor(stateElem(stateMatrixPtr, idx), res))
             }
 
-        // Unroll the input XOR loop.
+            // Unroll the input XOR loop.
             absorbInner(statePtr, dataPtr, 0)
             absorbInner(statePtr, dataPtr, 1)
             absorbInner(statePtr, dataPtr, 2)
@@ -237,27 +241,35 @@ library LibKeccak {
     /// @notice Squeezes the final keccak256 digest from the passed `StateMatrix`.
     function squeeze(StateMatrix memory _stateMatrix) internal pure returns (bytes32 hash_) {
         assembly {
-        // 64 bit logical shift
+            // 64 bit logical shift
             function shl64(a, b) -> val {
                 val := and(shl(a, b), U64_MASK)
             }
 
-        // convert a big endian 64-bit value to a little endian 64-bit value.
+            // convert a big endian 64-bit value to a little endian 64-bit value.
             function toLE(beVal) -> leVal {
-                beVal := or(and(shl64(8, beVal), 0xFF00FF00FF00FF00), and(shr(8, beVal), 0x00FF00FF00FF00FF))
-                beVal := or(and(shl64(16, beVal), 0xFFFF0000FFFF0000), and(shr(16, beVal), 0x0000FFFF0000FFFF))
+                beVal := or(
+                    and(shl64(8, beVal), 0xFF00FF00FF00FF00),
+                    and(shr(8, beVal), 0x00FF00FF00FF00FF)
+                )
+                beVal := or(
+                    and(shl64(16, beVal), 0xFFFF0000FFFF0000),
+                    and(shr(16, beVal), 0x0000FFFF0000FFFF)
+                )
                 leVal := or(shl64(32, beVal), shr(32, beVal))
             }
 
-        // fetch a state element from the passed `StateMatrix` struct memory ptr.
+            // fetch a state element from the passed `StateMatrix` struct memory ptr.
             function stateElem(ptr, idx) -> elem {
                 elem := mload(add(ptr, shl(0x05, idx)))
             }
 
             let stateMatrixPtr := add(_stateMatrix, 0x20)
-            hash_ :=
-            or(
-                or(shl(192, toLE(stateElem(stateMatrixPtr, 0))), shl(128, toLE(stateElem(stateMatrixPtr, 1)))),
+            hash_ := or(
+                or(
+                    shl(192, toLE(stateElem(stateMatrixPtr, 0))),
+                    shl(128, toLE(stateElem(stateMatrixPtr, 1)))
+                ),
                 or(shl(64, toLE(stateElem(stateMatrixPtr, 2))), toLE(stateElem(stateMatrixPtr, 3)))
             )
         }
@@ -268,56 +280,56 @@ library LibKeccak {
         assembly {
             padded_ := mload(0x40)
 
-        // Grab the original length of `_data`
+            // Grab the original length of `_data`
             let len := _data.length
 
             let dataPtr := add(padded_, 0x20)
             let endPtr := add(dataPtr, len)
 
-        // Copy the data into memory.
+            // Copy the data into memory.
             calldatacopy(dataPtr, _data.offset, len)
 
             let modBlockSize := mod(len, BLOCK_SIZE_BYTES)
             switch modBlockSize
             case false {
-            // Clean the full padding block. It is possible that this memory is dirty, since solidity sometimes does
-            // not update the free memory pointer when allocating memory, for example with external calls. To do
-            // this, we read out-of-bounds from the calldata, which will always return 0 bytes.
+                // Clean the full padding block. It is possible that this memory is dirty, since solidity sometimes does
+                // not update the free memory pointer when allocating memory, for example with external calls. To do
+                // this, we read out-of-bounds from the calldata, which will always return 0 bytes.
                 calldatacopy(endPtr, calldatasize(), 0x88)
 
-            // If the input is a perfect multiple of the block size, then we add a full extra block of padding.
+                // If the input is a perfect multiple of the block size, then we add a full extra block of padding.
                 mstore8(endPtr, 0x01)
                 mstore8(sub(add(endPtr, BLOCK_SIZE_BYTES), 0x01), 0x80)
 
-            // Update the length of the data to include the padding.
+                // Update the length of the data to include the padding.
                 mstore(padded_, add(len, BLOCK_SIZE_BYTES))
             }
             default {
-            // If the input is not a perfect multiple of the block size, then we add a partial block of padding.
-            // This should entail a set bit after the input, followed by as many zero bits as necessary to fill
-            // the block, followed by a single 1 bit in the lowest-order bit of the final block.
+                // If the input is not a perfect multiple of the block size, then we add a partial block of padding.
+                // This should entail a set bit after the input, followed by as many zero bits as necessary to fill
+                // the block, followed by a single 1 bit in the lowest-order bit of the final block.
 
                 let remaining := sub(BLOCK_SIZE_BYTES, modBlockSize)
                 let newLen := add(len, remaining)
                 let paddedEndPtr := add(dataPtr, newLen)
 
-            // Clean the remainder to ensure that the intermediate data between the padding bits is 0. It is
-            // possible that this memory is dirty, since solidity sometimes does not update the free memory pointer
-            // when allocating memory, for example with external calls. To do this, we read out-of-bounds from the
-            // calldata, which will always return 0 bytes.
+                // Clean the remainder to ensure that the intermediate data between the padding bits is 0. It is
+                // possible that this memory is dirty, since solidity sometimes does not update the free memory pointer
+                // when allocating memory, for example with external calls. To do this, we read out-of-bounds from the
+                // calldata, which will always return 0 bytes.
                 let partialRemainder := sub(paddedEndPtr, endPtr)
                 calldatacopy(endPtr, calldatasize(), partialRemainder)
 
-            // Store the padding bits.
+                // Store the padding bits.
                 mstore8(sub(paddedEndPtr, 0x01), 0x80)
                 mstore8(endPtr, or(byte(0x00, mload(endPtr)), 0x01))
 
-            // Update the length of the data to include the padding. The length should be a multiple of the
-            // block size after this.
+                // Update the length of the data to include the padding. The length should be a multiple of the
+                // block size after this.
                 mstore(padded_, newLen)
             }
 
-        // Update the free memory pointer.
+            // Update the free memory pointer.
             mstore(0x40, add(padded_, and(add(mload(padded_), 0x3F), not(0x1F))))
         }
     }
@@ -327,59 +339,63 @@ library LibKeccak {
         assembly {
             padded_ := mload(0x40)
 
-        // Grab the original length of `_data`
+            // Grab the original length of `_data`
             let len := mload(_data)
 
             let dataPtr := add(padded_, 0x20)
             let endPtr := add(dataPtr, len)
 
-        // Copy the data.
+            // Copy the data.
             let originalDataPtr := add(_data, 0x20)
-            for {let i := 0x00} lt(i, len) {i := add(i, 0x20)} {
+            for {
+                let i := 0x00
+            } lt(i, len) {
+                i := add(i, 0x20)
+            } {
                 mstore(add(dataPtr, i), mload(add(originalDataPtr, i)))
             }
 
             let modBlockSize := mod(len, BLOCK_SIZE_BYTES)
             switch modBlockSize
             case false {
-            // Clean the full padding block. It is possible that this memory is dirty, since solidity sometimes does
-            // not update the free memory pointer when allocating memory, for example with external calls. To do
-            // this, we read out-of-bounds from the calldata, which will always return 0 bytes.
+                // Clean the full padding block. It is possible that this memory is dirty, since solidity sometimes does
+                // not update the free memory pointer when allocating memory, for example with external calls. To do
+                // this, we read out-of-bounds from the calldata, which will always return 0 bytes.
                 calldatacopy(endPtr, calldatasize(), 0x88)
 
-            // If the input is a perfect multiple of the block size, then we add a full extra block of padding.
+                // If the input is a perfect multiple of the block size, then we add a full extra block of padding.
                 mstore8(sub(add(endPtr, BLOCK_SIZE_BYTES), 0x01), 0x80)
                 mstore8(endPtr, 0x01)
 
-            // Update the length of the data to include the padding.
+                // Update the length of the data to include the padding.
                 mstore(padded_, add(len, BLOCK_SIZE_BYTES))
             }
             default {
-            // If the input is not a perfect multiple of the block size, then we add a partial block of padding.
-            // This should entail a set bit after the input, followed by as many zero bits as necessary to fill
-            // the block, followed by a single 1 bit in the lowest-order bit of the final block.
+                // If the input is not a perfect multiple of the block size, then we add a partial block of padding.
+                // This should entail a set bit after the input, followed by as many zero bits as necessary to fill
+                // the block, followed by a single 1 bit in the lowest-order bit of the final block.
 
                 let remaining := sub(BLOCK_SIZE_BYTES, modBlockSize)
                 let newLen := add(len, remaining)
                 let paddedEndPtr := add(dataPtr, newLen)
 
-            // Clean the remainder to ensure that the intermediate data between the padding bits is 0. It is
-            // possible that this memory is dirty, since solidity sometimes does not update the free memory pointer
-            // when allocating memory, for example with external calls. To do this, we read out-of-bounds from the
-            // calldata, which will always return 0 bytes.
+                // Clean the remainder to ensure that the intermediate data between the padding bits is 0. It is
+                // possible that this memory is dirty, since solidity sometimes does not update the free memory pointer
+                // when allocating memory, for example with external calls. To do this, we read out-of-bounds from the
+                // calldata, which will always return 0 bytes.
                 let partialRemainder := sub(paddedEndPtr, endPtr)
                 calldatacopy(endPtr, calldatasize(), partialRemainder)
 
-            // Store the padding bits.
+                // Store the padding bits.
                 mstore8(sub(paddedEndPtr, 0x01), 0x80)
                 mstore8(endPtr, or(byte(0x00, mload(endPtr)), 0x01))
 
-            // Update the length of the data to include the padding. The length should be a multiple of the
-            // block size after this.
+                // Update the length of the data to include the padding. The length should be a multiple of the
+                // block size after this.
                 mstore(padded_, newLen)
             }
 
-        // Update the free memory pointer.
+            // Update the free memory pointer.
             mstore(0x40, add(padded_, and(add(mload(padded_), 0x3F), not(0x1F))))
         }
     }

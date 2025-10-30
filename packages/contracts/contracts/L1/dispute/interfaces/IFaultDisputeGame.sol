@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IDisputeGame} from "./IDisputeGame.sol";
+import { IDisputeGame } from "./IDisputeGame.sol";
 
 import "contracts/L1/dispute/lib/Types.sol";
 
@@ -58,7 +58,12 @@ interface IFaultDisputeGame is IDisputeGame {
     ///        the move is a defense. If the step is an attack on the first instruction, it is
     ///        the absolute prestate of the fault proof VM.
     /// @param _proof Proof to access memory nodes in the VM's merkle state tree.
-    function step(uint256 _claimIndex, bool _isAttack, bytes calldata _stateData, bytes calldata _proof) external;
+    function step(
+        uint256 _claimIndex,
+        bool _isAttack,
+        bytes calldata _stateData,
+        bytes calldata _proof
+    ) external;
 
     /// @notice Posts the requested local data to the VM's `PreimageOralce`.
     /// @param _ident The local identifier of the data to post.
@@ -83,13 +88,18 @@ interface IFaultDisputeGame is IDisputeGame {
     ///         at `_claimIndex`.
     /// @param _claimIndex The subgame root claim's index within `claimData`.
     /// @return numRemainingChildren_ The number of children that still need to be checked to resolve the subgame.
-    function getNumToResolve(uint256 _claimIndex) external view returns (uint256 numRemainingChildren_);
+    function getNumToResolve(
+        uint256 _claimIndex
+    ) external view returns (uint256 numRemainingChildren_);
 
     /// @notice The l2BlockNumber of the disputed output root in the `L2OutputOracle`.
     function l2BlockNumber() external view returns (uint256 l2BlockNumber_);
 
     /// @notice Starting output root and block number of the game.
-    function startingOutputRoot() external view returns (Hash startingRoot_, uint256 l2BlockNumber_);
+    function startingOutputRoot()
+        external
+        view
+        returns (Hash startingRoot_, uint256 l2BlockNumber_);
 
     /// @notice Only the starting block number of the game.
     function startingBlockNumber() external view returns (uint256 startingBlockNumber_);

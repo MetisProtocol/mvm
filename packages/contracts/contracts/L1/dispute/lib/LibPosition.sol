@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-    using LibPosition for Position global;
+using LibPosition for Position global;
 
 /// @notice A `Position` represents a position of a claim within the game tree.
 /// @dev This is represented as a "generalized index" where the high-order bit
 /// is the level in the tree and the remaining bits is a unique bit pattern, allowing
 /// a unique identifier for each node in the tree. Mathematically, it is calculated
 /// as 2^{depth} + indexAtDepth.
-    type Position is uint128;
+type Position is uint128;
 
 /// @title LibPosition
 /// @notice This library contains helper functions for working with the `Position` type.
@@ -23,7 +23,7 @@ library LibPosition {
     /// @return position_ The computed generalized index.
     function wrap(uint8 _depth, uint128 _indexAtDepth) internal pure returns (Position position_) {
         assembly {
-        // gindex = 2^{_depth} + _indexAtDepth
+            // gindex = 2^{_depth} + _indexAtDepth
             position_ := add(shl(_depth, 1), _indexAtDepth)
         }
     }
@@ -38,7 +38,7 @@ library LibPosition {
             depth_ := or(depth_, shl(6, lt(0xffffffffffffffff, shr(depth_, _position))))
             depth_ := or(depth_, shl(5, lt(0xffffffff, shr(depth_, _position))))
 
-        // For the remaining 32 bits, use a De Bruijn lookup.
+            // For the remaining 32 bits, use a De Bruijn lookup.
             _position := shr(depth_, _position)
             _position := or(_position, shr(1, _position))
             _position := or(_position, shr(2, _position))
@@ -46,8 +46,7 @@ library LibPosition {
             _position := or(_position, shr(8, _position))
             _position := or(_position, shr(16, _position))
 
-            depth_ :=
-            or(
+            depth_ := or(
                 depth_,
                 byte(
                     shr(251, mul(_position, shl(224, 0x07c4acdd))),
@@ -104,7 +103,10 @@ library LibPosition {
     /// @param _position The position to get the relative deepest, right most gindex of.
     /// @param _maxDepth The maximum depth of the game.
     /// @return rightIndex_ The deepest, right most gindex relative to the `position`.
-    function rightIndex(Position _position, uint256 _maxDepth) internal pure returns (Position rightIndex_) {
+    function rightIndex(
+        Position _position,
+        uint256 _maxDepth
+    ) internal pure returns (Position rightIndex_) {
         uint256 msb = depth(_position);
         assembly {
             let remaining := sub(_maxDepth, msb)
@@ -118,11 +120,17 @@ library LibPosition {
     /// @param _position The position to get the relative trace index of.
     /// @param _maxDepth The maximum depth of the game.
     /// @return traceIndex_ The trace index relative to the `position`.
-    function traceIndex(Position _position, uint256 _maxDepth) internal pure returns (uint256 traceIndex_) {
+    function traceIndex(
+        Position _position,
+        uint256 _maxDepth
+    ) internal pure returns (uint256 traceIndex_) {
         uint256 msb = depth(_position);
         assembly {
             let remaining := sub(_maxDepth, msb)
-            traceIndex_ := sub(or(shl(remaining, _position), sub(shl(remaining, 1), 1)), shl(_maxDepth, 1))
+            traceIndex_ := sub(
+                or(shl(remaining, _position), sub(shl(remaining, 1), 1)),
+                shl(_maxDepth, 1)
+            )
         }
     }
 
@@ -142,7 +150,7 @@ library LibPosition {
         // shifted right by the index of the lowest unset bit.
         assembly {
             let a := shr(msb, _position)
-        // Bound the ancestor to the minimum gindex, 1.
+            // Bound the ancestor to the minimum gindex, 1.
             ancestor_ := or(a, iszero(a))
         }
     }
@@ -156,15 +164,11 @@ library LibPosition {
     function traceAncestorBounded(
         Position _position,
         uint256 _upperBoundExclusive
-    )
-    internal
-    pure
-    returns (Position ancestor_)
-    {
+    ) internal pure returns (Position ancestor_) {
         // This function only works for positions that are below the upper bound.
         if (_position.depth() <= _upperBoundExclusive) {
             assembly {
-            // Revert with `ClaimAboveSplit()`
+                // Revert with `ClaimAboveSplit()`
                 mstore(0x00, 0xb34b5c22)
                 revert(0x1C, 0x04)
             }

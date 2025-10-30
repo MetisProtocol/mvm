@@ -118,11 +118,9 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
     /**
      * @inheritdoc IStateCommitmentChain
      */
-    function insideFraudProofWindow(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)
-        public
-        view
-        returns (bool _inside)
-    {
+    function insideFraudProofWindow(
+        Lib_OVMCodec.ChainBatchHeader memory _batchHeader
+    ) public view returns (bool _inside) {
         (uint256 timestamp, ) = abi.decode(_batchHeader.extraData, (uint256, address));
 
         require(timestamp != 0, "Batch header timestamp cannot be zero");
@@ -168,11 +166,10 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
      * @param _lastSequencerTimestamp Timestamp of the last batch submitted by the sequencer.
      * @return Encoded batch context.
      */
-    function _makeBatchExtraData(uint40 _totalElements, uint40 _lastSequencerTimestamp)
-        internal
-        pure
-        returns (bytes27)
-    {
+    function _makeBatchExtraData(
+        uint40 _totalElements,
+        uint40 _lastSequencerTimestamp
+    ) internal pure returns (bytes27) {
         bytes27 extraData;
         assembly {
             extraData := _totalElements
@@ -186,12 +183,9 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
     /**
      * @inheritdoc IStateCommitmentChain
      */
-    function getTotalElementsByChainId(uint256 _chainId)
-        public
-        view
-        override
-        returns (uint256 _totalElements)
-    {
+    function getTotalElementsByChainId(
+        uint256 _chainId
+    ) public view override returns (uint256 _totalElements) {
         (uint40 totalElements, ) = _getBatchExtraDataByChainId(_chainId);
         return uint256(totalElements);
     }
@@ -199,24 +193,18 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
     /**
      * @inheritdoc IStateCommitmentChain
      */
-    function getTotalBatchesByChainId(uint256 _chainId)
-        public
-        view
-        override
-        returns (uint256 _totalBatches)
-    {
+    function getTotalBatchesByChainId(
+        uint256 _chainId
+    ) public view override returns (uint256 _totalBatches) {
         return batches().lengthByChainId(_chainId);
     }
 
     /**
      * @inheritdoc IStateCommitmentChain
      */
-    function getLastSequencerTimestampByChainId(uint256 _chainId)
-        public
-        view
-        override
-        returns (uint256 _lastSequencerTimestamp)
-    {
+    function getLastSequencerTimestampByChainId(
+        uint256 _chainId
+    ) public view override returns (uint256 _lastSequencerTimestamp) {
         (, uint40 lastSequencerTimestamp) = _getBatchExtraDataByChainId(_chainId);
         return uint256(lastSequencerTimestamp);
     }
@@ -364,11 +352,10 @@ contract StateCommitmentChain is IStateCommitmentChain, Lib_AddressResolver {
      * @param _lastSequencerTimestamp Timestamp of the last batch submitted by the sequencer.
      * @return Encoded batch context.
      */
-    function _makeBatchExtraDataByChainId(uint40 _totalElements, uint40 _lastSequencerTimestamp)
-        internal
-        pure
-        returns (bytes27)
-    {
+    function _makeBatchExtraDataByChainId(
+        uint40 _totalElements,
+        uint40 _lastSequencerTimestamp
+    ) internal pure returns (bytes27) {
         bytes27 extraData;
         assembly {
             extraData := _totalElements

@@ -21,11 +21,7 @@ interface iMVM_L2ChainManagerOnL1 {
     /********************
      * Public Functions *
      ********************/
-    function switchSequencer(
-        uint256 _chainId,
-        address wallet,
-        address manager
-    ) external payable;
+    function switchSequencer(uint256 _chainId, address wallet, address manager) external payable;
 
     function pushConfig(uint256 _chainId, bytes calldata configs) external payable;
 }

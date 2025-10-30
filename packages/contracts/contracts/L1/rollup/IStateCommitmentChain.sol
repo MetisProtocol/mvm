@@ -78,10 +78,9 @@ interface IStateCommitmentChain {
      * @param _batchHeader Header of the batch to check.
      * @return _inside Whether or not the batch is inside the fraud proof window.
      */
-    function insideFraudProofWindow(Lib_OVMCodec.ChainBatchHeader memory _batchHeader)
-        external
-        view
-        returns (bool _inside);
+    function insideFraudProofWindow(
+        Lib_OVMCodec.ChainBatchHeader memory _batchHeader
+    ) external view returns (bool _inside);
 
     /********************
      * chain id added func *
@@ -92,30 +91,27 @@ interface IStateCommitmentChain {
      * @param _chainId identity for the l2 chain.
      * @return _totalElements Total submitted elements.
      */
-    function getTotalElementsByChainId(uint256 _chainId)
-        external
-        view
-        returns (uint256 _totalElements);
+    function getTotalElementsByChainId(
+        uint256 _chainId
+    ) external view returns (uint256 _totalElements);
 
     /**
      * Retrieves the total number of batches submitted.
      * @param _chainId identity for the l2 chain.
      * @return _totalBatches Total submitted batches.
      */
-    function getTotalBatchesByChainId(uint256 _chainId)
-        external
-        view
-        returns (uint256 _totalBatches);
+    function getTotalBatchesByChainId(
+        uint256 _chainId
+    ) external view returns (uint256 _totalBatches);
 
     /**
      * Retrieves the timestamp of the last batch submitted by the sequencer.
      * @param _chainId identity for the l2 chain.
      * @return _lastSequencerTimestamp Last sequencer batch timestamp.
      */
-    function getLastSequencerTimestampByChainId(uint256 _chainId)
-        external
-        view
-        returns (uint256 _lastSequencerTimestamp);
+    function getLastSequencerTimestampByChainId(
+        uint256 _chainId
+    ) external view returns (uint256 _lastSequencerTimestamp);
 
     /**
      * Appends a batch of state roots to the chain.

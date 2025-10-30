@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IDelayedWMetis} from "./interfaces/IDelayedWMetis.sol";
-import { FaultDisputeGame, IFaultDisputeGame, IBigStepper, IInitializable } from "./FaultDisputeGame.sol";
+import { IDelayedWMetis } from "./interfaces/IDelayedWMetis.sol";
+import {
+    FaultDisputeGame,
+    IFaultDisputeGame,
+    IBigStepper,
+    IInitializable
+} from "./FaultDisputeGame.sol";
 import { Lib_AddressManager } from "../../libraries/resolver/Lib_AddressManager.sol";
 import "./lib/Types.sol";
 import "./lib/Errors.sol";
@@ -56,18 +61,18 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         address _proposer,
         address _challenger
     )
-    FaultDisputeGame(
-    _gameType,
-    _absolutePrestate,
-    _maxGameDepth,
-    _splitDepth,
-    _clockExtension,
-    _maxClockDuration,
-    _vm,
-    _wmetis,
-    _addressManager,
-    _l2ChainId
-    )
+        FaultDisputeGame(
+            _gameType,
+            _absolutePrestate,
+            _maxGameDepth,
+            _splitDepth,
+            _clockExtension,
+            _maxClockDuration,
+            _vm,
+            _wmetis,
+            _addressManager,
+            _l2ChainId
+        )
     {
         PROPOSER = _proposer;
     }
@@ -78,11 +83,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         bool _isAttack,
         bytes calldata _stateData,
         bytes calldata _proof
-    )
-    public
-    override
-    onlyAuthorized
-    {
+    ) public override onlyAuthorized {
         super.step(_claimIndex, _isAttack, _stateData, _proof);
     }
 
@@ -96,11 +97,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         uint256 _challengeIndex,
         Claim _claim,
         bool _isAttack
-    )
-    public
-    override
-    onlyAuthorized
-    {
+    ) public override onlyAuthorized {
         super.move(_disputed, _challengeIndex, _claim, _isAttack);
     }
 

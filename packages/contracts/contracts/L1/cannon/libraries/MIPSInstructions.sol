@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {MIPSMemory} from "./MIPSMemory.sol";
-import {MIPSState as st} from "./MIPSState.sol";
+import { MIPSMemory } from "./MIPSMemory.sol";
+import { MIPSState as st } from "./MIPSState.sol";
 
 library MIPSInstructions {
     /// @param _pc The program counter.
@@ -15,11 +15,7 @@ library MIPSInstructions {
         uint32 _pc,
         bytes32 _memRoot,
         uint256 _insnProofOffset
-    )
-    internal
-    pure
-    returns (uint32 insn_, uint32 opcode_, uint32 fun_)
-    {
+    ) internal pure returns (uint32 insn_, uint32 opcode_, uint32 fun_) {
         unchecked {
             insn_ = MIPSMemory.readMem(_memRoot, _pc, _insnProofOffset);
             opcode_ = insn_ >> 26; // First 6-bits
@@ -46,28 +42,24 @@ library MIPSInstructions {
         uint32 _insn,
         uint32 _opcode,
         uint32 _fun
-    )
-    internal
-    pure
-    returns (bytes32 newMemRoot_)
-    {
+    ) internal pure returns (bytes32 newMemRoot_) {
         unchecked {
             newMemRoot_ = _memRoot;
 
-        // j-type j/jal
+            // j-type j/jal
             if (_opcode == 2 || _opcode == 3) {
                 // Take top 4 bits of the next PC (its 256 MB region), and concatenate with the 26-bit offset
-                uint32 target = (_cpu.nextPC & 0xF0000000) | (_insn & 0x03FFFFFF) << 2;
+                uint32 target = (_cpu.nextPC & 0xF0000000) | ((_insn & 0x03FFFFFF) << 2);
                 handleJump(_cpu, _registers, _opcode == 2 ? 0 : 31, target);
                 return newMemRoot_;
             }
 
-        // register fetch
+            // register fetch
             uint32 rs = 0; // source register 1 value
             uint32 rt = 0; // source register 2 / temp value
             uint32 rtReg = (_insn >> 16) & 0x1F;
 
-        // R-type or I-type (stores rt)
+            // R-type or I-type (stores rt)
             rs = _registers[(_insn >> 21) & 0x1F];
             uint32 rdReg = rtReg;
 
@@ -106,8 +98,8 @@ library MIPSInstructions {
             }
 
             uint32 storeAddr = 0xFF_FF_FF_FF;
-        // memory fetch (all I-type)
-        // we do the load for stores also
+            // memory fetch (all I-type)
+            // we do the load for stores also
             uint32 mem = 0;
             if (_opcode >= 0x20) {
                 // M[R[rs]+SignExtImm]
@@ -122,8 +114,8 @@ library MIPSInstructions {
                 }
             }
 
-        // ALU
-        // Note: swr outputs more than 4 bytes without the mask 0xffFFffFF
+            // ALU
+            // Note: swr outputs more than 4 bytes without the mask 0xffFFffFF
             uint32 val = executeMipsInstruction(_insn, _opcode, _fun, rs, rt, mem) & 0xffFFffFF;
 
             if (_opcode == 0 && _fun >= 8 && _fun < 0x1c) {
@@ -147,23 +139,30 @@ library MIPSInstructions {
                 // lo and hi registers
                 // can write back
                 if (_fun >= 0x10 && _fun < 0x1c) {
-                    handleHiLo({_cpu: _cpu, _registers: _registers, _fun: _fun, _rs: rs, _rt: rt, _storeReg: rdReg});
+                    handleHiLo({
+                        _cpu: _cpu,
+                        _registers: _registers,
+                        _fun: _fun,
+                        _rs: rs,
+                        _rt: rt,
+                        _storeReg: rdReg
+                    });
 
                     return newMemRoot_;
                 }
             }
 
-        // stupid sc, write a 1 to rt
+            // stupid sc, write a 1 to rt
             if (_opcode == 0x38 && rtReg != 0) {
                 _registers[rtReg] = 1;
             }
 
-        // write memory
+            // write memory
             if (storeAddr != 0xFF_FF_FF_FF) {
                 newMemRoot_ = MIPSMemory.writeMem(storeAddr, _memProofOffset, val);
             }
 
-        // write back the value to destination register
+            // write back the value to destination register
             handleRd(_cpu, _registers, rdReg, val, true);
 
             return newMemRoot_;
@@ -178,157 +177,167 @@ library MIPSInstructions {
         uint32 _rs,
         uint32 _rt,
         uint32 _mem
-    )
-    internal
-    pure
-    returns (uint32 out_)
-    {
+    ) internal pure returns (uint32 out_) {
         unchecked {
             if (_opcode == 0 || (_opcode >= 8 && _opcode < 0xF)) {
                 assembly {
-                // transform ArithLogI to SPECIAL
+                    // transform ArithLogI to SPECIAL
                     switch _opcode
                     // addi
-                    case 0x8 {_fun := 0x20}
+                    case 0x8 {
+                        _fun := 0x20
+                    }
                     // addiu
-                    case 0x9 {_fun := 0x21}
+                    case 0x9 {
+                        _fun := 0x21
+                    }
                     // stli
-                    case 0xA {_fun := 0x2A}
+                    case 0xA {
+                        _fun := 0x2A
+                    }
                     // sltiu
-                    case 0xB {_fun := 0x2B}
+                    case 0xB {
+                        _fun := 0x2B
+                    }
                     // andi
-                    case 0xC {_fun := 0x24}
+                    case 0xC {
+                        _fun := 0x24
+                    }
                     // ori
-                    case 0xD {_fun := 0x25}
+                    case 0xD {
+                        _fun := 0x25
+                    }
                     // xori
-                    case 0xE {_fun := 0x26}
+                    case 0xE {
+                        _fun := 0x26
+                    }
                 }
 
                 // sll
                 if (_fun == 0x00) {
                     return _rt << ((_insn >> 6) & 0x1F);
                 }
-                    // srl
+                // srl
                 else if (_fun == 0x02) {
                     return _rt >> ((_insn >> 6) & 0x1F);
                 }
-                    // sra
+                // sra
                 else if (_fun == 0x03) {
                     uint32 shamt = (_insn >> 6) & 0x1F;
                     return signExtend(_rt >> shamt, 32 - shamt);
                 }
-                    // sllv
+                // sllv
                 else if (_fun == 0x04) {
                     return _rt << (_rs & 0x1F);
                 }
-                    // srlv
+                // srlv
                 else if (_fun == 0x6) {
                     return _rt >> (_rs & 0x1F);
                 }
-                    // srav
+                // srav
                 else if (_fun == 0x07) {
                     // shamt here is different than the typical shamt which comes from the
                     // instruction itself, here it comes from the rs register
                     uint32 shamt = _rs & 0x1F;
                     return signExtend(_rt >> shamt, 32 - shamt);
                 }
-                    // functs in range [0x8, 0x1b] are handled specially by other functions
-                    // Explicitly enumerate each funct in range to reduce code diff against Go Vm
-                    // jr
+                // functs in range [0x8, 0x1b] are handled specially by other functions
+                // Explicitly enumerate each funct in range to reduce code diff against Go Vm
+                // jr
                 else if (_fun == 0x08) {
                     return _rs;
                 }
-                    // jalr
+                // jalr
                 else if (_fun == 0x09) {
                     return _rs;
                 }
-                    // movz
+                // movz
                 else if (_fun == 0x0a) {
                     return _rs;
                 }
-                    // movn
+                // movn
                 else if (_fun == 0x0b) {
                     return _rs;
                 }
-                    // syscall
+                // syscall
                 else if (_fun == 0x0c) {
                     return _rs;
                 }
-                    // 0x0d - break not supported
-                    // sync
+                // 0x0d - break not supported
+                // sync
                 else if (_fun == 0x0f) {
                     return _rs;
                 }
-                    // mfhi
+                // mfhi
                 else if (_fun == 0x10) {
                     return _rs;
                 }
-                    // mthi
+                // mthi
                 else if (_fun == 0x11) {
                     return _rs;
                 }
-                    // mflo
+                // mflo
                 else if (_fun == 0x12) {
                     return _rs;
                 }
-                    // mtlo
+                // mtlo
                 else if (_fun == 0x13) {
                     return _rs;
                 }
-                    // mult
+                // mult
                 else if (_fun == 0x18) {
                     return _rs;
                 }
-                    // multu
+                // multu
                 else if (_fun == 0x19) {
                     return _rs;
                 }
-                    // div
+                // div
                 else if (_fun == 0x1a) {
                     return _rs;
                 }
-                    // divu
+                // divu
                 else if (_fun == 0x1b) {
                     return _rs;
                 }
-                    // The rest includes transformed R-type arith imm instructions
-                    // add
+                // The rest includes transformed R-type arith imm instructions
+                // add
                 else if (_fun == 0x20) {
                     return (_rs + _rt);
                 }
-                    // addu
+                // addu
                 else if (_fun == 0x21) {
                     return (_rs + _rt);
                 }
-                    // sub
+                // sub
                 else if (_fun == 0x22) {
                     return (_rs - _rt);
                 }
-                    // subu
+                // subu
                 else if (_fun == 0x23) {
                     return (_rs - _rt);
                 }
-                    // and
+                // and
                 else if (_fun == 0x24) {
                     return (_rs & _rt);
                 }
-                    // or
+                // or
                 else if (_fun == 0x25) {
                     return (_rs | _rt);
                 }
-                    // xor
+                // xor
                 else if (_fun == 0x26) {
                     return (_rs ^ _rt);
                 }
-                    // nor
+                // nor
                 else if (_fun == 0x27) {
                     return ~(_rs | _rt);
                 }
-                    // slti
+                // slti
                 else if (_fun == 0x2a) {
                     return int32(_rs) < int32(_rt) ? 1 : 0;
                 }
-                    // sltiu
+                // sltiu
                 else if (_fun == 0x2b) {
                     return _rs < _rt ? 1 : 0;
                 } else {
@@ -341,7 +350,7 @@ library MIPSInstructions {
                     if (_fun == 0x2) {
                         return uint32(int32(_rs) * int32(_rt));
                     }
-                        // clz, clo
+                    // clz, clo
                     else if (_fun == 0x20 || _fun == 0x21) {
                         if (_fun == 0x20) {
                             _rs = ~_rs;
@@ -354,75 +363,75 @@ library MIPSInstructions {
                         return i;
                     }
                 }
-                    // lui
+                // lui
                 else if (_opcode == 0x0F) {
                     return _rt << 16;
                 }
-                    // lb
+                // lb
                 else if (_opcode == 0x20) {
                     return signExtend((_mem >> (24 - (_rs & 3) * 8)) & 0xFF, 8);
                 }
-                    // lh
+                // lh
                 else if (_opcode == 0x21) {
                     return signExtend((_mem >> (16 - (_rs & 2) * 8)) & 0xFFFF, 16);
                 }
-                    // lwl
+                // lwl
                 else if (_opcode == 0x22) {
                     uint32 val = _mem << ((_rs & 3) * 8);
                     uint32 mask = uint32(0xFFFFFFFF) << ((_rs & 3) * 8);
                     return (_rt & ~mask) | val;
                 }
-                    // lw
+                // lw
                 else if (_opcode == 0x23) {
                     return _mem;
                 }
-                    // lbu
+                // lbu
                 else if (_opcode == 0x24) {
                     return (_mem >> (24 - (_rs & 3) * 8)) & 0xFF;
                 }
-                    //  lhu
+                //  lhu
                 else if (_opcode == 0x25) {
                     return (_mem >> (16 - (_rs & 2) * 8)) & 0xFFFF;
                 }
-                    //  lwr
+                //  lwr
                 else if (_opcode == 0x26) {
                     uint32 val = _mem >> (24 - (_rs & 3) * 8);
                     uint32 mask = uint32(0xFFFFFFFF) >> (24 - (_rs & 3) * 8);
                     return (_rt & ~mask) | val;
                 }
-                    //  sb
+                //  sb
                 else if (_opcode == 0x28) {
                     uint32 val = (_rt & 0xFF) << (24 - (_rs & 3) * 8);
                     uint32 mask = 0xFFFFFFFF ^ uint32(0xFF << (24 - (_rs & 3) * 8));
                     return (_mem & mask) | val;
                 }
-                    //  sh
+                //  sh
                 else if (_opcode == 0x29) {
                     uint32 val = (_rt & 0xFFFF) << (16 - (_rs & 2) * 8);
                     uint32 mask = 0xFFFFFFFF ^ uint32(0xFFFF << (16 - (_rs & 2) * 8));
                     return (_mem & mask) | val;
                 }
-                    //  swl
+                //  swl
                 else if (_opcode == 0x2a) {
                     uint32 val = _rt >> ((_rs & 3) * 8);
                     uint32 mask = uint32(0xFFFFFFFF) >> ((_rs & 3) * 8);
                     return (_mem & ~mask) | val;
                 }
-                    //  sw
+                //  sw
                 else if (_opcode == 0x2b) {
                     return _rt;
                 }
-                    //  swr
+                //  swr
                 else if (_opcode == 0x2e) {
                     uint32 val = _rt << (24 - (_rs & 3) * 8);
                     uint32 mask = uint32(0xFFFFFFFF) << (24 - (_rs & 3) * 8);
                     return (_mem & ~mask) | val;
                 }
-                    // ll
+                // ll
                 else if (_opcode == 0x30) {
                     return _mem;
                 }
-                    // sc
+                // sc
                 else if (_opcode == 0x38) {
                     return _rt;
                 } else {
@@ -439,7 +448,7 @@ library MIPSInstructions {
             bool isSigned = (_dat >> (_idx - 1)) != 0;
             uint256 signed = ((1 << (32 - _idx)) - 1) << _idx;
             uint256 mask = (1 << _idx) - 1;
-            return uint32(_dat & mask | (isSigned ? signed : 0));
+            return uint32((_dat & mask) | (isSigned ? signed : 0));
         }
     }
 
@@ -457,10 +466,7 @@ library MIPSInstructions {
         uint32 _insn,
         uint32 _rtReg,
         uint32 _rs
-    )
-    internal
-    pure
-    {
+    ) internal pure {
         unchecked {
             bool shouldBranch = false;
 
@@ -468,20 +474,20 @@ library MIPSInstructions {
                 revert("branch in delay slot");
             }
 
-        // beq/bne: Branch on equal / not equal
+            // beq/bne: Branch on equal / not equal
             if (_opcode == 4 || _opcode == 5) {
                 uint32 rt = _registers[_rtReg];
                 shouldBranch = (_rs == rt && _opcode == 4) || (_rs != rt && _opcode == 5);
             }
-                // blez: Branches if instruction is less than or equal to zero
+            // blez: Branches if instruction is less than or equal to zero
             else if (_opcode == 6) {
                 shouldBranch = int32(_rs) <= 0;
             }
-                // bgtz: Branches if instruction is greater than zero
+            // bgtz: Branches if instruction is greater than zero
             else if (_opcode == 7) {
                 shouldBranch = int32(_rs) > 0;
             }
-                // bltz/bgez: Branch on less than zero / greater than or equal to zero
+            // bltz/bgez: Branch on less than zero / greater than or equal to zero
             else if (_opcode == 1) {
                 // regimm
                 uint32 rtv = ((_insn >> 16) & 0x1F);
@@ -493,14 +499,14 @@ library MIPSInstructions {
                 }
             }
 
-        // Update the state's previous PC
+            // Update the state's previous PC
             uint32 prevPC = _cpu.pc;
 
-        // Execute the delay slot first
+            // Execute the delay slot first
             _cpu.pc = _cpu.nextPC;
 
-        // If we should branch, update the PC to the branch target
-        // Otherwise, proceed to the next instruction
+            // If we should branch, update the PC to the branch target
+            // Otherwise, proceed to the next instruction
             if (shouldBranch) {
                 _cpu.nextPC = prevPC + 4 + (signExtend(_insn & 0xFFFF, 16) << 2);
             } else {
@@ -523,44 +529,41 @@ library MIPSInstructions {
         uint32 _rs,
         uint32 _rt,
         uint32 _storeReg
-    )
-    internal
-    pure
-    {
+    ) internal pure {
         unchecked {
             uint32 val = 0;
 
-        // mfhi: Move the contents of the HI register into the destination
+            // mfhi: Move the contents of the HI register into the destination
             if (_fun == 0x10) {
                 val = _cpu.hi;
             }
-                // mthi: Move the contents of the source into the HI register
+            // mthi: Move the contents of the source into the HI register
             else if (_fun == 0x11) {
                 _cpu.hi = _rs;
             }
-                // mflo: Move the contents of the LO register into the destination
+            // mflo: Move the contents of the LO register into the destination
             else if (_fun == 0x12) {
                 val = _cpu.lo;
             }
-                // mtlo: Move the contents of the source into the LO register
+            // mtlo: Move the contents of the source into the LO register
             else if (_fun == 0x13) {
                 _cpu.lo = _rs;
             }
-                // mult: Multiplies `rs` by `rt` and stores the result in HI and LO registers
+            // mult: Multiplies `rs` by `rt` and stores the result in HI and LO registers
             else if (_fun == 0x18) {
                 uint64 acc = uint64(int64(int32(_rs)) * int64(int32(_rt)));
                 _cpu.hi = uint32(acc >> 32);
                 _cpu.lo = uint32(acc);
             }
-                // multu: Unsigned multiplies `rs` by `rt` and stores the result in HI and LO registers
+            // multu: Unsigned multiplies `rs` by `rt` and stores the result in HI and LO registers
             else if (_fun == 0x19) {
                 uint64 acc = uint64(uint64(_rs) * uint64(_rt));
                 _cpu.hi = uint32(acc >> 32);
                 _cpu.lo = uint32(acc);
             }
-                // div: Divides `rs` by `rt`.
-                // Stores the quotient in LO
-                // And the remainder in HI
+            // div: Divides `rs` by `rt`.
+            // Stores the quotient in LO
+            // And the remainder in HI
             else if (_fun == 0x1a) {
                 if (int32(_rt) == 0) {
                     revert("MIPS: division by zero");
@@ -568,9 +571,9 @@ library MIPSInstructions {
                 _cpu.hi = uint32(int32(_rs) % int32(_rt));
                 _cpu.lo = uint32(int32(_rs) / int32(_rt));
             }
-                // divu: Unsigned divides `rs` by `rt`.
-                // Stores the quotient in LO
-                // And the remainder in HI
+            // divu: Unsigned divides `rs` by `rt`.
+            // Stores the quotient in LO
+            // And the remainder in HI
             else if (_fun == 0x1b) {
                 if (_rt == 0) {
                     revert("MIPS: division by zero");
@@ -579,12 +582,12 @@ library MIPSInstructions {
                 _cpu.lo = _rs / _rt;
             }
 
-        // Store the result in the destination register, if applicable
+            // Store the result in the destination register, if applicable
             if (_storeReg != 0) {
                 _registers[_storeReg] = val;
             }
 
-        // Update the PC
+            // Update the PC
             _cpu.pc = _cpu.nextPC;
             _cpu.nextPC = _cpu.nextPC + 4;
         }
@@ -600,21 +603,18 @@ library MIPSInstructions {
         uint32[32] memory _registers,
         uint32 _linkReg,
         uint32 _dest
-    )
-    internal
-    pure
-    {
+    ) internal pure {
         unchecked {
             if (_cpu.nextPC != _cpu.pc + 4) {
                 revert("jump in delay slot");
             }
 
-        // Update the next PC to the jump destination.
+            // Update the next PC to the jump destination.
             uint32 prevPC = _cpu.pc;
             _cpu.pc = _cpu.nextPC;
             _cpu.nextPC = _dest;
 
-        // Update the link-register to the instruction after the delay slot instruction.
+            // Update the link-register to the instruction after the delay slot instruction.
             if (_linkReg != 0) {
                 _registers[_linkReg] = prevPC + 8;
             }
@@ -633,20 +633,17 @@ library MIPSInstructions {
         uint32 _storeReg,
         uint32 _val,
         bool _conditional
-    )
-    internal
-    pure
-    {
+    ) internal pure {
         unchecked {
-        // The destination register must be valid.
+            // The destination register must be valid.
             require(_storeReg < 32, "valid register");
 
-        // Never write to reg 0, and it can be conditional (movz, movn).
+            // Never write to reg 0, and it can be conditional (movz, movn).
             if (_storeReg != 0 && _conditional) {
                 _registers[_storeReg] = _val;
             }
 
-        // Update the PC.
+            // Update the PC.
             _cpu.pc = _cpu.nextPC;
             _cpu.nextPC = _cpu.nextPC + 4;
         }

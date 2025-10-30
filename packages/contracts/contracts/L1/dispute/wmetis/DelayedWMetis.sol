@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {MetisConfig} from "../../config/MetisConfig.sol";
-import {ISemver} from "../../../universal/ISemver.sol";
-import {IDelayedWMetis} from "../interfaces/IDelayedWMetis.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { MetisConfig } from "../../config/MetisConfig.sol";
+import { ISemver } from "../../../universal/ISemver.sol";
+import { IDelayedWMetis } from "../interfaces/IDelayedWMetis.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title DelayedWMetis
 /// @notice DelayedWMetis is a wrapper for Metis token that allows for delayed withdrawals.
@@ -44,7 +46,7 @@ contract DelayedWMetis is OwnableUpgradeable, IDelayedWMetis, ISemver {
     constructor(uint256 _delay, IERC20 _metis) {
         DELAY_SECONDS = _delay;
         METIS = _metis;
-        initialize({_owner: address(0), _config: MetisConfig(address(0))});
+        initialize({ _owner: address(0), _config: MetisConfig(address(0)) });
     }
 
     /// @notice Initializes the contract.
@@ -99,7 +101,10 @@ contract DelayedWMetis is OwnableUpgradeable, IDelayedWMetis, ISemver {
         WithdrawalRequest storage wd = withdrawals[msg.sender][_guy];
         require(wd.amount >= _amount, "DelayedWMetis: insufficient unlocked withdrawal");
         require(wd.timestamp > 0, "DelayedWMetis: withdrawal not unlocked");
-        require(wd.timestamp + DELAY_SECONDS <= block.timestamp, "DelayedWMetis: withdrawal delay not met");
+        require(
+            wd.timestamp + DELAY_SECONDS <= block.timestamp,
+            "DelayedWMetis: withdrawal delay not met"
+        );
         require(balanceOf[msg.sender] >= _amount, "DelayedWMetis: insufficient balance");
 
         wd.amount -= _amount;
@@ -153,4 +158,4 @@ contract DelayedWMetis is OwnableUpgradeable, IDelayedWMetis, ISemver {
     function metisToken() external view override returns (IERC20) {
         return METIS;
     }
-} 
+}

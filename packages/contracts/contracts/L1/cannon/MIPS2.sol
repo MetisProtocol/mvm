@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {VMStatuses} from "../dispute/lib/Types.sol";
-import {ISemver} from "../../universal/ISemver.sol";
-import {IPreimageOracle} from "./interfaces/IPreimageOracle.sol";
-import {MIPSMemory} from "./libraries/MIPSMemory.sol";
-import {MIPSSyscalls as sys} from "./libraries/MIPSSyscalls.sol";
-import {MIPSState as st} from "./libraries/MIPSState.sol";
-import {MIPSInstructions as ins} from "./libraries/MIPSInstructions.sol";
+import { VMStatuses } from "../dispute/lib/Types.sol";
+import { ISemver } from "../../universal/ISemver.sol";
+import { IPreimageOracle } from "./interfaces/IPreimageOracle.sol";
+import { MIPSMemory } from "./libraries/MIPSMemory.sol";
+import { MIPSSyscalls as sys } from "./libraries/MIPSSyscalls.sol";
+import { MIPSState as st } from "./libraries/MIPSState.sol";
+import { MIPSInstructions as ins } from "./libraries/MIPSInstructions.sol";
 
 /// @title MIPS2
 /// @notice The MIPS2 contract emulates a single MIPS instruction.
@@ -64,7 +64,8 @@ contract MIPS2 is ISemver {
     uint256 internal constant MEM_PROOF_OFFSET = THREAD_PROOF_OFFSET + 166 + 32;
 
     // The empty thread root - keccak256(bytes32(0) ++ bytes32(0))
-    bytes32 internal constant EMPTY_THREAD_ROOT = hex"ad3228b676f7d3cd4284a5443f17f1962b36e491b30a40b2405849e597ba5fb5";
+    bytes32 internal constant EMPTY_THREAD_ROOT =
+        hex"ad3228b676f7d3cd4284a5443f17f1962b36e491b30a40b2405849e597ba5fb5";
 
     // State memory offset allocated during step
     uint256 internal constant STATE_MEM_OFFSET = 0x80;
@@ -87,42 +88,46 @@ contract MIPS2 is ISemver {
     /// the current thread stack.
     /// @param _localContext The local key context for the preimage oracle. Optional, can be set as a constant
     ///                      if the caller only requires one set of local keys.
-    function step(bytes calldata _stateData, bytes calldata _proof, bytes32 _localContext) public returns (bytes32) {
+    function step(
+        bytes calldata _stateData,
+        bytes calldata _proof,
+        bytes32 _localContext
+    ) public returns (bytes32) {
         unchecked {
             State memory state;
             ThreadState memory thread;
 
             assembly {
                 if iszero(eq(state, STATE_MEM_OFFSET)) {
-                // expected state mem offset check
+                    // expected state mem offset check
                     revert(0, 0)
                 }
                 if iszero(eq(thread, TC_MEM_OFFSET)) {
-                // expected thread mem offset check
+                    // expected thread mem offset check
                     revert(0, 0)
                 }
                 if iszero(eq(mload(0x40), shl(5, 60))) {
-                // 4 + 13 state slots + 43 thread slots = 60 expected memory check
+                    // 4 + 13 state slots + 43 thread slots = 60 expected memory check
                     revert(0, 0)
                 }
                 if iszero(eq(_stateData.offset, 132)) {
-                // 32*4+4=132 expected state data offset
+                    // 32*4+4=132 expected state data offset
                     revert(0, 0)
                 }
                 if iszero(eq(_proof.offset, THREAD_PROOF_OFFSET)) {
-                // _stateData.offset+192+32=356 expected thread proof offset
+                    // _stateData.offset+192+32=356 expected thread proof offset
                     revert(0, 0)
                 }
 
                 function putField(callOffset, memOffset, size) -> callOffsetOut, memOffsetOut {
-                // calldata is packed, thus starting left-aligned, shift-right to pad and right-align
+                    // calldata is packed, thus starting left-aligned, shift-right to pad and right-align
                     let w := shr(shl(3, sub(32, size)), calldataload(callOffset))
                     mstore(memOffset, w)
                     callOffsetOut := add(callOffset, size)
                     memOffsetOut := add(memOffset, 32)
                 }
 
-            // Unpack state from calldata into memory
+                // Unpack state from calldata into memory
                 let c := _stateData.offset // calldata offset
                 let m := STATE_MEM_OFFSET // mem offset
                 c, m := putField(c, m, 32) // memRoot
@@ -145,7 +150,10 @@ contract MIPS2 is ISemver {
                 return outputState();
             }
 
-            if (state.leftThreadStack == EMPTY_THREAD_ROOT && state.rightThreadStack == EMPTY_THREAD_ROOT) {
+            if (
+                state.leftThreadStack == EMPTY_THREAD_ROOT &&
+                state.rightThreadStack == EMPTY_THREAD_ROOT
+            ) {
                 revert("MIPS2: illegal vm state");
             }
 
@@ -154,8 +162,8 @@ contract MIPS2 is ISemver {
             setThreadStateFromCalldata(thread);
             validateCalldataThreadWitness(state, thread);
 
-        // Search for the first thread blocked by the wakeup call, if wakeup is set
-        // Don't allow regular execution until we resolved if we have woken up any thread.
+            // Search for the first thread blocked by the wakeup call, if wakeup is set
+            // Don't allow regular execution until we resolved if we have woken up any thread.
             if (state.wakeup != sys.FUTEX_EMPTY_ADDR) {
                 if (state.wakeup == thread.futexAddr) {
                     // completed wake traverssal
@@ -179,7 +187,7 @@ contract MIPS2 is ISemver {
                 return outputState();
             }
 
-        // check if thread is blocked on a futex
+            // check if thread is blocked on a futex
             if (thread.futexAddr != sys.FUTEX_EMPTY_ADDR) {
                 // if set, then check futex
                 // check timeout first
@@ -188,7 +196,9 @@ contract MIPS2 is ISemver {
                     return onWaitComplete(state, thread, true);
                 } else {
                     uint32 mem = MIPSMemory.readMem(
-                        state.memRoot, thread.futexAddr & 0xFFffFFfc, MIPSMemory.memoryProofOffset(MEM_PROOF_OFFSET, 1)
+                        state.memRoot,
+                        thread.futexAddr & 0xFFffFFfc,
+                        MIPSMemory.memoryProofOffset(MEM_PROOF_OFFSET, 1)
                     );
                     if (thread.futexVal == mem) {
                         // still got expected value, continue sleeping, try next thread.
@@ -208,18 +218,21 @@ contract MIPS2 is ISemver {
             }
             state.stepsSinceLastContextSwitch += 1;
 
-        // instruction fetch
+            // instruction fetch
             uint256 insnProofOffset = MIPSMemory.memoryProofOffset(MEM_PROOF_OFFSET, 0);
-            (uint32 insn, uint32 opcode, uint32 fun) =
-                                ins.getInstructionDetails(thread.pc, state.memRoot, insnProofOffset);
+            (uint32 insn, uint32 opcode, uint32 fun) = ins.getInstructionDetails(
+                thread.pc,
+                state.memRoot,
+                insnProofOffset
+            );
 
-        // Handle syscall separately
-        // syscall (can read and write)
+            // Handle syscall separately
+            // syscall (can read and write)
             if (opcode == 0 && fun == 0xC) {
                 return handleSyscall(_localContext);
             }
 
-        // Exec the rest of the step logic
+            // Exec the rest of the step logic
             st.CpuScalars memory cpu = getCpuScalars(thread);
             (state.memRoot) = ins.execMipsCoreStepLogic({
                 _cpu: cpu,
@@ -238,7 +251,7 @@ contract MIPS2 is ISemver {
 
     function handleSyscall(bytes32 _localContext) internal returns (bytes32 out_) {
         unchecked {
-        // Load state from memory offsets to reduce stack pressure
+            // Load state from memory offsets to reduce stack pressure
             State memory state;
             ThreadState memory thread;
             assembly {
@@ -246,9 +259,11 @@ contract MIPS2 is ISemver {
                 thread := TC_MEM_OFFSET
             }
 
-        // Load the syscall numbers and args from the registers
-            (uint32 syscall_no, uint32 a0, uint32 a1, uint32 a2, uint32 a3) = sys.getSyscallArgs(thread.registers);
-        // Syscalls that are unimplemented but known return with v0=0 and v1=0
+            // Load the syscall numbers and args from the registers
+            (uint32 syscall_no, uint32 a0, uint32 a1, uint32 a2, uint32 a3) = sys.getSyscallArgs(
+                thread.registers
+            );
+            // Syscalls that are unimplemented but known return with v0=0 and v1=0
             uint32 v0 = 0;
             uint32 v1 = 0;
 
@@ -340,14 +355,18 @@ contract MIPS2 is ISemver {
                 if (a1 == sys.FUTEX_WAIT_PRIVATE) {
                     thread.futexAddr = a0;
                     uint32 mem = MIPSMemory.readMem(
-                        state.memRoot, a0 & 0xFFffFFfc, MIPSMemory.memoryProofOffset(MEM_PROOF_OFFSET, 1)
+                        state.memRoot,
+                        a0 & 0xFFffFFfc,
+                        MIPSMemory.memoryProofOffset(MEM_PROOF_OFFSET, 1)
                     );
                     if (mem != a2) {
                         v0 = sys.SYS_ERROR_SIGNAL;
                         v1 = sys.EAGAIN;
                     } else {
                         thread.futexVal = a2;
-                        thread.futexTimeoutStep = a3 == 0 ? sys.FUTEX_NO_TIMEOUT : state.step + sys.FUTEX_TIMEOUT_STEPS;
+                        thread.futexTimeoutStep = a3 == 0
+                            ? sys.FUTEX_NO_TIMEOUT
+                            : state.step + sys.FUTEX_TIMEOUT_STEPS;
                         // Leave cpu scalars as-is. This instruction will be completed by `onWaitComplete`
                         updateCurrentThreadRoot();
                         return outputState();
@@ -462,21 +481,21 @@ contract MIPS2 is ISemver {
     /// @return out_ The hashed MIPS state.
     function outputState() internal returns (bytes32 out_) {
         assembly {
-        // copies 'size' bytes, right-aligned in word at 'from', to 'to', incl. trailing data
+            // copies 'size' bytes, right-aligned in word at 'from', to 'to', incl. trailing data
             function copyMem(from, to, size) -> fromOut, toOut {
                 mstore(to, mload(add(from, sub(32, size))))
                 fromOut := add(from, 32)
                 toOut := add(to, size)
             }
 
-        // From points to the MIPS State
+            // From points to the MIPS State
             let from := STATE_MEM_OFFSET
 
-        // Copy to the free memory pointer
+            // Copy to the free memory pointer
             let start := mload(0x40)
             let to := start
 
-        // Copy state to free memory
+            // Copy state to free memory
             from, to := copyMem(from, to, 32) // memRoot
             from, to := copyMem(from, to, 32) // preimageKey
             from, to := copyMem(from, to, 4) // preimageOffset
@@ -493,28 +512,36 @@ contract MIPS2 is ISemver {
             from, to := copyMem(from, to, 32) // rightThreadStack
             from, to := copyMem(from, to, 4) // nextThreadID
 
-        // Clean up end of memory
+            // Clean up end of memory
             mstore(to, 0)
 
-        // Log the resulting MIPS state, for debugging
+            // Log the resulting MIPS state, for debugging
             log0(start, sub(to, start))
 
-        // Determine the VM status
+            // Determine the VM status
             let status := 0
             switch exited
             case 1 {
                 switch exitCode
                 // VMStatusValid
-                case 0 {status := 0}
+                case 0 {
+                    status := 0
+                }
                 // VMStatusInvalid
-                case 1 {status := 1}
+                case 1 {
+                    status := 1
+                }
                 // VMStatusPanic
-                default {status := 2}
+                default {
+                    status := 2
+                }
             }
             // VMStatusUnfinished
-            default {status := 3}
+            default {
+                status := 3
+            }
 
-        // Compute the hash of the resulting MIPS state and set the status byte
+            // Compute the hash of the resulting MIPS state and set the status byte
             out_ := keccak256(start, sub(to, start))
             out_ := or(and(not(shl(248, 0xFF)), out_), shl(248, status))
         }
@@ -541,10 +568,7 @@ contract MIPS2 is ISemver {
         State memory _state,
         ThreadState memory _thread,
         bool _isTimedOut
-    )
-    internal
-    returns (bytes32 out_)
-    {
+    ) internal returns (bytes32 out_) {
         // Clear the futex state
         _thread.futexAddr = sys.FUTEX_EMPTY_ADDR;
         _thread.futexVal = 0;
@@ -568,11 +592,7 @@ contract MIPS2 is ISemver {
     function preemptThread(
         State memory _state,
         ThreadState memory _thread
-    )
-    internal
-    pure
-    returns (bool _changedDirections)
-    {
+    ) internal pure returns (bool _changedDirections) {
         // pop thread from the current stack and push to the other stack
         if (_state.traverseRight) {
             require(_state.rightThreadStack != EMPTY_THREAD_ROOT, "empty right thread stack");
@@ -617,12 +637,17 @@ contract MIPS2 is ISemver {
 
     /// @notice Returns true if the number of threads is 1
     function lastThreadRemaining(State memory _state) internal pure returns (bool out_) {
-        bytes32 inactiveStack = _state.traverseRight ? _state.leftThreadStack : _state.rightThreadStack;
+        bytes32 inactiveStack = _state.traverseRight
+            ? _state.leftThreadStack
+            : _state.rightThreadStack;
         bool currentStackIsAlmostEmpty = loadCalldataInnerThreadRoot() == EMPTY_THREAD_ROOT;
         return inactiveStack == EMPTY_THREAD_ROOT && currentStackIsAlmostEmpty;
     }
 
-    function computeThreadRoot(bytes32 _currentRoot, ThreadState memory _thread) internal pure returns (bytes32 _out) {
+    function computeThreadRoot(
+        bytes32 _currentRoot,
+        ThreadState memory _thread
+    ) internal pure returns (bytes32 _out) {
         // w_i = hash(w_0 ++ hash(thread))
         bytes32 threadRoot = outputThreadState(_thread);
         _out = keccak256(abi.encodePacked(_currentRoot, threadRoot));
@@ -630,21 +655,21 @@ contract MIPS2 is ISemver {
 
     function outputThreadState(ThreadState memory _thread) internal pure returns (bytes32 out_) {
         assembly {
-        // copies 'size' bytes, right-aligned in word at 'from', to 'to', incl. trailing data
+            // copies 'size' bytes, right-aligned in word at 'from', to 'to', incl. trailing data
             function copyMem(from, to, size) -> fromOut, toOut {
                 mstore(to, mload(add(from, sub(32, size))))
                 fromOut := add(from, 32)
                 toOut := add(to, size)
             }
 
-        // From points to the ThreadState
+            // From points to the ThreadState
             let from := _thread
 
-        // Copy to the free memory pointer
+            // Copy to the free memory pointer
             let start := mload(0x40)
             let to := start
 
-        // Copy state to free memory
+            // Copy state to free memory
             from, to := copyMem(from, to, 4) // threadID
             from, to := copyMem(from, to, 1) // exitCode
             from, to := copyMem(from, to, 1) // exited
@@ -656,19 +681,27 @@ contract MIPS2 is ISemver {
             from, to := copyMem(from, to, 4) // lo
             from, to := copyMem(from, to, 4) // hi
             from := mload(from) // offset to registers
-        // Copy registers
-            for {let i := 0} lt(i, 32) {i := add(i, 1)} {from, to := copyMem(from, to, 4)}
+            // Copy registers
+            for {
+                let i := 0
+            } lt(i, 32) {
+                i := add(i, 1)
+            } {
+                from, to := copyMem(from, to, 4)
+            }
 
-        // Clean up end of memory
+            // Clean up end of memory
             mstore(to, 0)
 
-        // Compute the hash of the resulting ThreadState
+            // Compute the hash of the resulting ThreadState
             out_ := keccak256(start, sub(to, start))
         }
     }
 
-    function getCpuScalars(ThreadState memory _tc) internal pure returns (st.CpuScalars memory cpu_) {
-        cpu_ = st.CpuScalars({pc: _tc.pc, nextPC: _tc.nextPC, lo: _tc.lo, hi: _tc.hi});
+    function getCpuScalars(
+        ThreadState memory _tc
+    ) internal pure returns (st.CpuScalars memory cpu_) {
+        cpu_ = st.CpuScalars({ pc: _tc.pc, nextPC: _tc.nextPC, lo: _tc.lo, hi: _tc.hi });
     }
 
     function setStateCpuScalars(ThreadState memory _tc, st.CpuScalars memory _cpu) internal pure {
@@ -679,9 +712,14 @@ contract MIPS2 is ISemver {
     }
 
     /// @notice Validates the thread witness in calldata against the current thread.
-    function validateCalldataThreadWitness(State memory _state, ThreadState memory _thread) internal pure {
+    function validateCalldataThreadWitness(
+        State memory _state,
+        ThreadState memory _thread
+    ) internal pure {
         bytes32 witnessRoot = computeThreadRoot(loadCalldataInnerThreadRoot(), _thread);
-        bytes32 expectedRoot = _state.traverseRight ? _state.rightThreadStack : _state.leftThreadStack;
+        bytes32 expectedRoot = _state.traverseRight
+            ? _state.rightThreadStack
+            : _state.leftThreadStack;
         require(expectedRoot == witnessRoot, "invalid thread witness");
     }
 
@@ -697,7 +735,7 @@ contract MIPS2 is ISemver {
         unchecked {
             assembly {
                 function putField(callOffset, memOffset, size) -> callOffsetOut, memOffsetOut {
-                // calldata is packed, thus starting left-aligned, shift-right to pad and right-align
+                    // calldata is packed, thus starting left-aligned, shift-right to pad and right-align
                     let w := shr(shl(3, sub(32, size)), calldataload(callOffset))
                     mstore(memOffset, w)
                     callOffsetOut := add(callOffset, size)
@@ -717,8 +755,14 @@ contract MIPS2 is ISemver {
                 c, m := putField(c, m, 4) // lo
                 c, m := putField(c, m, 4) // hi
                 m := mload(m) // offset to registers
-            // Unpack register calldata into memory
-                for {let i := 0} lt(i, 32) {i := add(i, 1)} {c, m := putField(c, m, 4)}
+                // Unpack register calldata into memory
+                for {
+                    let i := 0
+                } lt(i, 32) {
+                    i := add(i, 1)
+                } {
+                    c, m := putField(c, m, 4)
+                }
             }
         }
     }

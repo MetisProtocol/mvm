@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {MIPSMemory} from "./MIPSMemory.sol";
-import {MIPSState as st} from "./MIPSState.sol";
-import {IPreimageOracle} from "../interfaces/IPreimageOracle.sol";
-import {PreimageKeyLib} from "../PreimageKeyLib.sol";
+import { MIPSMemory } from "./MIPSMemory.sol";
+import { MIPSState as st } from "./MIPSState.sol";
+import { IPreimageOracle } from "../interfaces/IPreimageOracle.sol";
+import { PreimageKeyLib } from "../PreimageKeyLib.sol";
 
 library MIPSSyscalls {
     struct SysReadParams {
@@ -120,7 +120,7 @@ library MIPSSyscalls {
     uint32 internal constant CLONE_NEWUTS = 0x4000000;
     uint32 internal constant CLONE_NEWIPC = 0x8000000;
     uint32 internal constant VALID_SYS_CLONE_FLAGS =
-    CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_SYSVSEM | CLONE_THREAD;
+        CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_SYSVSEM | CLONE_THREAD;
 
     /// @notice Extract syscall num and arguments from registers.
     /// @param _registers The cpu registers.
@@ -129,11 +129,9 @@ library MIPSSyscalls {
     /// @return a1_ The second argument available to the syscall operation.
     /// @return a2_ The third argument available to the syscall operation.
     /// @return a3_ The fourth argument available to the syscall operation.
-    function getSyscallArgs(uint32[32] memory _registers)
-    internal
-    pure
-    returns (uint32 sysCallNum_, uint32 a0_, uint32 a1_, uint32 a2_, uint32 a3_)
-    {
+    function getSyscallArgs(
+        uint32[32] memory _registers
+    ) internal pure returns (uint32 sysCallNum_, uint32 a0_, uint32 a1_, uint32 a2_, uint32 a3_) {
         unchecked {
             sysCallNum_ = _registers[2];
 
@@ -157,11 +155,7 @@ library MIPSSyscalls {
         uint32 _a0,
         uint32 _a1,
         uint32 _heap
-    )
-    internal
-    pure
-    returns (uint32 v0_, uint32 v1_, uint32 newHeap_)
-    {
+    ) internal pure returns (uint32 v0_, uint32 v1_, uint32 newHeap_) {
         unchecked {
             v1_ = uint32(0);
             newHeap_ = _heap;
@@ -194,10 +188,12 @@ library MIPSSyscalls {
     /// @return v1_ The error code, 0 if there is no error.
     /// @return newPreimageOffset_ The new value for the preimage offset.
     /// @return newMemRoot_ The new memory root.
-    function handleSysRead(SysReadParams memory _args)
-    internal
-    view
-    returns (uint32 v0_, uint32 v1_, uint32 newPreimageOffset_, bytes32 newMemRoot_)
+    function handleSysRead(
+        SysReadParams memory _args
+    )
+        internal
+        view
+        returns (uint32 v0_, uint32 v1_, uint32 newPreimageOffset_, bytes32 newMemRoot_)
     {
         unchecked {
             v0_ = uint32(0);
@@ -205,21 +201,31 @@ library MIPSSyscalls {
             newMemRoot_ = _args.memRoot;
             newPreimageOffset_ = _args.preimageOffset;
 
-        // args: _a0 = fd, _a1 = addr, _a2 = count
-        // returns: v0_ = read, v1_ = err code
+            // args: _a0 = fd, _a1 = addr, _a2 = count
+            // returns: v0_ = read, v1_ = err code
             if (_args.a0 == FD_STDIN) {
                 // Leave v0_ and v1_ zero: read nothing, no error
             }
-                // pre-image oracle read
+            // pre-image oracle read
             else if (_args.a0 == FD_PREIMAGE_READ) {
                 // verify proof is correct, and get the existing memory.
                 // mask the addr to align it to 4 bytes
-                uint32 mem = MIPSMemory.readMem(_args.memRoot, _args.a1 & 0xFFffFFfc, _args.proofOffset);
+                uint32 mem = MIPSMemory.readMem(
+                    _args.memRoot,
+                    _args.a1 & 0xFFffFFfc,
+                    _args.proofOffset
+                );
                 // If the preimage key is a local key, localize it in the context of the caller.
                 if (uint8(_args.preimageKey[0]) == 1) {
-                    _args.preimageKey = PreimageKeyLib.localize(_args.preimageKey, _args.localContext);
+                    _args.preimageKey = PreimageKeyLib.localize(
+                        _args.preimageKey,
+                        _args.localContext
+                    );
                 }
-                (bytes32 dat, uint256 datLen) = _args.oracle.readPreimage(_args.preimageKey, _args.preimageOffset);
+                (bytes32 dat, uint256 datLen) = _args.oracle.readPreimage(
+                    _args.preimageKey,
+                    _args.preimageOffset
+                );
 
                 // Transform data for writing to memory
                 // We use assembly for more precise ops, and no var count limit
@@ -228,14 +234,18 @@ library MIPSSyscalls {
                 assembly {
                     let alignment := and(a1, 3) // the read might not start at an aligned address
                     let space := sub(4, alignment) // remaining space in memory word
-                    if lt(space, datLen) {datLen := space} // if less space than data, shorten data
-                    if lt(a2, datLen) {datLen := a2} // if requested to read less, read less
+                    if lt(space, datLen) {
+                        datLen := space
+                    } // if less space than data, shorten data
+                    if lt(a2, datLen) {
+                        datLen := a2
+                    } // if requested to read less, read less
                     dat := shr(sub(256, mul(datLen, 8)), dat) // right-align data
                     dat := shl(mul(sub(sub(4, datLen), alignment), 8), dat) // position data to insert into memory
-                // word
+                    // word
                     let mask := sub(shl(mul(sub(4, alignment), 8), 1), 1) // mask all bytes after start
                     let suffixMask := sub(shl(mul(sub(sub(4, alignment), datLen), 8), 1), 1) // mask of all bytes
-                // starting from end, maybe none
+                    // starting from end, maybe none
                     mask := and(mask, not(suffixMask)) // reduce mask to just cover the data we insert
                     mem := or(and(mem, not(mask)), dat) // clear masked part of original memory, and insert data
                 }
@@ -245,7 +255,7 @@ library MIPSSyscalls {
                 newPreimageOffset_ += uint32(datLen);
                 v0_ = uint32(datLen);
             }
-                // hint response
+            // hint response
             else if (_args.a0 == FD_HINT_READ) {
                 // Don't read into memory, just say we read it all
                 // The result is ignored anyway
@@ -280,13 +290,13 @@ library MIPSSyscalls {
         uint256 _proofOffset,
         bytes32 _memRoot
     )
-    internal
-    pure
-    returns (uint32 v0_, uint32 v1_, bytes32 newPreimageKey_, uint32 newPreimageOffset_)
+        internal
+        pure
+        returns (uint32 v0_, uint32 v1_, bytes32 newPreimageKey_, uint32 newPreimageOffset_)
     {
         unchecked {
-        // args: _a0 = fd, _a1 = addr, _a2 = count
-        // returns: v0_ = written, v1_ = err code
+            // args: _a0 = fd, _a1 = addr, _a2 = count
+            // returns: v0_ = written, v1_ = err code
             v0_ = uint32(0);
             v1_ = uint32(0);
             newPreimageKey_ = _preimageKey;
@@ -295,7 +305,7 @@ library MIPSSyscalls {
             if (_a0 == FD_STDOUT || _a0 == FD_STDERR || _a0 == FD_HINT_WRITE) {
                 v0_ = _a2; // tell program we have written everything
             }
-                // pre-image oracle
+            // pre-image oracle
             else if (_a0 == FD_PREIMAGE_WRITE) {
                 // mask the addr to align it to 4 bytes
                 uint32 mem = MIPSMemory.readMem(_memRoot, _a1 & 0xFFffFFfc, _proofOffset);
@@ -308,7 +318,9 @@ library MIPSSyscalls {
                 assembly {
                     let alignment := and(_a1, 3) // the read might not start at an aligned address
                     let space := sub(4, alignment) // remaining space in memory word
-                    if lt(space, a2) {a2 := space} // if less space than data, shorten data
+                    if lt(space, a2) {
+                        a2 := space
+                    } // if less space than data, shorten data
                     key := shl(mul(a2, 8), key) // shift key, make space for new info
                     let mask := sub(shl(mul(a2, 8), 1), 1) // mask for extracting value from memory
                     mem := and(shr(mul(sub(space, a2), 8), mem), mask) // align value to right, mask it
@@ -339,12 +351,17 @@ library MIPSSyscalls {
             v0_ = uint32(0);
             v1_ = uint32(0);
 
-        // args: _a0 = fd, _a1 = cmd
+            // args: _a0 = fd, _a1 = cmd
             if (_a1 == 1) {
                 // F_GETFD: get file descriptor flags
                 if (
-                    _a0 == FD_STDIN || _a0 == FD_STDOUT || _a0 == FD_STDERR || _a0 == FD_PREIMAGE_READ
-                    || _a0 == FD_HINT_READ || _a0 == FD_PREIMAGE_WRITE || _a0 == FD_HINT_WRITE
+                    _a0 == FD_STDIN ||
+                    _a0 == FD_STDOUT ||
+                    _a0 == FD_STDERR ||
+                    _a0 == FD_PREIMAGE_READ ||
+                    _a0 == FD_HINT_READ ||
+                    _a0 == FD_PREIMAGE_WRITE ||
+                    _a0 == FD_HINT_WRITE
                 ) {
                     v0_ = 0; // No flags set
                 } else {
@@ -355,7 +372,12 @@ library MIPSSyscalls {
                 // F_GETFL: get file descriptor flags
                 if (_a0 == FD_STDIN || _a0 == FD_PREIMAGE_READ || _a0 == FD_HINT_READ) {
                     v0_ = 0; // O_RDONLY
-                } else if (_a0 == FD_STDOUT || _a0 == FD_STDERR || _a0 == FD_PREIMAGE_WRITE || _a0 == FD_HINT_WRITE) {
+                } else if (
+                    _a0 == FD_STDOUT ||
+                    _a0 == FD_STDERR ||
+                    _a0 == FD_PREIMAGE_WRITE ||
+                    _a0 == FD_HINT_WRITE
+                ) {
                     v0_ = 1; // O_WRONLY
                 } else {
                     v0_ = 0xFFffFFff;
@@ -375,16 +397,13 @@ library MIPSSyscalls {
         uint32[32] memory _registers,
         uint32 _v0,
         uint32 _v1
-    )
-    internal
-    pure
-    {
+    ) internal pure {
         unchecked {
-        // Write the results back to the state registers
+            // Write the results back to the state registers
             _registers[2] = _v0;
             _registers[7] = _v1;
 
-        // Update the PC and nextPC
+            // Update the PC and nextPC
             _cpu.pc = _cpu.nextPC;
             _cpu.nextPC = _cpu.nextPC + 4;
         }

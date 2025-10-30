@@ -133,12 +133,10 @@ contract MVM_CanonicalTransaction is iMVM_CanonicalTransaction, Lib_AddressResol
         return stakeUnitCost;
     }
 
-    function getStakeCostByBatch(uint256 _chainId, uint256 _batchIndex)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getStakeCostByBatch(
+        uint256 _chainId,
+        uint256 _batchIndex
+    ) public view override returns (uint256) {
         require(stakeBaseCost > 0, "stake base cost not config yet");
         require(
             queueBatchElement[_chainId][_batchIndex].txBatchTime > 0,

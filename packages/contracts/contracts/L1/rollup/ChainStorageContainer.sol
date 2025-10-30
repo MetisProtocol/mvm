@@ -47,9 +47,10 @@ contract ChainStorageContainer is IChainStorageContainer, Lib_AddressResolver {
      * @param _libAddressManager Address of the Address Manager.
      * @param _owner Name of the contract that owns this container (will be resolved later).
      */
-    constructor(address _libAddressManager, string memory _owner)
-        Lib_AddressResolver(_libAddressManager)
-    {
+    constructor(
+        address _libAddressManager,
+        string memory _owner
+    ) Lib_AddressResolver(_libAddressManager) {
         owner = _owner;
     }
 
@@ -87,11 +88,10 @@ contract ChainStorageContainer is IChainStorageContainer, Lib_AddressResolver {
     /**
      * @inheritdoc IChainStorageContainer
      */
-    function setGlobalMetadataByChainId(uint256 _chainId, bytes27 _globalMetadata)
-        public
-        override
-        onlyOwner
-    {
+    function setGlobalMetadataByChainId(
+        uint256 _chainId,
+        bytes27 _globalMetadata
+    ) public override onlyOwner {
         return buffers[_chainId].setExtraData(_globalMetadata);
     }
 
@@ -161,21 +161,20 @@ contract ChainStorageContainer is IChainStorageContainer, Lib_AddressResolver {
         deleteElementsAfterInclusiveByChainId(DEFAULT_CHAINID, _index);
     }
 
-    function deleteElementsAfterInclusiveByChainId(uint256 _chainId, uint256 _index)
-        public
-        override
-        onlyOwner
-    {
+    function deleteElementsAfterInclusiveByChainId(
+        uint256 _chainId,
+        uint256 _index
+    ) public override onlyOwner {
         buffers[_chainId].deleteElementsAfterInclusive(uint40(_index));
     }
 
     /**
      * @inheritdoc IChainStorageContainer
      */
-    function deleteElementsAfterInclusive(uint256 _index, bytes27 _globalMetadata)
-        public
-        onlyOwner
-    {
+    function deleteElementsAfterInclusive(
+        uint256 _index,
+        bytes27 _globalMetadata
+    ) public onlyOwner {
         deleteElementsAfterInclusiveByChainId(DEFAULT_CHAINID, _index, _globalMetadata);
     }
 

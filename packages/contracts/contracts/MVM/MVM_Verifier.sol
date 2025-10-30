@@ -514,11 +514,7 @@ contract MVM_Verifier is Lib_AddressResolver {
     }
 
     // calculate the rewards
-    function distributeReward(
-        uint256 amount,
-        address[] memory list,
-        uint256 num
-    ) internal {
+    function distributeReward(uint256 amount, address[] memory list, uint256 num) internal {
         uint256 reward = amount / num;
         if (reward == 0) {
             return;

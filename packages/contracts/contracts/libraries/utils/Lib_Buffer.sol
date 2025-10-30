@@ -42,11 +42,7 @@ library Lib_Buffer {
      * @param _value Value to push to the buffer.
      * @param _extraData Global extra data.
      */
-    function push(
-        Buffer storage _self,
-        bytes32 _value,
-        bytes27 _extraData
-    ) internal {
+    function push(Buffer storage _self, bytes32 _value, bytes27 _extraData) internal {
         BufferContext memory ctx = _self.getContext();
 
         _self.buf[ctx.length] = _value;
@@ -192,11 +188,7 @@ library Lib_Buffer {
      * @param _index Index of the element to set.
      * @param _value value to set
      */
-    function set(
-        Buffer storage _self,
-        uint256 _index,
-        bytes32 _value
-    ) internal {
+    function set(Buffer storage _self, uint256 _index, bytes32 _value) internal {
         BufferContext memory ctx = _self.getContext();
         require(_index < ctx.length, "Index out of bounds.");
         _self.buf[_index] = _value;

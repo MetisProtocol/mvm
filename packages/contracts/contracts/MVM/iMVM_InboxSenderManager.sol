@@ -12,13 +12,23 @@ interface iMVM_InboxSenderManager {
         address sender;
     }
 
-    event InboxSenderSet(uint256 indexed blockNumber, address indexed inboxSender, InboxSenderType indexed inboxSenderType);
+    event InboxSenderSet(
+        uint256 indexed blockNumber,
+        address indexed inboxSender,
+        InboxSenderType indexed inboxSenderType
+    );
 
     function defaultInboxSender(InboxSenderType senderType) external view returns (address);
 
     function setInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders) external;
 
-    function overwriteLastInboxSenders(uint256 blockNumber, InboxSender[] calldata _inboxSenders) external;
+    function overwriteLastInboxSenders(
+        uint256 blockNumber,
+        InboxSender[] calldata _inboxSenders
+    ) external;
 
-    function getInboxSender(uint256 blockNumber, InboxSenderType inboxSenderType) external view returns (address);
+    function getInboxSender(
+        uint256 blockNumber,
+        InboxSenderType inboxSenderType
+    ) external view returns (address);
 }

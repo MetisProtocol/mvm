@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IPreimageOracle} from "../../cannon/interfaces/IPreimageOracle.sol";
+import { IPreimageOracle } from "../../cannon/interfaces/IPreimageOracle.sol";
 
 /// @title IBigStepper
 /// @notice Describes a state machine that can perform a single instruction step, provided a prestate and an optional
@@ -36,9 +36,7 @@ interface IBigStepper {
         bytes calldata _stateData,
         bytes calldata _proof,
         bytes32 _localContext
-    )
-    external
-    returns (bytes32 postState_);
+    ) external returns (bytes32 postState_);
 
     /// @notice Returns the preimage oracle used by the state machine.
     function oracle() external view returns (IPreimageOracle oracle_);

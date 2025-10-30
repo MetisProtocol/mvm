@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title IDelayedWMetis
 /// @notice Interface for the DelayedWMetis contract
@@ -27,7 +27,10 @@ interface IDelayedWMetis is IERC20 {
     /// @notice Returns the withdrawal request for a given user and recipient
     /// @param _user The user address
     /// @param _recipient The recipient address
-    function withdrawals(address _user, address _recipient) external view returns (uint256, uint256);
+    function withdrawals(
+        address _user,
+        address _recipient
+    ) external view returns (uint256, uint256);
 
     /// @notice Unlocks tokens for withdrawal
     /// @param _guy The recipient address
@@ -58,4 +61,4 @@ interface IDelayedWMetis is IERC20 {
 
     /// @notice Returns the underlying Metis token contract address
     function metisToken() external view returns (IERC20);
-} 
+}

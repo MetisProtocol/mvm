@@ -20,7 +20,7 @@ using LibGameType for GameType global;
 /// │ [0, 64)    │ Duration       │
 /// │ [64, 128)  │ Timestamp      │
 /// └────────────┴────────────────┘
-    type Clock is uint128;
+type Clock is uint128;
 
 /// @title LibClock
 /// @notice This library contains helper functions for working with the `Clock` type.
@@ -75,7 +75,7 @@ library LibClock {
 /// │ [32, 96)  │ Timestamp │
 /// │ [96, 256) │ Address   │
 /// └───────────┴───────────┘
-    type GameId is bytes32;
+type GameId is bytes32;
 
 /// @title LibGameId
 /// @notice Utility functions for packing and unpacking GameIds.
@@ -89,11 +89,7 @@ library LibGameId {
         GameType _gameType,
         Timestamp _timestamp,
         address _gameProxy
-    )
-    internal
-    pure
-    returns (GameId gameId_)
-    {
+    ) internal pure returns (GameId gameId_) {
         assembly {
             gameId_ := or(or(shl(224, _gameType), shl(160, _timestamp)), _gameProxy)
         }
@@ -104,11 +100,9 @@ library LibGameId {
     /// @return gameType_ The game type.
     /// @return timestamp_ The timestamp of the game's creation.
     /// @return gameProxy_ The game proxy address.
-    function unpack(GameId _gameId)
-    internal
-    pure
-    returns (GameType gameType_, Timestamp timestamp_, address gameProxy_)
-    {
+    function unpack(
+        GameId _gameId
+    ) internal pure returns (GameType gameType_, Timestamp timestamp_, address gameProxy_) {
         assembly {
             gameType_ := shr(224, _gameId)
             timestamp_ := and(shr(160, _gameId), 0xFFFFFFFFFFFFFFFF)
@@ -118,7 +112,7 @@ library LibGameId {
 }
 
 /// @notice A claim represents an MPT root representing the state of the fault proof program.
-    type Claim is bytes32;
+type Claim is bytes32;
 
 /// @title LibClaim
 /// @notice This library contains helper functions for working with the `Claim` type.
@@ -141,14 +135,13 @@ library LibClaim {
         Claim _claim,
         Position _position,
         uint256 _challengeIndex
-    )
-    internal
-    pure
-    returns (Hash claimHash_)
-    {
+    ) internal pure returns (Hash claimHash_) {
         assembly {
             mstore(0x00, _claim)
-            mstore(0x20, or(shl(128, _position), and(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF, _challengeIndex)))
+            mstore(
+                0x20,
+                or(shl(128, _position), and(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF, _challengeIndex))
+            )
             claimHash_ := keccak256(0x00, 0x40)
         }
     }
@@ -156,7 +149,7 @@ library LibClaim {
 
 /// @notice A dedicated duration type.
 /// @dev Unit: seconds
-    type Duration is uint64;
+type Duration is uint64;
 
 /// @title LibDuration
 /// @notice This library contains helper functions for working with the `Duration` type.
@@ -172,7 +165,7 @@ library LibDuration {
 }
 
 /// @notice A custom type for a generic hash.
-    type Hash is bytes32;
+type Hash is bytes32;
 
 /// @title LibHash
 /// @notice This library contains helper functions for working with the `Hash` type.
@@ -188,7 +181,7 @@ library LibHash {
 }
 
 /// @notice A dedicated timestamp type.
-    type Timestamp is uint64;
+type Timestamp is uint64;
 
 /// @title LibTimestamp
 /// @notice This library contains helper functions for working with the `Timestamp` type.
@@ -204,7 +197,7 @@ library LibTimestamp {
 }
 
 /// @notice A `VMStatus` represents the status of a VM execution.
-    type VMStatus is uint8;
+type VMStatus is uint8;
 
 /// @title LibVMStatus
 /// @notice This library contains helper functions for working with the `VMStatus` type.
@@ -220,7 +213,7 @@ library LibVMStatus {
 }
 
 /// @notice A `GameType` represents the type of game being played.
-    type GameType is uint32;
+type GameType is uint32;
 
 /// @title LibGameType
 /// @notice This library contains helper functions for working with the `GameType` type.

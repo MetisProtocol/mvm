@@ -77,21 +77,18 @@ contract OVM_SequencerFeeVault is iOVM_SequencerFeeVault, CrossDomainEnabled {
         );
     }
 
-    function finalizeChainSwitch(address _FeeWallet, address _L2Manager)
-        external
-        virtual
-        onlyFromCrossDomainAccount(l1Manager)
-    {
+    function finalizeChainSwitch(
+        address _FeeWallet,
+        address _L2Manager
+    ) external virtual onlyFromCrossDomainAccount(l1Manager) {
         l1FeeWallet = _FeeWallet;
         l2Manager = _L2Manager;
         emit ChainSwitch(l1FeeWallet, l2Manager);
     }
 
-    function finalizeChainConfig(bytes calldata values)
-        external
-        virtual
-        onlyFromCrossDomainAccount(l1Manager)
-    {
+    function finalizeChainConfig(
+        bytes calldata values
+    ) external virtual onlyFromCrossDomainAccount(l1Manager) {
         iMVM_ChainConfig(Lib_PredeployAddresses.MVM_CHAIN_CONFIG).setConfig(values);
         emit ConfigChange(values);
     }
@@ -101,10 +98,10 @@ contract OVM_SequencerFeeVault is iOVM_SequencerFeeVault, CrossDomainEnabled {
         require(sent, "Failed to send metis");
     }
 
-    function sendBatch(address payable[] calldata tos, uint256[] calldata amounts)
-        public
-        onlyManager
-    {
+    function sendBatch(
+        address payable[] calldata tos,
+        uint256[] calldata amounts
+    ) public onlyManager {
         require(tos.length == amounts.length, "lengths of the parameters do not match");
         for (uint256 i = 0; i < tos.length; i++) {
             send(tos[i], amounts[i]);

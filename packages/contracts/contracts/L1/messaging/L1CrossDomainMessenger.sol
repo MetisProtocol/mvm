@@ -374,11 +374,9 @@ contract L1CrossDomainMessenger is
      * @param _proof Message inclusion proof.
      * @return Whether or not the provided proof is valid.
      */
-    function _verifyStateRootProof(L2MessageInclusionProof memory _proof)
-        internal
-        view
-        returns (bool)
-    {
+    function _verifyStateRootProof(
+        L2MessageInclusionProof memory _proof
+    ) internal view returns (bool) {
         IMVMStateCommitmentChain ovmStateCommitmentChain = IMVMStateCommitmentChain(
             resolve("StateCommitmentChain")
         );
@@ -475,11 +473,10 @@ contract L1CrossDomainMessenger is
      * @param _proof Message inclusion proof.
      * @return Whether or not the provided proof is valid.
      */
-    function _verifyStateRootProofByChainId(uint256 _chainId, L2MessageInclusionProof memory _proof)
-        internal
-        view
-        returns (bool)
-    {
+    function _verifyStateRootProofByChainId(
+        uint256 _chainId,
+        L2MessageInclusionProof memory _proof
+    ) internal view returns (bool) {
         IMVMStateCommitmentChain ovmStateCommitmentChain = IMVMStateCommitmentChain(
             resolve("StateCommitmentChain")
         );

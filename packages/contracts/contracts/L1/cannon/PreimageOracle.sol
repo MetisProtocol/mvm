@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IPreimageOracle} from "./interfaces/IPreimageOracle.sol";
-import {ISemver} from "contracts/universal/ISemver.sol";
-import {PreimageKeyLib} from "./PreimageKeyLib.sol";
-import {LibKeccak} from "contracts/libraries/crypto/LibKeccak.sol";
+import { IPreimageOracle } from "./interfaces/IPreimageOracle.sol";
+import { ISemver } from "contracts/universal/ISemver.sol";
+import { PreimageKeyLib } from "./PreimageKeyLib.sol";
+import { LibKeccak } from "contracts/libraries/crypto/LibKeccak.sol";
 import "contracts/L1/cannon/libraries/CannonErrors.sol";
 import "contracts/L1/cannon/libraries/CannonTypes.sol";
 
@@ -99,7 +99,9 @@ contract PreimageOracle is IPreimageOracle, ISemver {
 
         // Compute hashes in empty sparse Merkle tree. The first hash is not set, and kept as zero as the identity.
         for (uint256 height = 0; height < KECCAK_TREE_DEPTH - 1; height++) {
-            zeroHashes[height + 1] = keccak256(abi.encodePacked(zeroHashes[height], zeroHashes[height]));
+            zeroHashes[height + 1] = keccak256(
+                abi.encodePacked(zeroHashes[height], zeroHashes[height])
+            );
         }
     }
 
@@ -108,7 +110,10 @@ contract PreimageOracle is IPreimageOracle, ISemver {
     ////////////////////////////////////////////////////////////////
 
     /// @inheritdoc IPreimageOracle
-    function readPreimage(bytes32 _key, uint256 _offset) external view returns (bytes32 dat_, uint256 datLen_) {
+    function readPreimage(
+        bytes32 _key,
+        uint256 _offset
+    ) external view returns (bytes32 dat_, uint256 datLen_) {
         require(preimagePartOk[_key][_offset], "pre-image must exist");
 
         // Calculate the length of the pre-image data
@@ -130,10 +135,7 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         bytes32 _word,
         uint256 _size,
         uint256 _partOffset
-    )
-    external
-    returns (bytes32 key_)
-    {
+    ) external returns (bytes32 key_) {
         // Compute the localized key from the given local identifier.
         key_ = PreimageKeyLib.localizeIdent(_ident, _localContext);
 
@@ -145,14 +147,14 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         // Prepare the local data part at the given offset
         bytes32 part;
         assembly {
-        // Clean the memory in [0x20, 0x40)
+            // Clean the memory in [0x20, 0x40)
             mstore(0x20, 0x00)
 
-        // Store the full local data in scratch space.
+            // Store the full local data in scratch space.
             mstore(0x00, shl(192, _size))
             mstore(0x08, _word)
 
-        // Prepare the local data part at the requested offset.
+            // Prepare the local data part at the requested offset.
             part := mload(_partOffset)
         }
 
@@ -169,28 +171,28 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         bytes32 key;
         bytes32 part;
         assembly {
-        // len(sig) + len(partOffset) + len(preimage offset) = 4 + 32 + 32 = 0x44
+            // len(sig) + len(partOffset) + len(preimage offset) = 4 + 32 + 32 = 0x44
             size := calldataload(0x44)
 
-        // revert if part offset >= size+8 (i.e. parts must be within bounds)
+            // revert if part offset >= size+8 (i.e. parts must be within bounds)
             if iszero(lt(_partOffset, add(size, 8))) {
-            // Store "PartOffsetOOB()"
+                // Store "PartOffsetOOB()"
                 mstore(0x00, 0xfe254987)
-            // Revert with "PartOffsetOOB()"
+                // Revert with "PartOffsetOOB()"
                 revert(0x1c, 0x04)
             }
-        // we leave solidity slots 0x40 and 0x60 untouched, and everything after as scratch-memory.
+            // we leave solidity slots 0x40 and 0x60 untouched, and everything after as scratch-memory.
             let ptr := 0x80
-        // put size as big-endian uint64 at start of pre-image
+            // put size as big-endian uint64 at start of pre-image
             mstore(ptr, shl(192, size))
             ptr := add(ptr, 0x08)
-        // copy preimage payload into memory so we can hash and read it.
+            // copy preimage payload into memory so we can hash and read it.
             calldatacopy(ptr, _preimage.offset, size)
-        // Note that it includes the 8-byte big-endian uint64 length prefix.
-        // this will be zero-padded at the end, since memory at end is clean.
+            // Note that it includes the 8-byte big-endian uint64 length prefix.
+            // this will be zero-padded at the end, since memory at end is clean.
             part := mload(add(sub(ptr, 0x08), _partOffset))
             let h := keccak256(ptr, size) // compute preimage keccak256 hash
-        // mask out prefix byte, replace with type 2 byte
+            // mask out prefix byte, replace with type 2 byte
             key := or(and(h, not(shl(248, 0xFF))), shl(248, 0x02))
         }
         preimagePartOk[key][_partOffset] = true;
@@ -204,31 +206,30 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         bytes32 key;
         bytes32 part;
         assembly {
-        // len(sig) + len(partOffset) + len(preimage offset) = 4 + 32 + 32 = 0x44
+            // len(sig) + len(partOffset) + len(preimage offset) = 4 + 32 + 32 = 0x44
             size := calldataload(0x44)
 
-        // revert if part offset >= size+8 (i.e. parts must be within bounds)
+            // revert if part offset >= size+8 (i.e. parts must be within bounds)
             if iszero(lt(_partOffset, add(size, 8))) {
-            // Store "PartOffsetOOB()"
+                // Store "PartOffsetOOB()"
                 mstore(0, 0xfe254987)
-            // Revert with "PartOffsetOOB()"
+                // Revert with "PartOffsetOOB()"
                 revert(0x1c, 4)
             }
-        // we leave solidity slots 0x40 and 0x60 untouched,
-        // and everything after as scratch-memory.
+            // we leave solidity slots 0x40 and 0x60 untouched,
+            // and everything after as scratch-memory.
             let ptr := 0x80
-        // put size as big-endian uint64 at start of pre-image
+            // put size as big-endian uint64 at start of pre-image
             mstore(ptr, shl(192, size))
             ptr := add(ptr, 8)
-        // copy preimage payload into memory so we can hash and read it.
+            // copy preimage payload into memory so we can hash and read it.
             calldatacopy(ptr, _preimage.offset, size)
-        // Note that it includes the 8-byte big-endian uint64 length prefix.
-        // this will be zero-padded at the end, since memory at end is clean.
+            // Note that it includes the 8-byte big-endian uint64 length prefix.
+            // this will be zero-padded at the end, since memory at end is clean.
             part := mload(add(sub(ptr, 8), _partOffset))
 
-        // compute SHA2-256 hash with pre-compile
-            let success :=
-            staticcall(
+            // compute SHA2-256 hash with pre-compile
+            let success := staticcall(
                 gas(), // Forward all available gas
                 0x02, // Address of SHA-256 precompile
                 ptr, // Start of input data in memory
@@ -236,10 +237,12 @@ contract PreimageOracle is IPreimageOracle, ISemver {
                 0, // Store output in scratch memory
                 0x20 // Output is always 32 bytes
             )
-        // Check if the staticcall succeeded
-            if iszero(success) {revert(0, 0)}
+            // Check if the staticcall succeeded
+            if iszero(success) {
+                revert(0, 0)
+            }
             let h := mload(0) // get return data
-        // mask out prefix byte, replace with type 4 byte
+            // mask out prefix byte, replace with type 4 byte
             key := or(and(h, not(shl(248, 0xFF))), shl(248, 4))
         }
         preimagePartOk[key][_partOffset] = true;
@@ -254,44 +257,41 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         bytes calldata _commitment,
         bytes calldata _proof,
         uint256 _partOffset
-    )
-    external
-    {
+    ) external {
         bytes32 key;
         bytes32 part;
         assembly {
-        // Compute the versioned hash. The SHA2 hash of the 48 byte commitment is masked with the version byte,
-        // which is currently 1. https://eips.ethereum.org/EIPS/eip-4844#parameters
-        // SAFETY: We're only reading 48 bytes from `_commitment` into scratch space, so we're not reading into the
-        //         free memory ptr region. Since the exact number of btyes that is copied into scratch space is
-        //         the same size as the hash input, there's no concern of dirty memory being read into the hash
-        //         input.
+            // Compute the versioned hash. The SHA2 hash of the 48 byte commitment is masked with the version byte,
+            // which is currently 1. https://eips.ethereum.org/EIPS/eip-4844#parameters
+            // SAFETY: We're only reading 48 bytes from `_commitment` into scratch space, so we're not reading into the
+            //         free memory ptr region. Since the exact number of btyes that is copied into scratch space is
+            //         the same size as the hash input, there's no concern of dirty memory being read into the hash
+            //         input.
             calldatacopy(0x00, _commitment.offset, 0x30)
             let success := staticcall(gas(), 0x02, 0x00, 0x30, 0x00, 0x20)
             if iszero(success) {
-            // Store the "ShaFailed()" error selector.
+                // Store the "ShaFailed()" error selector.
                 mstore(0x00, 0xf9112969)
-            // revert with "ShaFailed()"
+                // revert with "ShaFailed()"
                 revert(0x1C, 0x04)
             }
-        // Set the `VERSIONED_HASH_VERSION_KZG` byte = 1 in the high-order byte of the hash.
+            // Set the `VERSIONED_HASH_VERSION_KZG` byte = 1 in the high-order byte of the hash.
             let versionedHash := or(and(mload(0x00), not(shl(248, 0xFF))), shl(248, 0x01))
 
-        // we leave solidity slots 0x40 and 0x60 untouched, and everything after as scratch-memory.
+            // we leave solidity slots 0x40 and 0x60 untouched, and everything after as scratch-memory.
             let ptr := 0x80
 
-        // Load the inputs for the point evaluation precompile into memory. The inputs to the point evaluation
-        // precompile are packed, and not supposed to be ABI-encoded.
+            // Load the inputs for the point evaluation precompile into memory. The inputs to the point evaluation
+            // precompile are packed, and not supposed to be ABI-encoded.
             mstore(ptr, versionedHash)
             mstore(add(ptr, 0x20), _z)
             mstore(add(ptr, 0x40), _y)
             calldatacopy(add(ptr, 0x60), _commitment.offset, 0x30)
             calldatacopy(add(ptr, 0x90), _proof.offset, 0x30)
 
-        // Verify the KZG proof by calling the point evaluation precompile. If the proof is invalid, the precompile
-        // will revert.
-            success :=
-            staticcall(
+            // Verify the KZG proof by calling the point evaluation precompile. If the proof is invalid, the precompile
+            // will revert.
+            success := staticcall(
                 gas(), // forward all gas
                 0x0A, // point evaluation precompile address
                 ptr, // input ptr
@@ -300,37 +300,37 @@ contract PreimageOracle is IPreimageOracle, ISemver {
                 0x00 // output size
             )
             if iszero(success) {
-            // Store the "InvalidProof()" error selector.
+                // Store the "InvalidProof()" error selector.
                 mstore(0x00, 0x09bde339)
-            // revert with "InvalidProof()"
+                // revert with "InvalidProof()"
                 revert(0x1C, 0x04)
             }
 
-        // revert if part offset >= 32+8 (i.e. parts must be within bounds)
+            // revert if part offset >= 32+8 (i.e. parts must be within bounds)
             if iszero(lt(_partOffset, 0x28)) {
-            // Store "PartOffsetOOB()"
+                // Store "PartOffsetOOB()"
                 mstore(0x00, 0xfe254987)
-            // Revert with "PartOffsetOOB()"
+                // Revert with "PartOffsetOOB()"
                 revert(0x1C, 0x04)
             }
-        // Clean the word at `ptr + 0x28` to ensure that data out of bounds of the preimage is zero, if the part
-        // offset requires a partial read.
+            // Clean the word at `ptr + 0x28` to ensure that data out of bounds of the preimage is zero, if the part
+            // offset requires a partial read.
             mstore(add(ptr, 0x28), 0x00)
-        // put size (32) as a big-endian uint64 at start of pre-image
+            // put size (32) as a big-endian uint64 at start of pre-image
             mstore(ptr, shl(192, 0x20))
-        // copy preimage payload into memory so we can hash and read it.
+            // copy preimage payload into memory so we can hash and read it.
             mstore(add(ptr, 0x08), _y)
-        // Note that it includes the 8-byte big-endian uint64 length prefix. This will be zero-padded at the end,
-        // since memory at end is guaranteed to be clean.
+            // Note that it includes the 8-byte big-endian uint64 length prefix. This will be zero-padded at the end,
+            // since memory at end is guaranteed to be clean.
             part := mload(add(ptr, _partOffset))
 
-        // Compute the key: `keccak256(commitment ++ z)`. Since the exact number of btyes that is copied into
-        // scratch space is the same size as the hash input, there's no concern of dirty memory being read into
-        // the hash input.
+            // Compute the key: `keccak256(commitment ++ z)`. Since the exact number of btyes that is copied into
+            // scratch space is the same size as the hash input, there's no concern of dirty memory being read into
+            // the hash input.
             calldatacopy(ptr, _commitment.offset, 0x30)
             mstore(add(ptr, 0x30), _z)
             let h := keccak256(ptr, 0x50)
-        // mask out prefix byte, replace with type 5 byte
+            // mask out prefix byte, replace with type 5 byte
             key := or(and(h, not(shl(248, 0xFF))), shl(248, 0x05))
         }
         preimagePartOk[key][_partOffset] = true;
@@ -344,40 +344,40 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         address _precompile,
         uint64 _requiredGas,
         bytes calldata _input
-    )
-    external
-    {
+    ) external {
         bytes32 res;
         bytes32 key;
         bytes32 part;
         uint256 size;
         assembly {
-        // we leave solidity slots 0x40 and 0x60 untouched, and everything after as scratch-memory.
+            // we leave solidity slots 0x40 and 0x60 untouched, and everything after as scratch-memory.
             let ptr := 0x80
 
-        // copy precompile address, requiredGas, and input into memory to compute the key
+            // copy precompile address, requiredGas, and input into memory to compute the key
             mstore(ptr, shl(96, _precompile))
             mstore(add(ptr, 20), shl(192, _requiredGas))
             calldatacopy(add(28, ptr), _input.offset, _input.length)
-        // compute the hash
+            // compute the hash
             let h := keccak256(ptr, add(28, _input.length))
-        // mask out prefix byte, replace with type 6 byte
+            // mask out prefix byte, replace with type 6 byte
             key := or(and(h, not(shl(248, 0xFF))), shl(248, 0x06))
 
-        // Check if the precompile call has at least the required gas.
-        // This assumes there are no further memory expansion costs until after the staticall on the precompile
-        // Also assumes that the gas expended in setting up the staticcall is less than PRECOMPILE_CALL_RESERVED_GAS
-        // require(gas() >= (requiredGas * 64 / 63) + reservedGas)
-            if lt(mul(gas(), 63), add(mul(_requiredGas, 64), mul(PRECOMPILE_CALL_RESERVED_GAS, 63))) {
-            // Store "NotEnoughGas()"
+            // Check if the precompile call has at least the required gas.
+            // This assumes there are no further memory expansion costs until after the staticall on the precompile
+            // Also assumes that the gas expended in setting up the staticcall is less than PRECOMPILE_CALL_RESERVED_GAS
+            // require(gas() >= (requiredGas * 64 / 63) + reservedGas)
+            if lt(
+                mul(gas(), 63),
+                add(mul(_requiredGas, 64), mul(PRECOMPILE_CALL_RESERVED_GAS, 63))
+            ) {
+                // Store "NotEnoughGas()"
                 mstore(0, 0xdd629f86)
                 revert(0x1c, 4)
             }
 
-        // Call the precompile to get the result.
-        // SAFETY: Given the above gas check, the staticall cannot fail due to insufficient gas.
-            res :=
-            staticcall(
+            // Call the precompile to get the result.
+            // SAFETY: Given the above gas check, the staticall cannot fail due to insufficient gas.
+            res := staticcall(
                 gas(), // forward all gas
                 _precompile,
                 add(28, ptr), // input ptr
@@ -387,25 +387,25 @@ contract PreimageOracle is IPreimageOracle, ISemver {
             )
 
             size := add(1, returndatasize())
-        // revert if part offset >= size+8 (i.e. parts must be within bounds)
+            // revert if part offset >= size+8 (i.e. parts must be within bounds)
             if iszero(lt(_partOffset, add(size, 8))) {
-            // Store "PartOffsetOOB()"
+                // Store "PartOffsetOOB()"
                 mstore(0, 0xfe254987)
-            // Revert with "PartOffsetOOB()"
+                // Revert with "PartOffsetOOB()"
                 revert(0x1c, 4)
             }
 
-        // Reuse the `ptr` to store the preimage part: <sizePrefix ++ precompileStatus ++ returrnData>
-        // put size as big-endian uint64 at start of pre-image
+            // Reuse the `ptr` to store the preimage part: <sizePrefix ++ precompileStatus ++ returrnData>
+            // put size as big-endian uint64 at start of pre-image
             mstore(ptr, shl(192, size))
             ptr := add(ptr, 0x08)
 
-        // write precompile result status to the first byte of `ptr`
+            // write precompile result status to the first byte of `ptr`
             mstore8(ptr, res)
-        // write precompile return data to the rest of `ptr`
+            // write precompile return data to the rest of `ptr`
             returndatacopy(add(ptr, 0x01), 0x0, returndatasize())
 
-        // compute part given ofset
+            // compute part given ofset
             part := mload(add(sub(ptr, 0x08), _partOffset))
         }
         preimagePartOk[key][_partOffset] = true;
@@ -424,7 +424,10 @@ contract PreimageOracle is IPreimageOracle, ISemver {
 
     /// @notice Returns the length of the array with the block numbers of `addLeavesLPP` calls for a given large
     ///         preimage proposal.
-    function proposalBlocksLen(address _claimant, uint256 _uuid) external view returns (uint256 len_) {
+    function proposalBlocksLen(
+        address _claimant,
+        uint256 _uuid
+    ) external view returns (uint256 len_) {
         len_ = proposalBlocks[_claimant][_uuid].length;
     }
 
@@ -458,7 +461,9 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         // Revert if the proposal has already been initialized. 0-size preimages are *not* allowed.
         if (metaData.claimedSize() != 0) revert AlreadyInitialized();
 
-        proposalMetadata[msg.sender][_uuid] = metaData.setPartOffset(_partOffset).setClaimedSize(_claimedSize);
+        proposalMetadata[msg.sender][_uuid] = metaData.setPartOffset(_partOffset).setClaimedSize(
+            _claimedSize
+        );
         proposals.push(LargePreimageProposalKeys(msg.sender, _uuid));
 
         // Assign the bond to the proposal.
@@ -472,9 +477,7 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         bytes calldata _input,
         bytes32[] calldata _stateCommitments,
         bool _finalize
-    )
-    external
-    {
+    ) external {
         // If we're finalizing, pad the input for the submitter. If not, copy the input into memory verbatim.
         bytes memory input;
         if (_finalize) {
@@ -512,20 +515,24 @@ contract PreimageOracle is IPreimageOracle, ISemver {
             let inputLen := mload(input)
             let inputPtr := add(input, 0x20)
 
-        // The input length must be a multiple of 136 bytes
-        // The input length / 136 must be equal to the number of state commitments.
+            // The input length must be a multiple of 136 bytes
+            // The input length / 136 must be equal to the number of state commitments.
             if or(mod(inputLen, 136), iszero(eq(_stateCommitments.length, div(inputLen, 136)))) {
-            // Store "InvalidInputSize()" error selector
+                // Store "InvalidInputSize()" error selector
                 mstore(0x00, 0x7b1daf1)
                 revert(0x1C, 0x04)
             }
 
-        // Allocate a hashing buffer the size of the leaf preimage.
+            // Allocate a hashing buffer the size of the leaf preimage.
             let hashBuf := mload(0x40)
             mstore(0x40, add(hashBuf, 0xC8))
 
-            for {let i := 0} lt(i, inputLen) {i := add(i, 136)} {
-            // Copy the leaf preimage into the hashing buffer.
+            for {
+                let i := 0
+            } lt(i, inputLen) {
+                i := add(i, 136)
+            } {
+                // Copy the leaf preimage into the hashing buffer.
                 let inputStartPtr := add(inputPtr, i)
                 mstore(hashBuf, mload(inputStartPtr))
                 mstore(add(hashBuf, 0x20), mload(add(inputStartPtr, 0x20)))
@@ -533,23 +540,30 @@ contract PreimageOracle is IPreimageOracle, ISemver {
                 mstore(add(hashBuf, 0x60), mload(add(inputStartPtr, 0x60)))
                 mstore(add(hashBuf, 0x80), mload(add(inputStartPtr, 0x80)))
                 mstore(add(hashBuf, 136), blocksProcessed)
-                mstore(add(hashBuf, 168), calldataload(add(_stateCommitments.offset, shl(0x05, div(i, 136)))))
+                mstore(
+                    add(hashBuf, 168),
+                    calldataload(add(_stateCommitments.offset, shl(0x05, div(i, 136))))
+                )
 
-            // Hash the leaf preimage to get the node to add.
+                // Hash the leaf preimage to get the node to add.
                 let node := keccak256(hashBuf, 0xC8)
 
-            // Increment the number of blocks processed.
+                // Increment the number of blocks processed.
                 blocksProcessed := add(blocksProcessed, 0x01)
 
-            // Add the node to the tree.
+                // Add the node to the tree.
                 let size := blocksProcessed
-                for {let height := 0x00} lt(height, shl(0x05, KECCAK_TREE_DEPTH)) {height := add(height, 0x20)} {
+                for {
+                    let height := 0x00
+                } lt(height, shl(0x05, KECCAK_TREE_DEPTH)) {
+                    height := add(height, 0x20)
+                } {
                     if and(size, 0x01) {
                         mstore(add(branch, height), node)
                         break
                     }
 
-                // Hash the node at `height` in the branch and the node together.
+                    // Hash the node at `height` in the branch and the node together.
                     mstore(0x00, mload(add(branch, height)))
                     mstore(0x20, node)
                     node := keccak256(0x00, 0x40)
@@ -602,20 +616,17 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         bytes32[] calldata _preStateProof,
         Leaf calldata _postState,
         bytes32[] calldata _postStateProof
-    )
-    external
-    {
+    ) external {
         // Verify that both leaves are present in the merkle tree.
         bytes32 root = getTreeRootLPP(_claimant, _uuid);
         if (
-            !(
-            _verify(_preStateProof, root, _preState.index, _hashLeaf(_preState))
-            && _verify(_postStateProof, root, _postState.index, _hashLeaf(_postState))
-        )
+            !(_verify(_preStateProof, root, _preState.index, _hashLeaf(_preState)) &&
+                _verify(_postStateProof, root, _postState.index, _hashLeaf(_postState)))
         ) revert InvalidProof();
 
         // Verify that the prestate passed matches the intermediate state claimed in the leaf.
-        if (keccak256(abi.encode(_stateMatrix)) != _preState.stateCommitment) revert InvalidPreimage();
+        if (keccak256(abi.encode(_stateMatrix)) != _preState.stateCommitment)
+            revert InvalidPreimage();
 
         // Verify that the pre/post state are contiguous.
         if (_preState.index + 1 != _postState.index) revert StatesNotContiguous();
@@ -625,7 +636,8 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         LibKeccak.permutation(_stateMatrix);
 
         // Verify that the post state hash doesn't match the expected hash.
-        if (keccak256(abi.encode(_stateMatrix)) == _postState.stateCommitment) revert PostStateMatches();
+        if (keccak256(abi.encode(_stateMatrix)) == _postState.stateCommitment)
+            revert PostStateMatches();
 
         // Mark the keccak claim as countered.
         proposalMetadata[_claimant][_uuid] = proposalMetadata[_claimant][_uuid].setCountered(true);
@@ -640,12 +652,11 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         uint256 _uuid,
         Leaf calldata _postState,
         bytes32[] calldata _postStateProof
-    )
-    external
-    {
+    ) external {
         // Verify that the leaf is present in the merkle tree.
         bytes32 root = getTreeRootLPP(_claimant, _uuid);
-        if (!_verify(_postStateProof, root, _postState.index, _hashLeaf(_postState))) revert InvalidProof();
+        if (!_verify(_postStateProof, root, _postState.index, _hashLeaf(_postState)))
+            revert InvalidProof();
 
         // The poststate index must be 0 in order to challenge it with this function.
         if (_postState.index != 0) revert StatesNotContiguous();
@@ -656,7 +667,8 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         LibKeccak.permutation(stateMatrix);
 
         // Verify that the post state hash doesn't match the expected hash.
-        if (keccak256(abi.encode(stateMatrix)) == _postState.stateCommitment) revert PostStateMatches();
+        if (keccak256(abi.encode(stateMatrix)) == _postState.stateCommitment)
+            revert PostStateMatches();
 
         // Mark the keccak claim as countered.
         proposalMetadata[_claimant][_uuid] = proposalMetadata[_claimant][_uuid].setCountered(true);
@@ -674,9 +686,7 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         bytes32[] calldata _preStateProof,
         Leaf calldata _postState,
         bytes32[] calldata _postStateProof
-    )
-    external
-    {
+    ) external {
         LPPMetaData metaData = proposalMetadata[_claimant][_uuid];
 
         // Check if the proposal was countered.
@@ -691,17 +701,19 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         // Verify that both leaves are present in the merkle tree.
         bytes32 root = getTreeRootLPP(_claimant, _uuid);
         if (
-            !(
-            _verify(_preStateProof, root, _preState.index, _hashLeaf(_preState))
-            && _verify(_postStateProof, root, _postState.index, _hashLeaf(_postState))
-        )
+            !(_verify(_preStateProof, root, _preState.index, _hashLeaf(_preState)) &&
+                _verify(_postStateProof, root, _postState.index, _hashLeaf(_postState)))
         ) revert InvalidProof();
 
         // Verify that the prestate passed matches the intermediate state claimed in the leaf.
-        if (keccak256(abi.encode(_stateMatrix)) != _preState.stateCommitment) revert InvalidPreimage();
+        if (keccak256(abi.encode(_stateMatrix)) != _preState.stateCommitment)
+            revert InvalidPreimage();
 
         // Verify that the pre/post state are contiguous.
-        if (_preState.index + 1 != _postState.index || _postState.index != metaData.blocksProcessed() - 1) {
+        if (
+            _preState.index + 1 != _postState.index ||
+            _postState.index != metaData.blocksProcessed() - 1
+        ) {
             revert StatesNotContiguous();
         }
 
@@ -729,7 +741,9 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         uint256 size = proposalMetadata[_owner][_uuid].blocksProcessed();
         for (uint256 height = 0; height < KECCAK_TREE_DEPTH; height++) {
             if ((size & 1) == 1) {
-                treeRoot_ = keccak256(abi.encode(proposalBranches[_owner][_uuid][height], treeRoot_));
+                treeRoot_ = keccak256(
+                    abi.encode(proposalBranches[_owner][_uuid][height], treeRoot_)
+                );
             } else {
                 treeRoot_ = keccak256(abi.encode(treeRoot_, zeroHashes[height]));
             }
@@ -748,9 +762,7 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         uint256 _uuid,
         bool _finalize,
         LPPMetaData _metaData
-    )
-    internal
-    {
+    ) internal {
         uint256 offset = _metaData.partOffset();
         uint256 claimedSize = _metaData.claimedSize();
         uint256 currentSize = _metaData.bytesProcessed();
@@ -764,7 +776,11 @@ contract PreimageOracle is IPreimageOracle, ISemver {
                 preimagePart := mload(offset)
             }
             proposalParts[msg.sender][_uuid] = preimagePart;
-        } else if (offset >= 8 && (offset = offset - 8) >= currentSize && offset < currentSize + _input.length) {
+        } else if (
+            offset >= 8 &&
+            (offset = offset - 8) >= currentSize &&
+            offset < currentSize + _input.length
+        ) {
             uint256 relativeOffset = offset - currentSize;
 
             // Revert if the full preimage part is not available in the data we're absorbing. The submitter must
@@ -790,11 +806,7 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         bytes32 _root,
         uint256 _index,
         bytes32 _leaf
-    )
-    internal
-    pure
-    returns (bool isValid_)
-    {
+    ) internal pure returns (bool isValid_) {
         /// @solidity memory-safe-assembly
         assembly {
             function hashTwo(a, b) -> hash {
@@ -804,12 +816,20 @@ contract PreimageOracle is IPreimageOracle, ISemver {
             }
 
             let value := _leaf
-            for {let i := 0x00} lt(i, KECCAK_TREE_DEPTH) {i := add(i, 0x01)} {
+            for {
+                let i := 0x00
+            } lt(i, KECCAK_TREE_DEPTH) {
+                i := add(i, 0x01)
+            } {
                 let branchValue := calldataload(add(_proof.offset, shl(0x05, i)))
 
                 switch and(shr(i, _index), 0x01)
-                case 1 {value := hashTwo(branchValue, value)}
-                default {value := hashTwo(value, branchValue)}
+                case 1 {
+                    value := hashTwo(branchValue, value)
+                }
+                default {
+                    value := hashTwo(value, branchValue)
+                }
             }
 
             isValid_ := eq(value, _root)
@@ -821,7 +841,7 @@ contract PreimageOracle is IPreimageOracle, ISemver {
         // Pay out the bond to the claimant.
         uint256 bond = proposalBonds[_claimant][_uuid];
         proposalBonds[_claimant][_uuid] = 0;
-        (bool success,) = _to.call{value: bond}("");
+        (bool success, ) = _to.call{ value: bond }("");
         if (!success) revert BondTransferFailed();
     }
 

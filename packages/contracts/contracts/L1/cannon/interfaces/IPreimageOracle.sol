@@ -13,7 +13,10 @@ interface IPreimageOracle {
     /// @param _offset The offset of the preimage to read.
     /// @return dat_ The preimage data.
     /// @return datLen_ The length of the preimage data.
-    function readPreimage(bytes32 _key, uint256 _offset) external view returns (bytes32 dat_, uint256 datLen_);
+    function readPreimage(
+        bytes32 _key,
+        uint256 _offset
+    ) external view returns (bytes32 dat_, uint256 datLen_);
 
     /// @notice Loads of local data part into the preimage oracle.
     /// @param _ident The identifier of the local data.
@@ -42,9 +45,7 @@ interface IPreimageOracle {
         bytes32 _word,
         uint256 _size,
         uint256 _partOffset
-    )
-    external
-    returns (bytes32 key_);
+    ) external returns (bytes32 key_);
 
     /// @notice Prepares a preimage to be read by keccak256 key, starting at the given offset and up to 32 bytes
     ///         (clipped at preimage length, if out of data).
@@ -71,8 +72,7 @@ interface IPreimageOracle {
         bytes calldata _commitment,
         bytes calldata _proof,
         uint256 _partOffset
-    )
-    external;
+    ) external;
 
     /// @notice Prepares a precompile result to be read by a precompile key for the specified offset.
     ///         The precompile result data is a concatenation of the precompile call status byte and its return data.
@@ -86,6 +86,5 @@ interface IPreimageOracle {
         address _precompile,
         uint64 _requiredGas,
         bytes calldata _input
-    )
-    external;
+    ) external;
 }
