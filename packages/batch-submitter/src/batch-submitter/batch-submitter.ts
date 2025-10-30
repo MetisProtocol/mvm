@@ -86,9 +86,15 @@ export abstract class BatchSubmitter {
       return
     }
 
-    if (this.useMpc && !(await this._mpcBalanceCheck())) {
-      await sleep(this.resubmissionTimeout)
-      return
+    if (this.useMpc) {
+      const isMpcBalanceSufficient = await this._mpcBalanceCheck()
+      if (!isMpcBalanceSufficient) {
+        this.logger.warn(
+          'MPC address has insufficient balance to submit batch!'
+        )
+        await sleep(this.resubmissionTimeout)
+        return
+      }
     }
 
     this.logger.info('Readying to submit next batch...', {

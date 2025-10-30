@@ -412,7 +412,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     if (!this.useMpc) {
       return true
     }
-    this.logger.info('MPC model balance check of state batch submitter...')
+    this.logger.debug('MPC model balance check of state batch submitter...')
     const mpcClient = new MpcClient(this.mpcUrl, this.logger)
     const mpcInfo = await mpcClient.getLatestMpc('1')
     if (!mpcInfo || !mpcInfo.mpc_address) {
