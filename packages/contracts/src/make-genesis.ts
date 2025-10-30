@@ -1,16 +1,15 @@
 /* External Imports */
-import { promisify } from 'util'
-import { exec } from 'child_process'
-import { ethers } from 'ethers'
 import {
   computeStorageSlots,
   getStorageLayout,
 } from '@defi-wonderland/smock/dist/src/utils'
-import { remove0x } from '@metis.io/core-utils'
+import { exec } from 'child_process'
+import { ethers } from 'ethers'
+import { promisify } from 'util'
 
 /* Internal Imports */
-import { predeploys } from './predeploys'
 import { getContractArtifact } from './contract-artifacts'
+import { predeploys } from './predeploys'
 
 export interface RollupDeployConfig {
   // Address that will own the L2 deployer whitelist.
@@ -194,7 +193,9 @@ export const makeL2GenesisFile = async (
     extradata:
       '0x' +
       '00'.repeat(32) +
-      remove0x(cfg.blockSignerAddress) +
+      (cfg.blockSignerAddress.startsWith('0x')
+        ? cfg.blockSignerAddress.slice(2)
+        : cfg.blockSignerAddress) +
       '00'.repeat(65),
     alloc: dump,
   }

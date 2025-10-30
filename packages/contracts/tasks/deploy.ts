@@ -1,9 +1,9 @@
 /* Imports: External */
-import { ethers } from 'ethers'
+import fs from 'fs'
 import { task } from 'hardhat/config'
 import * as types from 'hardhat/internal/core/params/argumentTypes'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import path from 'path'
-import fs from 'fs'
 
 const DEFAULT_L1_BLOCK_TIME_SECONDS = 15
 const DEFAULT_CTC_MAX_TRANSACTION_GAS_LIMIT = 11_000_000
@@ -140,37 +140,58 @@ task('deploy')
     undefined,
     types.int
   )
-  .setAction(async (args, hre: any, runSuper) => {
-    // Necessary because hardhat doesn't let us attach non-optional parameters to existing tasks.
-    const validateAddressArg = (argName: string) => {
-      if (args[argName] === undefined) {
-        throw new Error(
-          `argument for ${argName} is required but was not provided`
+  .setAction(
+    async (
+      args,
+      hre: HardhatRuntimeEnvironment & { deployConfig: any },
+      runSuper
+    ) => {
+      // Necessary because hardhat doesn't let us attach non-optional parameters to existing tasks.
+      const validateAddressArg = (argName: string) => {
+        if (args[argName] === undefined) {
+          throw new Error(
+            `argument for ${argName} is required but was not provided`
+          )
+        }
+        if (!hre.ethers.utils.isAddress(args[argName])) {
+          throw new Error(
+            `argument for ${argName} is not a valid address: ${args[argName]}`
+          )
+        }
+      }
+
+      if (args.reset) {
+        const { chainId, name: networkName } =
+          await hre.ethers.provider.getNetwork()
+        console.log(
+          `Resetting deployments for network ${networkName}@${chainId}...`
         )
+        const ozFile =
+          networkName === 'unknown'
+            ? path.join(
+                hre.config.paths.root,
+                '.openzeppelin',
+                `unknown-${chainId}.json`
+              )
+            : path.join(
+                hre.config.paths.root,
+                '.openzeppelin',
+                `${networkName}.json`
+              )
+        console.log('Removing openzeppelin file: ', ozFile)
+        // delete the openzeppelin upgrade cache file
+        if (fs.existsSync(ozFile)) {
+          fs.rmSync(ozFile, { force: true })
+        }
       }
-      if (!ethers.utils.isAddress(args[argName])) {
-        throw new Error(
-          `argument for ${argName} is not a valid address: ${args[argName]}`
-        )
-      }
+
+      validateAddressArg('ovmSequencerAddress')
+      validateAddressArg('ovmProposerAddress')
+      validateAddressArg('ovmAddressManagerOwner')
+      validateAddressArg('mvmMetisAddress')
+      validateAddressArg('mvmMetisManager')
+
+      hre.deployConfig = args
+      return runSuper(args)
     }
-
-    if (args.reset) {
-      const ozDirPath = path.join(hre.config.paths.root, '.openzeppelin')
-      if (fs.existsSync(ozDirPath)) {
-        // delete the openzeppeline upgrade cache file
-        fs.rm(ozDirPath, { recursive: true, force: true }, () => {
-          return
-        })
-      }
-    }
-
-    validateAddressArg('ovmSequencerAddress')
-    validateAddressArg('ovmProposerAddress')
-    validateAddressArg('ovmAddressManagerOwner')
-    validateAddressArg('mvmMetisAddress')
-    validateAddressArg('mvmMetisManager')
-
-    hre.deployConfig = args
-    return runSuper(args)
-  })
+  )

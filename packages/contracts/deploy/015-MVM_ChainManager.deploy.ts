@@ -1,18 +1,17 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
-import { ethers } from 'ethers'
 
 /* Imports: Internal */
 import {
-  getContractInterface,
   getContractDefinition,
+  getContractInterface,
 } from '../src/contract-defs'
 import {
-  hexStringEquals,
-  getDeployedContract,
-  waitUntilTrue,
-  getAdvancedContract,
   deployAndRegister,
+  getAdvancedContract,
+  getDeployedContract,
+  hexStringEquals,
+  waitUntilTrue,
 } from '../src/hardhat-deploy-ethers'
 
 const deployFn: DeployFunction = async (hre) => {
@@ -44,7 +43,7 @@ const deployFn: DeployFunction = async (hre) => {
   // L1ChugSplashProxy interface.
   const proxy = getAdvancedContract({
     hre,
-    contract: new ethers.Contract(
+    contract: new hre.ethers.Contract(
       contract.address,
       getContractInterface('L1ChugSplashProxy'),
       contract.signer
@@ -63,7 +62,7 @@ const deployFn: DeployFunction = async (hre) => {
   await waitUntilTrue(async () => {
     const implementation = await proxy.callStatic.getImplementation()
     return (
-      !hexStringEquals(implementation, ethers.constants.AddressZero) &&
+      !hexStringEquals(implementation, hre.ethers.constants.AddressZero) &&
       hexStringEquals(
         await contract.provider.getCode(implementation),
         managerCode
@@ -80,7 +79,10 @@ const deployFn: DeployFunction = async (hre) => {
 
   // Critical error, should never happen.
   if (
-    hexStringEquals(l1CrossDomainMessengerAddress, ethers.constants.AddressZero)
+    hexStringEquals(
+      l1CrossDomainMessengerAddress,
+      hre.ethers.constants.AddressZero
+    )
   ) {
     throw new Error(`L1CrossDomainMessenger address is set to address(0)`)
   }
@@ -89,8 +91,8 @@ const deployFn: DeployFunction = async (hre) => {
     `Setting messenger address to ${l1CrossDomainMessengerAddress}...`
   )
   await proxy.setStorage(
-    ethers.utils.hexZeroPad('0x00', 32),
-    ethers.utils.hexZeroPad(l1CrossDomainMessengerAddress, 32)
+    hre.ethers.utils.hexZeroPad('0x00', 32),
+    hre.ethers.utils.hexZeroPad(l1CrossDomainMessengerAddress, 32)
   )
 
   console.log(`Confirming that messenger address was correctly set...`)
@@ -125,7 +127,7 @@ const deployFn: DeployFunction = async (hre) => {
   await waitUntilTrue(async () => {
     return hexStringEquals(
       await proxy.connect(proxy.signer.provider).callStatic.getOwner({
-        from: ethers.constants.AddressZero,
+        from: hre.ethers.constants.AddressZero,
       }),
       owner
     )

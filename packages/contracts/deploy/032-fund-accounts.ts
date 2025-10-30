@@ -1,11 +1,11 @@
 /* Imports: External */
-import { sleep } from '@metis.io/core-utils'
 import { DeployFunction } from 'hardhat-deploy/dist/types'
 import {
   defaultHardhatNetworkHdAccountsConfigParams,
   defaultHardhatNetworkParams,
 } from 'hardhat/internal/core/config/default-config'
 import { normalizeHardhatNetworkAccountsConfig } from 'hardhat/internal/core/providers/util'
+import { setTimeout } from 'timers/promises'
 
 /* Imports: Internal */
 import { getDeployedContract } from '../src/hardhat-deploy-ethers'
@@ -36,7 +36,7 @@ const deployFn: DeployFunction = async (hre) => {
       accounts.map(async (account, index) => {
         // Add a sleep here to avoid any potential issues with spamming hardhat. Not sure if this
         // is strictly necessary but it can't hurt.
-        await sleep(200 * index)
+        await setTimeout(200 * index)
 
         const wallet = new hre.ethers.Wallet(
           account.privateKey,

@@ -1,10 +1,10 @@
 /* Imports: External */
-import { Contract, ethers } from 'ethers'
 import { Provider } from '@ethersproject/abstract-provider'
 import { Signer } from '@ethersproject/abstract-signer'
-import { sleep } from '@metis.io/core-utils'
+import { Contract, ethers } from 'ethers'
 import * as fs from 'fs'
 import * as path from 'path'
+import { setTimeout } from 'timers/promises'
 
 import '@openzeppelin/hardhat-upgrades'
 import { upgrades } from 'hardhat'
@@ -36,7 +36,7 @@ export const waitUntilTrue = async (
       throw new Error(`check failed after ${opts.retries} attempts`)
     }
     retries++
-    await sleep(opts.delay)
+    await setTimeout(opts.delay)
   }
 }
 
@@ -167,7 +167,7 @@ export const getAdvancedContract = (opts: {
       const maxTimeout = 120
       let timeout = 0
       while (true) {
-        await sleep(1000)
+        await setTimeout(1000)
         const receipt = await contract.provider.getTransactionReceipt(tx.hash)
         if (receipt === null) {
           timeout++

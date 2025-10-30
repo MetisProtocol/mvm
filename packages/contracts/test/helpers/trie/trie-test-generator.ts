@@ -1,9 +1,28 @@
 /* External Imports */
-import * as rlp from 'rlp'
-import { default as seedbytes } from 'random-bytes-seed'
-import { SecureTrie, BaseTrie } from 'merkle-patricia-tree'
-import { fromHexString, toHexString } from '@metis.io/core-utils'
 import { ethers } from 'ethers'
+import { BaseTrie, SecureTrie } from 'merkle-patricia-tree'
+import { default as seedbytes } from 'random-bytes-seed'
+import * as rlp from 'rlp'
+
+export const fromHexString = (inp: Buffer | string): Buffer => {
+  if (typeof inp !== 'string') {
+    return inp
+  }
+
+  if (typeof inp === 'string' && inp.startsWith('0x')) {
+    return Buffer.from(inp.slice(2), 'hex')
+  }
+
+  return Buffer.from(inp)
+}
+
+export const toHexString = (inp: Buffer | string | number | null): string => {
+  if (typeof inp === 'number') {
+    return '0x' + BigInt(inp).toString(16)
+  } else {
+    return '0x' + fromHexString(inp).toString('hex')
+  }
+}
 
 export interface TrieNode {
   key: string
@@ -42,13 +61,16 @@ export interface AccountUpdateTest extends AccountProofTest {
 }
 
 const rlpEncodeAccount = (account: EthereumAccount): string => {
-  return toHexString(
-    rlp.encode([
-      account.nonce,
-      account.balance,
-      account.storageRoot || ethers.constants.HashZero,
-      account.codeHash || ethers.constants.HashZero,
-    ])
+  return (
+    '0x' +
+    rlp
+      .encode([
+        account.nonce,
+        account.balance,
+        account.storageRoot || ethers.constants.HashZero,
+        account.codeHash || ethers.constants.HashZero,
+      ])
+      .toString('hex')
   )
 }
 

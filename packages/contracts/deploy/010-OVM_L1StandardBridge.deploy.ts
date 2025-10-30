@@ -1,20 +1,19 @@
 /* Imports: External */
 import { DeployFunction } from 'hardhat-deploy/dist/types'
-import { ethers } from 'ethers'
 import { defaultHardhatNetworkParams } from 'hardhat/internal/core/config/default-config'
 /* Imports: Internal */
-import { predeploys } from '../src/predeploys'
 import {
-  getContractInterface,
   getContractDefinition,
+  getContractInterface,
 } from '../src/contract-defs'
 import {
-  hexStringEquals,
-  getDeployedContract,
-  waitUntilTrue,
-  getAdvancedContract,
   deployAndRegister,
+  getAdvancedContract,
+  getDeployedContract,
+  hexStringEquals,
+  waitUntilTrue,
 } from '../src/hardhat-deploy-ethers'
+import { predeploys } from '../src/predeploys'
 
 const deployFn: DeployFunction = async (hre) => {
   const { deployer } = await hre.getNamedAccounts()
@@ -46,7 +45,7 @@ const deployFn: DeployFunction = async (hre) => {
   // L1ChugSplashProxy interface.
   const proxy = getAdvancedContract({
     hre,
-    contract: new ethers.Contract(
+    contract: new hre.ethers.Contract(
       contract.address,
       getContractInterface('L1ChugSplashProxy'),
       contract.signer
@@ -65,7 +64,7 @@ const deployFn: DeployFunction = async (hre) => {
   await waitUntilTrue(async () => {
     const implementation = await proxy.callStatic.getImplementation()
     return (
-      !hexStringEquals(implementation, ethers.constants.AddressZero) &&
+      !hexStringEquals(implementation, hre.ethers.constants.AddressZero) &&
       hexStringEquals(
         await contract.provider.getCode(implementation),
         bridgeCode
@@ -82,7 +81,10 @@ const deployFn: DeployFunction = async (hre) => {
 
   // Critical error, should never happen.
   if (
-    hexStringEquals(l1CrossDomainMessengerAddress, ethers.constants.AddressZero)
+    hexStringEquals(
+      l1CrossDomainMessengerAddress,
+      hre.ethers.constants.AddressZero
+    )
   ) {
     throw new Error(`L1CrossDomainMessenger address is set to address(0)`)
   }
@@ -91,8 +93,8 @@ const deployFn: DeployFunction = async (hre) => {
     `Setting messenger address to ${l1CrossDomainMessengerAddress}...`
   )
   await proxy.setStorage(
-    ethers.utils.hexZeroPad('0x00', 32),
-    ethers.utils.hexZeroPad(l1CrossDomainMessengerAddress, 32)
+    hre.ethers.utils.hexZeroPad('0x00', 32),
+    hre.ethers.utils.hexZeroPad(l1CrossDomainMessengerAddress, 32)
   )
 
   console.log(`Confirming that messenger address was correctly set...`)
@@ -106,8 +108,8 @@ const deployFn: DeployFunction = async (hre) => {
   // Now we set the bridge address in the same manner as the messenger address.
   console.log(`Setting l2 bridge address to ${predeploys.L2StandardBridge}...`)
   await proxy.setStorage(
-    ethers.utils.hexZeroPad('0x01', 32),
-    ethers.utils.hexZeroPad(predeploys.L2StandardBridge, 32)
+    hre.ethers.utils.hexZeroPad('0x01', 32),
+    hre.ethers.utils.hexZeroPad(predeploys.L2StandardBridge, 32)
   )
 
   console.log(`Confirming that l2 bridge address was correctly set...`)
@@ -158,13 +160,13 @@ const deployFn: DeployFunction = async (hre) => {
   console.log(`Confirming that owner address was correctly set...`)
   console.log(
     await proxy.connect(proxy.signer.provider).callStatic.getOwner({
-      from: ethers.constants.AddressZero,
+      from: hre.ethers.constants.AddressZero,
     })
   )
   await waitUntilTrue(async () => {
     return hexStringEquals(
       await proxy.connect(proxy.signer.provider).callStatic.getOwner({
-        from: ethers.constants.AddressZero,
+        from: hre.ethers.constants.AddressZero,
       }),
       owner
     )
