@@ -25,7 +25,7 @@ export class Logger {
     const loggerOptions: PinoLoggerOptions = {
       name: options.name,
 
-      level: options.level,
+      level: options.level || 'info',
 
       // Remove pid and hostname considering production runs inside docker
       base: null,
