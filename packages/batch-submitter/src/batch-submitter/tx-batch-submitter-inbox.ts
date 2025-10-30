@@ -243,7 +243,7 @@ export class TransactionBatchSubmitterInbox {
         }
 
         if (
-          blobFork[Number(chainId)] &&
+          blobFork[Number(chainId)] !== undefined &&
           Math.floor(Date.now() / 1e3) >= blobFork[Number(chainId)]
         ) {
           blobTx.blobVersion = 1
