@@ -68,7 +68,7 @@ func processSeqSetBlock(bc *BlockChain, statedb *state.StateDB, block *types.Blo
 	}
 	// check seqset
 	seqsetAddr := bc.Config().MetisSeqSetContract()
-	if seqsetAddr.IsZero() {
+	if seqsetAddr == (common.Address{}) {
 		return ErrNoSeqSetAddress
 	}
 

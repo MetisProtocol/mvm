@@ -69,7 +69,7 @@ func init() {
 
 	// for testing
 	if defSeqAddr := os.Getenv("SEQSET_FIRST_SEQUENCER"); defSeqAddr != "" {
-		if addr := common.HexToAddress(defSeqAddr); !addr.IsZero() {
+		if addr := common.HexToAddress(defSeqAddr); addr != (common.Address{}) {
 			DefaultSeqAdderss = addr
 		}
 	}
