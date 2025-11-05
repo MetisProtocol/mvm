@@ -15,8 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	l2common "github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/params"
@@ -25,14 +23,15 @@ import (
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 	opderive "github.com/ethereum-optimism/optimism/go/op-program/client/derive"
 	opprog "github.com/ethereum-optimism/optimism/go/op-program/client/types"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/claim"
 	dtl "github.com/ethereum-optimism/optimism/go/op-program/client/dtl"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 )
 
 func init() {
@@ -95,7 +94,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 		"l2ClaimBlockNum", l2ClaimBlockNum)
 
 	// retrieve the state root for l2 safe head
-	stateHeader := dtlPreimageOracle.StateBatchHeaderByHash(l2common.Hash(l2OutputRoot))
+	stateHeader := dtlPreimageOracle.StateBatchHeaderByHash(common.Hash(l2OutputRoot))
 	// start from the last block of the safe batch
 	l2StartBlock := stateHeader.PrevTotalElements.Uint64() + stateHeader.BatchSize.Uint64()
 	// end as the claim block
@@ -137,7 +136,7 @@ func runDerivation(logger log.Logger, cfg *chainconfig.RollupConfig, l2Cfg *para
 	}
 
 	// verify the claim
-	return claim.ValidateClaim(l2common.Hash(l2Claim), intermediateStateRoots, disputedBatchHeader)
+	return claim.ValidateClaim(common.Hash(l2Claim), intermediateStateRoots, disputedBatchHeader)
 }
 
 func deriveL1Info(logger log.Logger, l1Oracle l1.Oracle,
@@ -696,7 +695,7 @@ func deriveL2States(logger log.Logger,
 	l2Cfg *params.ChainConfig,
 	l2OutputRoot common.Hash, l2Blocks []*types.Block, safeHeadHeader, disputedBatchHeader *rollup.BatchHeader) ([]ethhex.Bytes, error) {
 	logger.Info("Building up L2 chain...")
-	l2Chain, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, l1Oracle, dtlPreimageOracle, l2Cfg, l2common.Hash(l2OutputRoot), safeHeadHeader)
+	l2Chain, err := l2.NewOracleBackedL2Chain(logger, l2Oracle, l1Oracle, dtlPreimageOracle, l2Cfg, common.Hash(l2OutputRoot), safeHeadHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build L2 chain: %w", err)
 	}
@@ -746,7 +745,7 @@ func deriveL2States(logger log.Logger,
 		logger.Info("State retrieved", "block", block.Number().Uint64())
 
 		txs := block.Transactions()
-		emptyAddress := l2common.Address{}
+		emptyAddress := common.Address{}
 		receipts := make(types.Receipts, 0, len(txs))
 		logs := make([]*types.Log, 0)
 		if txs.Len() > 0 {
@@ -758,7 +757,7 @@ func deriveL2States(logger log.Logger,
 				tx.SetIndex(*firstTx.GetMeta().Index)
 				tx.SetL1Timestamp(firstTx.L1Timestamp())
 
-				state.Prepare(tx.Hash(), l2common.Hash{}, i)
+				state.Prepare(tx.Hash(), common.Hash{}, i)
 
 				revid := state.Snapshot()
 				receipt, err := core.ApplyTransaction(l2Chain.Config(), l2Chain, &emptyAddress, gp, state, blockHeader, tx, &blockHeader.GasUsed, *l2Chain.GetVMConfig())

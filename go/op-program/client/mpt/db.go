@@ -13,10 +13,6 @@ type DB struct {
 	db Hooks
 }
 
-func (p *DB) DeleteRange(start, end []byte) error {
-	panic("not supported")
-}
-
 func (p *DB) Has(key []byte) (bool, error) {
 	panic("not supported")
 }
@@ -33,6 +29,10 @@ func (p *DB) Put(key []byte, value []byte) error {
 func (p DB) Delete(key []byte) error {
 	p.db.Delete(key)
 	return nil
+}
+
+func (p *DB) DeleteRange(start, end []byte) error {
+	panic("not supported")
 }
 
 func (p DB) Stat() (string, error) {
@@ -111,6 +111,14 @@ func (p *DB) MigrateTable(s string, f func([]byte) ([]byte, error)) error {
 }
 
 func (p *DB) AncientDatadir() (string, error) {
+	panic("not supported")
+}
+
+func (p *DB) SyncAncient() error {
+	panic("not supported")
+}
+
+func (p *DB) SyncKeyValue() error {
 	panic("not supported")
 }
 

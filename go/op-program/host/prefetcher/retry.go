@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	ethereum "github.com/MetisProtocol/mvm/l2geth"
-	l2common "github.com/MetisProtocol/mvm/l2geth/common"
 	l2types "github.com/MetisProtocol/mvm/l2geth/core/types"
 )
 
@@ -106,7 +105,7 @@ type RetryingL2Source struct {
 	strategy retry.Strategy
 }
 
-func (s *RetryingL2Source) BlockByHash(ctx context.Context, hash l2common.Hash) (*l2types.Block, error) {
+func (s *RetryingL2Source) BlockByHash(ctx context.Context, hash common.Hash) (*l2types.Block, error) {
 	return retry.Do(ctx, maxAttempts, s.strategy, func() (*l2types.Block, error) {
 		return s.source.BlockByHash(ctx, hash)
 	})
@@ -118,7 +117,7 @@ func (s *RetryingL2Source) BlockByNumber(ctx context.Context, number *big.Int) (
 	})
 }
 
-func (s *RetryingL2Source) HeaderByHash(ctx context.Context, hash l2common.Hash) (*l2types.Header, error) {
+func (s *RetryingL2Source) HeaderByHash(ctx context.Context, hash common.Hash) (*l2types.Header, error) {
 	return retry.Do(ctx, maxAttempts, s.strategy, func() (*l2types.Header, error) {
 		return s.source.HeaderByHash(ctx, hash)
 	})
@@ -130,13 +129,13 @@ func (s *RetryingL2Source) HeaderByNumber(ctx context.Context, number *big.Int) 
 	})
 }
 
-func (s *RetryingL2Source) TransactionCount(ctx context.Context, blockHash l2common.Hash) (uint, error) {
+func (s *RetryingL2Source) TransactionCount(ctx context.Context, blockHash common.Hash) (uint, error) {
 	return retry.Do(ctx, maxAttempts, s.strategy, func() (uint, error) {
 		return s.source.TransactionCount(ctx, blockHash)
 	})
 }
 
-func (s *RetryingL2Source) TransactionInBlock(ctx context.Context, blockHash l2common.Hash, index uint) (*l2types.Transaction, error) {
+func (s *RetryingL2Source) TransactionInBlock(ctx context.Context, blockHash common.Hash, index uint) (*l2types.Transaction, error) {
 	return retry.Do(ctx, maxAttempts, s.strategy, func() (*l2types.Transaction, error) {
 		return s.source.TransactionInBlock(ctx, blockHash, index)
 	})
@@ -146,7 +145,7 @@ func (s *RetryingL2Source) SubscribeNewHead(ctx context.Context, ch chan<- *l2ty
 	return s.source.SubscribeNewHead(ctx, ch)
 }
 
-func (s *RetryingL2Source) NodeByHash(ctx context.Context, hash l2common.Hash) ([]byte, error) {
+func (s *RetryingL2Source) NodeByHash(ctx context.Context, hash common.Hash) ([]byte, error) {
 	return retry.Do(ctx, maxAttempts, s.strategy, func() ([]byte, error) {
 		n, err := s.source.NodeByHash(ctx, hash)
 		if err != nil {

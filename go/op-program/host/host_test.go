@@ -11,12 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
 	"github.com/ethereum-optimism/optimism/go/op-program/client"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/config"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 )
 
 func TestServerMode(t *testing.T) {

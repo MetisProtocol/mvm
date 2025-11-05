@@ -3,8 +3,8 @@ package rollup
 import (
 	"github.com/hashicorp/golang-lru/v2/simplelru"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
 	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // blockCacheSize should be set large enough to handle the pipeline reset process of walking back from L2 head to find

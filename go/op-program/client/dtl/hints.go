@@ -1,8 +1,8 @@
 package rollup
 
 import (
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 const (

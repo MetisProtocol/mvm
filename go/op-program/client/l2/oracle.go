@@ -3,15 +3,13 @@ package l2
 import (
 	"fmt"
 
-	ethcommon "github.com/ethereum/go-ethereum/common"
-
-	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client/mpt"
 
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 )
 
 // StateOracle defines the high-level API used to retrieve L2 state data pre-images
@@ -68,7 +66,7 @@ func (p *PreimageOracle) BlockByHash(blockHash common.Hash) *types.Block {
 func (p *PreimageOracle) LoadTransactions(blockHash common.Hash, txHash common.Hash) []*types.Transaction {
 	p.hint.Hint(TransactionsHint(blockHash))
 
-	opaqueTxs := mpt.ReadTrie(ethcommon.Hash(txHash), func(key ethcommon.Hash) []byte {
+	opaqueTxs := mpt.ReadTrie(common.Hash(txHash), func(key common.Hash) []byte {
 		return p.oracle.Get(preimage.Keccak256Key(key))
 	})
 

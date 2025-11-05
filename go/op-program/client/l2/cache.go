@@ -4,8 +4,8 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/hashicorp/golang-lru/v2/simplelru"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // blockCacheSize should be set large enough to handle the pipeline reset process of walking back from L2 head to find

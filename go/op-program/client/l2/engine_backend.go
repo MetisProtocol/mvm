@@ -6,7 +6,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/consensus"
 	"github.com/MetisProtocol/mvm/l2geth/consensus/clique"
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
@@ -17,6 +16,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	dtl "github.com/ethereum-optimism/optimism/go/op-program/client/dtl"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2/engineapi"
 )

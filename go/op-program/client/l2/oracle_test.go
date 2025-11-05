@@ -15,9 +15,8 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
-	l2common "github.com/MetisProtocol/mvm/l2geth/common"
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/mpt"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 )
 
 func mockPreimageOracle(t *testing.T) (po *PreimageOracle, hintsMock *mock.Mock, preimages map[common.Hash][]byte) {
@@ -60,7 +59,7 @@ func testBlock(t *testing.T, block *types.Block) {
 	// Check if blocks with txs work
 	hints.On("hint", BlockHeaderHint(block.Hash()).Hint()).Once().Return()
 	hints.On("hint", TransactionsHint(block.Hash()).Hint()).Once().Return()
-	gotBlock := po.BlockByHash(l2common.Hash(block.Hash()))
+	gotBlock := po.BlockByHash(common.Hash(block.Hash()))
 	hints.AssertExpectations(t)
 
 	require.Equal(t, gotBlock.Hash(), block.Hash())
@@ -85,7 +84,7 @@ func TestPreimageOracleNodeByHash(t *testing.T) {
 			preimages[preimage.Keccak256Key(h).PreimageKey()] = node
 
 			hints.On("hint", StateNodeHint(h).Hint()).Once().Return()
-			gotNode := po.NodeByHash(l2common.Hash(h))
+			gotNode := po.NodeByHash(common.Hash(h))
 			hints.AssertExpectations(t)
 			require.Equal(t, hexutil.Bytes(node), hexutil.Bytes(gotNode), "node matches")
 		})
@@ -106,7 +105,7 @@ func TestPreimageOracleCodeByHash(t *testing.T) {
 			preimages[preimage.Keccak256Key(h).PreimageKey()] = node
 
 			hints.On("hint", CodeHint(h).Hint()).Once().Return()
-			gotNode := po.CodeByHash(l2common.Hash(h))
+			gotNode := po.CodeByHash(common.Hash(h))
 			hints.AssertExpectations(t)
 			require.Equal(t, hexutil.Bytes(node), hexutil.Bytes(gotNode), "code matches")
 		})

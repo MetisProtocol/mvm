@@ -8,11 +8,11 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/holiman/uint256"
@@ -42,7 +42,7 @@ type spanBatchTxs struct {
 	l1Timestamps   []uint64
 	blockTxCounts  []uint64
 
-	totalEnqueueTxCount uint64
+	// totalEnqueueTxCount uint64
 
 	// intermediate variables which can be recovered
 	txTypes            []int
@@ -437,11 +437,11 @@ func getBit(bits *big.Int, index int) uint {
 	return bits.Bit(index)
 }
 
-func isProtectedV(v uint64, txType int) bool {
-	if txType == 0 {
-		// if EIP-155 applied, v = 2 * chainID + 35 + yParity
-		return v != 27 && v != 28
-	}
-	// every non legacy tx are protected
-	return true
-}
+// func isProtectedV(v uint64, txType int) bool {
+// 	if txType == 0 {
+// 		// if EIP-155 applied, v = 2 * chainID + 35 + yParity
+// 		return v != 27 && v != 28
+// 	}
+// 	// every non legacy tx are protected
+// 	return true
+// }

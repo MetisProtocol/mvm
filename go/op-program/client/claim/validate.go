@@ -6,9 +6,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	merkletrie "github.com/ethereum-optimism/optimism/go/op-program/client/merkel"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var ErrClaimNotValid = errors.New("invalid claim")

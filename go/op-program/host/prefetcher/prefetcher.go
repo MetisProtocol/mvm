@@ -8,30 +8,25 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/params"
-
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
-
 	ethereum "github.com/MetisProtocol/mvm/l2geth"
-	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
 	clientDTL "github.com/ethereum-optimism/optimism/go/op-program/client/dtl"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l1"
-	merkletrie "github.com/ethereum-optimism/optimism/go/op-program/client/merkel"
-
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
-
 	"github.com/ethereum-optimism/optimism/go/op-program/client/l2"
+	merkletrie "github.com/ethereum-optimism/optimism/go/op-program/client/merkel"
 	"github.com/ethereum-optimism/optimism/go/op-program/client/mpt"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/kvstore"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 var (
@@ -46,9 +41,9 @@ var acceleratedPrecompiles = []common.Address{
 }
 
 type L1Source interface {
-	InfoByHash(ctx context.Context, blockHash ethcommon.Hash) (eth.BlockInfo, error)
-	InfoAndTxsByHash(ctx context.Context, blockHash ethcommon.Hash) (eth.BlockInfo, ethtypes.Transactions, error)
-	FetchReceipts(ctx context.Context, blockHash ethcommon.Hash) (eth.BlockInfo, ethtypes.Receipts, error)
+	InfoByHash(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, error)
+	InfoAndTxsByHash(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, ethtypes.Transactions, error)
+	FetchReceipts(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, ethtypes.Receipts, error)
 }
 
 type L1BlobSource interface {
@@ -91,7 +86,7 @@ func (p *Prefetcher) Hint(hint string) error {
 
 func (p *Prefetcher) GetPreimage(ctx context.Context, key common.Hash) ([]byte, error) {
 	p.logger.Trace("Pre-image requested", "key", key)
-	pre, err := p.kvStore.Get(ethcommon.Hash(key))
+	pre, err := p.kvStore.Get(common.Hash(key))
 	// Use a loop to keep retrying the prefetch as long as the key is not found
 	// This handles the case where the prefetch downloads a preimage, but it is then deleted unexpectedly
 	// before we get to read it.
@@ -100,7 +95,7 @@ func (p *Prefetcher) GetPreimage(ctx context.Context, key common.Hash) ([]byte, 
 		if err := p.prefetch(ctx, hint); err != nil {
 			return nil, fmt.Errorf("prefetch failed: %w", err)
 		}
-		pre, err = p.kvStore.Get(ethcommon.Hash(key))
+		pre, err = p.kvStore.Get(common.Hash(key))
 		if err != nil {
 			p.logger.Error("Fetched pre-images for last hint but did not find required key", "hint", hint, "key", key)
 		}
@@ -120,7 +115,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L1 block hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
-		header, err := p.l1Fetcher.InfoByHash(ctx, ethcommon.Hash(hash))
+		header, err := p.l1Fetcher.InfoByHash(ctx, common.Hash(hash))
 		if err != nil {
 			return fmt.Errorf("failed to fetch L1 block %s header: %w", hash, err)
 		}
@@ -134,7 +129,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L1 transactions hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
-		_, txs, err := p.l1Fetcher.InfoAndTxsByHash(ctx, ethcommon.Hash(hash))
+		_, txs, err := p.l1Fetcher.InfoAndTxsByHash(ctx, common.Hash(hash))
 		if err != nil {
 			return fmt.Errorf("failed to fetch L1 block %s txs: %w", hash, err)
 		}
@@ -144,7 +139,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid L1 receipts hint: %x", hint)
 		}
 		hash := common.Hash(hintBytes)
-		_, receipts, err := p.l1Fetcher.FetchReceipts(ctx, ethcommon.Hash(hash))
+		_, receipts, err := p.l1Fetcher.FetchReceipts(ctx, common.Hash(hash))
 		if err != nil {
 			return fmt.Errorf("failed to fetch L1 block %s receipts: %w", hash, err)
 		}
@@ -154,7 +149,7 @@ func (p *Prefetcher) prefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("invalid blob hint: %x", hint)
 		}
 
-		blobVersionHash := ethcommon.Hash(hintBytes[:32])
+		blobVersionHash := common.Hash(hintBytes[:32])
 		blobHashIndex := binary.BigEndian.Uint64(hintBytes[32:40])
 		refTimestamp := binary.BigEndian.Uint64(hintBytes[40:48])
 
@@ -369,5 +364,5 @@ func parseHint(hint string) (string, []byte, error) {
 }
 
 func getPrecompiledContract(address common.Address) vm.PrecompiledContract {
-	return vm.PrecompiledContractsCancun[ethcommon.Address(address)]
+	return vm.PrecompiledContractsCancun[common.Address(address)]
 }

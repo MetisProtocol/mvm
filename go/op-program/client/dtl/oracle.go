@@ -3,12 +3,10 @@ package rollup
 import (
 	"fmt"
 
-	ethcommon "github.com/ethereum/go-ethereum/common"
-
-	"github.com/MetisProtocol/mvm/l2geth/common"
 	dtl "github.com/MetisProtocol/mvm/l2geth/rollup"
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	merkletrie "github.com/ethereum-optimism/optimism/go/op-program/client/merkel"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type BlockMeta struct {
@@ -60,7 +58,7 @@ func (p *PreimageOracle) StateBatchesByHash(batchHash common.Hash) []common.Hash
 	batchHeader := p.StateBatchHeaderByHash(batchHash)
 
 	totalRoots := batchHeader.BatchSize.Uint64()
-	stateRoots := merkletrie.ReadTrie(ethcommon.Hash(batchHeader.BatchRoot), int(totalRoots), func(key ethcommon.Hash) []byte {
+	stateRoots := merkletrie.ReadTrie(common.Hash(batchHeader.BatchRoot), int(totalRoots), func(key common.Hash) []byte {
 		return p.oracle.Get(preimage.Keccak256Key(key))
 	})
 

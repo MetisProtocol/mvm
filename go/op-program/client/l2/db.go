@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 //var codePrefixedKeyLength = common.HashLength + len(rawdb.CodePrefix)

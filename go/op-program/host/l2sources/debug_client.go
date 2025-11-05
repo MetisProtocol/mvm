@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type DebugClient struct {

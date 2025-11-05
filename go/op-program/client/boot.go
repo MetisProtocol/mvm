@@ -9,8 +9,8 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/params"
 
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
 	"github.com/ethereum-optimism/optimism/go/op-program/chainconfig"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 )
 
 const (

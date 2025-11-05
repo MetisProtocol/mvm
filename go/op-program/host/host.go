@@ -16,10 +16,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 
-	l2common "github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	cl "github.com/ethereum-optimism/optimism/go/op-program/client"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/config"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/flags"
@@ -27,11 +25,12 @@ import (
 	"github.com/ethereum-optimism/optimism/go/op-program/host/l2sources"
 	"github.com/ethereum-optimism/optimism/go/op-program/host/prefetcher"
 
-	"github.com/MetisProtocol/mvm/l2geth/ethclient"
+	l2client "github.com/MetisProtocol/mvm/l2geth/ethclient"
+	"github.com/MetisProtocol/mvm/l2geth/rollup"
 )
 
 type L2Source struct {
-	*ethclient.Client
+	*l2client.Client
 	*l2sources.DebugClient
 }
 
@@ -162,7 +161,7 @@ func PreimageServer(ctx context.Context, logger log.Logger, cfg *config.Config, 
 		if err != nil {
 			return fmt.Errorf("failed to create prefetcher: %w", err)
 		}
-		getPreimage = func(key common.Hash) ([]byte, error) { return prefetch.GetPreimage(ctx, l2common.Hash(key)) }
+		getPreimage = func(key common.Hash) ([]byte, error) { return prefetch.GetPreimage(ctx, common.Hash(key)) }
 		hinter = prefetch.Hint
 	} else {
 		logger.Info("Using offline mode. All required pre-images must be pre-populated.")
@@ -210,12 +209,15 @@ func makePrefetcher(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *
 	}
 	l1Beacon := sources.NewBeaconHTTPClient(client.NewBasicHTTPClient(cfg.L1BeaconURL, logger))
 	l1BlobFetcher := sources.NewL1BeaconClient(l1Beacon, sources.L1BeaconClientConfig{FetchAllSidecars: false})
-	l2Cl, err := ethclient.DialContext(ctx, cfg.L2URL)
-	chainId, err := l2Cl.ChainID(ctx)
+	l2Client, err := l2client.DialContext(ctx, cfg.L2URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L2 client: %w", err)
 	}
-	l2DebugCl := &L2Source{Client: l2Cl, DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
+	chainId, err := l2Client.ChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create L2 client: %w", err)
+	}
+	l2DebugCl := &L2Source{Client: l2Client, DebugClient: l2sources.NewDebugClient(l2RPC.CallContext)}
 	rollupFetcher := rollup.NewClient(cfg.RollupURL, chainId)
 	return prefetcher.NewPrefetcher(logger, l1Cl, l1BlobFetcher, l2DebugCl, rollupFetcher, kv), nil
 }

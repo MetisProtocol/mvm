@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	preimage "github.com/ethereum-optimism/optimism/go/op-preimage"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 )
 
 // TestWriteReadTrie tests the Merkle trie construction and BFS reading.
