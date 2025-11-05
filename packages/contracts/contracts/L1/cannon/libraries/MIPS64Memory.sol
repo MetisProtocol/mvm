@@ -1,23 +1,51 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.0;
 
-library MIPSMemory {
-    /// @notice Reads a 32-bit value from memory.
+// Libraries
+import { InvalidMemoryProof } from "../libraries/CannonErrors.sol";
+
+library MIPS64Memory {
+    uint64 internal constant EXT_MASK = 0x7;
+    uint64 internal constant MEM_PROOF_LEAF_COUNT = 60;
+    uint256 internal constant U64_MASK = 0xFFFFFFFFFFFFFFFF;
+
+    /// @notice Reads a 64-bit word from memory.
     /// @param _memRoot The current memory root
     /// @param _addr The address to read from.
     /// @param _proofOffset The offset of the memory proof in calldata.
     /// @return out_ The hashed MIPS state.
     function readMem(
         bytes32 _memRoot,
-        uint32 _addr,
+        uint64 _addr,
         uint256 _proofOffset
-    ) internal pure returns (uint32 out_) {
+    ) internal pure returns (uint64 out_) {
+        bool valid;
+        (out_, valid) = readMemUnchecked(_memRoot, _addr, _proofOffset);
+        if (!valid) {
+            revert InvalidMemoryProof();
+        }
+    }
+
+    /// @notice Reads a 64-bit word from memory.
+    /// @param _memRoot The current memory root
+    /// @param _addr The address to read from.
+    /// @param _proofOffset The offset of the memory proof in calldata.
+    /// @return out_ The hashed MIPS state.
+    ///         valid_ Whether the proof is valid.
+    function readMemUnchecked(
+        bytes32 _memRoot,
+        uint64 _addr,
+        uint256 _proofOffset
+    ) internal pure returns (uint64 out_, bool valid_) {
         unchecked {
             validateMemoryProofAvailability(_proofOffset);
             assembly {
-                // Validate the address alignement.
-                if and(_addr, 3) {
-                    revert(0, 0)
+                // Validate the address alignment.
+                if and(_addr, EXT_MASK) {
+                    // revert InvalidAddress();
+                    let ptr := mload(0x40)
+                    mstore(ptr, shl(224, 0xe6c4247b))
+                    revert(ptr, 0x4)
                 }
 
                 // Load the leaf value.
@@ -35,9 +63,10 @@ library MIPSMemory {
                 // Work back up by combining with siblings, to reconstruct the root.
                 let path := shr(5, _addr)
                 let node := leaf
+                let end := sub(MEM_PROOF_LEAF_COUNT, 1)
                 for {
                     let i := 0
-                } lt(i, 27) {
+                } lt(i, end) {
                     i := add(i, 1)
                 } {
                     let sibling := calldataload(_proofOffset)
@@ -52,19 +81,17 @@ library MIPSMemory {
                 }
 
                 // Verify the root matches.
-                if iszero(eq(node, _memRoot)) {
-                    mstore(0, 0x0badf00d)
-                    revert(0, 32)
+                valid_ := eq(node, _memRoot)
+                if valid_ {
+                    // Bits to shift = (32 - 8 - (addr % 32)) * 8
+                    let shamt := shl(3, sub(sub(32, 8), and(_addr, 31)))
+                    out_ := and(shr(shamt, leaf), U64_MASK)
                 }
-
-                // Bits to shift = (32 - 4 - (addr % 32)) * 8
-                let shamt := shl(3, sub(sub(32, 4), and(_addr, 31)))
-                out_ := and(shr(shamt, leaf), 0xFFffFFff)
             }
         }
     }
 
-    /// @notice Writes a 32-bit value to memory.
+    /// @notice Writes a 64-bit word to memory.
     ///         This function first overwrites the part of the leaf.
     ///         Then it recomputes the memory merkle root.
     /// @param _addr The address to write to.
@@ -72,24 +99,27 @@ library MIPSMemory {
     /// @param _val The value to write.
     /// @return newMemRoot_ The new memory root after modification
     function writeMem(
-        uint32 _addr,
+        uint64 _addr,
         uint256 _proofOffset,
-        uint32 _val
+        uint64 _val
     ) internal pure returns (bytes32 newMemRoot_) {
         unchecked {
             validateMemoryProofAvailability(_proofOffset);
             assembly {
-                // Validate the address alignement.
-                if and(_addr, 3) {
-                    revert(0, 0)
+                // Validate the address alignment.
+                if and(_addr, EXT_MASK) {
+                    // revert InvalidAddress();
+                    let ptr := mload(0x40)
+                    mstore(ptr, shl(224, 0xe6c4247b))
+                    revert(ptr, 0x4)
                 }
 
                 // Load the leaf value.
                 let leaf := calldataload(_proofOffset)
-                let shamt := shl(3, sub(sub(32, 4), and(_addr, 31)))
+                let shamt := shl(3, sub(sub(32, 8), and(_addr, 31)))
 
-                // Mask out 4 bytes, and OR in the value
-                leaf := or(and(leaf, not(shl(shamt, 0xFFffFFff))), shl(shamt, _val))
+                // Mask out 8 bytes, and OR in the value
+                leaf := or(and(leaf, not(shl(shamt, U64_MASK))), shl(shamt, _val))
                 _proofOffset := add(_proofOffset, 32)
 
                 // Convenience function to hash two nodes together in scratch space.
@@ -103,9 +133,10 @@ library MIPSMemory {
                 // Work back up by combining with siblings, to reconstruct the root.
                 let path := shr(5, _addr)
                 let node := leaf
+                let end := sub(MEM_PROOF_LEAF_COUNT, 1)
                 for {
                     let i := 0
-                } lt(i, 27) {
+                } lt(i, end) {
                     i := add(i, 1)
                 } {
                     let sibling := calldataload(_proofOffset)
@@ -125,6 +156,19 @@ library MIPSMemory {
         }
     }
 
+    /// @notice Verifies a memory proof.
+    /// @param _memRoot The expected memory root
+    /// @param _addr The _addr proven.
+    /// @param _proofOffset The offset of the memory proof in calldata.
+    /// @return valid_ True iff it is a valid proof.
+    function isValidProof(
+        bytes32 _memRoot,
+        uint64 _addr,
+        uint256 _proofOffset
+    ) internal pure returns (bool valid_) {
+        (, valid_) = readMemUnchecked(_memRoot, _addr, _proofOffset);
+    }
+
     /// @notice Computes the offset of a memory proof in the calldata.
     /// @param _proofDataOffset The offset of the set of all memory proof data within calldata (proof.offset)
     ///     Equal to the offset of the first memory proof (at _proofIndex 0).
@@ -135,9 +179,9 @@ library MIPSMemory {
         uint8 _proofIndex
     ) internal pure returns (uint256 offset_) {
         unchecked {
-            // A proof of 32 bit memory, with 32-byte leaf values, is (32-5)=27 bytes32 entries.
-            // And the leaf value itself needs to be encoded as well: (27 + 1) = 28 bytes32 entries.
-            offset_ = _proofDataOffset + (uint256(_proofIndex) * (28 * 32));
+            // A proof of 64-bit memory, with 32-byte leaf values, is (64-5)=59 bytes32 entries.
+            // And the leaf value itself needs to be encoded as well: (59 + 1) = 60 bytes32 entries.
+            offset_ = _proofDataOffset + (uint256(_proofIndex) * (MEM_PROOF_LEAF_COUNT * 32));
             return offset_;
         }
     }
@@ -150,8 +194,11 @@ library MIPSMemory {
             assembly {
                 s := calldatasize()
             }
-            // A memory proof consists of 28 bytes32 values - verify we have enough calldata
-            require(s >= (_proofStartOffset + 28 * 32), "check that there is enough calldata");
+            // A memory proof consists of MEM_PROOF_LEAF_COUNT bytes32 values - verify we have enough calldata
+            require(
+                s >= (_proofStartOffset + MEM_PROOF_LEAF_COUNT * 32),
+                "MIPS64Memory: check that there is enough calldata"
+            );
         }
     }
 }

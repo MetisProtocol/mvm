@@ -14,7 +14,7 @@ const deployFn: DeployFunction = async (hre) => {
 
   const delayedWMetis = await getDeployedContract(hre, 'Proxy__DelayedWMetis')
   const addressManager = await getDeployedContract(hre, 'Lib_AddressManager')
-  const mips = await getDeployedContract(hre, 'MIPS')
+  const mips = await getDeployedContract(hre, 'MIPS64')
   const disputeGameFactory = await getDeployedContract(
     hre,
     'Proxy__DisputeGameFactory',

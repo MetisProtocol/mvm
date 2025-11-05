@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.0;
 
 /// @notice Thrown when a passed part offset is out of bounds.
 error PartOffsetOOB();
@@ -54,3 +54,15 @@ error BondTransferFailed();
 
 /// @notice Thrown when the value of the exited boolean is not 0 or 1.
 error InvalidExitedValue();
+
+/// @notice Thrown when reading an invalid memory
+error InvalidMemoryProof();
+
+/// @notice Thrown when the second memory location is invalid
+error InvalidSecondMemoryProof();
+
+/// @notice Thrown when an RMW instruction is expected, but a different instruction is provided.
+error InvalidRMWInstruction();
+
+/// @notice Thrown when the state version set is not supported.
+error UnsupportedStateVersion();

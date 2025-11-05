@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import "./interfaces/ILockingPool.sol";
 import "./lib/Errors.sol";
 import "./lib/Types.sol";
+import "./lib/LibPosition.sol";
 import { Clone } from "solady/src/utils/Clone.sol";
 import { FixedPointMathLib } from "solady/src/utils/FixedPointMathLib.sol";
 import { Hashing } from "../../libraries/Hashing.sol";

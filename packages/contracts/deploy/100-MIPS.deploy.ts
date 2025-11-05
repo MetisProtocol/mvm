@@ -24,11 +24,11 @@ const deployFn: DeployFunction = async (hre) => {
 
   await deployAndRegister({
     hre,
-    name: 'MIPS',
-    contract: 'MIPS',
-    args: [preimageOracle.address],
+    name: 'MIPS64',
+    contract: 'MIPS64',
+    args: [preimageOracle.address, 0],
   })
 }
 
-deployFn.tags = ['MIPS', 'cannon', 'faultproof']
+deployFn.tags = ['MIPS64', 'cannon', 'faultproof']
 export default deployFn
