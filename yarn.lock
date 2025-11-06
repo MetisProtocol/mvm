@@ -394,7 +394,7 @@ __metadata:
     "@types/chai": "npm:^4.2.18"
     "@types/lodash": "npm:^4.14.168"
     "@types/mocha": "npm:^8.2.2"
-    "@types/node": "npm:^24.10.0"
+    "@types/node": "npm:^15.12.2"
     "@types/prettier": "npm:^2.2.3"
     "@types/rimraf": "npm:^3.0.0"
     "@types/sinon": "npm:^9.0.10"
@@ -4472,12 +4472,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^24.10.0":
-  version: 24.10.0
-  resolution: "@types/node@npm:24.10.0"
-  dependencies:
-    undici-types: "npm:~7.16.0"
-  checksum: 10c0/f82ed7194e16f5590ef7afdc20c6d09068c76d50278b485ede8f0c5749683536e3064ffa8def8db76915196afb3724b854aa5723c64d6571b890b14492943b46
+"@types/node@npm:^15.12.2":
+  version: 15.14.9
+  resolution: "@types/node@npm:15.14.9"
+  checksum: 10c0/fe5b69cffd20f97c814d568c1d791b3c367f9efa6567a18d2c15cd73c5437f47bcff73a2e10bdfe59f90ce7df47e6cc3c6d431c76d2213bf6099e8ab5d16d355
   languageName: node
   linkType: hard
 
