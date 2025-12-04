@@ -630,15 +630,12 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
       })
       tx.value = ethers.parseEther('0')
       tx.chainId = (await this.signer.provider.getNetwork()).chainId
-      // mpc model can use ynatm
-      // tx.gasPrice = gasPrice
-      // mpcInfo.mpc_id
+      tx.gasPrice = (await this.signer.provider.getFeeData()).gasPrice
 
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return this.transactionSubmitter.submitSignedTransaction(
           tx,
-          async (gasPrice) => {
-            tx.gasPrice = gasPrice
+          async () => {
             return mpcClient.signTx(tx, mpcInfo.mpc_id, this.mpcSignTimeout)
           },
           this._makeHooks('appendSequencerBatch')

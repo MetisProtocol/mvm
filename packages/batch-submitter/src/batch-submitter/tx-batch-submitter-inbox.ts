@@ -249,7 +249,7 @@ export class TransactionBatchSubmitterInbox {
           submitTx = (): Promise<TransactionReceipt> => {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
-              async (gasPrice) => {
+              async () => {
                 const replaced = await setTxEIP1559Fees(
                   blobTx,
                   await this.pendingStorage.getPendingTx(signerAddress),
@@ -376,7 +376,7 @@ export class TransactionBatchSubmitterInbox {
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return transactionSubmitter.submitSignedTransaction(
           tx,
-          async (gasPrice) => {
+          async () => {
             try {
               const replaced = await setTxEIP1559Fees(
                 tx,
