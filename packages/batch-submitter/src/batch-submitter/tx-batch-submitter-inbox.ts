@@ -248,8 +248,7 @@ export class TransactionBatchSubmitterInbox {
                   blobTx,
                   await this.pendingStorage.getPendingTx(signerAddress),
                   this.l1Provider,
-                  this.resubmissionTimeout,
-                  true
+                  this.resubmissionTimeout
                 )
                 this.logger.info('Blob tx fees updated', {
                   maxFeePerGas: blobTx.maxFeePerGas,
@@ -283,8 +282,7 @@ export class TransactionBatchSubmitterInbox {
                 blobTx,
                 await this.pendingStorage.getPendingTx(signerAddress),
                 this.l1Provider,
-                this.resubmissionTimeout,
-                true
+                this.resubmissionTimeout
               )
               this.logger.info('Blob tx fees updated', {
                 maxFeePerGas: blobTx.maxFeePerGas,

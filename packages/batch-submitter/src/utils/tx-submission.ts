@@ -27,8 +27,7 @@ export const setTxEIP1559Fees = async (
   tx: ethers.TransactionRequest,
   oldTx: PendingRecordInfo | null,
   l1Provider: Provider,
-  resubmissionTimeout: number,
-  blobTx: boolean = false
+  resubmissionTimeout: number
 ): Promise<boolean> => {
   const feeData = await l1Provider.getFeeData()
   // check if pending tx exists and has not been confirmed yet,
@@ -43,7 +42,7 @@ export const setTxEIP1559Fees = async (
     // pending tx exists, need to bump
     // for blob tx we need to double all fees,
     // for non-blob tx we need to bump maxFeePerGas and maxPriorityFeePerGas by 11% (using 11% instead of 10% to avoid rounding issues).
-    const bumpThreshold = blobTx ? 100n : 11n
+    const bumpThreshold = tx.type === 3 ? 100n : 11n
     const bumpedMaxFeePerGas =
       (toBigInt(oldTx.maxFeePerGas) * (100n + bumpThreshold)) / 100n
     const bumpedMaxPriorityFeePerGas =
@@ -58,7 +57,7 @@ export const setTxEIP1559Fees = async (
       bumpedMaxPriorityFeePerGas > feeData.maxPriorityFeePerGas
         ? bumpedMaxPriorityFeePerGas
         : feeData.maxPriorityFeePerGas
-    if (blobTx) {
+    if (tx.type === 3) {
       const bumpedMaxFeePerBlobGas = toBigInt(oldTx.maxFeePerBlobGas) * 2n
       const newMaxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
       tx.maxFeePerBlobGas =
@@ -71,7 +70,7 @@ export const setTxEIP1559Fees = async (
 
   tx.maxFeePerGas = feeData.maxFeePerGas * 2n
   tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-  if (blobTx) {
+  if (tx.type === 3) {
     tx.maxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
   }
   return false

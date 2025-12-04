@@ -5,7 +5,6 @@ import { Bytes32, L2Block, remove0x, RollupInfo } from '@metis.io/core-utils'
 import { Promise as bPromise } from 'bluebird'
 import {
   Contract,
-  ContractTransaction,
   ethers,
   Signer,
   toNumber,
@@ -324,7 +323,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       if (!mpcInfo || !mpcInfo.mpc_address) {
         throw new Error('MPC 1 info get failed')
       }
-      const txUnsign: ContractTransaction = {
+      const txUnsign: ethers.TransactionRequest = {
         type: 2,
         to: tx.to,
         data: tx.data,
