@@ -47,16 +47,18 @@ export const setTxEIP1559Fees = async (
       (toBigInt(oldTx.maxFeePerGas) * (100n + bumpThreshold)) / 100n
     const bumpedMaxPriorityFeePerGas =
       (toBigInt(oldTx.maxPriorityFeePerGas) * (100n + bumpThreshold)) / 100n
-    const newMaxFeePerGas = feeData.maxFeePerGas * 2n
+
+    const newMaxFeePerGas = feeData.maxFeePerGas * 2n + BigInt(1e7)
+    const newMaxPriorityFeePerGas = feeData.maxPriorityFeePerGas + BigInt(1e7)
 
     tx.maxFeePerGas =
       bumpedMaxFeePerGas > newMaxFeePerGas
         ? bumpedMaxFeePerGas
         : newMaxFeePerGas
     tx.maxPriorityFeePerGas =
-      bumpedMaxPriorityFeePerGas > feeData.maxPriorityFeePerGas
+      bumpedMaxPriorityFeePerGas > newMaxPriorityFeePerGas
         ? bumpedMaxPriorityFeePerGas
-        : feeData.maxPriorityFeePerGas
+        : newMaxPriorityFeePerGas
     if (tx.type === 3) {
       const bumpedMaxFeePerBlobGas = toBigInt(oldTx.maxFeePerBlobGas) * 2n
       const newMaxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
@@ -68,8 +70,8 @@ export const setTxEIP1559Fees = async (
     return true
   }
 
-  tx.maxFeePerGas = feeData.maxFeePerGas * 2n
-  tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+  tx.maxFeePerGas = feeData.maxFeePerGas * 2n + BigInt(1e7)
+  tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas + BigInt(1e7)
   if (tx.type === 3) {
     tx.maxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
   }
