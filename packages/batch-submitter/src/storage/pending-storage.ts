@@ -1,8 +1,8 @@
 /* Imports: External */
-import * as fs from 'fs/promises'
-import * as path from 'path'
 import { Logger } from '@eth-optimism/common-ts'
 import { toNumber } from 'ethersv6'
+import * as fs from 'fs/promises'
+import * as path from 'path'
 
 const PENDING_TX_FILE_SUFFIX = '_pending.json'
 
@@ -40,7 +40,7 @@ export class PendingStorage {
     const jsonString = JSON.stringify(jsonData, null, 2)
     const filePath = path.join(
       this.storagePath,
-      `${pending.from}${PENDING_TX_FILE_SUFFIX}`
+      `${pending.from.toLowerCase()}${PENDING_TX_FILE_SUFFIX}`
     )
 
     await fs.writeFile(filePath, jsonString)
@@ -65,7 +65,7 @@ export class PendingStorage {
   ): Promise<PendingRecordInfo | null> {
     const filePath = path.join(
       this.storagePath,
-      `${address}${PENDING_TX_FILE_SUFFIX}`
+      `${address.toLowerCase()}${PENDING_TX_FILE_SUFFIX}`
     )
     if (!(await this.fileExists(filePath))) {
       return null
