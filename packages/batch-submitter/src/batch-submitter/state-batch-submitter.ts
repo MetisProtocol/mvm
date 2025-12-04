@@ -361,12 +361,21 @@ export class StateBatchSubmitter extends BatchSubmitter {
           txUnsign,
           async () => {
             try {
-              await setTxEIP1559Fees(
+              const replaced = await setTxEIP1559Fees(
                 txUnsign,
                 await this.pendingStorage.getPendingTx(mpcAddress),
                 this.l1Provider,
                 this.resubmissionTimeout
               )
+              if (replaced) {
+                this.logger.info(
+                  'MPC tx fees replaced due to resubmission timeout',
+                  {
+                    maxFeePerGas: txUnsign.maxFeePerGas,
+                    maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas,
+                  }
+                )
+              }
               checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
 
               const signedTx = await mpcClient.signTx(

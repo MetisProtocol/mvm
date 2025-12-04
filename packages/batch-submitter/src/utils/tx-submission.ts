@@ -1,3 +1,4 @@
+import * as ynatm from '@eth-optimism/ynatm'
 import {
   ethers,
   JsonRpcProvider,
@@ -6,11 +7,10 @@ import {
   toBigInt,
   toNumber,
 } from 'ethersv6'
-import * as ynatm from '@eth-optimism/ynatm'
 
-import { YnatmAsync } from '../utils'
 import { Logger } from '@eth-optimism/common-ts'
 import { PendingRecordInfo } from '../storage/pending-storage'
+import { YnatmAsync } from '../utils'
 
 export interface ResubmissionConfig {
   resubmissionTimeout: number
@@ -37,7 +37,7 @@ export const setTxEIP1559Fees = async (
   l1Provider: Provider,
   resubmissionTimeout: number,
   blobTx: boolean = false
-): Promise<void> => {
+): Promise<boolean> => {
   const feeData = await l1Provider.getFeeData()
   // check if pending tx exists and has not been confirmed yet,
   // also need to check if the resubmission timeout has passed,
@@ -74,13 +74,15 @@ export const setTxEIP1559Fees = async (
           ? newMaxFeePerBlobGas
           : bumpedMaxFeePerBlobGas
     }
-  } else {
-    tx.maxFeePerGas = feeData.maxFeePerGas * 2n
-    tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
-    if (blobTx) {
-      tx.maxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
-    }
+    return true
   }
+
+  tx.maxFeePerGas = feeData.maxFeePerGas * 2n
+  tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas
+  if (blobTx) {
+    tx.maxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
+  }
+  return false
 }
 
 export const checkGasFee = (
