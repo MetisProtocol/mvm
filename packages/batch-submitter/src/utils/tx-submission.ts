@@ -30,7 +30,7 @@ export interface TxSubmissionHooks {
 }
 
 export const setTxEIP1559Fees = async (
-  tx: any,
+  tx: ethers.TransactionRequest,
   oldTx: PendingRecordInfo | null,
   l1Provider: Provider,
   resubmissionTimeout: number,

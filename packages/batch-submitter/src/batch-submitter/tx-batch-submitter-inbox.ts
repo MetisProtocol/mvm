@@ -257,16 +257,12 @@ export class TransactionBatchSubmitterInbox {
                   this.resubmissionTimeout,
                   true
                 )
-                if (replaced) {
-                  this.logger.info(
-                    'Blob tx fees replaced due to resubmission timeout',
-                    {
-                      maxFeePerGas: blobTx.maxFeePerGas,
-                      maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas,
-                      maxFeePerBlobGas: blobTx.maxFeePerBlobGas,
-                    }
-                  )
-                }
+                this.logger.info('Blob tx fees updated', {
+                  maxFeePerGas: blobTx.maxFeePerGas,
+                  maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas,
+                  maxFeePerBlobGas: blobTx.maxFeePerBlobGas,
+                  replaced,
+                })
                 checkGasFee(this.logger, transactionSubmitter, blobTx)
 
                 const signedTx = await mpcClient.signTx(
@@ -299,16 +295,12 @@ export class TransactionBatchSubmitterInbox {
                 this.resubmissionTimeout,
                 true
               )
-              if (replaced) {
-                this.logger.info(
-                  'Blob tx fees replaced due to resubmission timeout',
-                  {
-                    maxFeePerGas: blobTx.maxFeePerGas,
-                    maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas,
-                    maxFeePerBlobGas: blobTx.maxFeePerBlobGas,
-                  }
-                )
-              }
+              this.logger.info('Blob tx fees updated', {
+                maxFeePerGas: blobTx.maxFeePerGas,
+                maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas,
+                maxFeePerBlobGas: blobTx.maxFeePerBlobGas,
+                replaced,
+              })
               checkGasFee(this.logger, transactionSubmitter, blobTx)
 
               return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
@@ -383,15 +375,11 @@ export class TransactionBatchSubmitterInbox {
               this.l1Provider,
               this.resubmissionTimeout
             )
-            if (replaced) {
-              this.logger.info(
-                'MPC tx fees replaced due to resubmission timeout',
-                {
-                  maxFeePerGas: tx.maxFeePerGas,
-                  maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
-                }
-              )
-            }
+            this.logger.info('MPC tx fees updated', {
+              maxFeePerGas: tx.maxFeePerGas,
+              maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
+              replaced,
+            })
             checkGasFee(this.logger, transactionSubmitter, tx)
 
             const signedTx = await mpcClient.signTx(

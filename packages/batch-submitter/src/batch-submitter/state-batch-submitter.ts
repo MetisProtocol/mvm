@@ -366,15 +366,11 @@ export class StateBatchSubmitter extends BatchSubmitter {
               this.l1Provider,
               this.resubmissionTimeout
             )
-            if (replaced) {
-              this.logger.info(
-                'MPC tx fees replaced due to resubmission timeout',
-                {
-                  maxFeePerGas: txUnsign.maxFeePerGas,
-                  maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas,
-                }
-              )
-            }
+            this.logger.info('fee updated', {
+              maxFeePerGas: txUnsign.maxFeePerGas,
+              maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas,
+              replaced,
+            })
             checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
 
             const signedTx = await mpcClient.signTx(
