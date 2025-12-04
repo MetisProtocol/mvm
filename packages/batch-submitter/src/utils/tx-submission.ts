@@ -10,7 +10,6 @@ import {
 
 import { Logger } from '@eth-optimism/common-ts'
 import { PendingRecordInfo } from '../storage/pending-storage'
-import { YnatmAsync } from '../utils'
 
 export interface ResubmissionConfig {
   resubmissionTimeout: number
@@ -229,40 +228,15 @@ export const submitSignedTransactionWithYNATM = async (
   numConfirmations: number,
   hooks: TxSubmissionHooks
 ): Promise<ethers.TransactionReceipt> => {
-  try {
-    const sendTxAndWaitForReceipt = async (
-      signedTx
-    ): Promise<ethers.TransactionReceipt> => {
-      try {
-        await hooks.beforeSendTransaction(tx)
-        const txResponse = await signer.provider.broadcastTransaction(signedTx)
-        await hooks.onTransactionResponse(txResponse)
-        const txReceipt = await signer.provider.waitForTransaction(
-          txResponse.hash,
-          numConfirmations
-        )
-        await hooks.onTxReceipt(txReceipt)
-        return txReceipt
-      } catch (e) {
-        console.error('Error sending transaction:', e.message)
-        throw e
-      }
-    }
-
-    const ynatmAsync = new YnatmAsync()
-    const receipt = await ynatmAsync.sendAfterSign({
-      sendSignedTransactionFunction: sendTxAndWaitForReceipt,
-      signFunction,
-      minGasPrice: await getGasPriceInWei(signer),
-      maxGasPrice: ynatmAsync.toGwei(config.maxGasPriceInGwei),
-      gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
-      delay: config.resubmissionTimeout,
-    })
-    return receipt
-  } catch (e) {
-    console.error('Error submitting transaction:', e)
-    throw e
-  }
+  await hooks.beforeSendTransaction(tx)
+  const txResponse = await signer.provider.broadcastTransaction(signFunction(0))
+  await hooks.onTransactionResponse(txResponse)
+  const txReceipt = await signer.provider.waitForTransaction(
+    txResponse.hash,
+    numConfirmations
+  )
+  await hooks.onTxReceipt(txReceipt)
+  return txReceipt
 }
 
 export interface TransactionSubmitter {
