@@ -7,7 +7,6 @@ import * as path from 'path'
 const PENDING_TX_FILE_SUFFIX = '_pending.json'
 
 export interface PendingRecordInfo {
-  batchIndex: number | bigint
   txHash: string
   nonce: number
   from: string
@@ -29,7 +28,6 @@ export class PendingStorage {
   public async recordPendingTx(pending: PendingRecordInfo): Promise<void> {
     const jsonData = {
       from: pending.from,
-      batchIndex: toNumber(pending.batchIndex),
       hash: pending.txHash,
       nonce: pending.nonce,
       maxFeePerGas: toNumber(pending.maxFeePerGas),
@@ -77,7 +75,6 @@ export class PendingStorage {
 
     const readJsonData = JSON.parse(data)
     return {
-      batchIndex: readJsonData.batchIndex,
       txHash: readJsonData.hash,
       from: readJsonData.from,
       nonce: readJsonData.nonce,

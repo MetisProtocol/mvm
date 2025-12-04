@@ -243,7 +243,6 @@ export abstract class BatchSubmitter {
           nonce: txResponse.nonce,
         })
         await this.pendingStorage.recordPendingTx({
-          batchIndex: txResponse.nonce,
           txHash: txResponse.hash,
           from: txResponse.from,
           nonce: txResponse.nonce,
