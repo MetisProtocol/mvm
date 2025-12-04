@@ -154,14 +154,9 @@ export const getBlobBaseFee = async (l1Provider: Provider): Promise<bigint> => {
   )
 }
 
-const getGasPriceInWei = async (signer: Signer): Promise<number> => {
-  return toNumber((await signer.provider.getFeeData()).gasPrice)
-}
-
-export const submitTransactionWithYNATM = async (
+const submitTransactionWithYNATM = async (
   tx: ethers.TransactionRequest,
   signer: Signer,
-  config: ResubmissionConfig,
   numConfirmations: number,
   hooks: TxSubmissionHooks
 ): Promise<ethers.TransactionReceipt> => {
@@ -196,16 +191,17 @@ export const submitTransactionWithYNATM = async (
   return receipt
 }
 
-export const submitSignedTransactionWithYNATM = async (
+const submitSignedTransactionWithYNATM = async (
   tx: ethers.TransactionRequest,
   signFunction: Function,
   signer: Signer,
-  config: ResubmissionConfig,
   numConfirmations: number,
   hooks: TxSubmissionHooks
 ): Promise<ethers.TransactionReceipt> => {
   await hooks.beforeSendTransaction(tx)
-  const txResponse = await signer.provider.broadcastTransaction(signFunction(0))
+  const txResponse = await signer.provider.broadcastTransaction(
+    await signFunction()
+  )
   await hooks.onTransactionResponse(txResponse)
   const txReceipt = await signer.provider.waitForTransaction(
     txResponse.hash,
@@ -249,7 +245,6 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
     return submitTransactionWithYNATM(
       tx,
       this.signer,
-      this.ynatmConfig,
       this.numConfirmations,
       hooks
     )
@@ -271,7 +266,6 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
       tx,
       signFunction,
       this.signer,
-      this.ynatmConfig,
       this.numConfirmations,
       hooks
     )
