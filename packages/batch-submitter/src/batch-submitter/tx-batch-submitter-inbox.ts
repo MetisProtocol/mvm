@@ -315,7 +315,7 @@ export class TransactionBatchSubmitterInbox {
               txIndex: receipt.index,
               txHash: receipt.hash,
             })
-            return true
+            return receipt.status > 0
           }
         )
 
