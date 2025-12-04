@@ -181,7 +181,7 @@ const submitTransactionWithYNATM = async (
   }
 
   checkGasFee(fullTx, config)
-  validateTxFeeBeforeMPCSend(tx, signer.provider)
+  await validateTxFeeBeforeMPCSend(tx, signer.provider)
   await hooks.beforeSendTransaction(fullTx)
   const txResponse = await signer.sendTransaction(fullTx)
   await hooks.onTransactionResponse(txResponse)
@@ -202,7 +202,7 @@ const submitSignedTransactionWithYNATM = async (
   hooks: TxSubmissionHooks
 ): Promise<ethers.TransactionReceipt> => {
   checkGasFee(tx, config)
-  validateTxFeeBeforeMPCSend(tx, signer.provider)
+  await validateTxFeeBeforeMPCSend(tx, signer.provider)
   await hooks.beforeSendTransaction(tx)
   const txResponse = await signer.provider.broadcastTransaction(
     await signFunction()
