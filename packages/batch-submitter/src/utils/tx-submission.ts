@@ -193,7 +193,7 @@ const submitTransactionWithYNATM = async (
 
 const submitSignedTransactionWithYNATM = async (
   tx: ethers.TransactionRequest,
-  signFunction: Function,
+  signFunction: () => Promise<string>,
   signer: Signer,
   numConfirmations: number,
   hooks: TxSubmissionHooks
@@ -219,7 +219,7 @@ export interface TransactionSubmitter {
 
   submitSignedTransaction(
     tx: ethers.TransactionRequest,
-    signFunction: Function,
+    signFunction: () => Promise<string>,
     hooks?: TxSubmissionHooks
   ): Promise<ethers.TransactionReceipt>
 }
@@ -252,7 +252,7 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
 
   public async submitSignedTransaction(
     tx: ethers.TransactionRequest,
-    signFunction: Function,
+    signFunction: () => Promise<string>,
     hooks?: TxSubmissionHooks
   ): Promise<ethers.TransactionReceipt> {
     if (!hooks) {

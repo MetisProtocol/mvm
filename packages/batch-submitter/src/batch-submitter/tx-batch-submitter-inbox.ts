@@ -377,36 +377,31 @@ export class TransactionBatchSubmitterInbox {
         return transactionSubmitter.submitSignedTransaction(
           tx,
           async () => {
-            try {
-              const replaced = await setTxEIP1559Fees(
-                tx,
-                await this.pendingStorage.getPendingTx(mpcAddress),
-                this.l1Provider,
-                this.resubmissionTimeout
+            const replaced = await setTxEIP1559Fees(
+              tx,
+              await this.pendingStorage.getPendingTx(mpcAddress),
+              this.l1Provider,
+              this.resubmissionTimeout
+            )
+            if (replaced) {
+              this.logger.info(
+                'MPC tx fees replaced due to resubmission timeout',
+                {
+                  maxFeePerGas: tx.maxFeePerGas,
+                  maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
+                }
               )
-              if (replaced) {
-                this.logger.info(
-                  'MPC tx fees replaced due to resubmission timeout',
-                  {
-                    maxFeePerGas: tx.maxFeePerGas,
-                    maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
-                  }
-                )
-              }
-              checkGasFee(this.logger, transactionSubmitter, tx)
-
-              const signedTx = await mpcClient.signTx(
-                tx,
-                mpcInfo.mpc_id,
-                mpcSignTimeout
-              )
-
-              await validateTxFeeBeforeMPCSend(tx, this.l1Provider)
-              return signedTx
-            } catch (e) {
-              this.logger.error(`Error signing tx with mpc, ${e}`)
-              throw e
             }
+            checkGasFee(this.logger, transactionSubmitter, tx)
+
+            const signedTx = await mpcClient.signTx(
+              tx,
+              mpcInfo.mpc_id,
+              mpcSignTimeout
+            )
+
+            await validateTxFeeBeforeMPCSend(tx, this.l1Provider)
+            return signedTx
           },
           hooks
         )

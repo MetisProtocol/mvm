@@ -360,35 +360,30 @@ export class StateBatchSubmitter extends BatchSubmitter {
         return this.transactionSubmitter.submitSignedTransaction(
           txUnsign,
           async () => {
-            try {
-              const replaced = await setTxEIP1559Fees(
-                txUnsign,
-                await this.pendingStorage.getPendingTx(mpcAddress),
-                this.l1Provider,
-                this.resubmissionTimeout
+            const replaced = await setTxEIP1559Fees(
+              txUnsign,
+              await this.pendingStorage.getPendingTx(mpcAddress),
+              this.l1Provider,
+              this.resubmissionTimeout
+            )
+            if (replaced) {
+              this.logger.info(
+                'MPC tx fees replaced due to resubmission timeout',
+                {
+                  maxFeePerGas: txUnsign.maxFeePerGas,
+                  maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas,
+                }
               )
-              if (replaced) {
-                this.logger.info(
-                  'MPC tx fees replaced due to resubmission timeout',
-                  {
-                    maxFeePerGas: txUnsign.maxFeePerGas,
-                    maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas,
-                  }
-                )
-              }
-              checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
-
-              const signedTx = await mpcClient.signTx(
-                txUnsign,
-                mpcInfo.mpc_id,
-                this.mpcSignTimeout
-              )
-              await validateTxFeeBeforeMPCSend(txUnsign, this.l1Provider)
-              return signedTx
-            } catch (e) {
-              this.logger.error('MPC sign tx failed', { error: e })
-              throw e
             }
+            checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
+
+            const signedTx = await mpcClient.signTx(
+              txUnsign,
+              mpcInfo.mpc_id,
+              this.mpcSignTimeout
+            )
+            await validateTxFeeBeforeMPCSend(txUnsign, this.l1Provider)
+            return signedTx
           },
           this._makeHooks('appendSequencerBatch')
         )
