@@ -83,9 +83,7 @@ export class PendingStorage {
       nonce: readJsonData.nonce,
       maxFeePerGas: readJsonData.maxFeePerGas,
       maxPriorityFeePerGas: readJsonData.maxPriorityFeePerGas,
-      maxFeePerBlobGas: readJsonData.maxFeePerBlobGas
-        ? readJsonData.maxFeePerBlobGas
-        : null,
+      maxFeePerBlobGas: readJsonData.maxFeePerBlobGas,
       submissionTime: readJsonData.submissionTime,
     }
   }

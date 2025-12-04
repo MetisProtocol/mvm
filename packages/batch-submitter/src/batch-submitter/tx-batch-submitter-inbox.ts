@@ -251,9 +251,9 @@ export class TransactionBatchSubmitterInbox {
                   this.resubmissionTimeout
                 )
                 this.logger.info('Blob tx fees updated', {
-                  maxFeePerGas: blobTx.maxFeePerGas,
-                  maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas,
-                  maxFeePerBlobGas: blobTx.maxFeePerBlobGas,
+                  maxFeePerGas: blobTx.maxFeePerGas.toString(),
+                  maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas.toString(),
+                  maxFeePerBlobGas: blobTx.maxFeePerBlobGas.toString(),
                   replaced,
                 })
 
@@ -285,9 +285,9 @@ export class TransactionBatchSubmitterInbox {
                 this.resubmissionTimeout
               )
               this.logger.info('Blob tx fees updated', {
-                maxFeePerGas: blobTx.maxFeePerGas,
-                maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas,
-                maxFeePerBlobGas: blobTx.maxFeePerBlobGas,
+                maxFeePerGas: blobTx.maxFeePerGas.toString(),
+                maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas.toString(),
+                maxFeePerBlobGas: blobTx.maxFeePerBlobGas.toString(),
                 replaced,
               })
 
@@ -364,8 +364,8 @@ export class TransactionBatchSubmitterInbox {
               this.resubmissionTimeout
             )
             this.logger.info('MPC tx fees updated', {
-              maxFeePerGas: tx.maxFeePerGas,
-              maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
+              maxFeePerGas: tx.maxFeePerGas.toString(),
+              maxPriorityFeePerGas: tx.maxPriorityFeePerGas.toString(),
               replaced,
             })
 
@@ -395,12 +395,17 @@ export class TransactionBatchSubmitterInbox {
         from: await signer.getAddress(),
         data: tx.data,
       })
-      await setTxEIP1559Fees(
+      const replaced = await setTxEIP1559Fees(
         tx,
         await this.pendingStorage.getPendingTx(await signer.getAddress()),
         this.l1Provider,
         this.resubmissionTimeout
       )
+      this.logger.info('Tx fees updated', {
+        maxFeePerGas: tx.maxFeePerGas.toString(),
+        maxPriorityFeePerGas: tx.maxPriorityFeePerGas.toString(),
+        replaced,
+      })
     }
 
     const submitTransaction = (): Promise<TransactionReceipt> => {

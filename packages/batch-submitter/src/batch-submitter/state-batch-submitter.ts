@@ -360,8 +360,8 @@ export class StateBatchSubmitter extends BatchSubmitter {
               this.resubmissionTimeout
             )
             this.logger.info('fee updated', {
-              maxFeePerGas: txUnsign.maxFeePerGas,
-              maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas,
+              maxFeePerGas: txUnsign.maxFeePerGas.toString(),
+              maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas.toString(),
               replaced,
             })
 
