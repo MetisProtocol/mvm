@@ -1,13 +1,12 @@
 /* Imports: External */
-import * as fs from 'fs/promises'
-import * as path from 'path'
 import { Logger } from '@eth-optimism/common-ts'
 import { toNumber } from 'ethersv6'
+import * as fs from 'fs/promises'
+import * as path from 'path'
 
 const PENDING_TX_FILE_SUFFIX = '_pending.json'
 
 export interface PendingRecordInfo {
-  batchIndex: number | bigint
   txHash: string
   nonce: number
   from: string
@@ -29,7 +28,6 @@ export class PendingStorage {
   public async recordPendingTx(pending: PendingRecordInfo): Promise<void> {
     const jsonData = {
       from: pending.from,
-      batchIndex: toNumber(pending.batchIndex),
       hash: pending.txHash,
       nonce: pending.nonce,
       maxFeePerGas: toNumber(pending.maxFeePerGas),
@@ -40,7 +38,7 @@ export class PendingStorage {
     const jsonString = JSON.stringify(jsonData, null, 2)
     const filePath = path.join(
       this.storagePath,
-      `${pending.from}${PENDING_TX_FILE_SUFFIX}`
+      `${pending.from.toLowerCase()}${PENDING_TX_FILE_SUFFIX}`
     )
 
     await fs.writeFile(filePath, jsonString)
@@ -65,7 +63,7 @@ export class PendingStorage {
   ): Promise<PendingRecordInfo | null> {
     const filePath = path.join(
       this.storagePath,
-      `${address}${PENDING_TX_FILE_SUFFIX}`
+      `${address.toLowerCase()}${PENDING_TX_FILE_SUFFIX}`
     )
     if (!(await this.fileExists(filePath))) {
       return null
@@ -77,15 +75,12 @@ export class PendingStorage {
 
     const readJsonData = JSON.parse(data)
     return {
-      batchIndex: readJsonData.batchIndex,
       txHash: readJsonData.hash,
       from: readJsonData.from,
       nonce: readJsonData.nonce,
       maxFeePerGas: readJsonData.maxFeePerGas,
       maxPriorityFeePerGas: readJsonData.maxPriorityFeePerGas,
-      maxFeePerBlobGas: readJsonData.maxFeePerBlobGas
-        ? readJsonData.maxFeePerBlobGas
-        : null,
+      maxFeePerBlobGas: readJsonData.maxFeePerBlobGas,
       submissionTime: readJsonData.submissionTime,
     }
   }

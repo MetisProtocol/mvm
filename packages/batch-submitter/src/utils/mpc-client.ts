@@ -265,14 +265,16 @@ export class MpcClient {
     )
 
     if (!signedTx) {
-      this.logger.error('mpc sign failed, timeout', {
+      this.logger.error('mpc sign timeout', {
         mpcId,
+        signId,
       })
-      throw new Error(`MPC ${mpcId} get sign failed`)
+      throw new Error(`sign timeout: mpcId ${mpcId} signId ${signId}`)
     }
 
     this.logger.info('signed mpc tx', {
       mpcId,
+      signId,
     })
     return this.base64ToHex(signedTx)
   }

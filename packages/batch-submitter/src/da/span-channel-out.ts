@@ -189,7 +189,7 @@ export class SpanChannelOut {
   private createEmptyFrame(maxSize: number): Frame {
     const readyBytes = this.readyBytes()
     const dataSize = Math.min(readyBytes, maxSize - FRAME_OVERHEAD_SIZE)
-    this.logger.info('Creating frame', { dataSize, readyBytes, maxSize })
+    this.logger.debug('Creating frame', { dataSize, readyBytes, maxSize })
     return {
       id: this.id,
       frameNumber: this.frame,

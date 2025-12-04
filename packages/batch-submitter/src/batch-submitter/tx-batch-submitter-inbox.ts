@@ -29,7 +29,6 @@ import { TxSubmissionHooks } from '..'
 import { CompressionAlgo } from '../da/channel-compressor'
 import { ChannelManager } from '../da/channel-manager'
 import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE, TX_GAS } from '../da/consts'
-import { blobFork } from '../da/fork'
 import { SpanBatch } from '../da/span-batch'
 import {
   BatchToInbox,
@@ -40,13 +39,7 @@ import {
 } from '../da/types'
 import { InboxStorage } from '../storage'
 import { PendingStorage } from '../storage/pending-storage'
-import {
-  checkGasFee,
-  MpcClient,
-  setTxEIP1559Fees,
-  TransactionSubmitter,
-  validateTxFeeBeforeMPCSend,
-} from '../utils'
+import { MpcClient, setTxEIP1559Fees, TransactionSubmitter } from '../utils'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
@@ -187,6 +180,7 @@ export class TransactionBatchSubmitterInbox {
       value: ethers.parseEther('0'),
     }
 
+    const { chainId } = await signer.provider.getNetwork()
     // use blob txs if batch params contains blob tx data
     const sendBlobTx = batchParams.blobTxData && batchParams.blobTxData.length
     if (sendBlobTx) {
@@ -195,7 +189,6 @@ export class TransactionBatchSubmitterInbox {
         mpcClient = new MpcClient(mpcUrl, this.logger)
       }
 
-      const { chainId } = await signer.provider.getNetwork()
       // if using blob, we need to submit the blob txs before the inbox tx
       const blobTxData = batchParams.blobTxData
       // submit the blob txs in order, to simplify the process,
@@ -241,13 +234,7 @@ export class TransactionBatchSubmitterInbox {
           chainId,
           nonce,
           blobs: blobs.map((b) => b.data),
-        }
-
-        if (
-          blobFork[Number(chainId)] !== undefined &&
-          Math.floor(Date.now() / 1e3) >= blobFork[Number(chainId)]
-        ) {
-          blobTx.blobVersion = 1
+          blobVersion: 1, // Osaka is enabled on all the chains
         }
 
         // mpc model can use ynatm
@@ -256,15 +243,19 @@ export class TransactionBatchSubmitterInbox {
           submitTx = (): Promise<TransactionReceipt> => {
             return transactionSubmitter.submitSignedTransaction(
               blobTx,
-              async (gasPrice) => {
-                await setTxEIP1559Fees(
+              async () => {
+                const replaced = await setTxEIP1559Fees(
                   blobTx,
                   await this.pendingStorage.getPendingTx(signerAddress),
                   this.l1Provider,
-                  this.resubmissionTimeout,
-                  true
+                  this.resubmissionTimeout
                 )
-                checkGasFee(this.logger, transactionSubmitter, blobTx)
+                this.logger.info('Blob tx fees updated', {
+                  maxFeePerGas: blobTx.maxFeePerGas.toString(),
+                  maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas.toString(),
+                  maxFeePerBlobGas: blobTx.maxFeePerBlobGas.toString(),
+                  replaced,
+                })
 
                 const signedTx = await mpcClient.signTx(
                   blobTx,
@@ -272,11 +263,8 @@ export class TransactionBatchSubmitterInbox {
                   mpcSignTimeout
                 )
 
-                await validateTxFeeBeforeMPCSend(blobTx, this.l1Provider)
-
                 // need to append the blob sidecar to the signed tx
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
-                // force set tx type to 3, just bypass the tx type inferring bug in ethers
                 signedTxUnmarshaled.type = 3
                 signedTxUnmarshaled.kzg = kzg
                 signedTxUnmarshaled.blobVersion = blobTx.blobVersion
@@ -290,14 +278,18 @@ export class TransactionBatchSubmitterInbox {
         } else {
           submitTx = async (): Promise<TransactionReceipt> => {
             try {
-              await setTxEIP1559Fees(
+              const replaced = await setTxEIP1559Fees(
                 blobTx,
                 await this.pendingStorage.getPendingTx(signerAddress),
                 this.l1Provider,
-                this.resubmissionTimeout,
-                true
+                this.resubmissionTimeout
               )
-              checkGasFee(this.logger, transactionSubmitter, blobTx)
+              this.logger.info('Blob tx fees updated', {
+                maxFeePerGas: blobTx.maxFeePerGas.toString(),
+                maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas.toString(),
+                maxFeePerBlobGas: blobTx.maxFeePerBlobGas.toString(),
+                replaced,
+              })
 
               return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
             } catch (err) {
@@ -314,14 +306,16 @@ export class TransactionBatchSubmitterInbox {
             receipt: TransactionReceipt | null,
             err: any
           ): Promise<boolean> => {
+            if (err || !receipt) {
+              return false
+            }
             this.logger.info('blob tx submission result', {
               success: receipt.status > 0,
               blockNumber: receipt.blockNumber,
               txIndex: receipt.index,
               txHash: receipt.hash,
-              err,
             })
-            return true
+            return receipt.status > 0
           }
         )
 
@@ -342,7 +336,6 @@ export class TransactionBatchSubmitterInbox {
 
       this.logger.info('submitter with mpc', { url: mpcUrl })
       const mpcClient = new MpcClient(mpcUrl, this.logger)
-      const chainId = (await signer.provider.getNetwork()).chainId
 
       const mpcInfo = await mpcClient.getLatestMpc()
       if (!mpcInfo || !mpcInfo.mpc_address) {
@@ -363,28 +356,25 @@ export class TransactionBatchSubmitterInbox {
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return transactionSubmitter.submitSignedTransaction(
           tx,
-          async (gasPrice) => {
-            try {
-              await setTxEIP1559Fees(
-                tx,
-                await this.pendingStorage.getPendingTx(mpcAddress),
-                this.l1Provider,
-                this.resubmissionTimeout
-              )
-              checkGasFee(this.logger, transactionSubmitter, tx)
+          async () => {
+            const replaced = await setTxEIP1559Fees(
+              tx,
+              await this.pendingStorage.getPendingTx(mpcAddress),
+              this.l1Provider,
+              this.resubmissionTimeout
+            )
+            this.logger.info('MPC tx fees updated', {
+              maxFeePerGas: tx.maxFeePerGas.toString(),
+              maxPriorityFeePerGas: tx.maxPriorityFeePerGas.toString(),
+              replaced,
+            })
 
-              const signedTx = await mpcClient.signTx(
-                tx,
-                mpcInfo.mpc_id,
-                mpcSignTimeout
-              )
-
-              await validateTxFeeBeforeMPCSend(tx, this.l1Provider)
-              return signedTx
-            } catch (e) {
-              this.logger.error(`Error signing tx with mpc, ${e}`)
-              throw e
-            }
+            const signedTx = await mpcClient.signTx(
+              tx,
+              mpcInfo.mpc_id,
+              mpcSignTimeout
+            )
+            return signedTx
           },
           hooks
         )
@@ -405,13 +395,17 @@ export class TransactionBatchSubmitterInbox {
         from: await signer.getAddress(),
         data: tx.data,
       })
-      await setTxEIP1559Fees(
+      const replaced = await setTxEIP1559Fees(
         tx,
         await this.pendingStorage.getPendingTx(await signer.getAddress()),
         this.l1Provider,
         this.resubmissionTimeout
       )
-      checkGasFee(this.logger, transactionSubmitter, tx)
+      this.logger.info('Tx fees updated', {
+        maxFeePerGas: tx.maxFeePerGas.toString(),
+        maxPriorityFeePerGas: tx.maxPriorityFeePerGas.toString(),
+        replaced,
+      })
     }
 
     const submitTransaction = (): Promise<TransactionReceipt> => {

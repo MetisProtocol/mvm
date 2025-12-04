@@ -290,10 +290,6 @@ export const run = async () => {
     'min-gas-price-in-gwei',
     parseInt(env.MIN_GAS_PRICE_IN_GWEI, 10) || 0
   )
-  const MAX_GAS_PRICE_IN_GWEI = config.uint(
-    'max-gas-price-in-gwei',
-    parseInt(env.MAX_GAS_PRICE_IN_GWEI, 10) || 70
-  )
   const GAS_RETRY_INCREMENT = config.uint(
     'gas-retry-increment',
     parseInt(env.GAS_RETRY_INCREMENT, 10) || 5
@@ -301,6 +297,10 @@ export const run = async () => {
   const GAS_THRESHOLD_IN_GWEI = config.uint(
     'gas-threshold-in-gwei',
     parseInt(env.GAS_THRESHOLD_IN_GWEI, 10) || 100
+  )
+  const BLOB_GAS_THRESHOLD_IN_GWEI = config.uint(
+    'blob-gas-threshold-in-gwei',
+    parseInt(env.GAS_THRESHOLD_IN_GWEI, 10) || 1000
   )
 
   // Private keys & mnemonics
@@ -533,20 +533,14 @@ export const run = async () => {
     resubmissionTimeout: requiredEnvVars.RESUBMISSION_TIMEOUT * 1_000,
     minGasPriceInGwei: MIN_GAS_PRICE_IN_GWEI,
     maxGasPriceInGwei: GAS_THRESHOLD_IN_GWEI,
+    maxBlobGasPriceInGwei: BLOB_GAS_THRESHOLD_IN_GWEI,
     gasRetryIncrement: GAS_RETRY_INCREMENT,
+    numConfirmations: requiredEnvVars.NUM_CONFIRMATIONS,
   }
   const txBatchTxSubmitter: TransactionSubmitter =
-    new YnatmTransactionSubmitter(
-      sequencerSigner,
-      resubmissionConfig,
-      requiredEnvVars.NUM_CONFIRMATIONS
-    )
+    new YnatmTransactionSubmitter(sequencerSigner, resubmissionConfig)
   const blobTxSubmitter: TransactionSubmitter = localBlobSignerConfigured
-    ? new YnatmTransactionSubmitter(
-        blobSigner,
-        resubmissionConfig,
-        requiredEnvVars.NUM_CONFIRMATIONS
-      )
+    ? new YnatmTransactionSubmitter(blobSigner, resubmissionConfig)
     : null
   let minioConfig: MinioConfig = null
   if (
@@ -604,11 +598,7 @@ export const run = async () => {
   )
 
   const stateBatchTxSubmitter: TransactionSubmitter =
-    new YnatmTransactionSubmitter(
-      proposerSigner,
-      resubmissionConfig,
-      requiredEnvVars.NUM_CONFIRMATIONS
-    )
+    new YnatmTransactionSubmitter(proposerSigner, resubmissionConfig)
   const stateBatchSubmitter = new StateBatchSubmitter(
     proposerSigner,
     l1Provider,

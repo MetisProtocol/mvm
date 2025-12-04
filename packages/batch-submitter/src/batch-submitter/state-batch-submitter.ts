@@ -5,7 +5,6 @@ import { Bytes32, L2Block, remove0x, RollupInfo } from '@metis.io/core-utils'
 import { Promise as bPromise } from 'bluebird'
 import {
   Contract,
-  ContractTransaction,
   ethers,
   Signer,
   toNumber,
@@ -15,13 +14,7 @@ import {
 /* Internal Imports */
 import { BatchSubmitter, BlockRange } from '.'
 import { InboxStorage } from '../storage'
-import {
-  checkGasFee,
-  MpcClient,
-  setTxEIP1559Fees,
-  TransactionSubmitter,
-  validateTxFeeBeforeMPCSend,
-} from '../utils'
+import { MpcClient, setTxEIP1559Fees, TransactionSubmitter } from '../utils'
 
 export class StateBatchSubmitter extends BatchSubmitter {
   // TODO: Change this so that we calculate start = scc.totalElements() and end = ctc.totalElements()!
@@ -330,7 +323,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       if (!mpcInfo || !mpcInfo.mpc_address) {
         throw new Error('MPC 1 info get failed')
       }
-      const txUnsign: ContractTransaction = {
+      const txUnsign: ethers.TransactionRequest = {
         type: 2,
         to: tx.to,
         data: tx.data,
@@ -360,26 +353,24 @@ export class StateBatchSubmitter extends BatchSubmitter {
         return this.transactionSubmitter.submitSignedTransaction(
           txUnsign,
           async () => {
-            try {
-              await setTxEIP1559Fees(
-                txUnsign,
-                await this.pendingStorage.getPendingTx(mpcAddress),
-                this.l1Provider,
-                this.resubmissionTimeout
-              )
-              checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
+            const replaced = await setTxEIP1559Fees(
+              txUnsign,
+              await this.pendingStorage.getPendingTx(mpcAddress),
+              this.l1Provider,
+              this.resubmissionTimeout
+            )
+            this.logger.info('fee updated', {
+              maxFeePerGas: txUnsign.maxFeePerGas.toString(),
+              maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas.toString(),
+              replaced,
+            })
 
-              const signedTx = await mpcClient.signTx(
-                txUnsign,
-                mpcInfo.mpc_id,
-                this.mpcSignTimeout
-              )
-              await validateTxFeeBeforeMPCSend(txUnsign, this.l1Provider)
-              return signedTx
-            } catch (e) {
-              this.logger.error('MPC sign tx failed', { error: e })
-              throw e
-            }
+            const signedTx = await mpcClient.signTx(
+              txUnsign,
+              mpcInfo.mpc_id,
+              this.mpcSignTimeout
+            )
+            return signedTx
           },
           this._makeHooks('appendSequencerBatch')
         )

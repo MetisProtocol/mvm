@@ -99,7 +99,6 @@ export abstract class BatchSubmitter {
 
     this.logger.info('Readying to submit next batch...', {
       l2ChainId: this.l2ChainId,
-      kind: this._submitType(),
       batchSubmitterAddress: await this.signer.getAddress(),
     })
 
@@ -231,14 +230,6 @@ export abstract class BatchSubmitter {
       beforeSendTransaction: async (tx: ethers.TransactionRequest) => {
         this.logger.info(`Submitting ${txName} transaction`, {
           txType: tx.type,
-          gasPrice: tx.gasPrice ? toNumber(tx.gasPrice) : 0,
-          maxFeePerGas: tx.maxFeePerGas ? toNumber(tx.maxFeePerGas) : 0,
-          maxPriorityFeePerGas: tx.maxPriorityFeePerGas
-            ? toNumber(tx.maxPriorityFeePerGas)
-            : 0,
-          maxFeePerBlobGas: tx.maxFeePerBlobGas
-            ? toNumber(tx.maxFeePerBlobGas)
-            : 0,
           gasLimit: tx.gasLimit ? toNumber(tx.gasLimit) : 0,
           nonce: toNumber(tx.nonce),
           contractAddr: tx.to,
@@ -251,7 +242,6 @@ export abstract class BatchSubmitter {
           nonce: txResponse.nonce,
         })
         await this.pendingStorage.recordPendingTx({
-          batchIndex: txResponse.nonce,
           txHash: txResponse.hash,
           from: txResponse.from,
           nonce: txResponse.nonce,
@@ -303,7 +293,7 @@ export abstract class BatchSubmitter {
       this.metrics.failedSubmissions.inc()
       if (err.reason) {
         this.logger.error(`Transaction invalid: ${err.reason}, aborting`, {
-          message: err.toString(),
+          message: err.message,
           stack: err.stack,
           code: err.code,
         })
@@ -311,7 +301,7 @@ export abstract class BatchSubmitter {
       }
 
       this.logger.error('Encountered error at submission, aborting', {
-        message: err.toString(),
+        message: err.message,
         stack: err.stack,
         code: err.code,
       })
