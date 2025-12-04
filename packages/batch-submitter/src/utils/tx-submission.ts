@@ -80,27 +80,50 @@ const checkGasFee = (
   tx: ethers.TransactionRequest,
   config: ResubmissionConfig
 ) => {
-  if (
-    tx.gasPrice &&
-    toBigInt(tx.gasPrice) > toBigInt(config.maxGasPriceInGwei)
-  ) {
-    throw new Error(
-      `Gas price ${tx.gasPrice} exceeds the cap ${config.maxGasPriceInGwei}`
-    )
+  if (tx.gasPrice) {
+    if (
+      toBigInt(tx.gasPrice) >
+      toBigInt(config.maxGasPriceInGwei) * BigInt(1e9)
+    ) {
+      throw new Error(
+        `Gas price ${tx.gasPrice} exceeds the cap ${config.maxGasPriceInGwei}`
+      )
+    }
+
+    if (
+      config.minGasPriceInGwei &&
+      toBigInt(tx.gasPrice) < toBigInt(config.minGasPriceInGwei) * BigInt(1e9)
+    ) {
+      throw new Error(
+        `Gas price ${tx.gasPrice} is below the minimum ${config.minGasPriceInGwei}`
+      )
+    }
   }
 
-  if (
-    tx.maxFeePerGas &&
-    toBigInt(tx.maxFeePerGas) > toBigInt(config.maxGasPriceInGwei)
-  ) {
-    throw new Error(
-      `Gas price ${tx.maxFeePerGas} exceeds the cap ${config.maxGasPriceInGwei}`
-    )
+  if (tx.maxFeePerGas) {
+    if (
+      toBigInt(tx.maxFeePerGas) >
+      toBigInt(config.maxGasPriceInGwei) * BigInt(1e9)
+    ) {
+      throw new Error(
+        `Gas price ${tx.maxFeePerGas} exceeds the cap ${config.maxGasPriceInGwei}`
+      )
+    }
+    if (
+      config.minGasPriceInGwei &&
+      toBigInt(tx.maxFeePerGas) <
+        toBigInt(config.minGasPriceInGwei) * BigInt(1e9)
+    ) {
+      throw new Error(
+        `Gas price ${tx.maxFeePerGas} is below the minimum ${config.minGasPriceInGwei}`
+      )
+    }
   }
 
   if (
     tx.maxFeePerBlobGas &&
-    toBigInt(tx.maxFeePerBlobGas) > toBigInt(config.maxBlobGasPriceInGwei)
+    toBigInt(tx.maxFeePerBlobGas) >
+      toBigInt(config.maxBlobGasPriceInGwei) * BigInt(1e9)
   ) {
     throw new Error(
       `Blob gas price ${tx.maxFeePerBlobGas} exceeds the cap ${config.maxBlobGasPriceInGwei}`

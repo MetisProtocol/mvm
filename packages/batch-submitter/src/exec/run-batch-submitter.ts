@@ -290,10 +290,6 @@ export const run = async () => {
     'min-gas-price-in-gwei',
     parseInt(env.MIN_GAS_PRICE_IN_GWEI, 10) || 0
   )
-  const MAX_GAS_PRICE_IN_GWEI = config.uint(
-    'max-gas-price-in-gwei',
-    parseInt(env.MAX_GAS_PRICE_IN_GWEI, 10) || 70
-  )
   const GAS_RETRY_INCREMENT = config.uint(
     'gas-retry-increment',
     parseInt(env.GAS_RETRY_INCREMENT, 10) || 5
