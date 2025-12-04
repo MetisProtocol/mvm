@@ -1,4 +1,3 @@
-import * as ynatm from '@eth-optimism/ynatm'
 import {
   ethers,
   JsonRpcProvider,
@@ -166,58 +165,35 @@ export const submitTransactionWithYNATM = async (
   numConfirmations: number,
   hooks: TxSubmissionHooks
 ): Promise<ethers.TransactionReceipt> => {
-  const sendTxAndWaitForReceipt = async (
-    gasPrice
-  ): Promise<ethers.TransactionReceipt> => {
-    const isEIP1559 =
-      !!tx.maxFeePerGas || !!tx.maxPriorityFeePerGas || !!tx.maxFeePerBlobGas
-    let fullTx: any
-    if (isEIP1559) {
-      // to be compatible with EIP-1559, we need to set the gasPrice to the maxPriorityFeePerGas
-      const feeData = await signer.provider.getFeeData()
-      fullTx = {
-        ...tx,
-        maxFeePerGas: feeData.maxFeePerGas,
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-      }
-    } else {
-      fullTx = {
-        ...tx,
-        // in some cases (mostly local testing env) gas price is lower than 1 gwei,
-        // so we need to replace it to the current gas price
-        gasPrice: gasPrice || (await signer.provider.getFeeData()).gasPrice,
-      }
+  const isEIP1559 =
+    !!tx.maxFeePerGas || !!tx.maxPriorityFeePerGas || !!tx.maxFeePerBlobGas
+  let fullTx: any
+  const feeData = await signer.provider.getFeeData()
+  // to be compatible with EIP-1559, we need to set the gasPrice to the maxPriorityFeePerGas
+  if (isEIP1559) {
+    fullTx = {
+      ...tx,
+      maxFeePerGas: feeData.maxFeePerGas,
+      maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
     }
-
-    await hooks.beforeSendTransaction(fullTx)
-    try {
-      const txResponse = await signer.sendTransaction(fullTx)
-      await hooks.onTransactionResponse(txResponse)
-      const receipt = await signer.provider.waitForTransaction(
-        txResponse.hash,
-        numConfirmations
-      )
-      await hooks.onTxReceipt(receipt)
-      return receipt
-    } catch (err) {
-      console.error('Error sending transaction:', err)
-      throw err
+  } else {
+    fullTx = {
+      ...tx,
+      // in some cases (mostly local testing env) gas price is lower than 1 gwei,
+      // so we need to replace it to the current gas price
+      gasPrice: feeData.gasPrice,
     }
   }
 
-  try {
-    const receipt = await ynatm.send({
-      sendTransactionFunction: sendTxAndWaitForReceipt,
-      minGasPrice: await getGasPriceInWei(signer),
-      maxGasPrice: ynatm.toGwei(config.maxGasPriceInGwei),
-      gasPriceScalingFunction: ynatm.LINEAR(config.gasRetryIncrement),
-      delay: config.resubmissionTimeout,
-    })
-    return receipt
-  } catch (err) {
-    console.error('Error submitting transaction:', err)
-    throw err
-  }
+  await hooks.beforeSendTransaction(fullTx)
+  const txResponse = await signer.sendTransaction(fullTx)
+  await hooks.onTransactionResponse(txResponse)
+  const receipt = await signer.provider.waitForTransaction(
+    txResponse.hash,
+    numConfirmations
+  )
+  await hooks.onTxReceipt(receipt)
+  return receipt
 }
 
 export const submitSignedTransactionWithYNATM = async (

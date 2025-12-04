@@ -384,7 +384,6 @@ __metadata:
   dependencies:
     "@eth-optimism/common-ts": "npm:0.1.5"
     "@eth-optimism/smock": "npm:^1.1.10"
-    "@eth-optimism/ynatm": "npm:^0.2.2"
     "@metis.io/contracts": "npm:1.3.0"
     "@metis.io/core-utils": "npm:0.7.8"
     "@nomicfoundation/hardhat-ethers": "npm:~3.0.8"
@@ -671,15 +670,6 @@ __metadata:
     prettier: "npm:^2.3.1"
   languageName: unknown
   linkType: soft
-
-"@eth-optimism/ynatm@npm:^0.2.2":
-  version: 0.2.2
-  resolution: "@eth-optimism/ynatm@npm:0.2.2"
-  dependencies:
-    bluebird: "npm:^3.7.2"
-  checksum: 10c0/461f040f1ad1b0eaaad27694082264b459c5a791302f305ed9e3707a423fa55017dafbb03a916c0081844e5e5aaf34005b0f312d298e51a0a6efca4d601c5a52
-  languageName: node
-  linkType: hard
 
 "@ethereum-waffle/chai@npm:^3.4.4":
   version: 3.4.4
