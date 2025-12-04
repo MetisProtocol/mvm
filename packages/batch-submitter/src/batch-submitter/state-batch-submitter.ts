@@ -502,7 +502,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     }
 
     this.logger.info('Generated state commitment batch', {
-      stateRoots, // list of stateRoots
+      stateRootsCount: stateRoots.length,
     })
     return {
       stateRoots,

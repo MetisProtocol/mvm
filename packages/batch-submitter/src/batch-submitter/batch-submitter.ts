@@ -275,7 +275,6 @@ export abstract class BatchSubmitter {
       err: any
     ) => Promise<boolean>
   ): Promise<ethers.TransactionReceipt> {
-    this.lastBatchSubmissionTimestamp = Date.now()
     this.logger.debug('Submitting transaction & waiting for receipt...')
 
     let receipt: ethers.TransactionReceipt
@@ -308,7 +307,13 @@ export abstract class BatchSubmitter {
       return
     }
 
-    this.logger.info('Received transaction receipt', { receipt })
+    // Update last submission timestamp when it's successful
+    this.lastBatchSubmissionTimestamp = Date.now()
+    this.logger.info('Received transaction receipt', {
+      txHash: receipt.hash,
+      blockNumber: receipt.blockNumber,
+      status: receipt.status,
+    })
     this.logger.info(successMessage)
     this.metrics.batchesSubmitted.inc()
     this.metrics.submissionGasUsed.observe(toNumber(receipt.gasUsed))
