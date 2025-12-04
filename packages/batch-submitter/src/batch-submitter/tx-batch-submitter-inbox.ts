@@ -39,13 +39,7 @@ import {
 } from '../da/types'
 import { InboxStorage } from '../storage'
 import { PendingStorage } from '../storage/pending-storage'
-import {
-  checkGasFee,
-  MpcClient,
-  setTxEIP1559Fees,
-  TransactionSubmitter,
-  validateTxFeeBeforeMPCSend,
-} from '../utils'
+import { MpcClient, setTxEIP1559Fees, TransactionSubmitter } from '../utils'
 
 export class TransactionBatchSubmitterInbox {
   private readonly minioClient: MinioClient
@@ -263,15 +257,12 @@ export class TransactionBatchSubmitterInbox {
                   maxFeePerBlobGas: blobTx.maxFeePerBlobGas,
                   replaced,
                 })
-                checkGasFee(this.logger, transactionSubmitter, blobTx)
 
                 const signedTx = await mpcClient.signTx(
                   blobTx,
                   mpcId,
                   mpcSignTimeout
                 )
-
-                await validateTxFeeBeforeMPCSend(blobTx, this.l1Provider)
 
                 // need to append the blob sidecar to the signed tx
                 const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
@@ -301,7 +292,6 @@ export class TransactionBatchSubmitterInbox {
                 maxFeePerBlobGas: blobTx.maxFeePerBlobGas,
                 replaced,
               })
-              checkGasFee(this.logger, transactionSubmitter, blobTx)
 
               return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
             } catch (err) {
@@ -380,15 +370,12 @@ export class TransactionBatchSubmitterInbox {
               maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
               replaced,
             })
-            checkGasFee(this.logger, transactionSubmitter, tx)
 
             const signedTx = await mpcClient.signTx(
               tx,
               mpcInfo.mpc_id,
               mpcSignTimeout
             )
-
-            await validateTxFeeBeforeMPCSend(tx, this.l1Provider)
             return signedTx
           },
           hooks
@@ -416,7 +403,6 @@ export class TransactionBatchSubmitterInbox {
         this.l1Provider,
         this.resubmissionTimeout
       )
-      checkGasFee(this.logger, transactionSubmitter, tx)
     }
 
     const submitTransaction = (): Promise<TransactionReceipt> => {

@@ -302,6 +302,10 @@ export const run = async () => {
     'gas-threshold-in-gwei',
     parseInt(env.GAS_THRESHOLD_IN_GWEI, 10) || 100
   )
+  const BLOB_GAS_THRESHOLD_IN_GWEI = config.uint(
+    'blob-gas-threshold-in-gwei',
+    parseInt(env.GAS_THRESHOLD_IN_GWEI, 10) || 1000
+  )
 
   // Private keys & mnemonics
   const SEQUENCER_PRIVATE_KEY = config.str(
@@ -533,20 +537,14 @@ export const run = async () => {
     resubmissionTimeout: requiredEnvVars.RESUBMISSION_TIMEOUT * 1_000,
     minGasPriceInGwei: MIN_GAS_PRICE_IN_GWEI,
     maxGasPriceInGwei: GAS_THRESHOLD_IN_GWEI,
+    maxBlobGasPriceInGwei: BLOB_GAS_THRESHOLD_IN_GWEI,
     gasRetryIncrement: GAS_RETRY_INCREMENT,
+    numConfirmations: requiredEnvVars.NUM_CONFIRMATIONS,
   }
   const txBatchTxSubmitter: TransactionSubmitter =
-    new YnatmTransactionSubmitter(
-      sequencerSigner,
-      resubmissionConfig,
-      requiredEnvVars.NUM_CONFIRMATIONS
-    )
+    new YnatmTransactionSubmitter(sequencerSigner, resubmissionConfig)
   const blobTxSubmitter: TransactionSubmitter = localBlobSignerConfigured
-    ? new YnatmTransactionSubmitter(
-        blobSigner,
-        resubmissionConfig,
-        requiredEnvVars.NUM_CONFIRMATIONS
-      )
+    ? new YnatmTransactionSubmitter(blobSigner, resubmissionConfig)
     : null
   let minioConfig: MinioConfig = null
   if (
@@ -604,11 +602,7 @@ export const run = async () => {
   )
 
   const stateBatchTxSubmitter: TransactionSubmitter =
-    new YnatmTransactionSubmitter(
-      proposerSigner,
-      resubmissionConfig,
-      requiredEnvVars.NUM_CONFIRMATIONS
-    )
+    new YnatmTransactionSubmitter(proposerSigner, resubmissionConfig)
   const stateBatchSubmitter = new StateBatchSubmitter(
     proposerSigner,
     l1Provider,

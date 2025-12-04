@@ -15,13 +15,7 @@ import {
 /* Internal Imports */
 import { BatchSubmitter, BlockRange } from '.'
 import { InboxStorage } from '../storage'
-import {
-  checkGasFee,
-  MpcClient,
-  setTxEIP1559Fees,
-  TransactionSubmitter,
-  validateTxFeeBeforeMPCSend,
-} from '../utils'
+import { MpcClient, setTxEIP1559Fees, TransactionSubmitter } from '../utils'
 
 export class StateBatchSubmitter extends BatchSubmitter {
   // TODO: Change this so that we calculate start = scc.totalElements() and end = ctc.totalElements()!
@@ -371,14 +365,12 @@ export class StateBatchSubmitter extends BatchSubmitter {
               maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas,
               replaced,
             })
-            checkGasFee(this.logger, this.transactionSubmitter, txUnsign)
 
             const signedTx = await mpcClient.signTx(
               txUnsign,
               mpcInfo.mpc_id,
               this.mpcSignTimeout
             )
-            await validateTxFeeBeforeMPCSend(txUnsign, this.l1Provider)
             return signedTx
           },
           this._makeHooks('appendSequencerBatch')

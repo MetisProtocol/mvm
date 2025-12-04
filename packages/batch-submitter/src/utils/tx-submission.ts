@@ -1,20 +1,14 @@
-import {
-  ethers,
-  JsonRpcProvider,
-  Provider,
-  Signer,
-  toBigInt,
-  toNumber,
-} from 'ethersv6'
+import { ethers, JsonRpcProvider, Provider, Signer, toBigInt } from 'ethersv6'
 
-import { Logger } from '@eth-optimism/common-ts'
 import { PendingRecordInfo } from '../storage/pending-storage'
 
 export interface ResubmissionConfig {
   resubmissionTimeout: number
   minGasPriceInGwei: number
   maxGasPriceInGwei: number
+  maxBlobGasPriceInGwei: number
   gasRetryIncrement: number
+  numConfirmations: number
 }
 
 export type SubmitTransactionFn = (
@@ -83,39 +77,46 @@ export const setTxEIP1559Fees = async (
   return false
 }
 
-export const checkGasFee = (
-  logger: Logger,
-  transactionSubmitter: any,
-  tx: any
+const checkGasFee = (
+  tx: ethers.TransactionRequest,
+  config: ResubmissionConfig
 ) => {
-  const yntmSubmmiter = transactionSubmitter as YnatmTransactionSubmitter
-
-  const gasCapInWei = ethers.parseUnits(
-    yntmSubmmiter.ynatmConfig.maxGasPriceInGwei.toString(10),
-    'gwei'
-  )
-  if (toBigInt(tx.maxFeePerGas) > gasCapInWei) {
-    logger.error('Gas price exceeds the cap', {
-      max: gasCapInWei,
-      current: toNumber(tx.maxFeePerGas),
-    })
-
+  if (
+    tx.gasPrice &&
+    toBigInt(tx.gasPrice) > toBigInt(config.maxGasPriceInGwei)
+  ) {
     throw new Error(
-      `Gas price ${tx.maxFeePerGas} exceeds the cap ${yntmSubmmiter.ynatmConfig.maxGasPriceInGwei}`
+      `Gas price ${tx.gasPrice} exceeds the cap ${config.maxGasPriceInGwei}`
+    )
+  }
+
+  if (
+    tx.maxFeePerGas &&
+    toBigInt(tx.maxFeePerGas) > toBigInt(config.maxGasPriceInGwei)
+  ) {
+    throw new Error(
+      `Gas price ${tx.maxFeePerGas} exceeds the cap ${config.maxGasPriceInGwei}`
+    )
+  }
+
+  if (
+    tx.maxFeePerBlobGas &&
+    toBigInt(tx.maxFeePerBlobGas) > toBigInt(config.maxBlobGasPriceInGwei)
+  ) {
+    throw new Error(
+      `Blob gas price ${tx.maxFeePerBlobGas} exceeds the cap ${config.maxBlobGasPriceInGwei}`
     )
   }
 }
 
 // This function is used to validate the transaction fee before sending it, since MPC sign sometimes takes a long time,
 // the signed tx may be sent after the base fee has already increased more than 2 times.
-export const validateTxFeeBeforeMPCSend = async (
-  tx: any,
+const validateTxFeeBeforeMPCSend = async (
+  tx: ethers.TransactionRequest,
   l1Provider: Provider
 ): Promise<void> => {
   if (!tx.maxFeePerGas || !tx.maxPriorityFeePerGas) {
-    throw new Error(
-      "Transaction doesn't have maxFeePerGas or maxPriorityFeePerGas"
-    )
+    return
   }
 
   const feeData = await l1Provider.getFeeData()
@@ -126,13 +127,13 @@ export const validateTxFeeBeforeMPCSend = async (
   // In this case, the base fee in the next block will be 12.5% higher than the base fee we fetched.
   // To avoid this situation, we need to make sure the tx's maxFeePerGas & maxFeePerBlobGas is at least 12.5%
   // (let's make it 13%, since we are doing int calc instead float) higher than the base fee we fetched.
-  if (tx.maxFeePerGas < (feeData.maxFeePerGas * 113n) / 100n) {
+  if (toBigInt(tx.maxFeePerGas) < (feeData.maxFeePerGas * 113n) / 100n) {
     throw new Error(
       `Transaction maxFeePerGas ${tx.maxFeePerGas} is lower than current maxFeePerGas ${feeData.maxFeePerGas}`
     )
   }
 
-  if (tx.maxPriorityFeePerGas < feeData.maxPriorityFeePerGas) {
+  if (toBigInt(tx.maxPriorityFeePerGas) < feeData.maxPriorityFeePerGas) {
     throw new Error(
       `Transaction maxPriorityFeePerGas ${tx.maxPriorityFeePerGas} is lower than current maxPriorityFeePerGas ${feeData.maxPriorityFeePerGas}`
     )
@@ -140,7 +141,7 @@ export const validateTxFeeBeforeMPCSend = async (
 
   if (tx.maxFeePerBlobGas) {
     const blobBaseFee = await getBlobBaseFee(l1Provider)
-    if (tx.maxFeePerBlobGas < (blobBaseFee * 113n) / 100n) {
+    if (toBigInt(tx.maxFeePerBlobGas) < (blobBaseFee * 113n) / 100n) {
       throw new Error(
         `Transaction maxFeePerBlobGas ${tx.maxFeePerBlobGas} is lower than current blob base fee ${blobBaseFee}`
       )
@@ -157,7 +158,7 @@ export const getBlobBaseFee = async (l1Provider: Provider): Promise<bigint> => {
 const submitTransactionWithYNATM = async (
   tx: ethers.TransactionRequest,
   signer: Signer,
-  numConfirmations: number,
+  config: ResubmissionConfig,
   hooks: TxSubmissionHooks
 ): Promise<ethers.TransactionReceipt> => {
   const isEIP1559 =
@@ -180,12 +181,15 @@ const submitTransactionWithYNATM = async (
     }
   }
 
+  checkGasFee(fullTx, config)
+  validateTxFeeBeforeMPCSend(tx, signer.provider)
   await hooks.beforeSendTransaction(fullTx)
   const txResponse = await signer.sendTransaction(fullTx)
   await hooks.onTransactionResponse(txResponse)
   const receipt = await signer.provider.waitForTransaction(
     txResponse.hash,
-    numConfirmations
+    config.numConfirmations,
+    config.resubmissionTimeout
   )
   await hooks.onTxReceipt(receipt)
   return receipt
@@ -195,9 +199,11 @@ const submitSignedTransactionWithYNATM = async (
   tx: ethers.TransactionRequest,
   signFunction: () => Promise<string>,
   signer: Signer,
-  numConfirmations: number,
+  config: ResubmissionConfig,
   hooks: TxSubmissionHooks
 ): Promise<ethers.TransactionReceipt> => {
+  checkGasFee(tx, config)
+  validateTxFeeBeforeMPCSend(tx, signer.provider)
   await hooks.beforeSendTransaction(tx)
   const txResponse = await signer.provider.broadcastTransaction(
     await signFunction()
@@ -205,7 +211,8 @@ const submitSignedTransactionWithYNATM = async (
   await hooks.onTransactionResponse(txResponse)
   const txReceipt = await signer.provider.waitForTransaction(
     txResponse.hash,
-    numConfirmations
+    config.numConfirmations,
+    config.resubmissionTimeout
   )
   await hooks.onTxReceipt(txReceipt)
   return txReceipt
@@ -227,8 +234,7 @@ export interface TransactionSubmitter {
 export class YnatmTransactionSubmitter implements TransactionSubmitter {
   constructor(
     readonly signer: Signer,
-    readonly ynatmConfig: ResubmissionConfig,
-    readonly numConfirmations: number
+    readonly ynatmConfig: ResubmissionConfig
   ) {}
 
   public async submitTransaction(
@@ -242,12 +248,7 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
         onTxReceipt: () => undefined,
       }
     }
-    return submitTransactionWithYNATM(
-      tx,
-      this.signer,
-      this.numConfirmations,
-      hooks
-    )
+    return submitTransactionWithYNATM(tx, this.signer, this.ynatmConfig, hooks)
   }
 
   public async submitSignedTransaction(
@@ -266,7 +267,7 @@ export class YnatmTransactionSubmitter implements TransactionSubmitter {
       tx,
       signFunction,
       this.signer,
-      this.numConfirmations,
+      this.ynatmConfig,
       hooks
     )
   }
