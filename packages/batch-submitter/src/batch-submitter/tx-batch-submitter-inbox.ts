@@ -209,8 +209,7 @@ export class TransactionBatchSubmitterInbox {
       type: 2,
       chainId,
       to: this.inboxAddress,
-      // if it's for blob, set input data later
-      data: sendBlobTx ? undefined : '0x' + remove0x(batchParams.input),
+      data: '0x' + batchParams.input,
       value: 0n,
     }
 
@@ -356,11 +355,11 @@ export class TransactionBatchSubmitterInbox {
         await this.inboxStorage.insertStep(batchParams)
       }
 
-      // set inbox tx data
-      inboxTx.data =
-        '0x' +
-        remove0x(batchParams.input) +
-        batchParams.txHashes.reduce((acc, hash) => acc + remove0x(hash), '')
+      // append all blob tx hashes to inbox tx data
+      inboxTx.data += batchParams.txHashes.reduce(
+        (acc, hash) => acc + remove0x(hash),
+        ''
+      )
     }
 
     // Build and send inbox transaction
