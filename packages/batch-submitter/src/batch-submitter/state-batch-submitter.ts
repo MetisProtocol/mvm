@@ -327,7 +327,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
         type: 2,
         to: tx.to,
         data: tx.data,
-        value: ethers.parseEther('0'),
+        value: 0n,
       }
       const mpcAddress = mpcInfo.mpc_address
       txUnsign.nonce = await this.signer.provider.getTransactionCount(
@@ -339,39 +339,26 @@ export class StateBatchSubmitter extends BatchSubmitter {
         data: tx.data,
       })
       txUnsign.chainId = (await this.signer.provider.getNetwork()).chainId
-      // mpc model can use ynatm
-      // tx.gasPrice = gasPrice
+      const replaced = await setTxEIP1559Fees(
+        txUnsign,
+        await this.pendingStorage.getPendingTx(mpcAddress),
+        this.l1Provider,
+        this.resubmissionTimeout
+      )
 
-      this.logger.info('submitting state with mpc address', {
-        mpcAddress,
+      this.logger.info('submitting state tx with mpc address', {
+        from: mpcAddress,
+        nonce: txUnsign.nonce,
+        to: tx.to,
+        replaced,
         startBlock,
         endBlock,
-        txUnsign,
       })
 
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return this.transactionSubmitter.submitSignedTransaction(
           txUnsign,
-          async () => {
-            const replaced = await setTxEIP1559Fees(
-              txUnsign,
-              await this.pendingStorage.getPendingTx(mpcAddress),
-              this.l1Provider,
-              this.resubmissionTimeout
-            )
-            this.logger.info('fee updated', {
-              maxFeePerGas: txUnsign.maxFeePerGas.toString(),
-              maxPriorityFeePerGas: txUnsign.maxPriorityFeePerGas.toString(),
-              replaced,
-            })
-
-            const signedTx = await mpcClient.signTx(
-              txUnsign,
-              mpcInfo.mpc_id,
-              this.mpcSignTimeout
-            )
-            return signedTx
-          },
+          () => mpcClient.signTx(txUnsign, mpcInfo.mpc_id, this.mpcSignTimeout),
           this._makeHooks('appendSequencerBatch')
         )
       }

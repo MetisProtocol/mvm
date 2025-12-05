@@ -262,68 +262,45 @@ export class TransactionBatchSubmitterInbox {
           blobVersion: 1, // Osaka is enabled on all the chains
         }
 
+        const replaced = await setTxEIP1559Fees(
+          blobTx,
+          await this.pendingStorage.getPendingTx(signerAddress),
+          this.l1Provider,
+          this.resubmissionTimeout
+        )
+
         this.logger.info('submitting blob tx', {
           blobs: blobs.length,
           from: signerAddress,
           nonce: blobTx.nonce,
           step: `${txIndex + 1}/${batchParams.blobs.length}`,
+          replaced,
         })
 
         // mpc model can use ynatm
-        let submitTx: () => Promise<TransactionReceipt>
-        if (mpcUrl) {
-          submitTx = (): Promise<TransactionReceipt> => {
-            return transactionSubmitter.submitSignedTransaction(
-              blobTx,
-              async () => {
-                const replaced = await setTxEIP1559Fees(
-                  blobTx,
-                  await this.pendingStorage.getPendingTx(signerAddress),
-                  this.l1Provider,
-                  this.resubmissionTimeout
-                )
-                this.logger.info('Blob tx fees updated', {
-                  maxFeePerGas: blobTx.maxFeePerGas.toString(),
-                  maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas.toString(),
-                  maxFeePerBlobGas: blobTx.maxFeePerBlobGas.toString(),
-                  replaced,
-                })
+        const submitTx: () => Promise<TransactionReceipt> = mpcUrl
+          ? () =>
+              transactionSubmitter.submitSignedTransaction(
+                blobTx,
+                async () => {
+                  const signedTx = await mpcClient.signTx(
+                    blobTx,
+                    mpcId,
+                    mpcSignTimeout
+                  )
 
-                const signedTx = await mpcClient.signTx(
-                  blobTx,
-                  mpcId,
-                  mpcSignTimeout
-                )
-
-                // need to append the blob sidecar to the signed tx
-                const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
-                signedTxUnmarshaled.type = 3
-                signedTxUnmarshaled.kzg = kzg
-                signedTxUnmarshaled.blobVersion = blobTx.blobVersion
-                signedTxUnmarshaled.blobs = blobTx.blobs
-                // repack the tx
-                return signedTxUnmarshaled.serialized
-              },
-              hooks
-            )
-          }
-        } else {
-          submitTx = async (): Promise<TransactionReceipt> => {
-            const replaced = await setTxEIP1559Fees(
-              blobTx,
-              await this.pendingStorage.getPendingTx(signerAddress),
-              this.l1Provider,
-              this.resubmissionTimeout
-            )
-            this.logger.info('Blob tx fees updated', {
-              maxFeePerGas: blobTx.maxFeePerGas.toString(),
-              maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas.toString(),
-              maxFeePerBlobGas: blobTx.maxFeePerBlobGas.toString(),
-              replaced,
-            })
-            return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
-          }
-        }
+                  // need to append the blob sidecar to the signed tx
+                  const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
+                  signedTxUnmarshaled.type = 3
+                  signedTxUnmarshaled.kzg = kzg
+                  signedTxUnmarshaled.blobVersion = blobTx.blobVersion
+                  signedTxUnmarshaled.blobs = blobTx.blobs
+                  // repack the tx
+                  return signedTxUnmarshaled.serialized
+                },
+                hooks
+              )
+          : () => blobTransactionSubmitter.submitTransaction(blobTx, hooks)
 
         const blobTxReceipt = await submitAndLogTx(
           submitTx,
@@ -360,13 +337,14 @@ export class TransactionBatchSubmitterInbox {
       )
     }
 
+    this.logger.info('submit inbox tx', {
+      nonce: inboxTx.nonce,
+      blobTxs: batchParams.txHashes.join(','),
+    })
+
     // Build and send inbox transaction
     // mpc url specified, use mpc to sign tx
     if (mpcUrl) {
-      this.logger.info('submitter inbox meta with mpc', {
-        blobTxs: batchParams.txHashes.join(','),
-      })
-
       const mpcInfo = await mpcClient.getLatestMpc()
       if (!mpcInfo || !mpcInfo.mpc_address) {
         throw new Error('MPC info get failed')
@@ -379,25 +357,18 @@ export class TransactionBatchSubmitterInbox {
         from: mpcAddress,
         data: inboxTx.data,
       })
+      await setTxEIP1559Fees(
+        inboxTx,
+        await this.pendingStorage.getPendingTx(mpcAddress),
+        this.l1Provider,
+        this.resubmissionTimeout
+      )
 
       // mpc model can use ynatm
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return transactionSubmitter.submitSignedTransaction(
           inboxTx,
-          async () => {
-            const replaced = await setTxEIP1559Fees(
-              inboxTx,
-              await this.pendingStorage.getPendingTx(mpcAddress),
-              this.l1Provider,
-              this.resubmissionTimeout
-            )
-            this.logger.info('MPC tx fees updated', {
-              maxFeePerGas: inboxTx.maxFeePerGas.toString(),
-              maxPriorityFeePerGas: inboxTx.maxPriorityFeePerGas.toString(),
-              replaced,
-            })
-            return mpcClient.signTx(inboxTx, mpcInfo.mpc_id, mpcSignTimeout)
-          },
+          () => mpcClient.signTx(inboxTx, mpcInfo.mpc_id, mpcSignTimeout),
           hooks
         )
       }
@@ -425,17 +396,12 @@ export class TransactionBatchSubmitterInbox {
         from: await signer.getAddress(),
         data: inboxTx.data,
       })
-      const replaced = await setTxEIP1559Fees(
+      await setTxEIP1559Fees(
         inboxTx,
         await this.pendingStorage.getPendingTx(await signer.getAddress()),
         this.l1Provider,
         this.resubmissionTimeout
       )
-      this.logger.info('Tx fees updated', {
-        maxFeePerGas: inboxTx.maxFeePerGas.toString(),
-        maxPriorityFeePerGas: inboxTx.maxPriorityFeePerGas.toString(),
-        replaced,
-      })
     }
 
     const submitTransaction = (): Promise<TransactionReceipt> => {
