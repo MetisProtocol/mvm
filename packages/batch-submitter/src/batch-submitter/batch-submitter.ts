@@ -230,7 +230,7 @@ export abstract class BatchSubmitter {
       beforeSendTransaction: async (tx: ethers.TransactionRequest) => {
         this.logger.info(`Submitting ${txName} transaction`, {
           txType: tx.type,
-          gasLimit: tx.gasLimit ? toNumber(tx.gasLimit) : 0,
+          gasPrice: tx.gasPrice ? toNumber(tx.gasPrice) : 0,
           maxFeePerGas: tx.maxFeePerGas ? toNumber(tx.maxFeePerGas) : 0,
           maxPriorityFeePerGas: tx.maxPriorityFeePerGas
             ? toNumber(tx.maxPriorityFeePerGas)
@@ -238,6 +238,7 @@ export abstract class BatchSubmitter {
           maxFeePerBlobGas: tx.maxFeePerBlobGas
             ? toNumber(tx.maxFeePerBlobGas)
             : 0,
+          gasLimit: tx.gasLimit ? toNumber(tx.gasLimit) : 0,
           nonce: toNumber(tx.nonce),
           contractAddr: tx.to,
         })
