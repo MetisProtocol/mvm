@@ -48,8 +48,17 @@ export const setTxEIP1559Fees = async (
     const bumpedMaxPriorityFeePerGas =
       (toBigInt(oldTx.maxPriorityFeePerGas) * (100n + bumpThreshold)) / 100n
 
-    const newMaxFeePerGas = feeData.maxFeePerGas * 2n + BigInt(1e7)
-    const newMaxPriorityFeePerGas = feeData.maxPriorityFeePerGas + BigInt(1e7)
+    // Use 1Gwei as the tip fee for blob tx
+    const newMaxFeePerGas =
+      tx.type === 3
+        ? feeData.maxFeePerGas * 2n + BigInt(1e9)
+        : feeData.maxFeePerGas * 2n + BigInt(1e7)
+    const newMaxPriorityFeePerGas =
+      tx.type === 3 && feeData.maxPriorityFeePerGas < BigInt(1e9)
+        ? BigInt(1e9)
+        : feeData.maxPriorityFeePerGas < BigInt(1e7)
+        ? BigInt(1e7)
+        : feeData.maxPriorityFeePerGas
 
     tx.maxFeePerGas =
       bumpedMaxFeePerGas > newMaxFeePerGas

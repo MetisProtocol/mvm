@@ -8,7 +8,6 @@ import {
   MinioConfig,
   QueueOrigin,
   remove0x,
-  sleep,
   toHexString,
   zlibCompressHexString,
 } from '@metis.io/core-utils'
@@ -37,7 +36,7 @@ import {
   InboxBatchParams,
   TxData,
 } from '../da/types'
-import { InboxStorage } from '../storage'
+import { InboxSteps, InboxStorage } from '../storage'
 import { PendingStorage } from '../storage/pending-storage'
 import { MpcClient, setTxEIP1559Fees, TransactionSubmitter } from '../utils'
 
@@ -86,6 +85,29 @@ export class TransactionBatchSubmitterInbox {
       ) => Promise<boolean>
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
+    const steps = await this.inboxStorage.getStep()
+    if (
+      useBlob &&
+      steps !== null &&
+      steps.txHashes.length < steps.blobs.length + 1
+    ) {
+      this.logger.info(
+        'Previous batch submission incomplete, continue submitting it'
+      )
+      return this.submitSequencerBatch(
+        nextBatchIndex,
+        steps,
+        signer,
+        blobSigner,
+        mpcUrl,
+        mpcSignTimeout,
+        transactionSubmitter,
+        blobTransactionSubmitter,
+        hooks,
+        submitAndLogTx
+      )
+    }
+
     const params = await this._generateSequencerBatchParams(
       useBlob,
       startBlock,
@@ -101,10 +123,6 @@ export class TransactionBatchSubmitterInbox {
     const [batchParams, wasBatchTruncated] = params
     // encodeBatch of calldata for _shouldSubmitBatch
     let batchSizeInBytes = batchParams.inputData.length / 2
-    this.logger.debug('Sequencer batch generated', {
-      batchSizeInBytes,
-    })
-
     if (useBlob) {
       // when using blob txs, need to calculate the blob txs size,
       // to avoid the situation that the batch is too small,
@@ -112,10 +130,9 @@ export class TransactionBatchSubmitterInbox {
       if (batchParams.blobTxData.length > 1) {
         batchSizeInBytes = 0
         for (const txData of batchParams.blobTxData) {
-          batchSizeInBytes += txData.blobs.reduce(
-            (acc, blob) => acc + blob.data.length,
-            0
-          )
+          for (const blob of txData.blobs) {
+            batchSizeInBytes += blob.data.length
+          }
         }
       }
     }
@@ -125,18 +142,32 @@ export class TransactionBatchSubmitterInbox {
     // 2. it is large enough
     // 3. enough time has passed since last submission
     if (!wasBatchTruncated && !shouldSubmitBatch(batchSizeInBytes)) {
+      this.logger.info('Skipping batch submission to inbox', {
+        meta: batchParams.inputMeta,
+        useBlob,
+        batchSizeInBytes,
+        wasBatchTruncated,
+      })
       return
     }
     metrics.numTxPerBatch.observe(endBlock - startBlock)
-    const l1tipHeight = await signer.provider.getBlockNumber()
-    this.logger.debug('Submitting batch to inbox.', {
-      calldata: batchParams,
-      l1tipHeight,
+    this.logger.debug('Submitting batch to inbox', {
+      meta: batchParams.inputMeta,
+      useBlob,
+      batchSizeInBytes,
+      wasBatchTruncated,
     })
+
+    // const params =
+    // steps == null || steps.txHashes.length === steps.blobs.length + 1
 
     return this.submitSequencerBatch(
       nextBatchIndex,
-      batchParams,
+      {
+        input: batchParams.inputData,
+        blobs: batchParams.blobTxData.map((tx) => tx.blobs.map((b) => b.data)),
+        txHashes: [],
+      },
       signer,
       blobSigner,
       mpcUrl,
@@ -154,7 +185,7 @@ export class TransactionBatchSubmitterInbox {
 
   private async submitSequencerBatch(
     nextBatchIndex: number,
-    batchParams: InboxBatchParams,
+    batchParams: InboxSteps,
     signer: Signer,
     // need the second signer for blob txs, since blob txs are in a separate tx pool,
     // in EIP4844, ethereum does not allow one account sending txs to multiple pools at the same time
@@ -173,57 +204,61 @@ export class TransactionBatchSubmitterInbox {
       ) => Promise<boolean>
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
-    // MPC enabled: prepare nonce, gasPrice
-    const tx: TransactionRequest = {
-      to: this.inboxAddress,
-      data: '0x' + batchParams.inputData,
-      value: ethers.parseEther('0'),
+    if (batchParams.txHashes.length === batchParams.blobs.length + 1) {
+      throw new Error('Batch already submitted')
     }
 
+    // MPC enabled: prepare nonce, gasPrice
     const { chainId } = await signer.provider.getNetwork()
+    const inboxTx: TransactionRequest = {
+      type: 2,
+      chainId,
+      to: this.inboxAddress,
+      data: '0x' + remove0x(batchParams.input), // use remove0x for compatibility
+      value: 0n,
+    }
+
     // use blob txs if batch params contains blob tx data
-    const sendBlobTx = batchParams.blobTxData && batchParams.blobTxData.length
+    const sendBlobTx = batchParams.blobs && batchParams.blobs.length > 0
     if (sendBlobTx) {
       let mpcClient: MpcClient
+      let signerAddress: string
+      let mpcId: string
       if (mpcUrl) {
         mpcClient = new MpcClient(mpcUrl, this.logger)
+        // retrieve mpc info
+        // blob tx need to use mpc type 3 (specific for blob tx) to sign,
+        // just need to avoid collision with other tx types
+        const currentMpcInfo = await mpcClient.getLatestMpc('3')
+        if (!currentMpcInfo || !currentMpcInfo.mpc_address) {
+          throw new Error('MPC info get failed')
+        }
+        signerAddress = currentMpcInfo.mpc_address
+        mpcId = currentMpcInfo.mpc_id
+      } else {
+        signerAddress = await blobSigner.getAddress()
       }
 
       // if using blob, we need to submit the blob txs before the inbox tx
-      const blobTxData = batchParams.blobTxData
+      const blobTxData = batchParams.blobs
+      this.logger.info('Submitting blob txs for inbox batch', {
+        count: blobTxData.length,
+      })
+
       // submit the blob txs in order, to simplify the process,
       // use serialized operations for now
-      // TODO: use paralleled submission
-      for (const txData of blobTxData) {
-        const blobs = txData.blobs
+      for (const [txIndex, blobs] of blobTxData.entries()) {
         if (!blobs || !blobs.length) {
           throw new Error('Invalid blob tx data, empty blobs')
         }
 
-        let signerAddress: string
-        let mpcId: string
-        if (mpcUrl) {
-          // retrieve mpc info
-          // blob tx need to use mpc type 3 (specific for blob tx) to sign,
-          // just need to avoid collision with other tx types
-          const currentMpcInfo = await mpcClient.getLatestMpc('3')
-          if (!currentMpcInfo || !currentMpcInfo.mpc_address) {
-            throw new Error('MPC info get failed')
-          }
-          signerAddress = currentMpcInfo.mpc_address
-          mpcId = currentMpcInfo.mpc_id
-        } else {
-          signerAddress = await blobSigner.getAddress()
+        if (batchParams.txHashes[txIndex]) {
+          this.logger.info('Blob tx already submitted, skipping', {
+            txIndex,
+            txHash: batchParams.txHashes[txIndex],
+          })
+          continue
         }
-
-        // async fetch required info
-        const nonce = await signer.provider.getTransactionCount(signerAddress)
-
-        this.logger.info('submitting blob tx', {
-          blobCount: blobs.length,
-          signerAddress,
-          nonce,
-        })
 
         const blobTx: ethers.TransactionRequest = {
           type: 3, // 3 for blob tx type
@@ -232,10 +267,17 @@ export class TransactionBatchSubmitterInbox {
           // so the gas limit is just the default tx gas
           gasLimit: TX_GAS,
           chainId,
-          nonce,
-          blobs: blobs.map((b) => b.data),
+          nonce: await signer.provider.getTransactionCount(signerAddress),
+          blobs,
           blobVersion: 1, // Osaka is enabled on all the chains
         }
+
+        this.logger.info('submitting blob tx', {
+          count: blobs.length,
+          from: signerAddress,
+          nonce: blobTx.nonce,
+          step: `${txIndex}/${blobTxData.length}`,
+        })
 
         // mpc model can use ynatm
         let submitTx: () => Promise<TransactionReceipt>
@@ -277,25 +319,19 @@ export class TransactionBatchSubmitterInbox {
           }
         } else {
           submitTx = async (): Promise<TransactionReceipt> => {
-            try {
-              const replaced = await setTxEIP1559Fees(
-                blobTx,
-                await this.pendingStorage.getPendingTx(signerAddress),
-                this.l1Provider,
-                this.resubmissionTimeout
-              )
-              this.logger.info('Blob tx fees updated', {
-                maxFeePerGas: blobTx.maxFeePerGas.toString(),
-                maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas.toString(),
-                maxFeePerBlobGas: blobTx.maxFeePerBlobGas.toString(),
-                replaced,
-              })
-
-              return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
-            } catch (err) {
-              this.logger.error('blob tx submission failed', { err })
-              throw new Error('Blob tx submission failed')
-            }
+            const replaced = await setTxEIP1559Fees(
+              blobTx,
+              await this.pendingStorage.getPendingTx(signerAddress),
+              this.l1Provider,
+              this.resubmissionTimeout
+            )
+            this.logger.info('Blob tx fees updated', {
+              maxFeePerGas: blobTx.maxFeePerGas.toString(),
+              maxPriorityFeePerGas: blobTx.maxPriorityFeePerGas.toString(),
+              maxFeePerBlobGas: blobTx.maxFeePerBlobGas.toString(),
+              replaced,
+            })
+            return blobTransactionSubmitter.submitTransaction(blobTx, hooks)
           }
         }
 
@@ -323,18 +359,19 @@ export class TransactionBatchSubmitterInbox {
           throw new Error('Blob tx submission failed')
         }
 
+        batchParams.txHashes.push(blobTxReceipt.hash)
+        await this.inboxStorage.insertStep(batchParams)
         // append tx hashes to the tx data to the end
-        tx.data += remove0x(blobTxReceipt.hash)
+        inboxTx.data += remove0x(blobTxReceipt.hash)
       }
     }
 
+    // Build and send inbox transaction
     // mpc url specified, use mpc to sign tx
     if (mpcUrl) {
-      // sleep 3000 ms to avoid mpc signing collision
-      this.logger.info('sleep 3000 ms to avoid mpc signing collision')
-      await sleep(3000)
-
-      this.logger.info('submitter with mpc', { url: mpcUrl })
+      this.logger.info('submitter inbox meta with mpc', {
+        blobTxs: batchParams.txHashes.join(','),
+      })
       const mpcClient = new MpcClient(mpcUrl, this.logger)
 
       const mpcInfo = await mpcClient.getLatestMpc()
@@ -343,38 +380,30 @@ export class TransactionBatchSubmitterInbox {
       }
       const mpcAddress = mpcInfo.mpc_address
 
-      tx.type = 2
-      tx.nonce = await signer.provider.getTransactionCount(mpcAddress)
-      tx.gasLimit = await signer.provider.estimateGas({
-        to: tx.to,
+      inboxTx.nonce = await signer.provider.getTransactionCount(mpcAddress)
+      inboxTx.gasLimit = await signer.provider.estimateGas({
+        to: inboxTx.to,
         from: mpcAddress,
-        data: tx.data,
+        data: inboxTx.data,
       })
-      tx.chainId = chainId
 
       // mpc model can use ynatm
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
         return transactionSubmitter.submitSignedTransaction(
-          tx,
+          inboxTx,
           async () => {
             const replaced = await setTxEIP1559Fees(
-              tx,
+              inboxTx,
               await this.pendingStorage.getPendingTx(mpcAddress),
               this.l1Provider,
               this.resubmissionTimeout
             )
             this.logger.info('MPC tx fees updated', {
-              maxFeePerGas: tx.maxFeePerGas.toString(),
-              maxPriorityFeePerGas: tx.maxPriorityFeePerGas.toString(),
+              maxFeePerGas: inboxTx.maxFeePerGas.toString(),
+              maxPriorityFeePerGas: inboxTx.maxPriorityFeePerGas.toString(),
               replaced,
             })
-
-            const signedTx = await mpcClient.signTx(
-              tx,
-              mpcInfo.mpc_id,
-              mpcSignTimeout
-            )
-            return signedTx
+            return mpcClient.signTx(inboxTx, mpcInfo.mpc_id, mpcSignTimeout)
           },
           hooks
         )
@@ -383,50 +412,69 @@ export class TransactionBatchSubmitterInbox {
       return submitAndLogTx(
         submitSignedTransaction,
         'Submitted batch to inbox with MPC!',
-        (receipt: TransactionReceipt | null, err: any): Promise<boolean> => {
-          return this._setBatchInboxRecord(receipt, err, nextBatchIndex)
+        async (
+          receipt: TransactionReceipt | null,
+          err: any
+        ): Promise<boolean> => {
+          return this._setBatchInboxRecord(
+            batchParams,
+            receipt,
+            err,
+            nextBatchIndex
+          )
         }
       )
     } else {
-      tx.nonce = await signer.getNonce()
-      tx.gasLimit = await signer.provider.estimateGas({
+      inboxTx.nonce = await signer.getNonce()
+      inboxTx.gasLimit = await signer.provider.estimateGas({
         //estimate gas
-        to: tx.to,
+        to: inboxTx.to,
         from: await signer.getAddress(),
-        data: tx.data,
+        data: inboxTx.data,
       })
       const replaced = await setTxEIP1559Fees(
-        tx,
+        inboxTx,
         await this.pendingStorage.getPendingTx(await signer.getAddress()),
         this.l1Provider,
         this.resubmissionTimeout
       )
       this.logger.info('Tx fees updated', {
-        maxFeePerGas: tx.maxFeePerGas.toString(),
-        maxPriorityFeePerGas: tx.maxPriorityFeePerGas.toString(),
+        maxFeePerGas: inboxTx.maxFeePerGas.toString(),
+        maxPriorityFeePerGas: inboxTx.maxPriorityFeePerGas.toString(),
         replaced,
       })
     }
 
     const submitTransaction = (): Promise<TransactionReceipt> => {
-      return transactionSubmitter.submitTransaction(tx, hooks)
+      return transactionSubmitter.submitTransaction(inboxTx, hooks)
     }
     return submitAndLogTx(
       submitTransaction,
       'Submitted batch to inbox!',
-      (receipt: TransactionReceipt | null, err: any): Promise<boolean> => {
-        return this._setBatchInboxRecord(receipt, err, nextBatchIndex)
+      async (
+        receipt: TransactionReceipt | null,
+        err: any
+      ): Promise<boolean> => {
+        return this._setBatchInboxRecord(
+          batchParams,
+          receipt,
+          err,
+          nextBatchIndex
+        )
       }
     )
   }
 
   private async _setBatchInboxRecord(
+    batchParams: InboxSteps,
     receipt: TransactionReceipt | null,
     err: any,
     batchIndex: number
   ): Promise<boolean> {
     let saveStatus = false
     if (receipt && (receipt.status === undefined || receipt.status === 1)) {
+      batchParams.txHashes.push(receipt.hash)
+      await this.inboxStorage.insertStep(batchParams)
       saveStatus = await this.inboxStorage.recordConfirmedTx({
         batchIndex,
         blockNumber: receipt.blockNumber,
@@ -660,6 +708,13 @@ export class TransactionBatchSubmitterInbox {
 
     encoded = `${da}${compressType}${batchIndex}${l2Start}${totalElements}${compressedEncoded}`
     return {
+      inputMeta: {
+        da,
+        compressType,
+        batchIndex,
+        l2Start,
+        totalElements,
+      },
       inputData: encoded,
       batch: blocks,
       blobTxData,

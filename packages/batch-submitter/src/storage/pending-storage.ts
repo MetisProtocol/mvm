@@ -90,7 +90,10 @@ export class PendingStorage {
       await fs.stat(filePath)
       return true
     } catch (error) {
-      return false
+      if (error.code === 'ENOENT') {
+        return false
+      }
+      throw error
     }
   }
 }

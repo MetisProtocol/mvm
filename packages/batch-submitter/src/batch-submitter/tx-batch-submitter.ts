@@ -413,25 +413,6 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     useInbox?: boolean,
     nextBatchIndex?: number
   ): Promise<TransactionReceipt> {
-    // Do not submit batch if gas price above threshold
-    const gasPriceInGwei = parseInt(
-      ethers.formatUnits(
-        (await this.signer.provider.getFeeData()).gasPrice,
-        'gwei'
-      ),
-      10
-    )
-    if (gasPriceInGwei > this.gasThresholdInGwei) {
-      this.logger.warn(
-        'Gas price is higher than gas price threshold; aborting batch submission',
-        {
-          gasPriceInGwei,
-          gasThresholdInGwei: this.gasThresholdInGwei,
-        }
-      )
-      return
-    }
-
     if (useInbox) {
       this.logger.info('Submit batch to inbox address', {
         startBlock,
