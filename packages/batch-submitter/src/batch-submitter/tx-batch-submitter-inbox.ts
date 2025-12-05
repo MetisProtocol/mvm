@@ -158,9 +158,6 @@ export class TransactionBatchSubmitterInbox {
       wasBatchTruncated,
     })
 
-    // const params =
-    // steps == null || steps.txHashes.length === steps.blobs.length + 1
-
     return this.submitSequencerBatch(
       nextBatchIndex,
       {
@@ -242,7 +239,7 @@ export class TransactionBatchSubmitterInbox {
       // if using blob, we need to submit the blob txs before the inbox tx
       const blobTxData = batchParams.blobs
       this.logger.info('Submitting blob txs for inbox batch', {
-        count: blobTxData.length,
+        txes: blobTxData.length,
       })
 
       // submit the blob txs in order, to simplify the process,
@@ -273,7 +270,7 @@ export class TransactionBatchSubmitterInbox {
         }
 
         this.logger.info('submitting blob tx', {
-          count: blobs.length,
+          blobs: blobs.length,
           from: signerAddress,
           nonce: blobTx.nonce,
           step: `${txIndex}/${blobTxData.length}`,
