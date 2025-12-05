@@ -151,9 +151,10 @@ export class TransactionBatchSubmitterInbox {
       return
     }
     metrics.numTxPerBatch.observe(endBlock - startBlock)
-    this.logger.debug('Submitting batch to inbox', {
+    this.logger.info('Submitting batch to inbox', {
       meta: batchParams.inputMeta,
       useBlob,
+      blobTxes: batchParams.blobTxData.length,
       batchSizeInBytes,
       wasBatchTruncated,
     })
@@ -215,7 +216,7 @@ export class TransactionBatchSubmitterInbox {
       value: 0n,
     }
 
-    // use blob txs if batch params contains blob tx data
+    // if using blob, we need to submit the blob txs before the inbox tx
     const sendBlobTx = batchParams.blobs && batchParams.blobs.length > 0
     if (sendBlobTx) {
       let mpcClient: MpcClient
@@ -236,19 +237,13 @@ export class TransactionBatchSubmitterInbox {
         signerAddress = await blobSigner.getAddress()
       }
 
-      // if using blob, we need to submit the blob txs before the inbox tx
-      const blobTxData = batchParams.blobs
-      this.logger.info('Submitting blob txs for inbox batch', {
-        txes: blobTxData.length,
-      })
-
-      // submit the blob txs in order, to simplify the process,
-      // use serialized operations for now
-      for (const [txIndex, blobs] of blobTxData.entries()) {
+      // submit the blob txs in order
+      for (const [txIndex, blobs] of batchParams.blobs.entries()) {
         if (!blobs || !blobs.length) {
           throw new Error('Invalid blob tx data, empty blobs')
         }
 
+        // skip already submitted blob tx
         if (batchParams.txHashes[txIndex]) {
           this.logger.info('Blob tx already submitted, skipping', {
             txIndex,
@@ -273,7 +268,7 @@ export class TransactionBatchSubmitterInbox {
           blobs: blobs.length,
           from: signerAddress,
           nonce: blobTx.nonce,
-          step: `${txIndex}/${blobTxData.length}`,
+          step: `${txIndex}/${batchParams.blobs.length}`,
         })
 
         // mpc model can use ynatm
