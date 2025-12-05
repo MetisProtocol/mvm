@@ -202,9 +202,7 @@ export class TransactionBatchSubmitterInbox {
       ) => Promise<boolean>
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
-    // MPC enabled: prepare nonce, gasPrice
     const { chainId } = await signer.provider.getNetwork()
-    const sendBlobTx = batchParams.blobs && batchParams.blobs.length > 0
     const inboxTx: TransactionRequest = {
       type: 2,
       chainId,
@@ -213,17 +211,17 @@ export class TransactionBatchSubmitterInbox {
       value: 0n,
     }
 
+    const mpcClient = new MpcClient(mpcUrl, this.logger)
+
     // if using blob, we need to submit the blob txs before the inbox tx
-    if (sendBlobTx) {
+    if (batchParams.blobs && batchParams.blobs.length > 0) {
       if (batchParams.txHashes.length === batchParams.blobs.length + 1) {
         throw new Error('Batch already submitted')
       }
 
-      let mpcClient: MpcClient
       let signerAddress: string
       let mpcId: string
       if (mpcUrl) {
-        mpcClient = new MpcClient(mpcUrl, this.logger)
         // retrieve mpc info
         // blob tx need to use mpc type 3 (specific for blob tx) to sign,
         // just need to avoid collision with other tx types
@@ -368,7 +366,6 @@ export class TransactionBatchSubmitterInbox {
       this.logger.info('submitter inbox meta with mpc', {
         blobTxs: batchParams.txHashes.join(','),
       })
-      const mpcClient = new MpcClient(mpcUrl, this.logger)
 
       const mpcInfo = await mpcClient.getLatestMpc()
       if (!mpcInfo || !mpcInfo.mpc_address) {
