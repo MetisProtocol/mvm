@@ -142,12 +142,6 @@ export class TransactionBatchSubmitterInbox {
     // 2. it is large enough
     // 3. enough time has passed since last submission
     if (!wasBatchTruncated && !shouldSubmitBatch(batchSizeInBytes)) {
-      this.logger.info('Skipping batch submission to inbox', {
-        meta: batchParams.inputMeta,
-        useBlob,
-        batchSizeInBytes,
-        wasBatchTruncated,
-      })
       return
     }
     metrics.numTxPerBatch.observe(endBlock - startBlock)
