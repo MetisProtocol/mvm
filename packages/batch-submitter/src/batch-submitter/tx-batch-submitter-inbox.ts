@@ -208,16 +208,17 @@ export class TransactionBatchSubmitterInbox {
 
     // MPC enabled: prepare nonce, gasPrice
     const { chainId } = await signer.provider.getNetwork()
+    const sendBlobTx = batchParams.blobs && batchParams.blobs.length > 0
+
     const inboxTx: TransactionRequest = {
       type: 2,
       chainId,
       to: this.inboxAddress,
-      data: '0x' + remove0x(batchParams.input), // use remove0x for compatibility
+      data: sendBlobTx ? '0x' : '0x' + remove0x(batchParams.input),
       value: 0n,
     }
 
     // if using blob, we need to submit the blob txs before the inbox tx
-    const sendBlobTx = batchParams.blobs && batchParams.blobs.length > 0
     if (sendBlobTx) {
       let mpcClient: MpcClient
       let signerAddress: string
@@ -351,11 +352,13 @@ export class TransactionBatchSubmitterInbox {
           throw new Error('Blob tx submission failed')
         }
 
+        batchParams.input += remove0x(blobTxReceipt.hash)
         batchParams.txHashes.push(blobTxReceipt.hash)
         await this.inboxStorage.insertStep(batchParams)
         // append tx hashes to the tx data to the end
-        inboxTx.data += remove0x(blobTxReceipt.hash)
       }
+
+      inboxTx.data += remove0x(batchParams.input)
     }
 
     // Build and send inbox transaction
