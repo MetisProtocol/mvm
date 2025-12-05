@@ -268,7 +268,7 @@ export class TransactionBatchSubmitterInbox {
           blobs: blobs.length,
           from: signerAddress,
           nonce: blobTx.nonce,
-          step: `${txIndex}/${batchParams.blobs.length}`,
+          step: `${txIndex + 1}/${batchParams.blobs.length}`,
         })
 
         // mpc model can use ynatm
