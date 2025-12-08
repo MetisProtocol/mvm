@@ -230,6 +230,14 @@ export abstract class BatchSubmitter {
       beforeSendTransaction: async (tx: ethers.TransactionRequest) => {
         this.logger.info(`Submitting ${txName} transaction`, {
           txType: tx.type,
+          gasPrice: tx.gasPrice ? toNumber(tx.gasPrice) : 0,
+          maxFeePerGas: tx.maxFeePerGas ? toNumber(tx.maxFeePerGas) : 0,
+          maxPriorityFeePerGas: tx.maxPriorityFeePerGas
+            ? toNumber(tx.maxPriorityFeePerGas)
+            : 0,
+          maxFeePerBlobGas: tx.maxFeePerBlobGas
+            ? toNumber(tx.maxFeePerBlobGas)
+            : 0,
           gasLimit: tx.gasLimit ? toNumber(tx.gasLimit) : 0,
           nonce: toNumber(tx.nonce),
           contractAddr: tx.to,
@@ -275,7 +283,6 @@ export abstract class BatchSubmitter {
       err: any
     ) => Promise<boolean>
   ): Promise<ethers.TransactionReceipt> {
-    this.lastBatchSubmissionTimestamp = Date.now()
     this.logger.debug('Submitting transaction & waiting for receipt...')
 
     let receipt: ethers.TransactionReceipt
@@ -308,7 +315,13 @@ export abstract class BatchSubmitter {
       return
     }
 
-    this.logger.info('Received transaction receipt', { receipt })
+    // Update last submission timestamp when it's successful
+    this.lastBatchSubmissionTimestamp = Date.now()
+    this.logger.info('Received transaction receipt', {
+      txHash: receipt.hash,
+      blockNumber: receipt.blockNumber,
+      status: receipt.status,
+    })
     this.logger.info(successMessage)
     this.metrics.batchesSubmitted.inc()
     this.metrics.submissionGasUsed.observe(toNumber(receipt.gasUsed))

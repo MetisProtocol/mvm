@@ -30,6 +30,22 @@ export const setTxEIP1559Fees = async (
   resubmissionTimeout: number
 ): Promise<boolean> => {
   const feeData = await l1Provider.getFeeData()
+
+  // Use 1Gwei as the tip fee for blob tx
+  const newMaxFeePerGas =
+    tx.type === 3
+      ? feeData.maxFeePerGas * 2n + BigInt(1e9)
+      : feeData.maxFeePerGas * 2n + BigInt(1e7)
+  const newMaxPriorityFeePerGas =
+    tx.type === 3 && feeData.maxPriorityFeePerGas < BigInt(1e9)
+      ? BigInt(1e9)
+      : feeData.maxPriorityFeePerGas < BigInt(1e7)
+      ? BigInt(1e7)
+      : feeData.maxPriorityFeePerGas
+
+  const newBlobBaseFeePerGas =
+    tx.type === 3 ? 2n * (await getBlobBaseFee(l1Provider)) : 0n
+
   // check if pending tx exists and has not been confirmed yet,
   // also need to check if the resubmission timeout has passed,
   // will only bump the fees if the timeout has passed
@@ -48,9 +64,6 @@ export const setTxEIP1559Fees = async (
     const bumpedMaxPriorityFeePerGas =
       (toBigInt(oldTx.maxPriorityFeePerGas) * (100n + bumpThreshold)) / 100n
 
-    const newMaxFeePerGas = feeData.maxFeePerGas * 2n + BigInt(1e7)
-    const newMaxPriorityFeePerGas = feeData.maxPriorityFeePerGas + BigInt(1e7)
-
     tx.maxFeePerGas =
       bumpedMaxFeePerGas > newMaxFeePerGas
         ? bumpedMaxFeePerGas
@@ -61,7 +74,7 @@ export const setTxEIP1559Fees = async (
         : newMaxPriorityFeePerGas
     if (tx.type === 3) {
       const bumpedMaxFeePerBlobGas = toBigInt(oldTx.maxFeePerBlobGas) * 2n
-      const newMaxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
+      const newMaxFeePerBlobGas = newBlobBaseFeePerGas
       tx.maxFeePerBlobGas =
         newMaxFeePerBlobGas > bumpedMaxFeePerBlobGas
           ? newMaxFeePerBlobGas
@@ -70,10 +83,10 @@ export const setTxEIP1559Fees = async (
     return true
   }
 
-  tx.maxFeePerGas = feeData.maxFeePerGas * 2n + BigInt(1e7)
-  tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas + BigInt(1e7)
+  tx.maxFeePerGas = newMaxFeePerGas
+  tx.maxPriorityFeePerGas = newMaxPriorityFeePerGas
   if (tx.type === 3) {
-    tx.maxFeePerBlobGas = (await getBlobBaseFee(l1Provider)) * 2n
+    tx.maxFeePerBlobGas = newBlobBaseFeePerGas
   }
   return false
 }

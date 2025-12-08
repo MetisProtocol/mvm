@@ -155,7 +155,16 @@ export interface BatchToInboxElement {
 }
 export declare type BatchToInbox = BatchToInboxElement[]
 
+export interface InboxInputMeta {
+  da: string
+  compressType: string
+  batchIndex: string
+  l2Start: string
+  totalElements: string
+}
+
 export interface InboxBatchParams {
+  inputMeta: InboxInputMeta
   inputData: string
   batch: BatchToInbox
   blobTxData: TxData[]

@@ -58,7 +58,7 @@
     "@types/chai": "^4.2.18",
     "@types/lodash": "^4.14.168",
     "@types/mocha": "^8.2.2",
-    "@types/node": "^15.12.2",
+    "@types/node": "22",
     "@types/prettier": "^2.2.3",
     "@types/rimraf": "^3.0.0",
     "@types/sinon": "^9.0.10",
