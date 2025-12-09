@@ -1,8 +1,6 @@
 import { Logger } from '@eth-optimism/common-ts'
-import '@metis.io/core-utils'
-import * as kzg from 'c-kzg'
 import { randomUUID } from 'crypto'
-import { ethers, toBigInt, toNumber, TransactionLike } from 'ethersv6'
+import { ethers } from 'ethersv6'
 import * as http from 'http'
 import * as https from 'https'
 import { URL } from 'url'
@@ -168,16 +166,37 @@ export class MpcClient {
 
   // call this
   public async signTx(
-    tx: any,
-    mpcId: any,
+    unsigned: ethers.TransactionLike,
+    mpcId: string,
     timeoutMilli: number
   ): Promise<string> {
     // check tx
-    if (!tx.gasLimit) {
+    if (!unsigned.gasLimit) {
       throw new Error('tx gasLimit is required')
     }
-    if (tx.nonce === undefined || tx.nonce === null) {
+    if (unsigned.nonce === undefined || unsigned.nonce === null) {
       throw new Error('tx nonce is required')
+    }
+    if (unsigned.type > 1) {
+      // check for post-EIP1559 tx
+      if (!unsigned.maxFeePerGas) {
+        throw new Error('maxFeePerGas is required for post-EIP1559 tx')
+      }
+
+      if (!unsigned.maxPriorityFeePerGas) {
+        throw new Error('maxPriorityFeePerGas is required for post-EIP1559 tx')
+      }
+
+      if (unsigned.type === 3) {
+        // extra checks for blob tx
+        if (!unsigned.maxFeePerBlobGas) {
+          throw new Error('maxFeePerBlobGas is required for blob tx')
+        }
+
+        if (!unsigned.blobs || !unsigned.blobs.length) {
+          throw new Error('blobs are required for blob tx')
+        }
+      }
     }
 
     this.logger.info('signing tx with mpc', {
@@ -185,76 +204,21 @@ export class MpcClient {
       timeout: timeoutMilli / 1e3 + 's',
     })
 
-    // call mpc to sign tx
-    const unsignedTx: TransactionLike<string> = {
-      data: tx.data,
-      nonce: toNumber(tx.nonce),
-      to: tx.to,
-      value: tx.value ? toBigInt(tx.value) : toBigInt(0),
-      gasLimit: toBigInt(tx.gasLimit),
-      chainId: tx.chainId,
-    }
-    if (!tx.type) {
-      // populate legacy tx
-      if (!tx.gasPrice) {
-        throw new Error('gasPrice is required for legacy tx')
-      }
-
-      unsignedTx.gasPrice = toBigInt(tx.gasPrice)
-    } else {
-      unsignedTx.accessList = tx.accessList
-
-      // populate typed tx
-      const txType = toNumber(tx.type)
-      unsignedTx.type = txType
-      if (txType === 1) {
-        // check for access list tx
-        if (!tx.gasPrice) {
-          throw new Error('gasPrice is required for access list tx')
-        }
-        unsignedTx.gasPrice = toBigInt(tx.gasPrice)
-      } else if (txType > 1) {
-        // check for post-EIP1559 tx
-        if (!tx.maxFeePerGas) {
-          throw new Error('maxFeePerGas is required for post-EIP1559 tx')
-        }
-        if (!tx.maxPriorityFeePerGas) {
-          throw new Error(
-            'maxPriorityFeePerGas is required for post-EIP1559 tx'
-          )
-        }
-
-        unsignedTx.maxFeePerGas = toBigInt(tx.maxFeePerGas)
-        unsignedTx.maxPriorityFeePerGas = toBigInt(tx.maxPriorityFeePerGas)
-
-        if (txType === 3) {
-          // extra checks for blob tx
-          if (!tx.maxFeePerBlobGas) {
-            throw new Error('maxFeePerBlobGas is required for blob tx')
-          }
-
-          if (!tx.blobs) {
-            throw new Error('blobs are required for blob tx')
-          }
-
-          unsignedTx.maxFeePerBlobGas = toBigInt(tx.maxFeePerBlobGas)
-          unsignedTx.kzg = kzg
-          unsignedTx.blobVersion = tx.blobVersion
-          unsignedTx.blobs = tx.blobs
-        }
-      }
-    }
-
     const signId = randomUUID()
     const postData = {
       sign_id: signId,
       mpc_id: mpcId,
       sign_type: 0,
-      sign_data: ethers.Transaction.from(unsignedTx).unsignedSerialized,
+      sign_data: ethers.Transaction.from(unsigned).unsignedSerialized,
       sign_msg: '',
     }
     const signResp = await this.proposeMpcSign(postData)
     if (!signResp) {
+      this.logger.error('mpc propose sign failed', {
+        mpcId,
+        signId,
+        signResp,
+      })
       throw new Error(`MPC ${mpcId} propose sign failed`)
     }
 

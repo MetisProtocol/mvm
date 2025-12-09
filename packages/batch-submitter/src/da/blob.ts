@@ -1,9 +1,9 @@
 import {
   blobToKzgCommitment,
-  Bytes48,
   Blob as CBlob,
-  computeBlobKzgProof,
-  verifyBlobKzgProof,
+  computeCellsAndKzgProofs,
+  KZGCommitment,
+  KZGProof,
 } from 'c-kzg'
 import { createHash } from 'crypto'
 import { Frame } from './types'
@@ -11,28 +11,21 @@ import { Frame } from './types'
 const BlobSize = 4096 * 32
 const MaxBlobDataSize = (4 * 31 + 3) * 1024 - 4
 const EncodingVersion = 0
-const VersionOffset = 1
+// const VersionOffset = 1
 const Rounds = 1024
 
 export class Blob {
   public readonly data: Uint8Array = new Uint8Array(BlobSize)
-  public readonly commitment: Bytes48 = new Uint8Array(48)
-  public readonly proof: Bytes48 = new Uint8Array(48)
+  public readonly commitment: KZGCommitment = new Uint8Array(48)
+  // cell proofs
+  public readonly proof: KZGProof = new Uint8Array(48 * 128)
   public versionedHash: string = ''
 
-  static kzgToVersionedHash(commitment: Bytes48): string {
+  static kzgToVersionedHash(commitment: KZGCommitment): string {
     const hasher = createHash('sha256')
     hasher.update(commitment)
     // versioned hash = [1 byte version][31 byte hash]
     return '0x01' + hasher.digest('hex').substring(2)
-  }
-
-  static verifyBlobProof(
-    blob: Blob,
-    commitment: Bytes48,
-    proof: Bytes48
-  ): boolean {
-    return verifyBlobKzgProof(blob.data as CBlob, commitment, proof)
   }
 
   marshalFrame(frame: Frame): Uint8Array {
@@ -159,7 +152,9 @@ export class Blob {
     }
 
     this.commitment.set(blobToKzgCommitment(this.data as CBlob))
-    this.proof.set(computeBlobKzgProof(this.data as CBlob, this.commitment))
+    this.proof.set(
+      Buffer.concat(computeCellsAndKzgProofs(this.data as CBlob)[1])
+    )
     this.versionedHash = Blob.kzgToVersionedHash(this.commitment)
 
     return this

@@ -48,7 +48,7 @@
     "release": "yarn build && yarn changeset publish"
   },
   "dependencies": {
-    "ethersv6": "github:ericlee42/ethers#metis"
+    "ethersv6": "npm:ethers@^6.16.0"
   },
   "resolutions": {
     "node-gyp": "^9.4.0"

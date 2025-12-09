@@ -415,7 +415,7 @@ __metadata:
     eslint-plugin-react: "npm:^7.24.0"
     eslint-plugin-unicorn: "npm:^32.0.1"
     ethereum-waffle: "npm:^3.3.0"
-    ethersv6: "github:ericlee42/ethers#metis"
+    ethersv6: "npm:ethers@^6.16.0"
     ganache-core: "npm:^2.13.2"
     hardhat: "npm:^2.3.0"
     lint-staged: "npm:11.0.0"
@@ -548,7 +548,7 @@ __metadata:
     eslint-plugin-prettier: "npm:^3.4.0"
     eslint-plugin-react: "npm:^7.24.0"
     eslint-plugin-unicorn: "npm:^32.0.1"
-    ethersv6: "github:ericlee42/ethers#metis"
+    ethersv6: "npm:ethers@^6.16.0"
     express: "npm:^4.17.1"
     express-prom-bundle: "npm:^6.3.6"
     hardhat: "npm:^2.3.0"
@@ -2808,7 +2808,7 @@ __metadata:
     eslint-plugin-prettier: "npm:^3.4.0"
     eslint-plugin-react: "npm:^7.24.0"
     eslint-plugin-unicorn: "npm:^32.0.1"
-    ethersv6: "github:ericlee42/ethers#metis"
+    ethersv6: "npm:ethers@^6.16.0"
     lint-staged: "npm:11.0.0"
     lodash: "npm:^4.17.21"
     merkletreejs: "npm:^0.2.32"
@@ -10342,9 +10342,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethersv6@github:ericlee42/ethers#metis":
-  version: 6.15.0
-  resolution: "ethersv6@https://github.com/ericlee42/ethers.git#commit=5f376edc77c815bf8c992c426bafc4faaad7876a"
+"ethersv6@npm:ethers@^6.16.0":
+  version: 6.16.0
+  resolution: "ethers@npm:6.16.0"
   dependencies:
     "@adraffy/ens-normalize": "npm:1.10.1"
     "@noble/curves": "npm:1.2.0"
@@ -10353,7 +10353,7 @@ __metadata:
     aes-js: "npm:4.0.0-beta.5"
     tslib: "npm:2.7.0"
     ws: "npm:8.17.1"
-  checksum: 10c0/3505e9c9ae3a9e3a4191c3131327b4adfa2f82bcb7ea5de1365e369d02195abb8efa4c04763407b3f3181309b437875af7a86509d37561360f4d15a9fc437bac
+  checksum: 10c0/65c0ff7016b1592b1961c3b68508902b89fc75e1ad025bab3a722df1b5699fd077551875a7285e65b2d0cfea9a85b2459bb84010a0fa4e4494d231848aee3a73
   languageName: node
   linkType: hard
 
@@ -15716,7 +15716,7 @@ __metadata:
     eslint-plugin-prettier: "npm:^3.4.0"
     eslint-plugin-react: "npm:^7.24.0"
     eslint-plugin-unicorn: "npm:^32.0.1"
-    ethersv6: "github:ericlee42/ethers#metis"
+    ethersv6: "npm:ethers@^6.16.0"
     lerna: "npm:^4.0.0"
     patch-package: "npm:^6.4.7"
     prettier: "npm:^2.3.1"
