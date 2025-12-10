@@ -109,8 +109,7 @@ export class L1BeaconClient {
       method: 'GET',
       params: params ?? undefined,
       validateStatus: () => true, // handle status manually below
-      paramsSerializer: (params) =>
-        qs.stringify(params, { arrayFormat: 'repeat' }),
+      paramsSerializer: (p) => qs.stringify(p, { arrayFormat: 'repeat' }),
     })
 
     // accept any 2xx as success
