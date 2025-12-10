@@ -15,7 +15,7 @@ describe('Decode Blob Transaction', function () {
 
   it('should decode blob data and restore transactions', async () => {
     const blob = new Blob(l1BlobData)
-    const frames = parseFrames(blob.resolve(), 0)
+    const frames = parseFrames(blob.toData(), 0)
 
     const channel = new Channel(hexlify(frames[0].id), frames[0].inclusionBlock)
     for (const item of frames) {

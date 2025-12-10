@@ -47,7 +47,7 @@ export class Blob {
     )}..${Buffer.from(this.data.slice(BlobSize - 3)).toString('hex')}`
   }
 
-  resolve(): Uint8Array {
+  toData(): Uint8Array {
     if (this.data[VersionOffset] !== EncodingVersion) {
       throw new Error(
         `Invalid encoding version, expected: ${EncodingVersion}, got: ${this.data[VersionOffset]}`

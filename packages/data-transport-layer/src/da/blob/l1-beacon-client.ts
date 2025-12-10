@@ -50,7 +50,7 @@ export class L1BeaconClient {
         )
       }
     }
-    return blobs.map((b) => b.resolve())
+    return blobs.map((b) => b.toData())
   }
 
   // retrieve blob sidecars from the beacon chain
