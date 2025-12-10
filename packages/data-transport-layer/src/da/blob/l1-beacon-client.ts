@@ -97,9 +97,9 @@ export class L1BeaconClient {
     }
   }
 
-  async getChainId(): Promise<string> {
+  async getChainId(): Promise<number> {
     const response = await this.beaconChainConfigPromise
-    return response.data.DEPOSIT_NETWORK_ID
+    return Number(response.data.DEPOSIT_NETWORK_ID)
   }
 
   private async request(

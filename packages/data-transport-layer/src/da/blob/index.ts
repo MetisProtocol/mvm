@@ -21,17 +21,15 @@ interface FetchBatchesConfig {
   concurrentRequests: number // concurrent requests number
   l2ChainId: number // l2 chain id
 
-  l1Rpc: string // l1 rpc url
-  l1Beacon: string // l1 beacon chain url
+  l1RpcProvider: ethers.JsonRpcProvider
+  l1BeaconProvider: L1BeaconClient
 }
 
 let chainIdHasChecked = false // whether chain id has been checked
 
 // fetch l2 batches from l1 chain
 export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
-  const l1RpcProvider = new ethers.JsonRpcProvider(fetchConf.l1Rpc)
-  const l1BeaconProvider = new L1BeaconClient(fetchConf.l1Beacon)
-
+  const { l1RpcProvider, l1BeaconProvider } = fetchConf
   if (!chainIdHasChecked) {
     const checkId = await l1BeaconProvider.getChainId()
     if (Number(checkId) !== fetchConf.chainId) {
@@ -128,13 +126,11 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
   }
 
   const channelMap: { [channelId: string]: Channel } = {}
-  const frameDataValidity: { [channelId: string]: boolean } = {}
 
   // process downloaded tx metadata
   for (const txMetadata of txsMetadata) {
     const framesData = txMetadata.frames
 
-    const invalidFrames = false
     for (const frameData of framesData) {
       const frame: Frame = {
         id: Buffer.from(frameData.id, 'hex'),
@@ -150,17 +146,9 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
       }
 
       // add frames to channel
-      try {
-        channelMap[channelId].addFrame(frame)
-        frameDataValidity[channelId] = true
-      } catch (e) {
-        frameDataValidity[channelId] = false
-      }
+      channelMap[channelId].addFrame(frame)
     }
 
-    if (invalidFrames) {
-      continue
-    }
     for (const channelId in channelMap) {
       if (!channelMap.hasOwnProperty(channelId)) {
         // ignore object prototype properties
@@ -182,21 +170,6 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
         }
       )
 
-      // short circuit if frame data is invalid
-      if (!frameDataValidity[channelId]) {
-        channelsMetadata.push({
-          id: channelId,
-          isReady: channel.isReady(),
-          invalidFrames: true,
-          invalidBatches: false,
-          frames: framesMetadata,
-          batches: [],
-          batchTypes: [],
-          comprAlgos: [],
-        })
-        continue
-      }
-
       if (!channel || !channel.isReady()) {
         continue
       }
@@ -207,37 +180,28 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
       const batches = []
       const batchTypes = []
       const comprAlgos = []
-      let invalidBatches = false
 
-      try {
-        // By default, this is after fjord, since we are directly upgrade to fjord,
-        // so no need to keep compatibility for old op versions
-        const readBatch = await batchReader(reader)
-        let batchData: BatchData | null
-        while ((batchData = await readBatch())) {
-          if (batchData.batchType === SpanBatchType) {
-            const spanBatch = batchData.inner as RawSpanBatch
-            batchData.inner = await spanBatch.derive(
-              ethers.toBigInt(fetchConf.l2ChainId)
-            )
-          }
-          batches.push(batchData.inner)
-          batchTypes.push(batchData.batchType)
-          if (batchData.comprAlgo) {
-            comprAlgos.push(batchData.comprAlgo)
-          }
+      // By default, this is after fjord, since we are directly upgrade to fjord,
+      // so no need to keep compatibility for old op versions
+      const readBatch = await batchReader(reader)
+      let batchData: BatchData | null
+      while ((batchData = await readBatch())) {
+        if (batchData.batchType === SpanBatchType) {
+          const spanBatch = batchData.inner as RawSpanBatch
+          batchData.inner = await spanBatch.derive(
+            ethers.toBigInt(fetchConf.l2ChainId)
+          )
         }
-      } catch (err) {
-        // mark batches as invalid
-        console.log(`Failed to read batches: ${err}`)
-        invalidBatches = true
+        batches.push(batchData.inner)
+        batchTypes.push(batchData.batchType)
+        if (batchData.comprAlgo) {
+          comprAlgos.push(batchData.comprAlgo)
+        }
       }
 
       const channelMetadata = {
         id: channelId,
         isReady: channel.isReady(),
-        invalidFrames: false,
-        invalidBatches,
         frames: framesMetadata,
         batches,
         batchTypes,

@@ -1,15 +1,15 @@
 /* Imports: External */
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
-import { LevelUp } from 'levelup'
 import level from 'level'
+import { LevelUp } from 'levelup'
 import { Counter } from 'prom-client'
 
 /* Imports: Internal */
-import { L1IngestionService } from '../l1-ingestion/service'
-import { L1TransportServer } from '../server/service'
-import { validators } from '../../utils'
-import { L2IngestionService } from '../l2-ingestion/service'
 import { TransportDBMapHolder } from '../../db/transport-db'
+import { validators } from '../../utils'
+import { L1IngestionService } from '../l1-ingestion/service'
+import { L2IngestionService } from '../l2-ingestion/service'
+import { L1TransportServer } from '../server/service'
 
 export interface L1DataTransportServiceOptions {
   nodeEnv: string
@@ -19,10 +19,10 @@ export interface L1DataTransportServiceOptions {
   confirmations: number
   dangerouslyCatchAllErrors?: boolean
   hostname: string
-  l1RpcProvider: string
-  l1BeaconProvider: string
+  l1RpcEndpoint: string
+  l1BeaconEndpoint: string
   l2ChainId: number
-  l2RpcProvider: string
+  l2RpcEndpoint: string
   metrics?: Metrics
   dbPath: string
   logsPerPollingInterval: number
