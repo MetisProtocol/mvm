@@ -315,12 +315,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         const highestSyncedL1BatchIndex =
           latestBatch === null ? -1 : latestBatch.index
 
-        this.logger.info('Synchronizing events from Layer 1 (Ethereum)', {
-          usingL2ChainId: this.options.l2ChainId,
-          latestBatch,
-          stateLatestBatch: await this.state.db.getLatestTransactionBatch(),
-        })
-
         const inboxAddress = this.options.batchInboxAddress
         const inboxBatchStart = this.options.batchInboxStartIndex
         const inboxSender = this.options.batchInboxSender
@@ -340,6 +334,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           this.state.startingL1BatchIndex <= highestSyncedL1BatchIndex + 1
 
         this.logger.info('Synchronizing events from Layer 1 (Ethereum)', {
+          latestBatch,
           highestSyncedL1Block,
           targetL1Block,
           highestSyncedL1BatchIndex,
