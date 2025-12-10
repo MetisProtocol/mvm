@@ -8,7 +8,34 @@ const VersionOffset = 1
 const Rounds = 1024
 
 export class Blob {
-  constructor(public readonly data: Uint8Array) {}
+  private readonly data: Uint8Array
+
+  constructor(hexString: string) {
+    if (hexString.startsWith('0x') || hexString.startsWith('0X')) {
+      hexString = hexString.slice(2)
+    }
+
+    if (hexString.length % 2 !== 0) {
+      throw new Error('Invalid hex string')
+    }
+
+    const buffer = new Uint8Array(hexString.length / 2)
+    for (let i = 0; i < hexString.length; i += 2) {
+      const byteValue = parseInt(hexString.substring(i, i + 2), 16)
+      if (isNaN(byteValue)) {
+        throw new Error('Invalid hex string')
+      }
+      buffer[i / 2] = byteValue
+    }
+
+    if (buffer.length !== BlobSize) {
+      throw new Error(
+        `Invalid blob size: expected ${BlobSize}, got ${buffer.length}`
+      )
+    }
+
+    this.data = buffer
+  }
 
   toString(): string {
     return Buffer.from(this.data).toString('hex')
@@ -20,7 +47,7 @@ export class Blob {
     )}..${Buffer.from(this.data.slice(BlobSize - 3)).toString('hex')}`
   }
 
-  toData(): Uint8Array {
+  resolve(): Uint8Array {
     if (this.data[VersionOffset] !== EncodingVersion) {
       throw new Error(
         `Invalid encoding version, expected: ${EncodingVersion}, got: ${this.data[VersionOffset]}`

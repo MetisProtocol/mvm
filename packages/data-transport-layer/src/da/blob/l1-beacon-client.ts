@@ -1,5 +1,4 @@
 import axios, { type AxiosInstance } from 'axios'
-import { ethers } from 'ethersv6'
 import qs from 'qs'
 import { Blob } from './blob'
 
@@ -40,7 +39,7 @@ export class L1BeaconClient {
     // calculate the beacon chain slot from the given timestamp
     const slot = (await this.getTimeToSlotFn())(timestamp)
     const data = await this.getBlobsByVerHashs(slot, indices)
-    const blobs = data.map((b) => new Blob(ethers.toBeArray(b)))
+    const blobs = data.map((b) => new Blob(b))
     // verify that the retrieved blobs match the requested versioned hashes
     for (const [index, blob] of blobs.entries()) {
       const versionedHash = blob.versionedHash()
@@ -51,7 +50,7 @@ export class L1BeaconClient {
         )
       }
     }
-    return blobs.map((b) => b.toData())
+    return blobs.map((b) => b.resolve())
   }
 
   // retrieve blob sidecars from the beacon chain

@@ -1,5 +1,5 @@
-import { parseFrames } from '../../../src/da/blob/frame'
-import { l1BlobData } from '../examples/l1-data'
+import { ethers, hexlify } from 'ethersv6'
+import { Blob } from '../../../src/da/blob/blob'
 import {
   BatchData,
   batchReader,
@@ -7,15 +7,15 @@ import {
   RawSpanBatch,
   SpanBatchType,
 } from '../../../src/da/blob/channel'
-import { Blob } from '../../../src/da/blob/blob'
-import { ethers, hexlify } from 'ethersv6'
+import { parseFrames } from '../../../src/da/blob/frame'
+import { l1BlobData } from '../examples/l1-data'
 
 describe('Decode Blob Transaction', function () {
   this.timeout(60000)
 
   it('should decode blob data and restore transactions', async () => {
     const blob = new Blob(l1BlobData)
-    const frames = parseFrames(blob.toData(), 0)
+    const frames = parseFrames(blob.resolve(), 0)
 
     const channel = new Channel(hexlify(frames[0].id), frames[0].inclusionBlock)
     for (const item of frames) {

@@ -803,7 +803,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   ): Promise<string> {
     const chainId = this.state.l1ChainId.toString()
     if (addressEvent[chainId]) {
-      this.logger.info(
+      this.logger.debug(
         `Reading from local ${contractName}, chainId is ${chainId}`
       )
       const addressDict = addressEvent[chainId]
@@ -816,7 +816,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         const addr = arr[i]
         if (blockNumber >= addr.Start) {
           findAddress = addr.Address
-          this.logger.info(
+          this.logger.debug(
             `Read cached contract address for ${contractName} from ${addr.Start} to ${blockNumber}, get ${findAddress}`
           )
           break
@@ -824,7 +824,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       }
       return findAddress
     }
-    this.logger.info(`Searching from RPC ${contractName}`)
+    this.logger.debug(`Searching from RPC ${contractName}`)
     const events = await this.state.contracts.Lib_AddressManager.queryFilter(
       this.state.contracts.Lib_AddressManager.filters.AddressSet(contractName),
       this.state.startingL1BlockNumber,
