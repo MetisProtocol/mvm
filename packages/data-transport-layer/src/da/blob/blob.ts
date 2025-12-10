@@ -1,35 +1,14 @@
+import { blobToKzgCommitment } from 'c-kzg'
+import { createHash } from 'crypto'
+
 const BlobSize = 4096 * 32
 const MaxBlobDataSize = (4 * 31 + 3) * 1024 - 4
 const EncodingVersion = 0
 const VersionOffset = 1
 const Rounds = 1024
 
-const hexStringToUint8Array = (hexString: string): Uint8Array => {
-  hexString = hexString.replace(/^0x/, '').replace(/\s/g, '')
-
-  if (hexString.length % 2 !== 0) {
-    throw new Error('Invalid hex string')
-  }
-
-  const arrayBuffer = new Uint8Array(hexString.length / 2)
-
-  for (let i = 0; i < hexString.length; i += 2) {
-    const byteValue = parseInt(hexString.substring(i, i + 2), 16)
-    if (isNaN(byteValue)) {
-      throw new Error('Invalid hex string')
-    }
-    arrayBuffer[i / 2] = byteValue
-  }
-
-  return arrayBuffer
-}
-
 export class Blob {
-  private readonly data: Uint8Array
-
-  constructor(hex: string) {
-    this.data = hexStringToUint8Array(hex)
-  }
+  constructor(public readonly data: Uint8Array) {}
 
   toString(): string {
     return Buffer.from(this.data).toString('hex')
@@ -98,6 +77,12 @@ export class Blob {
 
   clear(): void {
     this.data.fill(0)
+  }
+
+  versionedHash(): string {
+    const hasher = createHash('sha256')
+    hasher.update(blobToKzgCommitment(this.data))
+    return '0x01' + hasher.digest('hex').substring(2)
   }
 
   private decodeFieldElement(

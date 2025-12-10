@@ -1,8 +1,7 @@
 import axios, { type AxiosInstance } from 'axios'
-import { blobToKzgCommitment, type Blob as CBlob } from 'c-kzg'
-import { createHash } from 'crypto'
 import { ethers } from 'ethersv6'
 import qs from 'qs'
+import { Blob } from './blob'
 
 export class L1BeaconClient {
   private readonly http: AxiosInstance
@@ -41,17 +40,10 @@ export class L1BeaconClient {
     // calculate the beacon chain slot from the given timestamp
     const slot = (await this.getTimeToSlotFn())(timestamp)
     const data = await this.getBlobsByVerHashs(slot, indices)
-    const blobs = data.map((b) => ethers.toBeArray(b))
-    if (blobs.length !== indices.length) {
-      throw new Error(
-        `Expected ${indices.length} blobs, but got ${blobs.length}`
-      )
-    }
+    const blobs = data.map((b) => new Blob(ethers.toBeArray(b)))
     // verify that the retrieved blobs match the requested versioned hashes
     for (const [index, blob] of blobs.entries()) {
-      const hasher = createHash('sha256')
-      hasher.update(blobToKzgCommitment(blob as CBlob))
-      const versionedHash = '0x01' + hasher.digest('hex').substring(2)
+      const versionedHash = blob.versionedHash()
       const expectedIndex = indices[index]!.toLowerCase()
       if (versionedHash !== expectedIndex) {
         throw new Error(
@@ -59,7 +51,7 @@ export class L1BeaconClient {
         )
       }
     }
-    return blobs
+    return blobs.map((b) => b.toData())
   }
 
   // retrieve blob sidecars from the beacon chain
@@ -70,7 +62,20 @@ export class L1BeaconClient {
     const response = await this.request(`eth/v1/beacon/blobs/${slot}`, {
       versioned_hashes,
     })
-    return response.data
+    const res = response.data
+    if (!Array.isArray(res)) {
+      throw new Error(
+        `Invalid response for blobs at slot ${slot} with versioned_hashes ${versioned_hashes}: ${JSON.stringify(
+          res
+        )}`
+      )
+    }
+    if (res.length !== versioned_hashes.length) {
+      throw new Error(
+        `Blob count mismatch: expected ${versioned_hashes.length}, got ${res.length}`
+      )
+    }
+    return res
   }
 
   // calculate the slot number from a given timestamp

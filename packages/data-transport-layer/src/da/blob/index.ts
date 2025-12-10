@@ -75,7 +75,7 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
       continue
     }
 
-    const datas: Uint8Array[] = []
+    const frames: Frame[] = []
     if (tx.type !== BlobTxType) {
       // We are not processing old transactions those are using call data,
       // this should not happen.
@@ -100,18 +100,8 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
           `Blob count mismatch in tx ${tx.hash}: expected ${tx.blobVersionedHashes.length}, got ${blobs.length}`
         )
       }
-      datas.push(...blobs)
-    }
-
-    let frames: Frame[] = []
-    for (const data of datas) {
-      try {
-        // parse the frames from the blob data
-        const parsedFrames = parseFrames(data, receipt.blockNumber)
-        frames = frames.concat(parsedFrames)
-      } catch (err) {
-        // invalid frame data in the blob, stop and throw error
-        throw new Error(`Failed to parse frames: ${err}`)
+      for (const blob of blobs) {
+        frames.push(...parseFrames(blob, receipt.blockNumber))
       }
     }
 
