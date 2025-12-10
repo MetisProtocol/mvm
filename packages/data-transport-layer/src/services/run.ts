@@ -1,7 +1,8 @@
 /* Imports: External */
-import * as dotenv from 'dotenv'
 import { Bcfg } from '@metis.io/core-utils'
 import Config from 'bcfg'
+import { loadTrustedSetup } from 'c-kzg'
+import * as dotenv from 'dotenv'
 
 /* Imports: Internal */
 import { L1DataTransportService } from './main/service'
@@ -10,6 +11,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
 ;(async () => {
   try {
     dotenv.config()
+    loadTrustedSetup(0)
 
     const config: Bcfg = new Config('data-transport-layer')
     config.load({

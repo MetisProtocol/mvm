@@ -527,10 +527,11 @@ __metadata:
     "@types/levelup": "npm:^4.3.0"
     "@types/mocha": "npm:^8.2.2"
     "@types/node-fetch": "npm:^2.5.10"
+    "@types/qs": "npm:^6.14.0"
     "@types/workerpool": "npm:^6.0.0"
     "@typescript-eslint/eslint-plugin": "npm:^4.26.0"
     "@typescript-eslint/parser": "npm:^4.26.0"
-    axios: "npm:^0.21.1"
+    axios: "npm:^1.13.2"
     bcfg: "npm:^0.1.6"
     bfj: "npm:^7.0.2"
     browser-or-node: "npm:^1.3.0"
@@ -562,6 +563,7 @@ __metadata:
     pino-pretty: "npm:^4.7.1"
     prettier: "npm:^2.3.1"
     prom-client: "npm:^13.1.0"
+    qs: "npm:^6.14.0"
     rimraf: "npm:^3.0.2"
     rlp: "npm:^3.0.0"
     ts-node: "npm:^10.0.0"
@@ -4564,7 +4566,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/qs@npm:*, @types/qs@npm:^6.2.31, @types/qs@npm:^6.9.7":
+"@types/qs@npm:*, @types/qs@npm:^6.14.0, @types/qs@npm:^6.2.31, @types/qs@npm:^6.9.7":
   version: 6.14.0
   resolution: "@types/qs@npm:6.14.0"
   checksum: 10c0/5b3036df6e507483869cdb3858201b2e0b64b4793dc4974f188caa5b5732f2333ab9db45c08157975054d3b070788b35088b4bc60257ae263885016ee2131310
@@ -5706,6 +5708,17 @@ __metadata:
   dependencies:
     follow-redirects: "npm:^1.14.0"
   checksum: 10c0/fbcff55ec68f71f02d3773d467db2fcecdf04e749826c82c2427a232f9eba63242150a05f15af9ef15818352b814257541155de0281f8fb2b7e8a5b79f7f2142
+  languageName: node
+  linkType: hard
+
+"axios@npm:^1.13.2":
+  version: 1.13.2
+  resolution: "axios@npm:1.13.2"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.4"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10c0/e8a42e37e5568ae9c7a28c348db0e8cf3e43d06fcbef73f0048669edfe4f71219664da7b6cc991b0c0f01c28a48f037c515263cb79be1f1ae8ff034cd813867b
   languageName: node
   linkType: hard
 
@@ -17817,7 +17830,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.11.0, qs@npm:^6.12.3, qs@npm:^6.4.0, qs@npm:^6.9.4":
+"qs@npm:^6.11.0, qs@npm:^6.12.3, qs@npm:^6.14.0, qs@npm:^6.4.0, qs@npm:^6.9.4":
   version: 6.14.0
   resolution: "qs@npm:6.14.0"
   dependencies:
