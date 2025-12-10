@@ -781,7 +781,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             db = await this.options.dbs.getTransportDbByChainId(chainId)
           }
 
-          this.logger.info('Storing Event:', {
+          this.logger.debug('Storing Event:', {
             chainId,
             parsedEvent,
           })
