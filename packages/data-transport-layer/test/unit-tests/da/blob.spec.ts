@@ -1,5 +1,5 @@
-import { ethers, hexlify } from 'ethersv6'
-import { Blob } from '../../../src/da/blob/blob'
+import { parseFrames } from '../../../src/da/blob/frame'
+import { l1BlobData } from '../examples/l1-data'
 import {
   BatchData,
   batchReader,
@@ -7,8 +7,8 @@ import {
   RawSpanBatch,
   SpanBatchType,
 } from '../../../src/da/blob/channel'
-import { parseFrames } from '../../../src/da/blob/frame'
-import { l1BlobData } from '../examples/l1-data'
+import { Blob } from '../../../src/da/blob/blob'
+import { ethers, hexlify } from 'ethersv6'
 
 describe('Decode Blob Transaction', function () {
   this.timeout(60000)
