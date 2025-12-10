@@ -7,7 +7,7 @@ import { BlobLike } from '../da/types'
 
 const INBOX_OK_FILE = 'inbox_ok.json'
 const INBOX_FAIL_FILE = 'inbox_fail.json'
-const STEPS_FILE = 'steps.json'
+const STEPS_FILE = 'inbox_blobs.json'
 
 export interface InboxRecordInfo {
   batchIndex: number | bigint
