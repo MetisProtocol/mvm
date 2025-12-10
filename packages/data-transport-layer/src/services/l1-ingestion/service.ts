@@ -524,6 +524,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     toL1Block: number,
     handlers: EventHandlerSetAny<any, any>
   ): Promise<void> {
+    this.logger.info('syncInboxBatch', {
+      fromL1Block,
+      toL1Block,
+    })
+
     const blockPromises = []
     for (let i = fromL1Block; i <= toL1Block; i++) {
       blockPromises.push(this.state.l1RpcProvider.getBlock(i, true))
@@ -531,10 +536,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     // Just making sure that the blocks will come back in increasing order.
     const blocks = (await Promise.all(blockPromises)) as Block[]
-    this.logger.info('_syncInboxBatch get blocks', {
-      fromL1Block,
-      toL1Block,
-    })
 
     const extraMap: Record<number, any> = {}
     for (const block of blocks) {
