@@ -1,25 +1,25 @@
 /* Imports: External */
-import { LevelUp } from 'levelup'
 import level from 'level'
+import { LevelUp } from 'levelup'
 // 1088 patch only
 import patch01 from './patch-01'
 /* Imports: Internal */
+import { toBigInt, toNumber } from 'ethersv6'
 import {
+  AppendBatchElementEntry,
+  BlockEntry,
   EnqueueEntry,
+  InboxSenderSetEntry,
+  SenderType,
   StateRootBatchEntry,
   StateRootEntry,
   TransactionBatchEntry,
   TransactionEntry,
+  Upgrades,
   VerifierResultEntry,
   VerifierStakeEntry,
-  AppendBatchElementEntry,
-  BlockEntry,
-  InboxSenderSetEntry,
-  SenderType,
-  Upgrades,
 } from '../types/database-types'
 import { SimpleDB } from './simple-db'
-import { toBigInt, toNumber } from 'ethersv6'
 
 const TRANSPORT_DB_KEYS = {
   ENQUEUE: `enqueue`,
@@ -572,11 +572,7 @@ export class TransportDB {
         transaction.timestamp = patch01[txBlockNumber][1]
       }
       if (transaction.queueOrigin === 'l1') {
-        // Andromeda failed 20397 queue, skip one for verifier batch only
-        let queueIndex = transaction.queueIndex
-        if (queueIndex >= 20397) {
-          queueIndex++
-        }
+        const queueIndex = transaction.queueIndex
         const enqueue = await this.getEnqueueByIndex(queueIndex)
         if (enqueue === null) {
           return null
