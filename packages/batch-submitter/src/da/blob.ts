@@ -1,6 +1,5 @@
 import {
   blobToKzgCommitment,
-  Blob as CBlob,
   computeCellsAndKzgProofs,
   KZGCommitment,
   KZGProof,
@@ -151,10 +150,14 @@ export class Blob {
       )
     }
 
-    this.commitment.set(blobToKzgCommitment(this.data as CBlob))
-    this.proof.set(
-      Buffer.concat(computeCellsAndKzgProofs(this.data as CBlob)[1])
-    )
+    this.commitment.set(blobToKzgCommitment(this.data))
+    const proofs = Buffer.concat(computeCellsAndKzgProofs(this.data)[1])
+    if (proofs.length !== this.proof.length) {
+      throw new Error(
+        `Invalid proof length: expected ${this.proof.length}, got ${proofs.length}`
+      )
+    }
+    this.proof.set(proofs)
     this.versionedHash = Blob.kzgToVersionedHash(this.commitment)
 
     return this
