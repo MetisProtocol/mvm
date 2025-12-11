@@ -66,6 +66,17 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
     if (!tx || tx.hash !== blobTxHash) {
       throw new Error(`Transaction ${blobTxHash} not found in block`)
     }
+    if (tx.type !== BlobTxType) {
+      // We are not processing old transactions those are using call data,
+      // this should not happen.
+      throw new Error(
+        `Found inbox transaction ${tx.hash} that is not using blob, ignore`
+      )
+    }
+    // no blob in this blob tx
+    if (!tx.blobVersionedHashes || tx.blobVersionedHashes.length === 0) {
+      throw new Error(`No blobVersionedHashes found in transaction ${tx.hash}`)
+    }
 
     // only process the blob tx hash recorded in the commitment
     const sender = tx.from
@@ -74,20 +85,7 @@ export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
     }
 
     const frames: Frame[] = []
-    if (tx.type !== BlobTxType) {
-      // We are not processing old transactions those are using call data,
-      // this should not happen.
-      throw new Error(
-        `Found inbox transaction ${tx.hash} that is not using blob, ignore`
-      )
-    } else {
-      if (!tx.blobVersionedHashes || tx.blobVersionedHashes.length === 0) {
-        // no blob in this blob tx
-        throw new Error(
-          `No blobVersionedHashes found in transaction ${tx.hash}`
-        )
-      }
-
+    {
       // fetch blob data from beacon chain
       const blobs = await l1BeaconProvider.getBlobs(
         block.timestamp,
