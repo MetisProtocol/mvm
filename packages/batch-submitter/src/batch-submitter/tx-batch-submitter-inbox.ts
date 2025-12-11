@@ -12,7 +12,6 @@ import {
   zlibCompressHexString,
 } from '@metis.io/core-utils'
 import { Promise as bPromise } from 'bluebird'
-import * as kzg from 'c-kzg'
 import {
   ethers,
   Provider,
@@ -20,7 +19,6 @@ import {
   toBeHex,
   toBigInt,
   TransactionReceipt,
-  TransactionRequest,
 } from 'ethersv6'
 
 /* Internal Imports */
@@ -146,7 +144,6 @@ export class TransactionBatchSubmitterInbox {
     }
     metrics.numTxPerBatch.observe(endBlock - startBlock)
     this.logger.info('Submitting batch to inbox', {
-      meta: batchParams.inputMeta,
       useBlob,
       blobTxes: batchParams.blobTxData.length,
       batchSizeInBytes,
@@ -157,7 +154,7 @@ export class TransactionBatchSubmitterInbox {
       nextBatchIndex,
       {
         input: batchParams.inputData,
-        blobs: batchParams.blobTxData.map((tx) => tx.blobs.map((b) => b.data)),
+        blobs: batchParams.blobTxData.map((tx) => tx.blobs),
         txHashes: [],
       },
       signer,
@@ -197,7 +194,7 @@ export class TransactionBatchSubmitterInbox {
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
     const { chainId } = await signer.provider.getNetwork()
-    const inboxTx: TransactionRequest = {
+    const inboxTx: ethers.TransactionLike = {
       type: 2,
       chainId,
       to: this.inboxAddress,
@@ -244,7 +241,7 @@ export class TransactionBatchSubmitterInbox {
           continue
         }
 
-        const blobTx: ethers.TransactionRequest = {
+        const blobTx: ethers.TransactionLike = {
           type: 3, // 3 for blob tx type
           to: this.inboxAddress,
           // since we are using blob tx, call data will be empty,
@@ -253,7 +250,7 @@ export class TransactionBatchSubmitterInbox {
           chainId,
           nonce: await signer.provider.getTransactionCount(signerAddress),
           blobs,
-          blobVersion: 1, // Osaka is enabled on all the chains
+          blobWrapperVersion: 1, // Osaka is enabled on all the chains
         }
 
         const replaced = await setTxEIP1559Fees(
@@ -285,9 +282,8 @@ export class TransactionBatchSubmitterInbox {
 
                   // need to append the blob sidecar to the signed tx
                   const signedTxUnmarshaled = ethers.Transaction.from(signedTx)
-                  signedTxUnmarshaled.type = 3
-                  signedTxUnmarshaled.kzg = kzg
-                  signedTxUnmarshaled.blobVersion = blobTx.blobVersion
+                  signedTxUnmarshaled.blobWrapperVersion =
+                    blobTx.blobWrapperVersion
                   signedTxUnmarshaled.blobs = blobTx.blobs
                   // repack the tx
                   return signedTxUnmarshaled.serialized
@@ -661,13 +657,6 @@ export class TransactionBatchSubmitterInbox {
 
     encoded = `${da}${compressType}${batchIndex}${l2Start}${totalElements}${compressedEncoded}`
     return {
-      inputMeta: {
-        da,
-        compressType,
-        batchIndex,
-        l2Start,
-        totalElements,
-      },
       inputData: encoded,
       batch: blocks,
       blobTxData,

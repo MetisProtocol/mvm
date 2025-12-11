@@ -323,7 +323,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       if (!mpcInfo || !mpcInfo.mpc_address) {
         throw new Error('MPC 1 info get failed')
       }
-      const txUnsign: ethers.TransactionRequest = {
+      const txUnsign: ethers.TransactionLike = {
         type: 2,
         to: tx.to,
         data: tx.data,

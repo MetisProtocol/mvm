@@ -1,12 +1,13 @@
 /* Imports: External */
 import { Logger } from '@eth-optimism/common-ts'
-import { BytesLike, toNumber } from 'ethersv6'
+import { toNumber } from 'ethersv6'
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import { BlobLike } from '../da/types'
 
 const INBOX_OK_FILE = 'inbox_ok.json'
 const INBOX_FAIL_FILE = 'inbox_fail.json'
-const STEPS_FILE = 'steps.json'
+const STEPS_FILE = 'inbox_blobs.json'
 
 export interface InboxRecordInfo {
   batchIndex: number | bigint
@@ -16,7 +17,7 @@ export interface InboxRecordInfo {
 
 export interface InboxSteps {
   input: string // the inbox tx data input
-  blobs: Array<Array<BytesLike>> // array of blob tx data
+  blobs: Array<Array<BlobLike>> // array of blob tx data
   txHashes: Array<string> // blob tx hashes + inbox tx hash
 }
 
@@ -75,15 +76,25 @@ export class InboxStorage {
   }
 
   public async insertStep(jsonData: InboxSteps) {
-    const data = {
+    const data: InboxSteps = {
       input: jsonData.input,
       txHashes: jsonData.txHashes,
       blobs: jsonData.blobs.map((blobArray) =>
         blobArray.map((blob) => {
-          if (typeof blob === 'string') {
-            return blob
+          return {
+            data:
+              typeof blob.data === 'string'
+                ? blob.data
+                : '0x' + Buffer.from(blob.data).toString('hex'),
+            proof:
+              typeof blob.proof === 'string'
+                ? blob.proof
+                : '0x' + Buffer.from(blob.proof).toString('hex'),
+            commitment:
+              typeof blob.commitment === 'string'
+                ? blob.commitment
+                : '0x' + Buffer.from(blob.commitment).toString('hex'),
           }
-          return '0x' + Buffer.from(blob).toString('hex')
         })
       ),
     }
@@ -97,8 +108,15 @@ export class InboxStorage {
     if (!(await this.fileExists(filePath))) {
       return null
     }
-    const data = await fs.readFile(filePath, 'utf-8')
-    return JSON.parse(data)
+    const raw = await fs.readFile(filePath, 'utf-8')
+    const parsed: InboxSteps = JSON.parse(raw)
+    if (!Array.isArray(parsed.blobs)) {
+      throw new Error('Invalid steps file format: blobs is not an array')
+    }
+    if (!Array.isArray(parsed.txHashes)) {
+      throw new Error('Invalid steps file format: txHashes is not an array')
+    }
+    return parsed
   }
 
   private async fileExists(filePath) {

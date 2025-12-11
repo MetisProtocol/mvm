@@ -1,15 +1,16 @@
 // channel.ts
+import { Logger } from '@eth-optimism/common-ts'
 import { ethers } from 'ethersv6'
+import { Blob } from './blob'
 import { ChannelBuilder } from './channel-builder'
 import {
   BatchToInboxElement,
+  BlobLike,
   ChannelConfig,
   Frame,
   RollupConfig,
   TxData,
 } from './types'
-import { Blob } from './blob'
-import { Logger } from '@eth-optimism/common-ts'
 
 export class Channel {
   private channelBuilder: ChannelBuilder
@@ -82,8 +83,15 @@ export class Channel {
         return sb
       },
 
-      get blobs(): Blob[] {
-        return this.frames.map((f: Frame) => new Blob().fromFrame(f))
+      get blobs(): BlobLike[] {
+        return this.frames.map((f: Frame) => {
+          const blob = new Blob().fromFrame(f)
+          return {
+            data: blob.data,
+            proof: blob.proof,
+            commitment: blob.commitment,
+          }
+        })
       },
     }
     this.pendingTransactions.set(txData.id, txData)

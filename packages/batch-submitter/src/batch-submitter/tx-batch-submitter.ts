@@ -581,7 +581,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     //     this.encodeSequencerBatchOptions
     //   )
     // unsigned tx
-    const tx: ethers.TransactionRequest = {
+    const tx: ethers.TransactionLike = {
       to: this.useMinio
         ? await this.mvmCtcContract.getAddress()
         : await this.chainContract.getAddress(),

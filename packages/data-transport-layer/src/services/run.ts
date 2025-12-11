@@ -1,7 +1,8 @@
 /* Imports: External */
-import * as dotenv from 'dotenv'
 import { Bcfg } from '@metis.io/core-utils'
 import Config from 'bcfg'
+import { loadTrustedSetup } from 'c-kzg'
+import * as dotenv from 'dotenv'
 
 /* Imports: Internal */
 import { L1DataTransportService } from './main/service'
@@ -10,6 +11,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
 ;(async () => {
   try {
     dotenv.config()
+    loadTrustedSetup(0)
 
     const config: Bcfg = new Config('data-transport-layer')
     config.load({
@@ -25,7 +27,7 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
       port: config.uint('server-port', 7878),
       hostname: config.str('server-hostname', 'localhost'),
       confirmations: config.uint('confirmations', 35),
-      l1RpcProvider: config.str('l1-rpc-endpoint'),
+      l1RpcEndpoint: config.str('l1-rpc-endpoint'),
       addressManager: config.str('address-manager'),
       pollingInterval: config.uint('polling-interval', 5000),
       logsPerPollingInterval: config.uint('logs-per-polling-interval', 2000),
@@ -33,8 +35,8 @@ type ethNetwork = 'mainnet' | 'kovan' | 'goerli'
         'dangerously-catch-all-errors',
         false
       ),
-      l1BeaconProvider: config.str('l1-beacon-endpoint'),
-      l2RpcProvider: config.str('l2-rpc-endpoint'),
+      l1BeaconEndpoint: config.str('l1-beacon-endpoint'),
+      l2RpcEndpoint: config.str('l2-rpc-endpoint'),
       l2ChainId: config.uint('l2-chain-id'),
       syncFromL1: config.bool('sync-from-l1', true),
       syncFromL2: config.bool('sync-from-l2', false),

@@ -1,6 +1,6 @@
 /* Imports: External */
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
-import { FallbackProvider, fromHexString } from '@metis.io/core-utils'
+import { fromHexString } from '@metis.io/core-utils'
 import {
   Block,
   ethers,
@@ -13,6 +13,7 @@ import { LevelUp } from 'levelup'
 import { Counter, Gauge } from 'prom-client'
 
 /* Imports: Internal */
+import { L1BeaconClient } from '../../da/blob/l1-beacon-client'
 import {
   TransportDB,
   TransportDBMap,
@@ -122,6 +123,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     dbOfL2: TransportDB
     contracts: OptimismContracts
     l1RpcProvider: Provider
+    l1BeaconProvider: L1BeaconClient
     l1ChainId: number
     startingL1BlockNumber: number
     startingL1BatchIndex: number
@@ -143,28 +145,31 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     this.state.dbs = {}
     this.l1IngestionMetrics = registerMetrics(this.metrics)
 
-    if (typeof this.options.l1RpcProvider === 'string') {
-      // FIXME: ethers v6's fallback provider has a bug that it will lost the prefetched transaction data while
-      //        converting the json rpc data to ethers transaction object, so we will only enable it when we configured
-      //        multiple rpc providers, but this will cause a significant performance downgrade. Because we need to fetch
-      //        the transactions one by one.
-      if (this.options.l1RpcProvider.indexOf(',') >= 0) {
-        this.logger.info('Using FallbackProvider for L1 RPC Provider')
-        this.state.l1RpcProvider = FallbackProvider(this.options.l1RpcProvider)
-      } else {
-        this.state.l1RpcProvider = new ethers.JsonRpcProvider(
-          this.options.l1RpcProvider
-        )
-      }
-    } else {
-      this.state.l1RpcProvider = this.options.l1RpcProvider
-    }
+    this.state.l1RpcProvider = new ethers.JsonRpcProvider(
+      this.options.l1RpcEndpoint
+    )
 
     const network = await this.state.l1RpcProvider.getNetwork()
     this.state.l1ChainId = toNumber(network.chainId)
     this.logger.info('Using L1 RPC Provider', {
       l1ChainId: this.state.l1ChainId,
+      l1RpcEndpoint: this.options.l1RpcEndpoint,
     })
+
+    console.log(
+      'Initializing L1 Beacon Client...',
+      this.options.l1BeaconEndpoint
+    )
+    this.state.l1BeaconProvider = new L1BeaconClient(
+      this.options.l1BeaconEndpoint
+    )
+
+    const l1BeaconChainId = await this.state.l1BeaconProvider.getChainId()
+    if (l1BeaconChainId !== this.state.l1ChainId) {
+      throw new Error(
+        `Chain ID mismatch: Beacon ${l1BeaconChainId} !== L1 RPC ${this.state.l1ChainId}`
+      )
+    }
 
     this.logger.info('Using AddressManager', {
       addressManager: this.options.addressManager,
@@ -310,12 +315,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         const highestSyncedL1BatchIndex =
           latestBatch === null ? -1 : latestBatch.index
 
-        this.logger.info('Synchronizing events from Layer 1 (Ethereum)', {
-          usingL2ChainId: this.options.l2ChainId,
-          latestBatch,
-          stateLatestBatch: await this.state.db.getLatestTransactionBatch(),
-        })
-
         const inboxAddress = this.options.batchInboxAddress
         const inboxBatchStart = this.options.batchInboxStartIndex
         const inboxSender = this.options.batchInboxSender
@@ -335,6 +334,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           this.state.startingL1BatchIndex <= highestSyncedL1BatchIndex + 1
 
         this.logger.info('Synchronizing events from Layer 1 (Ethereum)', {
+          latestBatch,
           highestSyncedL1Block,
           targetL1Block,
           highestSyncedL1BatchIndex,
@@ -524,6 +524,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     toL1Block: number,
     handlers: EventHandlerSetAny<any, any>
   ): Promise<void> {
+    this.logger.info('syncInboxBatch', {
+      fromL1Block,
+      toL1Block,
+    })
+
     const blockPromises = []
     for (let i = fromL1Block; i <= toL1Block; i++) {
       blockPromises.push(this.state.l1RpcProvider.getBlock(i, true))
@@ -531,10 +536,6 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
 
     // Just making sure that the blocks will come back in increasing order.
     const blocks = (await Promise.all(blockPromises)) as Block[]
-    this.logger.info('_syncInboxBatch get blocks', {
-      fromL1Block,
-      toL1Block,
-    })
 
     const extraMap: Record<number, any> = {}
     for (const block of blocks) {
@@ -652,7 +653,11 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
           extraData,
           this.options.l2ChainId,
           this.state.l1ChainId,
-          this.options
+          {
+            ...this.options,
+            l1RpcProvider: this.state.l1RpcProvider,
+            l1BeaconProvider: this.state.l1BeaconProvider,
+          }
         )
         this.logger.info('Storing Inbox Batch:', {
           chainId: this.options.l2ChainId,
@@ -772,7 +777,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             db = await this.options.dbs.getTransportDbByChainId(chainId)
           }
 
-          this.logger.info('Storing Event:', {
+          this.logger.debug('Storing Event:', {
             chainId,
             parsedEvent,
           })
@@ -803,7 +808,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
   ): Promise<string> {
     const chainId = this.state.l1ChainId.toString()
     if (addressEvent[chainId]) {
-      this.logger.info(
+      this.logger.debug(
         `Reading from local ${contractName}, chainId is ${chainId}`
       )
       const addressDict = addressEvent[chainId]
@@ -816,7 +821,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
         const addr = arr[i]
         if (blockNumber >= addr.Start) {
           findAddress = addr.Address
-          this.logger.info(
+          this.logger.debug(
             `Read cached contract address for ${contractName} from ${addr.Start} to ${blockNumber}, get ${findAddress}`
           )
           break
@@ -824,7 +829,7 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
       }
       return findAddress
     }
-    this.logger.info(`Searching from RPC ${contractName}`)
+    this.logger.debug(`Searching from RPC ${contractName}`)
     const events = await this.state.contracts.Lib_AddressManager.queryFilter(
       this.state.contracts.Lib_AddressManager.filters.AddressSet(contractName),
       this.state.startingL1BlockNumber,

@@ -1,6 +1,5 @@
 // types.ts
 import { BytesLike, ethers, getBytes } from 'ethersv6'
-import { Blob } from './blob'
 
 export interface RollupConfig {
   l1ChainID: bigint
@@ -49,12 +48,18 @@ export interface Frame {
   isLast: boolean
 }
 
+export type BlobLike = {
+  data: BytesLike
+  proof: BytesLike
+  commitment: BytesLike
+}
+
 export interface TxData {
   frames: Frame[]
   asBlob: boolean
 
   get id(): string
-  get blobs(): Blob[]
+  get blobs(): BlobLike[]
 }
 
 export interface L1BlockInfo {
@@ -153,18 +158,10 @@ export interface BatchToInboxElement {
   extraData: string
   txs: BatchToInboxRawTx[]
 }
+
 export declare type BatchToInbox = BatchToInboxElement[]
 
-export interface InboxInputMeta {
-  da: string
-  compressType: string
-  batchIndex: string
-  l2Start: string
-  totalElements: string
-}
-
 export interface InboxBatchParams {
-  inputMeta: InboxInputMeta
   inputData: string
   batch: BatchToInbox
   blobTxData: TxData[]

@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from 'axios'
+import axios, { type AxiosInstance } from 'axios'
+import qs from 'qs'
 import { Blob } from './blob'
 
 export class L1BeaconClient {
@@ -7,7 +8,7 @@ export class L1BeaconClient {
   public readonly beaconChainGenesisPromise: Promise<any>
   public readonly beaconChainConfigPromise: Promise<any>
 
-  constructor(endpoint: string) {
+  constructor(endpoint: string, timeoutMs: number = 30000) {
     const parsed = new URL(endpoint)
 
     // extract baseURL (origin + pathname, trim trailing slash)
@@ -20,6 +21,7 @@ export class L1BeaconClient {
     const defaultParams = Object.fromEntries(parsed.searchParams)
     this.http = axios.create({
       baseURL,
+      timeout: timeoutMs,
       params: defaultParams,
     })
 
@@ -33,27 +35,46 @@ export class L1BeaconClient {
   }
 
   // retrieve blobs from the beacon chain
-  async getBlobs(timestamp: number, indices: number[]): Promise<any[]> {
+  async getBlobs(timestamp: number, indices: string[]): Promise<Uint8Array[]> {
     // calculate the beacon chain slot from the given timestamp
     const slot = (await this.getTimeToSlotFn())(timestamp)
-    const sidecars = await this.getBlobSidecars(slot, indices)
-    const blobs = sidecars.map((sidecar: any) => {
-      const blob = new Blob(sidecar.blob)
-      return {
-        data: blob.toData(),
-        kzgCommitment: sidecar.kzg_commitment,
-        kzgProof: sidecar.kzg_proof,
+    const data = await this.getBlobsByVerHashs(slot, indices)
+    const blobs = data.map((b) => new Blob(b))
+    // verify that the retrieved blobs match the requested versioned hashes
+    for (const [index, blob] of blobs.entries()) {
+      const versionedHash = blob.versionedHash()
+      const expectedIndex = indices[index]!.toLowerCase()
+      if (versionedHash !== expectedIndex) {
+        throw new Error(
+          `Blob at index ${index} has invalid versioned hash. Expected ${expectedIndex}, got ${versionedHash}`
+        )
       }
-    })
-    return blobs
+    }
+    return blobs.map((b) => b.toData())
   }
 
   // retrieve blob sidecars from the beacon chain
-  async getBlobSidecars(slot: number, indices: number[]): Promise<any[]> {
-    const response = await this.request(`eth/v1/beacon/blob_sidecars/${slot}`, {
-      indices: indices.join(','),
+  async getBlobsByVerHashs(
+    slot: number,
+    versioned_hashes: string[]
+  ): Promise<string[]> {
+    const response = await this.request(`eth/v1/beacon/blobs/${slot}`, {
+      versioned_hashes,
     })
-    return response.data
+    const res = response.data
+    if (!Array.isArray(res)) {
+      throw new Error(
+        `Invalid response for blobs at slot ${slot} with versioned_hashes ${versioned_hashes}: ${JSON.stringify(
+          res
+        )}`
+      )
+    }
+    if (res.length !== versioned_hashes.length) {
+      throw new Error(
+        `Blob count mismatch: expected ${versioned_hashes.length}, got ${res.length}`
+      )
+    }
+    return res
   }
 
   // calculate the slot number from a given timestamp
@@ -76,9 +97,9 @@ export class L1BeaconClient {
     }
   }
 
-  async getChainId(): Promise<string> {
+  async getChainId(): Promise<number> {
     const response = await this.beaconChainConfigPromise
-    return response.data.DEPOSIT_NETWORK_ID
+    return Number(response.data.DEPOSIT_NETWORK_ID)
   }
 
   private async request(
@@ -92,6 +113,7 @@ export class L1BeaconClient {
       method: 'GET',
       params: params ?? undefined,
       validateStatus: () => true, // handle status manually below
+      paramsSerializer: (p) => qs.stringify(p, { arrayFormat: 'repeat' }),
     })
 
     // accept any 2xx as success

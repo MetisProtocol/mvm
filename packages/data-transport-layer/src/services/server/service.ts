@@ -1,34 +1,31 @@
 /* Imports: External */
 import { BaseService, Logger, Metrics } from '@eth-optimism/common-ts'
-import express, { Request, Response } from 'express'
-import promBundle from 'express-prom-bundle'
-import cors from 'cors'
-import { LevelUp } from 'levelup'
 import * as Sentry from '@sentry/node'
 import * as Tracing from '@sentry/tracing'
-import { toBigInt, toNumber, JsonRpcProvider, Block } from 'ethersv6'
+import cors from 'cors'
+import { JsonRpcProvider, toBigInt, toNumber } from 'ethersv6'
+import express, { Request, Response } from 'express'
+import promBundle from 'express-prom-bundle'
+import { LevelUp } from 'levelup'
 
 /* Imports: Internal */
 import { TransportDB, TransportDBMapHolder } from '../../db/transport-db'
 import {
+  AppendBatchElementResponse,
+  BlockBatchResponse,
+  BlockResponse,
   ContextResponse,
-  GasPriceResponse,
   EnqueueResponse,
+  GasPriceResponse,
+  HighestResponse,
   StateRootBatchResponse,
   StateRootResponse,
   SyncingResponse,
   TransactionBatchResponse,
   TransactionResponse,
-  BlockBatchResponse,
-  BlockResponse,
-  VerifierResultResponse,
   VerifierResultEntry,
+  VerifierResultResponse,
   VerifierStakeResponse,
-  AppendBatchElementResponse,
-  HighestResponse,
-  SyncStatusResponse,
-  L1BlockRef,
-  L2BlockRef,
 } from '../../types'
 import { validators } from '../../utils'
 import { L1DataTransportServiceOptions } from '../main/service'
@@ -101,15 +98,8 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       this.options.db,
       this.options.l2ChainId === 1088
     )
-    this.state.l1RpcProvider =
-      typeof this.options.l1RpcProvider === 'string'
-        ? new JsonRpcProvider(this.options.l1RpcProvider)
-        : this.options.l1RpcProvider
-
-    this.state.l2RpcProvider =
-      typeof this.options.l2RpcProvider === 'string'
-        ? new JsonRpcProvider(this.options.l2RpcProvider)
-        : this.options.l2RpcProvider
+    this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
+    this.state.l2RpcProvider = new JsonRpcProvider(this.options.l2RpcEndpoint)
 
     this._initializeApp()
   }

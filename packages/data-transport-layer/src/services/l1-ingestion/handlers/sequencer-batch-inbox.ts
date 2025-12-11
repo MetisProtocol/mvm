@@ -23,7 +23,7 @@ import {
   TransactionEntry,
 } from '../../../types'
 import { parseSignatureVParam, SEQUENCER_GAS_LIMIT } from '../../../utils'
-import { BlobDataExpiredError, MissingElementError } from './errors'
+import { MissingElementError } from './errors'
 
 export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
   SequencerBatchAppendedExtraData,
@@ -96,7 +96,7 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
     const da = toNumber(calldata.subarray(0, 1))
     const compressType = toNumber(calldata.subarray(1, 2))
     let contextData = calldata.subarray(70)
-    let channels = []
+    const channels = []
     // da first
     if (da === 1) {
       const storageObject = remove0x(toHexString(contextData))
@@ -143,38 +143,20 @@ export const handleEventsSequencerBatchInbox: EventHandlerSetAny<
         blobTxHashes.push(ethers.hexlify(contextData.subarray(i, i + 32)))
       }
 
-      try {
-        channels = channels.concat(
-          await fetchBatches({
-            blobTxHashes,
-            chainId: toNumber(l1ChainId),
-            batchInbox: options.batchInboxAddress,
-            batchSenders:
-              extraData.context && extraData.context.inboxBlobSenderAddress
-                ? [extraData.context.inboxBlobSenderAddress.toLowerCase()]
-                : [],
-            concurrentRequests: 0,
-            l1Rpc: options.l1RpcProvider,
-            l1Beacon: options.l1BeaconProvider,
-            l2ChainId: options.l2ChainId,
-          })
-        )
-      } catch (e) {
-        if (e instanceof BlobDataExpiredError) {
-          // if blob data has already expired, we must recover from a snapshot
-          console.error(
-            `Blob data has already expired, please recover from a most recent snapshot, error: ${e}`
-          )
-          process.exit(1)
-        }
-        throw e
-      }
-
-      for (const channel of channels) {
-        if (channel.invalidBatches || channel.invalidFrames) {
-          throw new Error(`Invalid batches found: ${channel.id}`)
-        }
-      }
+      const result = await fetchBatches({
+        blobTxHashes,
+        chainId: toNumber(l1ChainId),
+        l2ChainId: options.l2ChainId,
+        batchInbox: options.batchInboxAddress,
+        batchSenders:
+          extraData.context && extraData.context.inboxBlobSenderAddress
+            ? [extraData.context.inboxBlobSenderAddress.toLowerCase()]
+            : [],
+        concurrentRequests: 0,
+        l1RpcProvider: options.l1RpcProvider,
+        l1BeaconProvider: options.l1BeaconProvider,
+      })
+      channels.push(...result)
     }
     if (compressType === 11) {
       contextData = await zlibDecompress(contextData)

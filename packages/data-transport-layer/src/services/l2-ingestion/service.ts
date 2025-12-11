@@ -1,17 +1,17 @@
 /* Imports: External */
 import { BaseService, Metrics } from '@eth-optimism/common-ts'
-import { LevelUp } from 'levelup'
 import axios from 'axios'
 import bfj from 'bfj'
-import { Gauge } from 'prom-client'
+import { JsonRpcProvider, toNumber } from 'ethersv6'
+import { LevelUp } from 'levelup'
 import path from 'path'
-import { toNumber, JsonRpcProvider } from 'ethersv6'
+import { Gauge } from 'prom-client'
 
 /* Imports: Internal */
 import {
   TransportDB,
-  TransportDBMapHolder,
   TransportDBMap,
+  TransportDBMapHolder,
 } from '../../db/transport-db'
 import { sleep, toRpcHexString, validators } from '../../utils'
 import { L1DataTransportServiceOptions } from '../main/service'
@@ -105,10 +105,7 @@ export class L2IngestionService extends BaseService<L2IngestionServiceOptions> {
         `${this.options.l2ChainId}`
       )
     } else {
-      this.state.l2RpcProvider =
-        typeof this.options.l2RpcProvider === 'string'
-          ? new JsonRpcProvider(this.options.l2RpcProvider)
-          : this.options.l2RpcProvider
+      this.state.l2RpcProvider = new JsonRpcProvider(this.options.l2RpcEndpoint)
     }
   }
 
