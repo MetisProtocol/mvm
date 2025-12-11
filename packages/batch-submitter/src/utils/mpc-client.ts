@@ -214,12 +214,11 @@ export class MpcClient {
     }
     const signResp = await this.proposeMpcSign(postData)
     if (!signResp) {
-      this.logger.error('mpc propose sign failed', {
-        mpcId,
-        signId,
-        signResp,
-      })
-      throw new Error(`MPC ${mpcId} propose sign failed`)
+      throw new Error(
+        `MPC ${mpcId} propose sign ${signId} failed: ${JSON.stringify(
+          signResp
+        )}`
+      )
     }
 
     const signedTx = await this.getMpcSignWithTimeout(
