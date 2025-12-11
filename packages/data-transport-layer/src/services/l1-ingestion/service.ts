@@ -658,11 +658,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
             l1BeaconProvider: this.state.l1BeaconProvider,
           }
         )
-        this.logger.info('Storing Inbox Batch:', {
-          chainId: this.options.l2ChainId,
-        })
-        this.logger.debug('Storing Inbox Batch Data:', {
-          parsedEvent,
+        this.logger.info('Storing Inbox Batch', {
+          batch: parsedEvent.transactionBatchEntry,
+          blocks: parsedEvent.blockEntries.length,
         })
         await handlers.storeEvent(parsedEvent, this.state.dbOfL2, this.options)
         // await this.state.db.setHighestSyncedL1BatchIndex(extraData.batchIndex)
