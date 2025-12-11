@@ -152,14 +152,13 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     const network = await this.state.l1RpcProvider.getNetwork()
     this.state.l1ChainId = toNumber(network.chainId)
     this.logger.info('Using L1 RPC Provider', {
-      l1ChainId: this.state.l1ChainId,
-      l1RpcEndpoint: this.options.l1RpcEndpoint,
+      chainId: this.state.l1ChainId,
+      endpoint: this.options.l1RpcEndpoint,
     })
 
-    console.log(
-      'Initializing L1 Beacon Client...',
-      this.options.l1BeaconEndpoint
-    )
+    this.logger.info('Initializing L1 Beacon Client...', {
+      endpoint: this.options.l1BeaconEndpoint,
+    })
     this.state.l1BeaconProvider = new L1BeaconClient(
       this.options.l1BeaconEndpoint
     )
