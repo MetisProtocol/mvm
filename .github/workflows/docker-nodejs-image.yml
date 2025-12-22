@@ -59,6 +59,7 @@ jobs:
           file: ./ops/docker/Dockerfile
           annotations: ${{ steps.meta.outputs.annotations }}
           labels: ${{ steps.meta.outputs.labels }}
+          target: ${{ inputs.target }}
           cache-from: type=gha,scope=buildkit-nodejs-${{ runner.os }}-${{ runner.arch }}
           cache-to: type=gha,mode=max,scope=buildkit-nodejs-${{ runner.os }}-${{ runner.arch }}
           outputs: type=image,"name=${{ env.DOCKER_REPO_NAME }}",push-by-digest=true,name-canonical=true,push=true
