@@ -1,24 +1,16 @@
-name: docker-nodejs-image
-run-name: Build nodejs image ${{ inputs.target }}/${{ inputs.version }}
+name: build-challenger-docker
+run-name: Build challenger@${{ inputs.version }}
 
 on:
   workflow_dispatch:
     inputs:
       version:
         description: "Version"
-        required: true
         default: "dev"
-      target:
-        description: "Target"
         required: true
-        type: choice
-        options:
-          - dtl
-          - relayer
-          - batch-submitter
 
 env:
-  DOCKER_REPO_NAME: metisdao/${{ inputs.target }}
+  DOCKER_REPO_NAME: metisdao/challenger
 
 permissions:
   contents: read
@@ -56,11 +48,11 @@ jobs:
         with:
           pull: true
           context: .
-          file: ./ops/docker/Dockerfile
+          file: ./ops/docker/Dockerfile.challenger
           annotations: ${{ steps.meta.outputs.annotations }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=buildkit-nodejs-${{ runner.os }}-${{ runner.arch }}
-          cache-to: type=gha,mode=max,scope=buildkit-nodejs-${{ runner.os }}-${{ runner.arch }}
+          cache-from: type=gha,scope=buildkit-challenger-${{ runner.os }}-${{ runner.arch }}
+          cache-to: type=gha,mode=max,scope=buildkit-challenger-${{ runner.os }}-${{ runner.arch }}
           outputs: type=image,"name=${{ env.DOCKER_REPO_NAME }}",push-by-digest=true,name-canonical=true,push=true
           provenance: false
           sbom: false
