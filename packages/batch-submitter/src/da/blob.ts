@@ -5,26 +5,25 @@ import {
   KZGProof,
 } from 'c-kzg'
 import { createHash } from 'crypto'
-import { Frame } from './types'
+import { BlobLike, Frame } from './types'
 
 const BlobSize = 4096 * 32
 const MaxBlobDataSize = (4 * 31 + 3) * 1024 - 4
 const EncodingVersion = 0
-// const VersionOffset = 1
+const BlobVersion = '0x01'
 const Rounds = 1024
+const BlobV1ProofSize = 128 * 48
+const CommitmentSize = 48
 
 export class Blob {
-  public readonly data: Uint8Array = new Uint8Array(BlobSize)
-  public readonly commitment: KZGCommitment = new Uint8Array(48)
-  // cell proofs
-  public readonly proof: KZGProof = new Uint8Array(48 * 128)
-  public versionedHash: string = ''
+  private data: Uint8Array = new Uint8Array(BlobSize)
+  private commitment: KZGCommitment
+  private proof: KZGProof
 
   static kzgToVersionedHash(commitment: KZGCommitment): string {
-    const hasher = createHash('sha256')
-    hasher.update(commitment)
+    const hasher = createHash('sha256').update(commitment).digest('hex')
     // versioned hash = [1 byte version][31 byte hash]
-    return '0x01' + hasher.digest('hex').substring(2)
+    return BlobVersion + hasher.substring(2)
   }
 
   marshalFrame(frame: Frame): Uint8Array {
@@ -150,16 +149,18 @@ export class Blob {
       )
     }
 
-    this.commitment.set(blobToKzgCommitment(this.data))
-    const proofs = Buffer.concat(computeCellsAndKzgProofs(this.data)[1])
-    if (proofs.length !== this.proof.length) {
+    this.commitment = blobToKzgCommitment(this.data)
+    if (this.commitment.length !== CommitmentSize) {
       throw new Error(
-        `Invalid proof length: expected ${this.proof.length}, got ${proofs.length}`
+        `Invalid commitment length: expected ${CommitmentSize}, got ${this.commitment.length}`
       )
     }
-    this.proof.set(proofs)
-    this.versionedHash = Blob.kzgToVersionedHash(this.commitment)
-
+    this.proof = Buffer.concat(computeCellsAndKzgProofs(this.data)[1])
+    if (this.proof.length !== BlobV1ProofSize) {
+      throw new Error(
+        `Invalid proof length: expected ${BlobV1ProofSize}, got ${this.proof.length}`
+      )
+    }
     return this
   }
 
@@ -175,5 +176,13 @@ export class Blob {
 
   clear(): void {
     this.data.fill(0)
+  }
+
+  resolved(): BlobLike {
+    return {
+      data: this.data,
+      proof: this.proof,
+      commitment: this.commitment,
+    }
   }
 }

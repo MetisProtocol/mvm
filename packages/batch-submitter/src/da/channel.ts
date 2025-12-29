@@ -84,14 +84,7 @@ export class Channel {
       },
 
       get blobs(): BlobLike[] {
-        return this.frames.map((f: Frame) => {
-          const blob = new Blob().fromFrame(f)
-          return {
-            data: blob.data,
-            proof: blob.proof,
-            commitment: blob.commitment,
-          }
-        })
+        return this.frames.map((f: Frame) => new Blob().fromFrame(f).resolved())
       },
     }
     this.pendingTransactions.set(txData.id, txData)
