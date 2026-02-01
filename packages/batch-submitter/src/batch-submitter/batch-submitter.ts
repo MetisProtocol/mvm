@@ -102,8 +102,8 @@ export abstract class BatchSubmitter {
     }
 
     this.logger.info('Readying to submit next batch...', {
-      l1ChainId: this.l1ChainId,
-      l2ChainId: this.l2ChainId,
+      l1ChainId: this.l1ChainId.toString(),
+      l2ChainId: this.l2ChainId.toString(),
       batchSubmitterAddress: await this.signer.getAddress(),
     })
 
