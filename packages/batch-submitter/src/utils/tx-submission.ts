@@ -29,6 +29,10 @@ export const setTxEIP1559Fees = async (
   l1Provider: Provider,
   resubmissionTimeout: number
 ): Promise<boolean> => {
+  if (tx.chainId === undefined) {
+    throw new Error('Transaction chainId is undefined for EIP-1559 fee setting')
+  }
+
   const feeData = await l1Provider.getFeeData()
 
   // Use 1Gwei as the tip fee for blob tx

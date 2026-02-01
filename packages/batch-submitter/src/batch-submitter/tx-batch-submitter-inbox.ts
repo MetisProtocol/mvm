@@ -193,10 +193,9 @@ export class TransactionBatchSubmitterInbox {
       ) => Promise<boolean>
     ) => Promise<TransactionReceipt>
   ): Promise<TransactionReceipt> {
-    const { chainId } = await signer.provider.getNetwork()
     const inboxTx: ethers.TransactionLike = {
       type: 2,
-      chainId,
+      chainId: this.l1ChainId,
       to: this.inboxAddress,
       data: '0x' + batchParams.input,
       value: 0n,
@@ -247,7 +246,7 @@ export class TransactionBatchSubmitterInbox {
           // since we are using blob tx, call data will be empty,
           // so the gas limit is just the default tx gas
           gasLimit: TX_GAS,
-          chainId,
+          chainId: this.l1ChainId,
           nonce: await signer.provider.getTransactionCount(signerAddress),
           blobs,
           blobWrapperVersion: 1, // Osaka is enabled on all the chains
@@ -489,12 +488,12 @@ export class TransactionBatchSubmitterInbox {
     return [inboxBatchParams, wasBatchTruncated]
   }
 
-  private async _loadChainIds() {
-    if (!this.l1ChainId) {
-      this.l1ChainId = (await this.l1Provider.getNetwork()).chainId
+  public initChainId(l1ChainId: bigint, l2ChainId: bigint) {
+    if (typeof this.l1ChainId === 'undefined') {
+      this.l1ChainId = l1ChainId
     }
-    if (!this.l2ChainId) {
-      this.l2ChainId = (await this.l2Provider.getNetwork()).chainId
+    if (typeof this.l2ChainId === 'undefined') {
+      this.l2ChainId = l2ChainId
     }
   }
 
@@ -591,8 +590,6 @@ export class TransactionBatchSubmitterInbox {
         compressedEncoded = storagedObject
       }
     } else {
-      await this._loadChainIds()
-
       const channelManager = new ChannelManager(
         this.logger,
         {
@@ -666,8 +663,6 @@ export class TransactionBatchSubmitterInbox {
   private async _getL2BatchElement(
     blockNumber: number
   ): Promise<BatchToInboxElement> {
-    await this._loadChainIds()
-
     const block = await this._getBlock(blockNumber)
     this.logger.debug('Fetched L2 block', {
       block,
@@ -753,6 +748,7 @@ export class TransactionBatchSubmitterInbox {
   private _isSequencerTx(tx: L2Transaction): boolean {
     return tx.queueOrigin === QueueOrigin.Sequencer
   }
+
 
   private toRpcHexString(n: number): string {
     if (n === 0) {

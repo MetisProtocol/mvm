@@ -30,7 +30,8 @@ interface BatchSubmitterMetrics {
 export abstract class BatchSubmitter {
   protected rollupInfo: RollupInfo
   protected chainContract: Contract
-  protected l2ChainId: number
+  protected l2ChainId: bigint
+  protected l1ChainId: bigint
   protected syncing: boolean
   protected lastBatchSubmissionTimestamp: number = 0
   protected metrics: BatchSubmitterMetrics
@@ -77,6 +78,9 @@ export abstract class BatchSubmitter {
     if (typeof this.l2ChainId === 'undefined') {
       this.l2ChainId = await this._getL2ChainId()
     }
+    if (typeof this.l1ChainId === 'undefined') {
+      this.l1ChainId = await this._getL1ChainId()
+    }
     await this._updateChainInfo()
 
     await this._updateFPUpgradeStatus()
@@ -98,6 +102,7 @@ export abstract class BatchSubmitter {
     }
 
     this.logger.info('Readying to submit next batch...', {
+      l1ChainId: this.l1ChainId,
       l2ChainId: this.l2ChainId,
       batchSubmitterAddress: await this.signer.getAddress(),
     })
@@ -157,8 +162,14 @@ export abstract class BatchSubmitter {
     return this.l2Provider.send('rollup_getInfo', [])
   }
 
-  protected async _getL2ChainId(): Promise<number> {
-    return toNumber(await this.l2Provider.send('eth_chainId', []))
+  protected async _getL2ChainId(): Promise<bigint> {
+    const { chainId } = await this.l2Provider.getNetwork()
+    return chainId
+  }
+
+  protected async _getL1ChainId(): Promise<bigint> {
+    const { chainId } = await this.l1Provider.getNetwork()
+    return chainId
   }
 
   protected async _getChainAddresses(): Promise<{

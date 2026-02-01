@@ -46,7 +46,6 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
   protected chainContract: Contract
   protected mvmCtcContract: Contract
   protected seqsetContract: Contract
-  protected l2ChainId: number
   protected syncing: boolean
   private autoFixBatchOptions: AutoFixBatchOptions
   private validateBatch: boolean
@@ -419,6 +418,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         endBlock,
         nextBatchIndex,
       })
+      this.inboxSubmitter.initChainId(this.l1ChainId, this.l2ChainId)
       return this.inboxSubmitter.submitBatchToInbox(
         this.fpUpgraded,
         startBlock,
@@ -556,7 +556,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         this.l2ChainId = await this._getL2ChainId()
       }
       if (this.minioConfig) {
-        this.minioConfig.l2ChainId = this.l2ChainId
+        this.minioConfig.l2ChainId = Number(this.l2ChainId)
       }
 
       this.encodeSequencerBatchOptions = {
@@ -610,7 +610,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
         data: tx.data,
       })
       tx.value = ethers.parseEther('0')
-      tx.chainId = (await this.signer.provider.getNetwork()).chainId
+      tx.chainId = this.l1ChainId
       tx.gasPrice = (await this.signer.provider.getFeeData()).gasPrice
 
       const submitSignedTransaction = (): Promise<TransactionReceipt> => {
@@ -1174,7 +1174,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     }
 
     return {
-      chainId: this.l2ChainId,
+      chainId: Number(this.l2ChainId),
       shouldStartAtElement: shouldStartAtIndex - this.blockOffset,
       totalElementsToAppend,
       contexts,

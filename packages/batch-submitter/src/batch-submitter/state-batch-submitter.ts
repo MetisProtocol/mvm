@@ -21,7 +21,6 @@ export class StateBatchSubmitter extends BatchSubmitter {
   // Not based on the length of the L2 chain -- that is only used in the batch submitter
   // Note this means we've got to change the state / end calc logic
 
-  protected l2ChainId: number
   protected syncing: boolean
   protected ctcContract: Contract
   private fraudSubmissionAddress: string
@@ -264,7 +263,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
     endBlock: number
   ): Promise<TransactionReceipt> {
     // eslint-disable-next-line radix
-    const proposer = parseInt(this.l2ChainId.toString()) + '_MVM_Proposer'
+    const proposer = this.l2ChainId.toString(10) + '_MVM_Proposer'
     const batch = await this._generateStateCommitmentBatch(startBlock, endBlock)
     const sccContract = this.fpUpgraded
       ? this.fpChainContract
@@ -338,7 +337,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
         from: mpcAddress,
         data: tx.data,
       })
-      txUnsign.chainId = (await this.signer.provider.getNetwork()).chainId
+      txUnsign.chainId = this.l1ChainId
       const replaced = await setTxEIP1559Fees(
         txUnsign,
         await this.pendingStorage.getPendingTx(mpcAddress),
@@ -454,7 +453,7 @@ export class StateBatchSubmitter extends BatchSubmitter {
       { concurrency: 100 }
     )
 
-    const proposer = this.l2ChainId + '_MVM_Proposer'
+    const proposer = this.l2ChainId.toString(10) + '_MVM_Proposer'
     let stateRoots = batch.map((b) => b.stateRoot)
     const sccContract = this.fpUpgraded
       ? this.fpChainContract
