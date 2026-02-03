@@ -500,8 +500,16 @@ export const run = async () => {
 
   const clearPendingTxs = requiredEnvVars.CLEAR_PENDING_TXS
 
-  const l2Provider = new L2Provider(requiredEnvVars.L2_NODE_WEB3_URL)
-  const l1Provider = new JsonRpcProvider(requiredEnvVars.L1_NODE_WEB3_URL)
+  const l2Provider = new L2Provider(
+    requiredEnvVars.L2_NODE_WEB3_URL,
+    undefined,
+    { staticNetwork: true }
+  )
+  const l1Provider = new JsonRpcProvider(
+    requiredEnvVars.L1_NODE_WEB3_URL,
+    undefined,
+    { staticNetwork: true }
+  )
 
   const sequencerSigner: Signer = await getSequencerSigner()
   const localBlobSignerConfigured =

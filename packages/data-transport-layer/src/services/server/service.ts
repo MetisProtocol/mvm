@@ -98,8 +98,16 @@ export class L1TransportServer extends BaseService<L1TransportServerOptions> {
       this.options.db,
       this.options.l2ChainId === 1088
     )
-    this.state.l1RpcProvider = new JsonRpcProvider(this.options.l1RpcEndpoint)
-    this.state.l2RpcProvider = new JsonRpcProvider(this.options.l2RpcEndpoint)
+    this.state.l1RpcProvider = new JsonRpcProvider(
+      this.options.l1RpcEndpoint,
+      undefined,
+      { staticNetwork: true }
+    )
+    this.state.l2RpcProvider = new JsonRpcProvider(
+      this.options.l2RpcEndpoint,
+      undefined,
+      { staticNetwork: true }
+    )
 
     this._initializeApp()
   }

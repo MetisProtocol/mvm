@@ -25,20 +25,8 @@ interface FetchBatchesConfig {
   l1BeaconProvider: L1BeaconClient
 }
 
-let chainIdHasChecked = false // whether chain id has been checked
-
-// fetch l2 batches from l1 chain
 export const fetchBatches = async (fetchConf: FetchBatchesConfig) => {
   const { l1RpcProvider, l1BeaconProvider } = fetchConf
-  if (!chainIdHasChecked) {
-    const checkId = await l1BeaconProvider.getChainId()
-    if (Number(checkId) !== fetchConf.chainId) {
-      throw new Error(
-        `Chain ID mismatch: Beacon ${checkId} !== Expected ${fetchConf.chainId}`
-      )
-    }
-    chainIdHasChecked = true
-  }
 
   const latestBlock = await l1RpcProvider.getBlockNumber()
 

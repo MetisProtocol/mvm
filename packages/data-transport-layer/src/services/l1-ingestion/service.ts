@@ -146,7 +146,9 @@ export class L1IngestionService extends BaseService<L1IngestionServiceOptions> {
     this.l1IngestionMetrics = registerMetrics(this.metrics)
 
     this.state.l1RpcProvider = new ethers.JsonRpcProvider(
-      this.options.l1RpcEndpoint
+      this.options.l1RpcEndpoint,
+      undefined,
+      { staticNetwork: true }
     )
 
     const network = await this.state.l1RpcProvider.getNetwork()
