@@ -386,7 +386,7 @@ export class TransactionBatchSubmitter extends BatchSubmitter {
     this.logger.info('Retrieved end block number from L2 sequencer', {
       startBlock,
       endBlock,
-      l2chainId: this.l2ChainId,
+      l2chainId: this.l2ChainId.toString(),
     })
 
     if (startBlock >= endBlock) {
