@@ -25,7 +25,7 @@ import {
 import { TxSubmissionHooks } from '..'
 import { CompressionAlgo } from '../da/channel-compressor'
 import { ChannelManager } from '../da/channel-manager'
-import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE, TX_GAS } from '../da/consts'
+import { MAX_BLOB_NUM_PER_TX, MAX_BLOB_SIZE } from '../da/consts'
 import { SpanBatch } from '../da/span-batch'
 import {
   BatchToInbox,
@@ -243,14 +243,18 @@ export class TransactionBatchSubmitterInbox {
         const blobTx: ethers.TransactionLike = {
           type: 3, // 3 for blob tx type
           to: this.inboxAddress,
-          // since we are using blob tx, call data will be empty,
-          // so the gas limit is just the default tx gas
-          gasLimit: TX_GAS,
           chainId: this.l1ChainId,
           nonce: await signer.provider.getTransactionCount(signerAddress),
           blobs,
           blobWrapperVersion: 1, // Osaka is enabled on all the chains
         }
+
+        // always estimate gas for Amsterdam upgrade
+        blobTx.gasLimit = await signer.provider.estimateGas({
+          type: 3,
+          to: this.inboxAddress,
+          data: inboxTx.data,
+        })
 
         const replaced = await setTxEIP1559Fees(
           blobTx,
@@ -748,7 +752,6 @@ export class TransactionBatchSubmitterInbox {
   private _isSequencerTx(tx: L2Transaction): boolean {
     return tx.queueOrigin === QueueOrigin.Sequencer
   }
-
 
   private toRpcHexString(n: number): string {
     if (n === 0) {
