@@ -25,7 +25,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
     address internal immutable PROPOSER;
 
     /// @notice The challenger role is allowed to participate in the dispute game.
-    address internal CHALLENGER;
+    address internal immutable CHALLENGER;
 
     /// @notice Modifier that gates access to the `challenger` and `proposer` roles.
     modifier onlyAuthorized() {
@@ -46,7 +46,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
     /// @param _addressManager Address manager contract.
     /// @param _l2ChainId Chain ID of the L2 network this contract argues about.
     /// @param _proposer Address that is allowed to create instances of this contract.
-    /// @param _challenger Address that is allowed to challenge instances of this contract. (deprecated)
+    /// @param _challenger Address that is allowed to challenge instances of this contract.
     constructor(
         GameType _gameType,
         Claim _absolutePrestate,
@@ -75,6 +75,7 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         )
     {
         PROPOSER = _proposer;
+        CHALLENGER = _challenger;
     }
 
     /// @inheritdoc IFaultDisputeGame
@@ -106,11 +107,6 @@ contract PermissionedDisputeGame is FaultDisputeGame {
         // The creator of the dispute game must be the proposer EOA.
         if (tx.origin != PROPOSER) revert BadAuth();
 
-        // read sender from CWIA Calldata
-        CHALLENGER = disputeCreator();
-        require(CHALLENGER != address(0), "Challenger not correctly set");
-
-        // Fallthrough initialization.
         super.initialize();
     }
 

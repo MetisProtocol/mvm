@@ -161,65 +161,8 @@ contract DisputeGameFactory is AccessControlUpgradeable, IDisputeGameFactory, IS
         if (disputeGameCreationRequests[uuid].l1Head != bytes32(0)) revert AlreadyDisputed(uuid);
 
         disputeGameCreationRequests[uuid] = info;
-        disputeRequestTimestamps[uuid] = block.timestamp;
 
         emit DisputeGameRequested(msg.sender, _gameType, initBond, _extraData);
-    }
-
-    /// @notice Handles the timeout of a dispute request.
-    /// @param _gameType The type of game being disputed.
-    /// @param _extraData The extra data for the game.
-    /// @param _batchIndex The index of the batch to dispute. Start from 0
-    function disputeTimeout(
-        GameType _gameType,
-        bytes calldata _extraData,
-        uint256 _batchIndex
-    ) external {
-        // Compute the UUID from gameType and extraData (same as dispute() function)
-        bytes32 requestUuid = keccak256(abi.encodePacked(_gameType, _extraData));
-
-        // Check if the dispute request is still valid
-        uint256 requestTimestamp = disputeRequestTimestamps[requestUuid];
-        require(
-            requestTimestamp > 0 && block.timestamp > requestTimestamp + DISPUTE_TIMEOUT_PERIOD,
-            "Factory: dispute request not timed out"
-        );
-
-        // Check if the dispute request exists
-        DisputeInfo memory info = disputeGameCreationRequests[requestUuid];
-        require(info.sender == msg.sender, "Factory: invalid sender");
-
-        address lockingPool = ADDRESS_MANAGER.getAddress(LOCKING_POOL_NAME);
-        require(lockingPool != address(0), "Factory: invalid locking pool address");
-
-        // Get the State Commitment Chain
-        IMVMStateCommitmentChain scc = IMVMStateCommitmentChain(
-            ADDRESS_MANAGER.getAddress("StateCommitmentChain")
-        );
-        require(address(scc) != address(0), "Factory: invalid State Commitment Chain address");
-
-        uint256 blockNumber = abi.decode(_extraData, (uint256));
-
-        /// Attempt to call saveDisputedBatchTimeout with the correct batch index
-        /// @notice saveDisputedBatchTimeout might revert due to various reasons, such as the batch not being found.
-        ///         In that case, we catch the error and continue with the timeout process.
-        try scc.saveDisputedBatchTimeout(DEFAULT_CHAIN_ID, blockNumber, _batchIndex) {} catch {}
-
-        // Slash the bond from the locking pool if the total locked amount is greater than zero
-        if (ILockingPool(lockingPool).totalLocked() > 0) {
-            ILockingPool(lockingPool).timeoutSlash(msg.sender);
-        }
-
-        // Refund the bond to the sender
-        if (info.bond > 0) {
-            METIS.transfer(info.sender, info.bond);
-        }
-
-        // Delete the dispute request
-        delete disputeGameCreationRequests[requestUuid];
-        delete disputeRequestTimestamps[requestUuid];
-
-        emit DisputeRequestTimeout(requestUuid, info.sender, info.bond);
     }
 
     /// @inheritdoc IDisputeGameFactory
