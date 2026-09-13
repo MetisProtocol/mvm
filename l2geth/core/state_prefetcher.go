@@ -25,6 +25,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 )
 
 // statePrefetcher is a basic Prefetcher, which blindly executes a block on top
@@ -49,6 +50,14 @@ func newStatePrefetcher(config *params.ChainConfig, bc *BlockChain, engine conse
 // the transaction messages using the statedb, but any changes are discarded. The
 // only goal is to pre-cache transaction signatures and state trie nodes.
 func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, cfg vm.Config, interrupt *uint32) {
+	// Before RFD, OVM balance updates bypass SSTORE refund accounting. On the
+	// speculative state, gas purchase can clear a balance slot and a subsequent
+	// SSTORE can subtract a refund that was never added, causing a panic. Skip
+	// this execution using the target block's rules, without changing historical
+	// consensus execution. Both block import paths use this entry point.
+	if rcfg.UsingOVM && !p.config.IsRFDUpdate(block.Number()) {
+		return
+	}
 	var (
 		header  = block.Header()
 		gaspool = new(GasPool).AddGas(block.GasLimit())
