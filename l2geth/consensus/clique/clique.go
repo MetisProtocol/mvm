@@ -27,8 +27,8 @@ import (
 	"sync"
 	"time"
 
+	sha3 "github.com/ethereum/go-ethereum/crypto/keccak"
 	lru "github.com/hashicorp/golang-lru"
-	"golang.org/x/crypto/sha3"
 
 	"github.com/MetisProtocol/mvm/l2geth/accounts"
 	"github.com/MetisProtocol/mvm/l2geth/common"

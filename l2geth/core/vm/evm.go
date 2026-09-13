@@ -22,7 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/crypto/sha3"
+	sha3 "github.com/ethereum/go-ethereum/crypto/keccak"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/params"

@@ -35,8 +35,8 @@ import (
 	"sync"
 	"time"
 
+	sha3 "github.com/ethereum/go-ethereum/crypto/keccak"
 	"github.com/golang/snappy"
-	"golang.org/x/crypto/sha3"
 
 	"github.com/MetisProtocol/mvm/l2geth/common/bitutil"
 	"github.com/MetisProtocol/mvm/l2geth/metrics"

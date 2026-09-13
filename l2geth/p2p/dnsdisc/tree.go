@@ -26,7 +26,7 @@ import (
 	"sort"
 	"strings"
 
-	"golang.org/x/crypto/sha3"
+	sha3 "github.com/ethereum/go-ethereum/crypto/keccak"
 
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"

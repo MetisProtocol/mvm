@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"golang.org/x/crypto/sha3"
+	sha3 "github.com/ethereum/go-ethereum/crypto/keccak"
 
 	ethereum "github.com/MetisProtocol/mvm/l2geth"
 	"github.com/MetisProtocol/mvm/l2geth/common"

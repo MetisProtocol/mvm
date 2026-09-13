@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/sha3"
+	sha3 "github.com/ethereum/go-ethereum/crypto/keccak"
 
 	"github.com/MetisProtocol/mvm/l2geth/internal/testlog"
 	"github.com/MetisProtocol/mvm/l2geth/log"
