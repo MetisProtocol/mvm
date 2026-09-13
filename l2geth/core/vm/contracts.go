@@ -24,10 +24,10 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/math"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/crypto/blake2b"
-	"github.com/MetisProtocol/mvm/l2geth/crypto/bn256"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/blake2b"
+	"github.com/ethereum/go-ethereum/crypto/bn256"
 
 	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"

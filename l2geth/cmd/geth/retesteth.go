@@ -38,7 +38,6 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/state"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/node"
@@ -46,6 +45,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
 	"github.com/MetisProtocol/mvm/l2geth/trie"
+	"github.com/ethereum/go-ethereum/crypto"
 
 	cli "gopkg.in/urfave/cli.v1"
 )

@@ -27,10 +27,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	whisper "github.com/MetisProtocol/mvm/l2geth/whisper/whisperv6"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // WMailServer represents the state data of the mailserver.

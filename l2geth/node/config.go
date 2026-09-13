@@ -31,11 +31,11 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
 	"github.com/MetisProtocol/mvm/l2geth/accounts/scwallet"
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (

@@ -29,9 +29,9 @@ import (
 	"strconv"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/crypto/ecies"
 	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/ecies"
 )
 
 // MessageParams specifies the exact way a message should be wrapped

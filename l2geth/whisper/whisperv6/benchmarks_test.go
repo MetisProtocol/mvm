@@ -22,7 +22,7 @@ import (
 
 	"golang.org/x/crypto/pbkdf2"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func BenchmarkDeriveKeyMaterial(b *testing.B) {

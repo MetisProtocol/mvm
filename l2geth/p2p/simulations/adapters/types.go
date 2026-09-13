@@ -28,13 +28,13 @@ import (
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/gorilla/websocket"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/node"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Node represents a node in a simulation network which is created by a

@@ -32,8 +32,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/contracts/checkpointoracle/contract"
 	"github.com/MetisProtocol/mvm/l2geth/core"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (

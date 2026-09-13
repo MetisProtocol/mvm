@@ -30,9 +30,9 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/state"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/event"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // testTxPoolConfig is a transaction pool configuration without stateful disk

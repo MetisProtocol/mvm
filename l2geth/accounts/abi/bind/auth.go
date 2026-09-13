@@ -27,7 +27,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // NewTransactor is a utility method to easily create a transaction signer from

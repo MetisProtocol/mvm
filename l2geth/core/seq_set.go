@@ -9,7 +9,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/state"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (

@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/metrics"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)

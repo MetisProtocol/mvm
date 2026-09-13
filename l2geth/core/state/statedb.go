@@ -28,13 +28,13 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/metrics"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/dump"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 	"github.com/MetisProtocol/mvm/l2geth/trie"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type revision struct {

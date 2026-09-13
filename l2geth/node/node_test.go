@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (

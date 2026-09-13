@@ -24,9 +24,9 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 	"github.com/MetisProtocol/mvm/l2geth/core"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/light"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Test light syncing which will download all headers from genesis.

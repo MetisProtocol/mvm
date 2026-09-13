@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Tests that transactions can be added to strict lists and list contents and

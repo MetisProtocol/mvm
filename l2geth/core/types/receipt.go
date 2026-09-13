@@ -28,9 +28,9 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 //go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go

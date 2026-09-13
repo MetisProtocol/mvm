@@ -24,12 +24,12 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/light"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	"github.com/MetisProtocol/mvm/l2geth/trie"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (

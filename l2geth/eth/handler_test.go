@@ -31,11 +31,11 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/state"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/eth/downloader"
 	"github.com/MetisProtocol/mvm/l2geth/event"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Tests that block headers can be retrieved from a remote chain based on user queries.

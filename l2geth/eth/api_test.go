@@ -29,7 +29,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/state"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var dumper = spew.ConfigState{Indent: "    "}

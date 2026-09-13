@@ -24,8 +24,8 @@ import (
 	"testing"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // The values in those tests are from the Transaction Tests

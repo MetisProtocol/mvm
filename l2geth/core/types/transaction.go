@@ -25,9 +25,9 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go

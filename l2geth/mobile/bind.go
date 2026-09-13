@@ -28,7 +28,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Signer is an interface defining the callback when a contract requires a

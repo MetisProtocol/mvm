@@ -34,10 +34,10 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/crypto/ecies"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/simulations/pipes"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/ecies"
 )
 
 func TestSharedSecret(t *testing.T) {

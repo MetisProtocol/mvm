@@ -26,8 +26,8 @@ import (
 	"time"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	whisper "github.com/MetisProtocol/mvm/l2geth/whisper/whisperv6"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const powRequirement = 0.00001

@@ -25,11 +25,11 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/dump"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/util"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already

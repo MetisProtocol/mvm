@@ -29,7 +29,7 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/MetisProtocol/mvm/l2geth/accounts"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // creates a Key and stores that in the given KeyStore by decrypting a presale key JSON

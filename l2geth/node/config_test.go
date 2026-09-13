@@ -24,8 +24,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Tests that datadirs can be successfully created, be them manually configured

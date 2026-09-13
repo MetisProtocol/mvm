@@ -19,9 +19,9 @@ package whisperv6
 import (
 	"bytes"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	"github.com/MetisProtocol/mvm/l2geth/whisper/whisperv6"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type MessageParams struct {

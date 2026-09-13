@@ -44,7 +44,6 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/consensus/ethash"
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/eth"
 	"github.com/MetisProtocol/mvm/l2geth/eth/downloader"
 	"github.com/MetisProtocol/mvm/l2geth/eth/gasprice"
@@ -66,6 +65,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/rollup"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
 	whisper "github.com/MetisProtocol/mvm/l2geth/whisper/whisperv6"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (

@@ -25,7 +25,7 @@ import (
 	"math/big"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // The ABI holds information about a contract's context and available

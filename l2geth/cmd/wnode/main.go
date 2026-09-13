@@ -41,13 +41,13 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/console"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/nat"
 	"github.com/MetisProtocol/mvm/l2geth/whisper/mailserver"
 	whisper "github.com/MetisProtocol/mvm/l2geth/whisper/whisperv6"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const quitCommand = "~Q"

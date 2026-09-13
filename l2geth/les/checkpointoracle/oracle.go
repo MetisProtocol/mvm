@@ -26,9 +26,9 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/contracts/checkpointoracle"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // CheckpointOracle is responsible for offering the latest stable checkpoint

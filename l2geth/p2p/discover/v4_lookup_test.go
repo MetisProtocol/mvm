@@ -23,8 +23,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestUDPv4_Lookup(t *testing.T) {

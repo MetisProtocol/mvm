@@ -23,8 +23,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func newLocalNodeForTesting() (*LocalNode, *DB) {

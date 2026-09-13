@@ -35,7 +35,6 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/consensus/ethash"
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/eth"
 	"github.com/MetisProtocol/mvm/l2geth/eth/downloader"
 	"github.com/MetisProtocol/mvm/l2geth/log"
@@ -44,6 +43,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 	"github.com/MetisProtocol/mvm/l2geth/params"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func main() {

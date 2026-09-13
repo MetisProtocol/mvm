@@ -31,8 +31,8 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/bitutil"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (
@@ -341,7 +341,7 @@ func hashimoto(hash []byte, nonce uint64, size uint64, lookup func(index uint32)
 	copy(seed, hash)
 	binary.LittleEndian.PutUint64(seed[32:], nonce)
 
-	seed = crypto.Keccak512(seed)
+	seed = Keccak512(seed)
 	seedHead := binary.LittleEndian.Uint32(seed)
 
 	// Start the mix with replicated seed

@@ -22,8 +22,8 @@ import (
 	//"strings"
 
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
+	"github.com/ethereum/go-ethereum/crypto"
 
 	//"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"

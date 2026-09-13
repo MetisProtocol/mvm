@@ -26,8 +26,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/accounts/abi"
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // SignerFn is a signer function callback when a contract requires a method to

@@ -35,7 +35,7 @@ package whisperv6
 import (
 	"time"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Whisper protocol parameters

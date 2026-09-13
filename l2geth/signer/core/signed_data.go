@@ -37,8 +37,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common/math"
 	"github.com/MetisProtocol/mvm/l2geth/consensus/clique"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type SigFormat struct {

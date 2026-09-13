@@ -15,11 +15,11 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/state"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/ethclient"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/event"
 	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"

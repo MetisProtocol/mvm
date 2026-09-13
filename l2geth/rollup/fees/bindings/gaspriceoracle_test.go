@@ -14,10 +14,10 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/eth/gasprice"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/fees"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Test that the fee calculation is the same in both go and solidity

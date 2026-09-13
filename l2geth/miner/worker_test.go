@@ -33,11 +33,11 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/event"
 	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rollup"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (

@@ -24,8 +24,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func init() {

@@ -40,7 +40,6 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/ethclient"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/p2p"
@@ -48,6 +47,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (

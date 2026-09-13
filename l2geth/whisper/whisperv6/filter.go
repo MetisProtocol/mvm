@@ -22,8 +22,8 @@ import (
 	"sync"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Filter represents a Whisper message filter

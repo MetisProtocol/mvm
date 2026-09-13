@@ -25,7 +25,7 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/accounts/abi"
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // makeTopics converts a filter query argument list into a filter topic set.

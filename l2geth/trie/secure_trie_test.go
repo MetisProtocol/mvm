@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func newEmptySecure() *SecureTrie {

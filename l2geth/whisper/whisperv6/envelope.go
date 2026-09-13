@@ -27,9 +27,9 @@ import (
 	"time"
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/crypto/ecies"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/ecies"
 )
 
 // Envelope represents a clear-text data packet to transmit through the Whisper

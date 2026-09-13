@@ -30,8 +30,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/core/vm"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // bigIntegerJS is the minified version of https://github.com/peterolson/BigInteger.js.

@@ -33,7 +33,7 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/accounts"
 	"github.com/MetisProtocol/mvm/l2geth/common"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (

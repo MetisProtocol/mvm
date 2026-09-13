@@ -31,7 +31,6 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/mclock"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/event"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/discover"
@@ -40,6 +39,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/nat"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/netutil"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (

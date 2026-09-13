@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Method represents a callable given a `Name` and whether the method is a constant.

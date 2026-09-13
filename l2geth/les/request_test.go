@@ -23,9 +23,9 @@ import (
 
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/light"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var testBankSecureTrieKey = secAddr(bankAddr)

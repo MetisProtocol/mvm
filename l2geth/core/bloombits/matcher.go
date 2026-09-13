@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/MetisProtocol/mvm/l2geth/common/bitutil"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // bloomIndexes represents the bit indexes inside the bloom filter that belong

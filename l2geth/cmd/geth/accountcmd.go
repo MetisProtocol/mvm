@@ -26,8 +26,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/accounts/keystore"
 	"github.com/MetisProtocol/mvm/l2geth/cmd/utils"
 	"github.com/MetisProtocol/mvm/l2geth/console"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/log"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (

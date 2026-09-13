@@ -34,6 +34,7 @@ import (
 	"unsafe"
 
 	mmap "github.com/edsrzf/mmap-go"
+	"github.com/ethereum/go-ethereum/crypto/keccak"
 	"github.com/hashicorp/golang-lru/simplelru"
 
 	"github.com/MetisProtocol/mvm/l2geth/consensus"
@@ -671,4 +672,13 @@ func (ethash *Ethash) APIs(chain consensus.ChainReader) []rpc.API {
 // dataset.
 func SeedHash(block uint64) []byte {
 	return seedHash(block)
+}
+
+// Keccak512 calculates and returns the Keccak512 hash of the input data.
+func Keccak512(data ...[]byte) []byte {
+	d := keccak.NewLegacyKeccak512()
+	for _, b := range data {
+		d.Write(b)
+	}
+	return d.Sum(nil)
 }

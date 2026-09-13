@@ -39,10 +39,10 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/MetisProtocol/mvm/l2geth/common/bitutil"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
-	"github.com/MetisProtocol/mvm/l2geth/crypto/ecies"
 	"github.com/MetisProtocol/mvm/l2geth/metrics"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/ecies"
 )
 
 const (

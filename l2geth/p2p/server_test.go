@@ -28,11 +28,11 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/internal/testlog"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // func init() {

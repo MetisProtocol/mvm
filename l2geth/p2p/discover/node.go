@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/MetisProtocol/mvm/l2geth/common/math"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enode"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // node represents a host on the network.

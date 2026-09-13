@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type bytesBacked interface {

@@ -9,7 +9,6 @@ require (
 	github.com/cespare/cp v0.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1
 	github.com/docker/docker v20.10.10+incompatible
 	github.com/edsrzf/mmap-go v1.1.0
 	github.com/elastic/gosigar v0.14.3
@@ -45,7 +44,6 @@ require (
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.54.0
 	golang.org/x/sync v0.23.0
-	golang.org/x/sys v0.48.0
 	golang.org/x/text v0.40.0
 	golang.org/x/time v0.10.0
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
@@ -58,7 +56,10 @@ require (
 	github.com/Azure/go-autorest/autorest/adal v0.9.5 // indirect
 	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260904015846-89a2b745b5c2 // indirect
 	github.com/allegro/bigcache v1.2.1 // indirect
+	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/consensys/gnark-crypto v0.18.1 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
@@ -75,8 +76,8 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.0.3 // indirect

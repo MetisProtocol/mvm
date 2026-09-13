@@ -36,8 +36,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/accounts"
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/event"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (

@@ -37,13 +37,13 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/consensus/misc"
 	"github.com/MetisProtocol/mvm/l2geth/core/state"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
 	"github.com/MetisProtocol/mvm/l2geth/log"
 	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
 	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 	"github.com/MetisProtocol/mvm/l2geth/rpc"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (

@@ -24,9 +24,9 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/MetisProtocol/mvm/l2geth/common/math"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/p2p/enr"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // List of known secure identity schemes.

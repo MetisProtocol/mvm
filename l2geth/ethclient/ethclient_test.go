@@ -35,7 +35,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/eth"
 	"github.com/MetisProtocol/mvm/l2geth/node"
 	"github.com/MetisProtocol/mvm/l2geth/params"

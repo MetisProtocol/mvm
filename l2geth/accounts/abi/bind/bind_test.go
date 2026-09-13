@@ -284,7 +284,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -339,7 +339,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -385,7 +385,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -443,7 +443,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/common"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -491,7 +491,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -586,7 +586,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -636,7 +636,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/common"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -711,7 +711,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -805,7 +805,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/common"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -995,7 +995,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -1130,7 +1130,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 
 		`
@@ -1272,7 +1272,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator
@@ -1338,7 +1338,7 @@ var bindTests = []struct {
 		"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 		"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 		"github.com/MetisProtocol/mvm/l2geth/core"
-		"github.com/MetisProtocol/mvm/l2geth/crypto"
+		"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 		// Initialize test accounts
@@ -1425,7 +1425,7 @@ var bindTests = []struct {
 
 		"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 		"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
-		"github.com/MetisProtocol/mvm/l2geth/crypto"
+		"github.com/ethereum/go-ethereum/crypto"
 		"github.com/MetisProtocol/mvm/l2geth/core"
 		`,
 		`
@@ -1488,7 +1488,7 @@ var bindTests = []struct {
 
 		"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 		"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
-		"github.com/MetisProtocol/mvm/l2geth/crypto"
+		"github.com/ethereum/go-ethereum/crypto"
 		"github.com/MetisProtocol/mvm/l2geth/core"
         `,
 		`
@@ -1551,7 +1551,7 @@ var bindTests = []struct {
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind"
 			"github.com/MetisProtocol/mvm/l2geth/accounts/abi/bind/backends"
 			"github.com/MetisProtocol/mvm/l2geth/core"
-			"github.com/MetisProtocol/mvm/l2geth/crypto"
+			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		`
 			// Generate a new random account and a funded simulator

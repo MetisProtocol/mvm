@@ -29,8 +29,8 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/common/hexutil"
 	"github.com/MetisProtocol/mvm/l2geth/common/math"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
 	"github.com/MetisProtocol/mvm/l2geth/signer/core"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var typesStandard = core.Types{

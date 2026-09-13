@@ -22,7 +22,7 @@ import (
 	ethereum "github.com/MetisProtocol/mvm/l2geth"
 	"github.com/MetisProtocol/mvm/l2geth/accounts"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
-	"github.com/MetisProtocol/mvm/l2geth/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // keystoreWallet implements the accounts.Wallet interface for the original
