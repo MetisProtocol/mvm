@@ -130,7 +130,7 @@ func TestStatusMsgErrors64(t *testing.T) {
 		},
 		{
 			code: StatusMsg, data: statusData{64, DefaultConfig.NetworkId, td, head.Hash(), genesis.Hash(), forkid.ID{Hash: [4]byte{0x00, 0x01, 0x02, 0x03}}},
-			wantError: errResp(ErrForkIDRejected, forkid.ErrLocalIncompatibleOrStale.Error()),
+			wantError: errResp(ErrForkIDRejected, "%v", forkid.ErrLocalIncompatibleOrStale),
 		},
 	}
 	for i, test := range tests {
@@ -235,7 +235,7 @@ func TestForkIDSplit(t *testing.T) {
 
 	select {
 	case err := <-errc:
-		if want := errResp(ErrForkIDRejected, forkid.ErrLocalIncompatibleOrStale.Error()); err.Error() != want.Error() {
+		if want := errResp(ErrForkIDRejected, "%v", forkid.ErrLocalIncompatibleOrStale); err.Error() != want.Error() {
 			t.Fatalf("fork ID rejection error mismatch: have %v, want %v", err, want)
 		}
 	case <-time.After(250 * time.Millisecond):

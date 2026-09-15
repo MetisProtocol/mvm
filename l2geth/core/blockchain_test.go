@@ -1001,7 +1001,9 @@ func TestLogRebirth(t *testing.T) {
 		chanval := reflect.ValueOf(sink)
 		chantyp := chanval.Type()
 		if chantyp.Kind() != reflect.Chan || chantyp.ChanDir()&reflect.RecvDir == 0 {
-			t.Fatalf("invalid channel, given type %v", chantyp)
+			t.Errorf("invalid channel, given type %v", chantyp)
+			result <- false
+			return
 		}
 		cnt := 0
 		var recv []reflect.Value

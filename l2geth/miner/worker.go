@@ -1172,11 +1172,11 @@ func (w *worker) commitNewTxDeSeq(txs []*types.Transaction, blockTime uint64) er
 			index := num.Uint64()
 			if *meta.Index < index {
 				log.Info("commitNewTx ", "get meta index ", *meta.Index, "parent.Number() ", index)
-				return fmt.Errorf("Failed to check meta index too small: %w, parent number: %w", *meta.Index, index)
+				return fmt.Errorf("Failed to check meta index too small: %d, parent number: %d", *meta.Index, index)
 			}
 			// Check meta.Index again, it should be equal with index
 			if *meta.Index > index {
-				return fmt.Errorf("Failed to check meta index too large: %w, parent number: %w", *meta.Index, index)
+				return fmt.Errorf("Failed to check meta index too large: %d, parent number: %d", *meta.Index, index)
 			}
 		}
 		if meta := tx.GetMeta(); meta.Index == nil {

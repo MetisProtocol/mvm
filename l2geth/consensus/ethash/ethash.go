@@ -25,7 +25,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strconv"
 	"sync"
@@ -99,11 +98,8 @@ func memoryMapFile(file *os.File, write bool) (mmap.MMap, []uint32, error) {
 		return nil, nil, err
 	}
 	// Yay, we managed to memory map the file, here be dragons
-	header := *(*reflect.SliceHeader)(unsafe.Pointer(&mem))
-	header.Len /= 4
-	header.Cap /= 4
-
-	return mem, *(*[]uint32)(unsafe.Pointer(&header)), nil
+	buffer := unsafe.Slice((*uint32)(unsafe.Pointer(unsafe.SliceData(mem))), len(mem)/4)
+	return mem, buffer, nil
 }
 
 // memoryMapAndGenerate tries to memory map a temporary file of uint32s for write
