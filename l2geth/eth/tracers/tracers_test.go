@@ -224,6 +224,9 @@ func TestCallTracer(t *testing.T) {
 			}
 			// Configure a blockchain with the given prestate
 			tx := new(types.Transaction)
+			// These upstream fixtures contain plain Ethereum transactions without
+			// the Metis metadata envelope.
+			tx.SetL2Tx(1)
 			if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
 				t.Fatalf("failed to parse testcase input: %v", err)
 			}
@@ -269,7 +272,7 @@ func TestCallTracer(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(ret, test.Result) {
-				t.Fatalf("trace mismatch: \nhave %+v\nwant %+v", ret, test.Result)
+				t.Fatalf("trace mismatch: \nhave %#v\nwant %#v", ret, test.Result)
 			}
 		})
 	}
