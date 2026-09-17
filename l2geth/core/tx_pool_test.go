@@ -74,6 +74,8 @@ func transaction(nonce uint64, gaslimit uint64, key *ecdsa.PrivateKey) *types.Tr
 
 func pricedTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key *ecdsa.PrivateKey) *types.Transaction {
 	tx, _ := types.SignTx(types.NewTransaction(nonce, common.Address{}, big.NewInt(100), gaslimit, gasprice, nil), types.HomesteadSigner{}, key)
+	// Match executed Metis transaction envelopes, including journal round trips.
+	tx.GetMeta().L1MessageSender = new(common.Address)
 	return tx
 }
 
@@ -82,6 +84,8 @@ func pricedDataTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key
 	rand.Read(data)
 
 	tx, _ := types.SignTx(types.NewTransaction(nonce, common.Address{}, big.NewInt(0), gaslimit, gasprice, data), types.HomesteadSigner{}, key)
+	// Match executed Metis transaction envelopes, including journal round trips.
+	tx.GetMeta().L1MessageSender = new(common.Address)
 	return tx
 }
 
@@ -258,9 +262,12 @@ func TestInvalidTransactions(t *testing.T) {
 
 	tx = transaction(1, 100000, key)
 	pool.gasPrice = big.NewInt(1000)
-	if err := pool.AddRemote(tx); err != ErrUnderpriced {
-		t.Error("expected", ErrUnderpriced, "got", err)
+	// Metis accepts below-threshold admission when the pool has capacity;
+	// SetGasPrice still removes already pooled underpriced remote transactions.
+	if err := pool.AddRemote(tx); err != nil {
+		t.Error("expected", nil, "got", err)
 	}
+	tx = transaction(2, 100000, key)
 	if err := pool.AddLocal(tx); err != nil {
 		t.Error("expected", nil, "got", err)
 	}
@@ -348,7 +355,9 @@ func TestTransactionChainFork(t *testing.T) {
 		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 		statedb.AddBalance(addr, big.NewInt(100000000000000))
 
-		pool.chain = &testBlockChain{statedb, 1000000, new(event.Feed)}
+		// Keep the chain object and its header stable while the pool loop starts.
+		// The reset request synchronizes the subsequent StateAt read.
+		pool.chain.(*testBlockChain).statedb = statedb
 		<-pool.requestReset(nil, nil)
 	}
 	resetState()
@@ -377,7 +386,9 @@ func TestTransactionDoubleNonce(t *testing.T) {
 		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 		statedb.AddBalance(addr, big.NewInt(100000000000000))
 
-		pool.chain = &testBlockChain{statedb, 1000000, new(event.Feed)}
+		// Keep the chain object and its header stable while the pool loop starts.
+		// The reset request synchronizes the subsequent StateAt read.
+		pool.chain.(*testBlockChain).statedb = statedb
 		<-pool.requestReset(nil, nil)
 	}
 	resetState()
@@ -453,7 +464,8 @@ func TestTransactionNonceRecovery(t *testing.T) {
 	<-pool.requestReset(nil, nil)
 
 	tx := transaction(n, 100000, key)
-	if err := pool.AddRemote(tx); err != nil {
+	// Finish promotion before mutating the shared test state for the reset.
+	if err := pool.addRemoteSync(tx); err != nil {
 		t.Error(err)
 	}
 	// simulate some weird re-order of transactions and missing nonce(s)
@@ -902,8 +914,20 @@ func testTransactionQueueTimeLimiting(t *testing.T, nolocals bool) {
 	if err := validateTxPoolInternals(pool); err != nil {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
-	// Wait a bit for eviction to run and clean up any leftovers, and ensure only the local remains
-	time.Sleep(2 * config.Lifetime)
+	// Observe eviction instead of racing the ticker with a fixed two-lifetime
+	// sleep, which may finish just before the second tick acquires the lock.
+	wantQueued := 1
+	if nolocals {
+		wantQueued = 0
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		_, queued = pool.Stats()
+		if queued == wantQueued {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	pending, queued = pool.Stats()
 	if pending != 0 {
@@ -1222,23 +1246,39 @@ func TestTransactionPoolRepricing(t *testing.T) {
 	if err := validateTxPoolInternals(pool); err != nil {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
-	// Check that we can't add the old transactions back
-	if err := pool.AddRemote(pricedTransaction(1, 100000, big.NewInt(1), keys[0])); err != ErrUnderpriced {
-		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
+	// Metis disables the minimum-price admission check while capacity remains.
+	// Re-admission fills the nonce gaps and promotes the existing transactions.
+	for _, tx := range []*types.Transaction{
+		pricedTransaction(1, 100000, big.NewInt(1), keys[0]),
+		pricedTransaction(0, 100000, big.NewInt(1), keys[1]),
+		pricedTransaction(2, 100000, big.NewInt(1), keys[2]),
+	} {
+		if err := pool.addRemoteSync(tx); err != nil {
+			t.Fatalf("readmit underpriced transaction: %v", err)
+		}
 	}
-	if err := pool.AddRemote(pricedTransaction(0, 100000, big.NewInt(1), keys[1])); err != ErrUnderpriced {
-		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
+	if pending, queued = pool.Stats(); pending != 7 || queued != 3 {
+		t.Fatalf("readmission stats: %d pending, %d queued", pending, queued)
 	}
-	if err := pool.AddRemote(pricedTransaction(2, 100000, big.NewInt(1), keys[2])); err != ErrUnderpriced {
-		t.Fatalf("adding underpriced queued transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
-	}
-	if err := validateEvents(events, 0); err != nil {
-		t.Fatalf("post-reprice event firing failed: %v", err)
+	if err := validateEvents(events, 5); err != nil {
+		t.Fatal(err)
 	}
 	if err := validateTxPoolInternals(pool); err != nil {
-		t.Fatalf("pool internal state corrupted: %v", err)
+		t.Fatal(err)
 	}
-	// However we can add local underpriced transactions
+	// Repricing still purges these remote transactions and re-queues their
+	// successors, even though admission does not enforce the threshold.
+	pool.SetGasPrice(big.NewInt(2))
+	if pending, queued = pool.Stats(); pending != 2 || queued != 5 {
+		t.Fatalf("repricing stats: %d pending, %d queued", pending, queued)
+	}
+	if err := validateEvents(events, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateTxPoolInternals(pool); err != nil {
+		t.Fatal(err)
+	}
+	// Local underpriced transactions remain exempt from repricing
 	tx := pricedTransaction(1, 100000, big.NewInt(1), keys[3])
 	if err := pool.AddLocal(tx); err != nil {
 		t.Fatalf("failed to add underpriced local transaction: %v", err)

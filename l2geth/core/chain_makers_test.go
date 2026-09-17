@@ -17,9 +17,10 @@
 package core
 
 import (
-	"fmt"
 	"math/big"
+	"testing"
 
+	"github.com/MetisProtocol/mvm/l2geth/common"
 	"github.com/MetisProtocol/mvm/l2geth/consensus/ethash"
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
@@ -28,7 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func ExampleGenerateChain() {
+func TestGenerateChain(t *testing.T) {
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
@@ -41,7 +42,7 @@ func ExampleGenerateChain() {
 
 	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{ChainID: big.NewInt(1337), HomesteadBlock: new(big.Int)},
 		Alloc:  GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
 	}
 	genesis := gspec.MustCommit(db)
@@ -83,18 +84,20 @@ func ExampleGenerateChain() {
 	defer blockchain.Stop()
 
 	if i, err := blockchain.InsertChain(chain); err != nil {
-		fmt.Printf("insert error (block %d): %v\n", chain[i].NumberU64(), err)
-		return
+		t.Fatalf("insert error (block %d): %v", chain[i].NumberU64(), err)
 	}
 
-	state, _ := blockchain.State()
-	fmt.Printf("last block: #%d\n", blockchain.CurrentBlock().Number())
-	fmt.Println("balance of addr1:", state.GetBalance(addr1))
-	fmt.Println("balance of addr2:", state.GetBalance(addr2))
-	fmt.Println("balance of addr3:", state.GetBalance(addr3))
-	// Output:
-	// last block: #5
-	// balance of addr1: 989000
-	// balance of addr2: 10000
-	// balance of addr3: 19687500000000001000
+	state, err := blockchain.State()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head := blockchain.CurrentBlock().NumberU64(); head != 5 {
+		t.Fatalf("head: got %d, want 5", head)
+	}
+	for i, address := range []common.Address{addr1, addr2, addr3} {
+		want, _ := new(big.Int).SetString([]string{"989000", "10000", "19687500000000001000"}[i], 10)
+		if got := state.GetBalance(address); got.Cmp(want) != 0 {
+			t.Fatalf("balance of addr%d: got %s, want %s", i+1, got, want)
+		}
+	}
 }

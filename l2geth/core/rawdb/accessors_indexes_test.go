@@ -81,7 +81,7 @@ func TestLookupStorage(t *testing.T) {
 			tx2.SetTransactionMeta(tx2Meta)
 
 			tx3 := types.NewTransaction(3, common.BytesToAddress([]byte{0x33}), big.NewInt(333), 3333, big.NewInt(33333), []byte{0x33, 0x33, 0x33})
-			tx3Meta := types.NewTransactionMeta(l1BlockNumber1, 0, nil, types.QueueOriginSequencer, nil, nil, nil)
+			tx3Meta := types.NewTransactionMeta(l1BlockNumber1, 0, new(common.Address), types.QueueOriginSequencer, nil, nil, nil)
 			tx3.SetTransactionMeta(tx3Meta)
 
 			txs := []*types.Transaction{tx1, tx2, tx3}

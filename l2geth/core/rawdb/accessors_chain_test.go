@@ -277,6 +277,12 @@ func TestBlockReceiptStorage(t *testing.T) {
 	tx1 := types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil)
 	tx2 := types.NewTransaction(2, common.HexToAddress("0x2"), big.NewInt(2), 2, big.NewInt(2), nil)
 
+	// Stored Metis transaction envelopes require an explicit sender address.
+	// Executed transactions normally acquire this field through AsMessage.
+	for _, tx := range []*types.Transaction{tx1, tx2} {
+		tx.GetMeta().L1MessageSender = new(common.Address)
+	}
+
 	body := &types.Body{Transactions: types.Transactions{tx1, tx2}}
 
 	// Create the two receipts to manage afterwards
@@ -436,6 +442,9 @@ func TestBlockMetaStorage(t *testing.T) {
 
 	WriteTransactionMeta(db, index1, tx1.GetMeta())
 	meta := ReadTransactionMeta(db, index1)
+	if meta == nil {
+		t.Fatal("missing transaction metadata")
+	}
 
 	if meta.L1MessageSender != nil {
 		t.Fatalf("Could not recover L1MessageSender")
@@ -462,11 +471,14 @@ func TestBlockMetaStorage(t *testing.T) {
 
 	index2 := uint64(2)
 	tx2 := types.NewTransaction(2, common.HexToAddress("0x02"), big.NewInt(2), 2, big.NewInt(2), nil)
-	tx2Meta := types.NewTransactionMeta(l1BlockNumber, 0, &addr, types.QueueOriginSequencer, nil, nil, nil)
+	tx2Meta := types.NewTransactionMeta(l1BlockNumber, 0, &addr, types.QueueOriginSequencer, &index2, nil, nil)
 	tx2.SetTransactionMeta(tx2Meta)
 
 	WriteTransactionMeta(db, index2, tx2.GetMeta())
 	meta2 := ReadTransactionMeta(db, index2)
+	if meta2 == nil || meta2.Index == nil || *meta2.Index != index2 {
+		t.Fatal("could not recover second transaction index")
+	}
 
 	if !bytes.Equal(meta2.L1MessageSender.Bytes(), addr.Bytes()) {
 		t.Fatalf("Could not recover L1MessageSender")

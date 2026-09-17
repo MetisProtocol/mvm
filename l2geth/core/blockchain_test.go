@@ -1922,6 +1922,9 @@ func testInsertKnownChainData(t *testing.T, typ string) {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
 
+	defer chaindb.Close()
+	defer chain.Stop()
+
 	var (
 		inserter func(blocks []*types.Block, receipts []types.Receipts) error
 		asserter func(t *testing.T, block *types.Block)
@@ -2010,11 +2013,23 @@ func testInsertKnownChainData(t *testing.T, typ string) {
 		rollback = append(rollback, blocks3[i].Hash())
 	}
 	chain.Rollback(rollback)
+	rolledBackHead := chain.CurrentBlock()
 
 	if err := inserter(append(blocks, blocks2...), append(receipts, receipts2...)); err != nil {
 		t.Fatalf("failed to insert chain data: %v", err)
 	}
-	asserter(t, blocks2[len(blocks2)-1])
+	if typ == "blocks" {
+		// Metis intentionally does not call writeKnownBlock on re-import.
+		// Known blocks retain their data but cannot advance the rolled-back head.
+		asserter(t, rolledBackHead)
+		for _, block := range blocks2 {
+			if !chain.HasBlockAndState(block.Hash(), block.NumberU64()) {
+				t.Fatalf("known block %d lost data", block.NumberU64())
+			}
+		}
+	} else {
+		asserter(t, blocks2[len(blocks2)-1])
+	}
 }
 
 // getLongAndShortChains returns two chains,
