@@ -174,6 +174,9 @@ func (s *StateDB) Reset(root common.Hash) error {
 }
 
 func (s *StateDB) AddLog(log *types.Log) {
+	if rcfg.UsingOVM {
+		s.recordOVMTransferPreimages(log)
+	}
 	s.journal.append(addLogChange{txhash: s.thash})
 
 	log.TxHash = s.thash
@@ -374,6 +377,7 @@ func (s *StateDB) HasSuicided(addr common.Address) bool {
 // AddBalance adds amount to the account associated with addr.
 func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) {
 	if rcfg.UsingOVM {
+		s.recordOVMAddressPreimage(addr)
 		// Mutate the storage slot inside of OVM_ETH to change balances.
 		// Note that we don't need to check for overflows or underflows here because the code that
 		// uses this codepath already checks for them. You can follow the original codepath below
@@ -394,6 +398,7 @@ func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) {
 // SubBalance subtracts amount from the account associated with addr.
 func (s *StateDB) SubBalance(addr common.Address, amount *big.Int) {
 	if rcfg.UsingOVM {
+		s.recordOVMAddressPreimage(addr)
 		// Mutate the storage slot inside of OVM_ETH to change balances.
 		// Note that we don't need to check for overflows or underflows here because the code that
 		// uses this codepath already checks for them. You can follow the original codepath below
@@ -413,6 +418,7 @@ func (s *StateDB) SubBalance(addr common.Address, amount *big.Int) {
 
 func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 	if rcfg.UsingOVM {
+		s.recordOVMAddressPreimage(addr)
 		// Mutate the storage slot inside of OVM_ETH to change balances.
 		key := GetOVMBalanceKey(addr)
 		s.SetState(dump.OvmEthAddress, key, common.BigToHash(amount))

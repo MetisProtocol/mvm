@@ -18,6 +18,29 @@ flags.
 
 A prebuilt Docker image is available at `ethereumoptimism/go-ethereum`.
 
+### OVM_ETH migration address records
+
+While OVM mode is active (`rcfg.UsingOVM`), balance setters and standard
+OVM_ETH `Transfer` logs automatically record the involved addresses as SHA3
+preimages. This includes zero amounts, mint/burn addresses and holders with no
+account leaf. No additional flag is needed; VM SHA3 preimage recording may remain
+disabled. Other contracts' events and `Approval` events do not add these records.
+
+Normal block insertion persists each record as
+`secure-key- || keccak256(address[20]) -> address[20]`. These auxiliary records
+do not affect state roots, gas or receipts. They use the existing state journal
+and roll back with reverted execution. Records deduplicate within a block;
+repeated addresses may be written again in later blocks, and unique addresses
+increase database storage. Entries already persisted for a non-canonical block
+may remain as harmless address candidates.
+
+The migration tool can read these records to locate OVM_ETH balance slots. They
+do not establish ERC20 retention eligibility or guarantee that a state witness
+is unnecessary. Upgrading only records addresses touched by subsequent execution;
+it does not backfill old balances, untouched holders or missing initial-state
+addresses. Historical replay or separate evidence is still needed for those
+gaps. This feature adds no history backfill command or allowance-pair index.
+
 To compile the code, run:
 ```
 $ make geth
