@@ -27,6 +27,21 @@ const (
 	VersionMeta  = "stable" // Version metadata to append to the version string
 )
 
+const (
+	MetisVersionMajor = 0     // Major version component of the current release
+	MetisVersionMinor = 3     // Minor version component of the current release
+	MetisVersionPatch = 10    // Patch version component of the current release
+	MetisVersionMeta  = "dev" // Version metadata to append to the version string
+)
+
+var MetisVersion = func() string {
+	v := fmt.Sprintf("%d.%d.%d", MetisVersionMajor, MetisVersionMinor, MetisVersionPatch)
+	if MetisVersionMeta != "" {
+		v += "-" + MetisVersionMeta
+	}
+	return v
+}
+
 // Version holds the textual version string.
 var Version = func() string {
 	return fmt.Sprintf("%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)

@@ -3,6 +3,9 @@ FROM golang:1.26-alpine AS builder
 RUN apk add --no-cache make gcc musl-dev linux-headers git
 WORKDIR /l2geth
 COPY ./l2geth ./
+ARG GIT_COMMIT
+# UTC commit date in YYYYMMDD format.
+ARG GIT_DATE
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build make all
 
 # Pull Geth into a second stage deploy alpine container

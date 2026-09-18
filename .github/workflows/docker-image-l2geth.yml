@@ -30,6 +30,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Git build metadata
+        id: git
+        run: |
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "date=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Login to DockerHub
         uses: docker/login-action@v4
         with:
@@ -49,13 +55,16 @@ jobs:
           pull: true
           context: .
           file: ./ops/docker/Dockerfile.geth
+          build-args: |
+            GIT_COMMIT=${{ steps.git.outputs.commit }}
+            GIT_DATE=${{ steps.git.outputs.date }}
           annotations: ${{ steps.meta.outputs.annotations }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=buildkit-l2geth-${{ runner.os }}-${{ runner.arch }}
           cache-to: type=gha,mode=max,scope=buildkit-l2geth-${{ runner.os }}-${{ runner.arch }}
           outputs: type=image,"name=${{ env.DOCKER_REPO_NAME }}",push-by-digest=true,name-canonical=true,push=true
-          provenance: false
-          sbom: false
+          provenance: true
+          sbom: true
 
       - name: Export digest
         run: |

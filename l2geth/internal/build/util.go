@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -70,15 +69,6 @@ func RunGit(args ...string) string {
 		log.Fatal(strings.Join(cmd.Args, " "), ": ", err, "\n", stderr.String())
 	}
 	return strings.TrimSpace(stdout.String())
-}
-
-// readGitFile returns content of file in .git directory.
-func readGitFile(file string) string {
-	content, err := ioutil.ReadFile(path.Join(".git", file))
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(content))
 }
 
 // Render renders the given template file into outputFile.

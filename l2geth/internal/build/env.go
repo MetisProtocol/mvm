@@ -20,7 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"regexp"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +29,7 @@ import (
 var (
 	// These flags override values in build env.
 	GitCommitFlag   = flag.String("git-commit", "", `Overrides git commit hash embedded into executables`)
+	GitDateFlag     = flag.String("git-date", "", `Overrides git commit date embedded into executables (YYYYMMDD)`)
 	GitBranchFlag   = flag.String("git-branch", "", `Overrides git branch being built`)
 	GitTagFlag      = flag.String("git-tag", "", `Overrides git tag being built`)
 	BuildnumFlag    = flag.String("buildnum", "", `Overrides CI build number`)
@@ -54,17 +55,17 @@ func (env Environment) String() string {
 // Env returns metadata about the current CI environment, falling back to LocalEnv
 // if not running on CI.
 func Env() Environment {
+	var env Environment
 	switch {
 	case os.Getenv("CI") == "true" && os.Getenv("TRAVIS") == "true":
 		commit := os.Getenv("TRAVIS_PULL_REQUEST_SHA")
 		if commit == "" {
 			commit = os.Getenv("TRAVIS_COMMIT")
 		}
-		return Environment{
+		env = Environment{
 			Name:          "travis",
 			Repo:          os.Getenv("TRAVIS_REPO_SLUG"),
 			Commit:        commit,
-			Date:          getDate(commit),
 			Branch:        os.Getenv("TRAVIS_BRANCH"),
 			Tag:           os.Getenv("TRAVIS_TAG"),
 			Buildnum:      os.Getenv("TRAVIS_BUILD_NUMBER"),
@@ -76,11 +77,10 @@ func Env() Environment {
 		if commit == "" {
 			commit = os.Getenv("APPVEYOR_REPO_COMMIT")
 		}
-		return Environment{
+		env = Environment{
 			Name:          "appveyor",
 			Repo:          os.Getenv("APPVEYOR_REPO_NAME"),
 			Commit:        commit,
-			Date:          getDate(commit),
 			Branch:        os.Getenv("APPVEYOR_REPO_BRANCH"),
 			Tag:           os.Getenv("APPVEYOR_REPO_TAG_NAME"),
 			Buildnum:      os.Getenv("APPVEYOR_BUILD_NUMBER"),
@@ -90,38 +90,46 @@ func Env() Environment {
 	default:
 		return LocalEnv()
 	}
+	env = applyEnvFlags(env)
+	if env.Date == "" && gitHead() != "" {
+		env.Date = getDate(env.Commit)
+	}
+	return env
 }
 
 // LocalEnv returns build environment metadata gathered from git.
 func LocalEnv() Environment {
 	env := applyEnvFlags(Environment{Name: "local", Repo: "ethereum/go-ethereum"})
 
-	head := readGitFile("HEAD")
-	if fields := strings.Fields(head); len(fields) == 2 {
-		head = fields[1]
-	} else {
-		// In this case we are in "detached head" state
-		// see: https://git-scm.com/docs/git-checkout#_detached_head
-		// Additional check required to verify, that file contains commit hash
-		commitRe, _ := regexp.Compile("^([0-9a-f]{40})$")
-		if commit := commitRe.FindString(head); commit != "" && env.Commit == "" {
-			env.Commit = commit
-		}
+	head := gitHead()
+	if head == "" {
 		return env
 	}
 	if env.Commit == "" {
-		env.Commit = readGitFile(head)
+		env.Commit = head
 	}
-	env.Date = getDate(env.Commit)
+	if env.Date == "" {
+		env.Date = getDate(env.Commit)
+	}
 	if env.Branch == "" {
-		if head != "HEAD" {
-			env.Branch = strings.TrimPrefix(head, "refs/heads/")
+		if branch := RunGit("rev-parse", "--abbrev-ref", "HEAD"); branch != "HEAD" {
+			env.Branch = branch
 		}
 	}
-	if info, err := os.Stat(".git/objects"); err == nil && info.IsDir() && env.Tag == "" {
+	if env.Tag == "" {
 		env.Tag = firstLine(RunGit("tag", "-l", "--points-at", "HEAD"))
 	}
 	return env
+}
+
+// gitHead lets Git discover the repository, including parent directories and
+// worktrees. Source archives and environments without Git have no local metadata.
+func gitHead() string {
+	out, err := exec.Command("git", "rev-parse", "--verify", "HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 func firstLine(s string) string {
@@ -140,15 +148,24 @@ func getDate(commit string) string {
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse git commit date: %v", err))
 	}
-	return time.Unix(date, 0).Format("20060102")
+	return time.Unix(date, 0).UTC().Format("20060102")
 }
 
 func applyEnvFlags(env Environment) Environment {
 	if !flag.Parsed() {
 		panic("you need to call flag.Parse before Env or LocalEnv")
 	}
+	if commit := os.Getenv("GIT_COMMIT"); commit != "" {
+		env.Commit = commit
+	}
+	if date := os.Getenv("GIT_DATE"); date != "" {
+		env.Date = date
+	}
 	if *GitCommitFlag != "" {
 		env.Commit = *GitCommitFlag
+	}
+	if *GitDateFlag != "" {
+		env.Date = *GitDateFlag
 	}
 	if *GitBranchFlag != "" {
 		env.Branch = *GitBranchFlag

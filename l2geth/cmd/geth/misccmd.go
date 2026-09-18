@@ -18,10 +18,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"strconv"
-	"strings"
 
 	"gopkg.in/urfave/cli.v1"
 
@@ -108,8 +106,8 @@ func makedag(ctx *cli.Context) error {
 }
 
 func version(ctx *cli.Context) error {
-	fmt.Println(strings.Title(clientIdentifier))
-	fmt.Println("Version:", params.VersionWithMeta)
+	fmt.Println("Metis l2geth")
+	fmt.Println("Version", params.MetisVersion())
 	if gitCommit != "" {
 		fmt.Println("Git Commit:", gitCommit)
 	}
@@ -120,8 +118,6 @@ func version(ctx *cli.Context) error {
 	fmt.Println("Protocol Versions:", eth.ProtocolVersions)
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Operating System:", runtime.GOOS)
-	fmt.Printf("GOPATH=%s\n", os.Getenv("GOPATH"))
-	fmt.Printf("GOROOT=%s\n", runtime.GOROOT())
 	return nil
 }
 

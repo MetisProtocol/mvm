@@ -29,6 +29,9 @@ services:
     build:
       context: ..
       dockerfile: ./ops/docker/Dockerfile.geth
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-}
+        GIT_DATE: ${GIT_DATE:-}
 
   challenger:
     image: metisdao/challenger:${VERSION:-dev}
