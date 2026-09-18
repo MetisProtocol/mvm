@@ -1,53 +1,43 @@
 # This file configures github.com/golangci/golangci-lint.
-
+version: '2'
 run:
-  timeout: 5m
   tests: true
-  # default is true. Enables skipping of directories:
-  #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
-  skip-dirs-use-default: true
-  skip-files:
-    - core/genesis_alloc.go
-
 linters:
-  disable-all: true
+  default: none
   enable:
-    - deadcode
-    - goconst
-    - goimports
-    - gosimple
+    - bidichk
+    - copyloopvar
+    - durationcheck
+    - gocheckcompilerdirectives
     - govet
     - ineffassign
+    - mirror
     - misspell
-    # - staticcheck
+    - reassign
+    - revive
+    - staticcheck
     - unconvert
-    # - unused
-    - varcheck
-
-linters-settings:
-  gofmt:
-    simplify: true
-  goconst:
-    min-len: 3 # minimum length of string constant
-    min-occurrences: 6 # minimum number of occurrences
-
-issues:
-  exclude-rules:
-    - path: crypto/blake2b/
-      linters:
-        - deadcode
-    - path: crypto/bn256/cloudflare
-      linters:
-        - deadcode
-    - path: p2p/discv5/
-      linters:
-        - deadcode
-    - path: core/vm/instructions_test.go
-      linters:
-        - goconst
-    - path: cmd/faucet/
-      linters:
-        - deadcode
-    - path: core/chain_makers_test.go
-      linters:
-        - govet
+    - unused
+    - usetesting
+    - whitespace
+  settings:
+    staticcheck:
+      checks:
+        # disable Quickfixes
+        - -QF1*
+    revive:
+      enable-all-rules: false
+      # here we enable specific useful rules
+      # see https://golangci-lint.run/usage/linters/#revive for supported rules
+      rules:
+        - name: receiver-naming
+          severity: warning
+          disabled: false
+          exclude:
+            - ''
+formatters:
+  enable:
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
