@@ -478,6 +478,9 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	if block == nil {
 		return fmt.Errorf("non existent block [%x…]", hash[:4])
 	}
+	if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
+		return err
+	}
 	if _, err := trie.NewSecure(block.Root(), bc.stateCache.TrieDB()); err != nil {
 		return err
 	}
@@ -546,6 +549,9 @@ func (bc *BlockChain) Reset() error {
 // ResetWithGenesisBlock purges the entire blockchain, restoring it to the
 // specified genesis state.
 func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
+	if err := verifyBlockCheckpoint(bc.chainConfig, genesis.NumberU64(), genesis.Hash()); err != nil {
+		return err
+	}
 	// Dump the entire block chain and purge the caches
 	if err := bc.SetHead(0); err != nil {
 		return err
@@ -988,6 +994,11 @@ type numberHash struct {
 // InsertReceiptChain attempts to complete an already existing header chain with
 // transaction and receipt data.
 func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain []types.Receipts, ancientLimit uint64) (int, error) {
+	for i, block := range blockChain {
+		if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
+			return i, err
+		}
+	}
 	// We don't require the chainMu here since we want to maximize the
 	// concurrency of header insertion and receipt insertion.
 	bc.wg.Add(1)
@@ -1277,6 +1288,9 @@ var lastWrite uint64
 // but does not write any state. This is used to construct competing side forks
 // up to the point where they exceed the canonical total difficulty.
 func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (err error) {
+	if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
+		return err
+	}
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -1300,6 +1314,9 @@ func (bc *BlockChain) writeBlockWithoutState(block *types.Block, td *big.Int) (e
 // writeKnownBlock updates the head block flag with a known block
 // and introduces chain reorg if necessary.
 func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
+	if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
+		return err
+	}
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -1333,6 +1350,9 @@ func (bc *BlockChain) restoreBlockMeta(blockNumber uint64, txCount int, meta *ty
 // writeBlockWithState writes the block and all associated state to the database,
 // but is expects the chain mutex to be held.
 func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
+	if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
+		return NonStatTy, err
+	}
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -1505,6 +1525,11 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 //
 // After insertion is done, all accumulated events will be fired.
 func (bc *BlockChain) InsertChainWithFunc(chain types.Blocks, f interface{}) (int, error) {
+	for i, block := range chain {
+		if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
+			return i, err
+		}
+	}
 	// NOTE 20210724
 	// Sanity check that we have something meaningful to import
 	if len(chain) == 0 {
@@ -2463,6 +2488,12 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		newBlock = bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1)
 		if newBlock == nil {
 			return fmt.Errorf("invalid new chain")
+		}
+	}
+	// Check legacy side-chain blocks before publishing any canonical changes.
+	for _, block := range newChain {
+		if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
+			return err
 		}
 	}
 	// Ensure the user sees large reorgs

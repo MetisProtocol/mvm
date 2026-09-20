@@ -78,6 +78,9 @@ type HeaderChain struct {
 // NewHeaderChain creates a new HeaderChain structure. ProcInterrupt points
 // to the parent's interrupt semaphore.
 func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine consensus.Engine, procInterrupt func() bool) (*HeaderChain, error) {
+	if err := verifyStoredCheckpoints(chainDb, config); err != nil {
+		return nil, err
+	}
 	headerCache, _ := lru.New(headerCacheLimit)
 	tdCache, _ := lru.New(tdCacheLimit)
 	numberCache, _ := lru.New(numberCacheLimit)
@@ -140,6 +143,9 @@ func (hc *HeaderChain) GetBlockNumber(hash common.Hash) *uint64 {
 // in two scenarios: pure-header mode of operation (light clients), or properly
 // separated header/block phases (non-archive clients).
 func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, err error) {
+	if err := verifyHeaderCheckpoint(hc.config, header); err != nil {
+		return NonStatTy, err
+	}
 	// Cache some values to prevent constant recalculation
 	var (
 		hash   = header.Hash()
@@ -189,6 +195,10 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 			headHeader = hc.GetHeader(headHash, headNumber)
 		)
 		for rawdb.ReadCanonicalHash(hc.chainDb, headNumber) != headHash {
+			// An older database may contain a conflicting side chain.
+			if err := verifyBlockCheckpoint(hc.config, headNumber, headHash); err != nil {
+				return NonStatTy, err
+			}
 			rawdb.WriteCanonicalHash(markerBatch, headHash, headNumber)
 
 			headHash = headHeader.ParentHash
@@ -224,6 +234,11 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 type WhCallback func(*types.Header) error
 
 func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int) (int, error) {
+	for i, header := range chain {
+		if err := verifyHeaderCheckpoint(hc.config, header); err != nil {
+			return i, err
+		}
+	}
 	// Do a sanity check that the provided chain is actually ordered and linked
 	for i := 1; i < len(chain); i++ {
 		if chain[i].Number.Uint64() != chain[i-1].Number.Uint64()+1 || chain[i].ParentHash != chain[i-1].Hash() {
@@ -283,6 +298,12 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 // of the header retrieval mechanisms already need to verfy nonces, as well as
 // because nonces can be verified sparsely, not needing to check each.
 func (hc *HeaderChain) InsertHeaderChain(chain []*types.Header, writeHeader WhCallback, start time.Time) (int, error) {
+	// Check before the known-header shortcut or any write callback.
+	for i, header := range chain {
+		if err := verifyHeaderCheckpoint(hc.config, header); err != nil {
+			return i, err
+		}
+	}
 	// Collect some import statistics to report on
 	stats := struct{ processed, ignored int }{}
 	// All headers passed verification, import them into the database

@@ -11,6 +11,43 @@ flags.
 
 A prebuilt Docker image is available at `metisdao/l2geth`.
 
+### Andromeda block hash checkpoints
+
+Chain ID `1088` enforces 232 hardcoded block hashes, from block `0` through
+`23,100,000` inclusive at intervals of `100,000` blocks. The hashes were fetched
+from `https://andromeda.metis.io` on 2026-09-20 and recomputed using this client's
+header RLP encoding. The table is in `params/block_checkpoints.go`; its offline
+header fixtures are in `params/testdata/andromeda-checkpoints.json`.
+
+Block and header imports, fast-sync receipt imports, and local block writes reject
+conflicting checkpoints before committing them. Known-block shortcuts and
+promotion of stored side chains also enforce the checkpoints. Startup checks all
+existing canonical checkpoint hashes in both the hot database and ancient store
+before header/block chain recovery or rewinding. A conflict stops startup with
+the height, expected hash and actual hash; it does not automatically roll back
+the database.
+Check the chain configuration and database source before replacing inconsistent
+data or resyncing from a known-good source.
+
+Genesis setup and commit (`genesis.go`) do not perform checkpoint validation;
+their existing configuration and database compatibility checks still apply.
+Block `0` remains in the checkpoint table and is checked when opening the
+header/block chain, alongside the other checkpoints. These checks are mandatory
+for every chain using ID `1088`, including custom genesis configurations that
+reuse it. Other chain IDs and heights without a checkpoint keep their existing
+validation rules. Missing checkpoints are allowed
+while syncing. Checkpoints supplement execution and consensus validation; they do
+not skip those checks or extend coverage beyond the last recorded height.
+Neither runtime validation nor automated tests contact the RPC endpoint.
+
+To extend coverage, fetch `eth_getBlockByNumber` with full transactions disabled
+for each additional multiple of `100,000`. Verify the returned number and 32-byte
+hash, decode each response as `types.Header`, and require `Header.Hash()` to match
+the RPC hash. Append the verified hashes and header fixtures, update the last
+checkpoint constant, snapshot count assertions and acquisition date, and run
+`go test ./params ./core -run Checkpoint` from this directory. Updating checkpoints
+requires a code release; there is no runtime override or disable flag.
+
 ### OVM_ETH migration address records
 
 While OVM mode is active (`rcfg.UsingOVM`), balance setters and standard
