@@ -218,6 +218,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.NoDiscoverFlag,
 			utils.DiscoveryV5Flag,
 			utils.NetrestrictFlag,
+			utils.BlockPeerWhitelistFlag,
 			utils.NodeKeyFileFlag,
 			utils.NodeKeyHexFlag,
 		},

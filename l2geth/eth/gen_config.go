@@ -21,6 +21,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		Genesis                 *core.Genesis `toml:",omitempty"`
 		NetworkId               uint64
 		SyncMode                downloader.SyncMode
+		BlockPeerWhitelistFile  string `toml:",omitempty"`
 		NoPruning               bool
 		NoPrefetch              bool
 		Whitelist               map[uint64]common.Hash `toml:"-"`
@@ -54,6 +55,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.Genesis = c.Genesis
 	enc.NetworkId = c.NetworkId
 	enc.SyncMode = c.SyncMode
+	enc.BlockPeerWhitelistFile = c.BlockPeerWhitelistFile
 	enc.NoPruning = c.NoPruning
 	enc.NoPrefetch = c.NoPrefetch
 	enc.Whitelist = c.Whitelist
@@ -91,6 +93,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		Genesis                 *core.Genesis `toml:",omitempty"`
 		NetworkId               *uint64
 		SyncMode                *downloader.SyncMode
+		BlockPeerWhitelistFile  *string `toml:",omitempty"`
 		NoPruning               *bool
 		NoPrefetch              *bool
 		Whitelist               map[uint64]common.Hash `toml:"-"`
@@ -132,6 +135,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.SyncMode != nil {
 		c.SyncMode = *dec.SyncMode
+	}
+	if dec.BlockPeerWhitelistFile != nil {
+		c.BlockPeerWhitelistFile = *dec.BlockPeerWhitelistFile
 	}
 	if dec.NoPruning != nil {
 		c.NoPruning = *dec.NoPruning

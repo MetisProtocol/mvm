@@ -11,6 +11,68 @@ flags.
 
 A prebuilt Docker image is available at `metisdao/l2geth`.
 
+### P2P block source whitelist
+
+Use `--p2p.whitelist /path/to/block-peers.json` to restrict which peers can supply
+blocks for import. Rules are selected using the final **network ID** (including
+`--networkid` and `[Eth].NetworkId`), not the genesis chain ID. For example:
+
+```json
+{
+  "networks": [
+    {
+      "networkId": 1088,
+      "peers": [
+        "enode://<128-character-hex-public-key>@203.0.113.10:30303"
+      ]
+    },
+    {"networkId": 59902, "peers": []}
+  ]
+}
+```
+
+Each entry is a complete `enode://PUBLIC_KEY@IP:PORT` URL, parsed with the
+existing enode parser. Replace the example public key with the peer's actual
+128-character hexadecimal public key. Key-only enodes, account addresses,
+private keys, hashed node IDs, hostnames and CIDR ranges are not accepted.
+For IPv6 use brackets, for example `enode://PUBLIC_KEY@[2001:db8::1]:30303`.
+TCP ports and optional `?discport=...` values must be valid enode syntax but do
+not participate in whitelist matching.
+
+Each enode binds one exact IP address to one authenticated node identity.
+Repeat a key with different IPs when necessary. IP matching uses the actual TCP
+remote address, so configure the address visible to this node after NAT, not a
+peer's advertised address. IPv4-mapped IPv6 addresses match their IPv4 equivalents.
+The former `{ "ip": "...", "publicKey": "..." }` entry format is not accepted.
+
+```sh
+geth --networkid 1088 --p2p.whitelist /path/to/block-peers.json
+```
+
+The path can also be set as `BlockPeerWhitelistFile` in the `[Eth]` TOML section;
+an explicitly supplied CLI flag overrides it. Relative paths use the process
+working directory. The entire JSON file is validated at startup and loaded once;
+restart to apply changes. Invalid files, unknown fields, invalid entries and
+duplicate network IDs stop startup, even if the invalid entry belongs to another
+network. An omitted file or network leaves block sources unrestricted. An
+explicit empty `peers` array rejects all P2P block sources for that network.
+The startup log reports the selected network, whether the supplied policy is
+active, and its rule count.
+
+This controls full/fast **block import sources**, including broadcast blocks,
+announcements, headers, bodies, receipts and state downloaded during sync. It
+does not disconnect non-whitelisted peers or prevent serving their requests,
+broadcasting blocks/transactions, or UDP discovery. Static/trusted peers have no
+exemption. With no eligible source, P2P sync waits without falling back to other
+peers. Existing connection limits, protocol checks and `--netrestrict` still
+apply. Light-client mode rejects an active policy rather than ignoring it.
+
+The whitelist authenticates the immediate transmitting peer, not the original
+block producer. Blocks forwarded by an allowed peer still undergo normal
+consensus and checkpoint validation. Transaction handling, local block creation,
+file imports and rollup data sources keep their existing behavior. The whitelist
+does not add peers automatically or support runtime/RPC updates.
+
 ### Andromeda block hash checkpoints
 
 Chain ID `1088` enforces 232 hardcoded block hashes, from block `0` through

@@ -145,14 +145,16 @@ func (pm *ProtocolManager) syncer() {
 		select {
 		case <-pm.newPeerCh:
 			// Make sure we have peers to select from, then sync
-			if pm.peers.Len() < minDesiredPeerCount {
+			best, count := pm.blockSyncPeers()
+			if count < minDesiredPeerCount {
 				break
 			}
-			go pm.synchronise(pm.peers.BestPeer())
+			go pm.synchronise(best)
 
 		case <-forceSync.C:
 			// Force a sync even if not enough peers are present
-			go pm.synchronise(pm.peers.BestPeer())
+			best, _ := pm.blockSyncPeers()
+			go pm.synchronise(best)
 
 		case <-pm.noMorePeers:
 			return
@@ -163,7 +165,7 @@ func (pm *ProtocolManager) syncer() {
 // synchronise tries to sync up our local block chain with a remote peer.
 func (pm *ProtocolManager) synchronise(peer *peer) {
 	// Short circuit if no peers are available
-	if peer == nil {
+	if peer == nil || !pm.allowBlockSource(peer) {
 		return
 	}
 	// Make sure the peer's TD is higher than our own

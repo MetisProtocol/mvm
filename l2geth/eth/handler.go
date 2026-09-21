@@ -81,9 +81,10 @@ type ProtocolManager struct {
 	blockchain *core.BlockChain
 	maxPeers   int
 
-	downloader *downloader.Downloader
-	fetcher    *fetcher.Fetcher
-	peers      *peerSet
+	downloader         *downloader.Downloader
+	fetcher            *fetcher.Fetcher
+	blockPeerWhitelist *BlockPeerWhitelist
+	peers              *peerSet
 
 	eventMux      *event.TypeMux
 	txsCh         chan core.NewTxsEvent
@@ -104,7 +105,7 @@ type ProtocolManager struct {
 
 	// NOTE 20210724, a ticker for fetcher
 	tickerFetcherSync *time.Ticker
-	peerSyncTime      int64
+	peerSyncTime      atomic.Int64
 	// Node config for check if rollup on
 	nodeHTTPModules                []string
 	rollupGpo                      *gasprice.RollupOracle
@@ -384,7 +385,9 @@ func (pm *ProtocolManager) removePeer(id string) {
 	log.Debug("Removing Ethereum peer", "peer", id)
 
 	// Unregister the peer from the downloader and Ethereum peer set
-	pm.downloader.UnregisterPeer(id)
+	if pm.allowBlockSource(peer) {
+		pm.downloader.UnregisterPeer(id)
+	}
 	if err := pm.peers.Unregister(id); err != nil {
 		log.Error("Peer removal failed", "peer", id, "err", err)
 	}
@@ -477,8 +480,10 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	defer pm.removePeer(p.id)
 
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
-	if err := pm.downloader.RegisterPeer(p.id, p.version, p); err != nil {
-		return err
+	if pm.allowBlockSource(p) {
+		if err := pm.downloader.RegisterPeer(p.id, p.version, p); err != nil {
+			return err
+		}
 	}
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
@@ -531,7 +536,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	}
 
 	if msg.Code != StatusMsg && msg.Code != GetNodeDataMsg && msg.Code != NodeDataMsg {
-		pm.peerSyncTime = time.Now().Unix()
+		pm.peerSyncTime.Store(time.Now().Unix())
 	}
 
 	defer msg.Discard()
@@ -673,7 +678,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				}
 				p.Log().Debug("Whitelist block verified", "number", headers[0].Number.Uint64(), "hash", want)
 			}
-			// Irrelevant of the fork checks, send the header to the fetcher just in case
+		}
+		// Challenge responses above remain valid for all peers, but only allowed
+		// sources may supply headers to either import pipeline.
+		if pm.ignoreBlockSource(p, msg.Code) {
+			return nil
+		}
+		if filter {
 			headers = pm.fetcher.FilterHeaders(p.id, headers, time.Now())
 		}
 		if len(headers) > 0 || !filter {
@@ -715,6 +726,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		var request blockBodiesData
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		if pm.ignoreBlockSource(p, msg.Code) {
+			return nil
 		}
 		// Deliver them all to the downloader for queuing
 		transactions := make([][]*types.Transaction, len(request))
@@ -769,6 +783,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&data); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
+		if pm.ignoreBlockSource(p, msg.Code) {
+			return nil
+		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverNodeData(p.id, data); err != nil {
 			log.Debug("Failed to deliver node state data", "err", err)
@@ -816,6 +833,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&receipts); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
+		if pm.ignoreBlockSource(p, msg.Code) {
+			return nil
+		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverReceipts(p.id, receipts); err != nil {
 			log.Debug("Failed to deliver receipts", "err", err)
@@ -825,6 +845,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		var announces newBlockHashesData
 		if err := msg.Decode(&announces); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		if pm.ignoreBlockSource(p, msg.Code) {
+			return nil
 		}
 		// Mark the hashes as present at the remote node
 		for _, block := range announces {
@@ -859,6 +882,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := request.sanityCheck(); err != nil {
 			log.Warn("sanityCheck", err)
 			return err
+		}
+		if pm.ignoreBlockSource(p, msg.Code) {
+			return nil
 		}
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p

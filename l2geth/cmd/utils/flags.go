@@ -734,6 +734,10 @@ var (
 		Name:  "v5disc",
 		Usage: "Enables the experimental RLPx V5 (Topic Discovery) mechanism",
 	}
+	BlockPeerWhitelistFlag = cli.StringFlag{
+		Name:  "p2p.whitelist",
+		Usage: "JSON file of allowed block sources by network ID (does not restrict connections or outgoing data)",
+	}
 	NetrestrictFlag = cli.StringFlag{
 		Name:  "netrestrict",
 		Usage: "Restricts network communication to the given IP networks (CIDR masks)",
@@ -1749,6 +1753,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setEthash(ctx, cfg)
 	setMiner(ctx, &cfg.Miner)
 	setWhitelist(ctx, cfg)
+	if ctx.GlobalIsSet(BlockPeerWhitelistFlag.Name) {
+		cfg.BlockPeerWhitelistFile = ctx.GlobalString(BlockPeerWhitelistFlag.Name)
+	}
 	setLes(ctx, cfg)
 	setEth1(ctx, &cfg.Rollup)
 	setRollup(ctx, &cfg.Rollup)

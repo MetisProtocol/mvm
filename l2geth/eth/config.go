@@ -115,6 +115,9 @@ type Config struct {
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
 	SyncMode  downloader.SyncMode
 
+	// JSON file restricting P2P block sources, without restricting connections.
+	BlockPeerWhitelistFile string `toml:",omitempty"`
+
 	NoPruning  bool // Whether to disable pruning and flush everything to disk
 	NoPrefetch bool // Whether to disable prefetching and only load state on demand
 

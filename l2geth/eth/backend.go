@@ -130,6 +130,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
+	blockPeerWhitelist, err := LoadBlockPeerWhitelist(config.BlockPeerWhitelistFile, config.NetworkId, config.SyncMode)
+	if err != nil {
+		return nil, err
+	}
 	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) < 0 {
 		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", DefaultConfig.Miner.GasPrice)
 		config.Miner.GasPrice = new(big.Int).Set(DefaultConfig.Miner.GasPrice)
@@ -228,6 +232,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(chainConfig, checkpoint, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, cacheLimit, config.Whitelist, eth.nodeRpcModules, syncQueueFromOthers, eth.syncService); err != nil {
 		return nil, err
 	}
+	eth.protocolManager.blockPeerWhitelist = blockPeerWhitelist
 	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock)
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 	log.Info("Backend Config", "max-calldata-size", config.Rollup.MaxCallDataSize, "gas-limit", config.Rollup.GasLimit, "is-verifier", config.Rollup.IsVerifier, "using-ovm", rcfg.UsingOVM, "ctx.ExtRPCEnabled() ", ctx.ExtRPCEnabled())

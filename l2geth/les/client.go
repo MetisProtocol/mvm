@@ -75,6 +75,9 @@ type LightEthereum struct {
 }
 
 func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
+	if _, err := eth.LoadBlockPeerWhitelist(config.BlockPeerWhitelistFile, config.NetworkId, downloader.LightSync); err != nil {
+		return nil, err
+	}
 	chainDb, err := ctx.OpenDatabase("lightchaindata", config.DatabaseCache, config.DatabaseHandles, "eth/db/chaindata/")
 	if err != nil {
 		return nil, err
