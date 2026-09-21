@@ -935,7 +935,7 @@ func (h *serverHandler) broadcastHeaders() {
 			)
 			announce := announceData{Hash: hash, Number: number, Td: td, ReorgDepth: reorg}
 			for _, p := range peers {
-				p := p
+
 				switch p.announceType {
 				case announceTypeSimple:
 					p.queueSend(func() { p.SendAnnounce(announce) })

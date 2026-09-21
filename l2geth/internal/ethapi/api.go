@@ -918,7 +918,6 @@ func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.Blo
 				}
 			}
 		}
-
 	}
 
 	// Create new call message
@@ -1383,7 +1382,6 @@ func newRPCTransactionFromBlockHash(b *types.Block, hash common.Hash) *RPCTransa
 // seconds, this method will return an error.
 func dialSequencerClientWithTimeout(ctx context.Context, url string) (
 	*ethclient.Client, error) {
-
 	ctxt, cancel := context.WithTimeout(ctx, defaultDialTimeout)
 	defer cancel()
 

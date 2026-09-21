@@ -85,7 +85,7 @@ type NodeInfo struct {
 func (c *lesCommons) makeProtocols(versions []uint, runPeer func(version uint, p *p2p.Peer, rw p2p.MsgReadWriter) error, peerInfo func(id enode.ID) interface{}) []p2p.Protocol {
 	protos := make([]p2p.Protocol, len(versions))
 	for i, version := range versions {
-		version := version
+
 		protos[i] = p2p.Protocol{
 			Name:     "les",
 			Version:  version,

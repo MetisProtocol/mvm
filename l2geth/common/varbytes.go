@@ -321,7 +321,6 @@ func WriteVarString(w io.Writer, pver uint32, str string) error {
 // the error.
 func ReadVarBytes(r io.Reader, pver uint32, maxAllowed uint32,
 	fieldName string) ([]byte, error) {
-
 	count, err := ReadVarInt(r, pver)
 	if err != nil {
 		return nil, err

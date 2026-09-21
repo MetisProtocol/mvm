@@ -250,7 +250,6 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc
 	}
 
 	go func() {
-
 		for {
 			select {
 			case logs := <-matchedLogs:

@@ -681,8 +681,8 @@ func (w *worker) taskLoop() {
 			stopCh, prev = make(chan struct{}), sealHash
 
 			if w.skipSealHook != nil && w.skipSealHook(task) {
-				w.handleErrInTask(errors.New("Block sealing skiped"), true)
-				log.Error("Block sealing skiped", "sealHash", sealHash)
+				w.handleErrInTask(errors.New("Block sealing skipped"), true)
+				log.Error("Block sealing skipped", "sealHash", sealHash)
 				continue
 			}
 			w.pendingMu.Lock()

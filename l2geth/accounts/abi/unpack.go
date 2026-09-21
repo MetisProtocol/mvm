@@ -114,7 +114,6 @@ func ReadFixedBytes(t Type, word []byte) (interface{}, error) {
 
 	reflect.Copy(array, reflect.ValueOf(word[0:t.Size]))
 	return array.Interface(), nil
-
 }
 
 // iteratively unpack elements

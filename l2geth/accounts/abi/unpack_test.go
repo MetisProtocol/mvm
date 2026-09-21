@@ -597,7 +597,7 @@ func TestMethodMultiReturn(t *testing.T) {
 		"Can not unpack into a slice with wrong types",
 	}}
 	for _, tc := range testCases {
-		tc := tc
+
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
 			err := abi.Unpack(tc.dest, "multi", data)

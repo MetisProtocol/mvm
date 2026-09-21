@@ -166,7 +166,7 @@ func CalculateL1MsgFeeInL2(msg Message, state StateDB, gpo *common.Address, isEs
 			state.GetState(rcfg.L2GasPriceOracleAddress, rcfg.L2GasPriceSlot).Big()).Uint64()
 	}
 	if isEstimate == true {
-		// adding extra buffer to accomondate a race condition when a l1price hike got just inbetween estimate and tx
+		// adding extra buffer to accommodate a race condition when a l1price hike got just between estimate and tx
 		// 5% buffer because only 10% increase allowed at a time
 		l1FeeInL2 = mulByFloat(new(big.Int).SetUint64(l1FeeInL2), new(big.Float).SetFloat64(1.05)).Uint64()
 	}

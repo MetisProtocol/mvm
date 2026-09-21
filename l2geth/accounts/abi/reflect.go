@@ -25,7 +25,7 @@ import (
 // indirect recursively dereferences the value until it either gets the value
 // or finds a big.Int
 func indirect(v reflect.Value) reflect.Value {
-	if v.Kind() == reflect.Ptr && v.Elem().Type() != derefbigT {
+	if v.Kind() == reflect.Pointer && v.Elem().Type() != derefbigT {
 		return indirect(v.Elem())
 	}
 	return v
@@ -33,7 +33,7 @@ func indirect(v reflect.Value) reflect.Value {
 
 // indirectInterfaceOrPtr recursively dereferences the value until value is not interface.
 func indirectInterfaceOrPtr(v reflect.Value) reflect.Value {
-	if (v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr) && v.Elem().IsValid() {
+	if (v.Kind() == reflect.Interface || v.Kind() == reflect.Pointer) && v.Elem().IsValid() {
 		return indirect(v.Elem())
 	}
 	return v
@@ -64,7 +64,7 @@ func reflectIntKindAndType(unsigned bool, size int) (reflect.Kind, reflect.Type)
 		}
 		return reflect.Int64, int64T
 	}
-	return reflect.Ptr, bigT
+	return reflect.Pointer, bigT
 }
 
 // mustArrayToBytesSlice creates a new byte slice with the exact same size as value
@@ -84,7 +84,7 @@ func set(dst, src reflect.Value) error {
 	switch {
 	case dstType.Kind() == reflect.Interface && dst.Elem().IsValid():
 		return set(dst.Elem(), src)
-	case dstType.Kind() == reflect.Ptr && dstType.Elem() != derefbigT:
+	case dstType.Kind() == reflect.Pointer && dstType.Elem() != derefbigT:
 		return set(dst.Elem(), src)
 	case srcType.AssignableTo(dstType) && dst.CanSet():
 		dst.Set(src)
@@ -111,7 +111,7 @@ func setSlice(dst, src reflect.Value) error {
 
 // requireAssignable assures that `dest` is a pointer and it's not an interface.
 func requireAssignable(dst, src reflect.Value) error {
-	if dst.Kind() != reflect.Ptr && dst.Kind() != reflect.Interface {
+	if dst.Kind() != reflect.Pointer && dst.Kind() != reflect.Interface {
 		return fmt.Errorf("abi: cannot unmarshal %v into %v", src.Type(), dst.Type())
 	}
 	return nil
@@ -120,7 +120,6 @@ func requireAssignable(dst, src reflect.Value) error {
 // requireUnpackKind verifies preconditions for unpacking `args` into `kind`
 func requireUnpackKind(v reflect.Value, t reflect.Type, k reflect.Kind,
 	args Arguments) error {
-
 	switch k {
 	case reflect.Struct:
 	case reflect.Slice, reflect.Array:
@@ -190,7 +189,6 @@ func mapArgNamesToStructFields(argNames []string, value reflect.Value) (map[stri
 
 	// second round ~~~
 	for _, argName := range argNames {
-
 		structFieldName := ToCamelCase(argName)
 
 		if structFieldName == "" {

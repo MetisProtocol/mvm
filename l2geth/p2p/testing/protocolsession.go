@@ -142,8 +142,7 @@ func (s *ProtocolSession) expect(exps []Expect) error {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(mockNodes))
 	for nodeID, mockNode := range mockNodes {
-		nodeID := nodeID
-		mockNode := mockNode
+
 		go func() {
 			defer wg.Done()
 
@@ -190,7 +189,6 @@ func (s *ProtocolSession) expect(exps []Expect) error {
 			case <-alarm.C:
 				errc <- errTimedOut
 			}
-
 		}()
 	}
 

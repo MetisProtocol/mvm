@@ -659,5 +659,4 @@ func TestPrecompiledEcrecover(t *testing.T) {
 	for _, test := range ecRecoverTests {
 		testPrecompiled("01", test, t)
 	}
-
 }

@@ -65,7 +65,7 @@ type PreRespan struct {
 	RespanStartBlock uint64
 }
 
-// SeqAdapter is an adpater used by sequencer based RollupClient
+// SeqAdapter is an adapter used by sequencer based RollupClient
 type SeqAdapter struct {
 	// posClient  // connnect to pos layer
 	// l2client // connect to l2geth client
@@ -444,5 +444,4 @@ func (s *SeqAdapter) CheckPosLayerSynced() (bool, error) {
 	//fmt.Println(string(body))
 
 	return strconv.ParseBool(string(body))
-
 }

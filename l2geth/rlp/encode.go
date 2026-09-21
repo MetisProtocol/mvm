@@ -324,7 +324,7 @@ func makeWriter(typ reflect.Type, ts tags) (writer, error) {
 		return writeBigIntPtr, nil
 	case typ.AssignableTo(bigInt):
 		return writeBigIntNoPtr, nil
-	case kind == reflect.Ptr:
+	case kind == reflect.Pointer:
 		return makePtrWriter(typ, ts)
 	case reflect.PtrTo(typ).Implements(encoderInterface):
 		return makeEncoderWriter(typ), nil

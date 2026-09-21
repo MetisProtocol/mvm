@@ -174,7 +174,7 @@ func (s *LesServer) Start(srvr *p2p.Server) {
 
 	if srvr.DiscV5 != nil {
 		for _, topic := range s.lesTopics {
-			topic := topic
+
 			go func() {
 				logger := log.New("topic", topic)
 				logger.Info("Starting topic registration")

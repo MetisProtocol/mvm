@@ -301,7 +301,6 @@ func (api *SignerAPI) startUSBListener() {
 	am := api.am
 	am.Subscribe(events)
 	go func() {
-
 		// Open any wallets already attached
 		for _, wallet := range am.Wallets() {
 			if err := wallet.Open(""); err != nil {
@@ -353,7 +352,6 @@ func (api *SignerAPI) List(ctx context.Context) ([]common.Address, error) {
 	}
 	if result.Accounts == nil {
 		return nil, ErrRequestDenied
-
 	}
 	addresses := make([]common.Address, 0)
 	for _, acc := range result.Accounts {
@@ -533,7 +531,6 @@ func (api *SignerAPI) SignTransaction(ctx context.Context, args SendTxArgs, meth
 	api.UI.OnApprovedTx(response)
 	// ...and to the external caller
 	return &response, nil
-
 }
 
 // Returns the external api version. This method does not require user acceptance. Available methods are

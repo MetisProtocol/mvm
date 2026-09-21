@@ -34,7 +34,6 @@ type MessageParams struct {
 
 //export fuzzer_entry
 func Fuzz(input []byte) int {
-
 	var paramsDecoded MessageParams
 	err := rlp.DecodeBytes(input, &paramsDecoded)
 	if err != nil {

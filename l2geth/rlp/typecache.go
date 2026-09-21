@@ -155,7 +155,7 @@ func parseStructTag(typ reflect.Type, fi, lastPublic int) (tags, error) {
 			ts.ignored = true
 		case "nil", "nilString", "nilList":
 			ts.nilOK = true
-			if f.Type.Kind() != reflect.Ptr {
+			if f.Type.Kind() != reflect.Pointer {
 				return ts, structTagError{typ, f.Name, t, "field is not a pointer"}
 			}
 			switch t {

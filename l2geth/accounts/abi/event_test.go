@@ -166,7 +166,6 @@ func TestEventMultiValueWithArrayUnpack(t *testing.T) {
 }
 
 func TestEventTupleUnpack(t *testing.T) {
-
 	type EventTransfer struct {
 		Value *big.Int
 	}
@@ -333,7 +332,7 @@ func TestEventTupleUnpack(t *testing.T) {
 
 	for _, tc := range testCases {
 		assert := assert.New(t)
-		tc := tc
+
 		t.Run(tc.name, func(t *testing.T) {
 			err := unpackTestEventData(tc.dest, tc.data, tc.jsonLog, assert)
 			if tc.error == "" {

@@ -60,7 +60,6 @@ func (ui *CommandlineUI) readString() string {
 }
 
 func (ui *CommandlineUI) OnInputRequired(info UserInputRequest) (UserInputResponse, error) {
-
 	fmt.Printf("## %s\n\n%s\n", info.Title, info.Prompt)
 	if info.IsPassword {
 		fmt.Printf("> ")
@@ -114,7 +113,6 @@ func (ui *CommandlineUI) ApproveTx(request *SignTxRequest) (SignTxResponse, erro
 	if request.Transaction.Data != nil {
 		d := *request.Transaction.Data
 		if len(d) > 0 {
-
 			fmt.Printf("data:     %v\n", hexutil.Encode(d))
 		}
 	}
@@ -124,7 +122,6 @@ func (ui *CommandlineUI) ApproveTx(request *SignTxRequest) (SignTxResponse, erro
 			fmt.Printf("  * %s : %s\n", m.Typ, m.Message)
 		}
 		fmt.Println()
-
 	}
 	fmt.Printf("\n")
 	showMetadata(request.Meta)
@@ -179,7 +176,6 @@ func (ui *CommandlineUI) ApproveListing(request *ListRequest) (ListResponse, err
 
 // ApproveNewAccount prompt the user for confirmation to create new Account, and reveal to caller
 func (ui *CommandlineUI) ApproveNewAccount(request *NewAccountRequest) (NewAccountResponse, error) {
-
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 
@@ -215,7 +211,6 @@ func (ui *CommandlineUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 }
 
 func (ui *CommandlineUI) OnSignerStartup(info StartupInfo) {
-
 	fmt.Printf("------- Signer info -------\n")
 	for k, v := range info.Info {
 		fmt.Printf("* %v : %v\n", k, v)
