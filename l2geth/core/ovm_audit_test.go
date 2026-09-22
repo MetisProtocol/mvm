@@ -131,6 +131,45 @@ func TestOVMAuditFullImport(t *testing.T) {
 	}
 }
 
+func TestOVMAuditEmptyCodeSize(t *testing.T) {
+	gen, _ := auditFixture(t, 0)
+	contract := common.Address{9}
+	// Return EXTCODESIZE(CALLER). The transaction sender is an existing EOA
+	// whose empty-code hash has no corresponding blob in the database.
+	gen.Alloc[contract] = GenesisAccount{Balance: new(big.Int), Code: []byte{
+		byte(vm.CALLER), byte(vm.EXTCODESIZE), 0x60, 0, byte(vm.MSTORE),
+		0x60, 32, 0x60, 0, byte(vm.RETURN),
+	}}
+	key, err := crypto.HexToECDSA("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+	if err != nil {
+		t.Fatal(err)
+	}
+	chainDB := rawdb.NewMemoryDatabase()
+	t.Cleanup(func() { chainDB.Close() })
+	blocks, _ := GenerateChain(gen.Config, gen.MustCommit(chainDB), auditTestEngine{ethash.NewFaker()}, chainDB, 1, func(_ int, b *BlockGen) {
+		tx, err := types.SignTx(types.NewTransaction(0, contract, new(big.Int), 60000, big.NewInt(1), nil), types.NewEIP155Signer(gen.Config.ChainID), key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b.AddTx(tx)
+	})
+	db, err := rawdb.NewLevelDBDatabase(t.TempDir(), 16, 16, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	bc := auditChain(t, gen, db)
+	if err = bc.EnableOVMAudit(OVMAuditConfig{Enabled: true, To: 1, ToHash: blocks[0].Hash(), Dir: t.TempDir()}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = bc.InsertChain(blocks); !IsOVMAuditControl(err) || bc.OVMAuditError() != nil {
+		t.Fatalf("EXTCODESIZE of an EOA stopped the audit: %v / %v", err, bc.OVMAuditError())
+	}
+	if bc.CurrentBlock().Hash() != blocks[0].Hash() || bc.ovmAudit.cursor.Total.Difference != "60000" {
+		t.Fatal("audit failed to import and reconcile the transaction")
+	}
+}
+
 func TestOVMAuditResumeAndGap(t *testing.T) {
 	gen, blocks := auditFixture(t, 4)
 	db := rawdb.NewMemoryDatabase()
