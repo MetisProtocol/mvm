@@ -230,7 +230,12 @@ var (
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
 	}
-	GCModeFlag = cli.StringFlag{
+	OVMAuditFlag        = cli.BoolFlag{Name: "ovm.audit", Usage: "Audit OVM accounting during full sync from genesis"}
+	OVMAuditToFlag      = cli.Uint64Flag{Name: "ovm.audit.to", Usage: "Stop audit at this canonical block"}
+	OVMAuditHashFlag    = cli.StringFlag{Name: "ovm.audit.to-hash", Usage: "Required canonical target block hash"}
+	OVMAuditDirFlag     = cli.StringFlag{Name: "ovm.audit.dir", Usage: "OVM audit report directory (default datadir/ovm-audit)"}
+	OVMAuditWitnessFlag = cli.StringFlag{Name: "ovm.audit.witness", Usage: "Supplemental OVM address/allowance JSONL evidence"}
+	GCModeFlag          = cli.StringFlag{
 		Name:  "gcmode",
 		Usage: `Blockchain garbage collection mode ("full", "archive")`,
 		Value: "full",
@@ -1762,6 +1767,38 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
+	}
+
+	if ctx.GlobalIsSet(OVMAuditFlag.Name) {
+		cfg.OVMAudit.Enabled = ctx.GlobalBool(OVMAuditFlag.Name)
+	}
+	if ctx.GlobalIsSet(OVMAuditToFlag.Name) {
+		cfg.OVMAudit.To = ctx.GlobalUint64(OVMAuditToFlag.Name)
+	}
+	if ctx.GlobalIsSet(OVMAuditHashFlag.Name) {
+		if err := cfg.OVMAudit.ToHash.UnmarshalText([]byte(ctx.GlobalString(OVMAuditHashFlag.Name))); err != nil {
+			Fatalf("Invalid ovm.audit.to-hash: %v", err)
+		}
+	}
+	if ctx.GlobalIsSet(OVMAuditDirFlag.Name) {
+		cfg.OVMAudit.Dir = ctx.GlobalString(OVMAuditDirFlag.Name)
+	}
+	if ctx.GlobalIsSet(OVMAuditWitnessFlag.Name) {
+		cfg.OVMAudit.Witness = ctx.GlobalString(OVMAuditWitnessFlag.Name)
+	}
+	if cfg.OVMAudit.Enabled {
+		if !ctx.GlobalIsSet(SyncModeFlag.Name) || cfg.SyncMode != downloader.FullSync {
+			Fatalf("OVM audit requires explicit --syncmode full")
+		}
+		if cfg.OVMAudit.To == 0 || cfg.OVMAudit.ToHash == (common.Hash{}) {
+			Fatalf("OVM audit requires --ovm.audit.to and --ovm.audit.to-hash")
+		}
+		if ctx.GlobalBool(MiningEnabledFlag.Name) || ctx.GlobalBool(DeveloperFlag.Name) || ctx.GlobalBool(ExitWhenSyncedFlag.Name) {
+			Fatalf("OVM audit cannot be combined with mining, dev mode or exitwhensynced")
+		}
+		if cfg.OVMAudit.Dir == "" {
+			cfg.OVMAudit.Dir = filepath.Join(stack.Config().DataDir, "ovm-audit")
+		}
 	}
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)

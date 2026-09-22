@@ -76,8 +76,9 @@ func GetOVMBalanceKey(addr common.Address) common.Hash {
 // * Contracts
 // * Accounts
 type StateDB struct {
-	db   Database
-	trie Trie
+	ovmAudit *OVMAuditObserver
+	db       Database
+	trie     Trie
 
 	// This map holds 'live' objects, which will get modified while processing a state transition.
 	stateObjects        map[common.Address]*stateObject
@@ -154,6 +155,7 @@ func (s *StateDB) Error() error {
 // Reset clears out all ephemeral state objects from the state db, but keeps
 // the underlying state trie to avoid reloading data for the next operations.
 func (s *StateDB) Reset(root common.Hash) error {
+	s.ovmAudit = nil
 	tr, err := s.db.OpenTrie(root)
 	if err != nil {
 		return err
@@ -174,6 +176,9 @@ func (s *StateDB) Reset(root common.Hash) error {
 }
 
 func (s *StateDB) AddLog(log *types.Log) {
+	if s.ovmAudit != nil {
+		s.ovmAudit.Index.Log(log)
+	}
 	if rcfg.UsingOVM {
 		s.recordOVMTransferPreimages(log)
 	}
@@ -201,6 +206,7 @@ func (s *StateDB) Logs() []*types.Log {
 
 // AddPreimage records a SHA3 preimage seen by the VM.
 func (s *StateDB) AddPreimage(hash common.Hash, preimage []byte) {
+	s.AuditOVMPreimage(hash, preimage)
 	if _, ok := s.preimages[hash]; !ok {
 		s.journal.append(addPreimageChange{hash: hash})
 		pi := make([]byte, len(preimage))
@@ -445,6 +451,11 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 }
 
 func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
+	if o := s.ovmAudit; o != nil && addr == dump.OvmEthAddress && o.before != nil {
+		if _, ok := o.before[key]; !ok {
+			o.before[key] = s.GetState(addr, key)
+		}
+	}
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetState(s.db, key, value)
@@ -698,6 +709,9 @@ func (s *StateDB) Copy() *StateDB {
 // Snapshot returns an identifier for the current revision of the state.
 func (s *StateDB) Snapshot() int {
 	id := s.nextRevisionId
+	if o := s.ovmAudit; o != nil && o.snapshots != nil {
+		o.snapshots[id] = len(o.current.Causes)
+	}
 	s.nextRevisionId++
 	s.validRevisions = append(s.validRevisions, revision{id, s.journal.length()})
 	return id
@@ -713,6 +727,18 @@ func (s *StateDB) RevertToSnapshot(revid int) {
 		panic(fmt.Errorf("revision id %v cannot be reverted", revid))
 	}
 	snapshot := s.validRevisions[idx].journalIndex
+	if o := s.ovmAudit; o != nil {
+		if start, ok := o.snapshots[revid]; ok {
+			for n := start; n < len(o.current.Causes); n++ {
+				o.current.Causes[n].Reverted = true
+			}
+			for id := range o.snapshots {
+				if id >= revid {
+					delete(o.snapshots, id)
+				}
+			}
+		}
+	}
 
 	// Replay the journal to undo changes and remove invalidated snapshots
 	s.journal.revert(s, snapshot)

@@ -91,6 +91,11 @@ var (
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolLifetimeFlag,
 		utils.SyncModeFlag,
+		utils.OVMAuditFlag,
+		utils.OVMAuditToFlag,
+		utils.OVMAuditHashFlag,
+		utils.OVMAuditDirFlag,
+		utils.OVMAuditWitnessFlag,
 		utils.ExitWhenSyncedFlag,
 		utils.GCModeFlag,
 		utils.LightServeFlag,
@@ -336,10 +341,34 @@ func geth(ctx *cli.Context) error {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
 	prepare(ctx)
-	node := makeFullNode(ctx)
-	defer node.Close()
-	startNode(ctx, node)
-	node.Wait()
+	stack := makeFullNode(ctx)
+	defer stack.Close()
+	startNode(ctx, stack)
+	var ethereum *eth.Ethereum
+	if stack.Service(&ethereum) == nil && ethereum.BlockChain().OVMAuditEnabled() {
+		stopped := make(chan struct{})
+		stopResult := make(chan error, 1)
+		go func() {
+			select {
+			case <-ethereum.BlockChain().OVMAuditDone():
+				err := stack.Stop()
+				if err == node.ErrNodeStopped {
+					err = nil
+				}
+				stopResult <- err
+			case <-stopped:
+				stopResult <- nil
+			}
+		}()
+		stack.Wait()
+		close(stopped)
+		stopErr := <-stopResult
+		if err := ethereum.BlockChain().OVMAuditError(); err != nil {
+			return err
+		}
+		return stopErr
+	}
+	stack.Wait()
 	return nil
 }
 

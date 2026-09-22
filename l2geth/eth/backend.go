@@ -210,6 +210,16 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		eth.blockchain.SetHead(compat.RewindTo)
 		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
+	if config.OVMAudit.Enabled {
+		if config.SyncMode != downloader.FullSync {
+			eth.blockchain.Stop()
+			return nil, fmt.Errorf("OVM audit requires full sync")
+		}
+		if err := eth.blockchain.EnableOVMAudit(config.OVMAudit); err != nil {
+			eth.blockchain.Stop()
+			return nil, err
+		}
+	}
 	eth.bloomIndexer.Start(eth.blockchain)
 
 	if config.TxPool.Journal != "" {
@@ -487,6 +497,9 @@ func (s *Ethereum) SetEtherbase(etherbase common.Address) {
 // is already running, this method adjust the number of threads allowed to use
 // and updates the minimum price required by the transaction pool.
 func (s *Ethereum) StartMining(threads int) error {
+	if s.blockchain.OVMAuditEnabled() {
+		return fmt.Errorf("mining is disabled during OVM audit")
+	}
 	// Update the thread count within the consensus engine
 	type threaded interface {
 		SetThreads(threads int)
@@ -594,6 +607,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Ethereum protocol.
 func (s *Ethereum) Stop() error {
+	s.blockchain.CancelOVMAudit()
 	// Stop all the peer-related stuff first.
 	s.protocolManager.Stop()
 
@@ -610,7 +624,10 @@ func (s *Ethereum) Stop() error {
 	s.eventMux.Stop()
 	s.syncService.Stop()
 
-	s.chainDb.Close()
+	closeErr := s.chainDb.Close()
 	close(s.shutdownChan)
+	if s.blockchain.OVMAuditEnabled() {
+		return closeErr
+	}
 	return nil
 }

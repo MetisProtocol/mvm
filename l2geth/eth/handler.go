@@ -150,7 +150,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		//   time. But we don't have any recent state for full sync.
 		// In these cases however it's safe to reenable fast sync.
 		fullBlock, fastBlock := blockchain.CurrentBlock(), blockchain.CurrentFastBlock()
-		if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
+		if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 && !blockchain.OVMAuditEnabled() {
 			manager.fastSync = uint32(1)
 			log.Warn("Switch sync mode from full sync to fast sync")
 		}

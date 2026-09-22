@@ -27,6 +27,7 @@ import (
 
 	ethereum "github.com/MetisProtocol/mvm/l2geth"
 	"github.com/MetisProtocol/mvm/l2geth/common"
+	"github.com/MetisProtocol/mvm/l2geth/core"
 	"github.com/MetisProtocol/mvm/l2geth/core/rawdb"
 	"github.com/MetisProtocol/mvm/l2geth/core/types"
 	"github.com/MetisProtocol/mvm/l2geth/ethdb"
@@ -1570,6 +1571,9 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 		}
 	}
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
+		if core.IsOVMAuditControl(err) {
+			return err
+		}
 		if index < len(results) {
 			log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
 		} else {

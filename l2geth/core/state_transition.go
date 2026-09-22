@@ -211,7 +211,13 @@ func (st *StateTransition) buyGas() error {
 			// where policy level balance checks pass and then fail
 			// during consensus. The user gets some free gas
 			// in this case.
-			mgval = st.state.GetBalance(st.msg.From())
+			available := st.state.GetBalance(st.msg.From())
+			if observer, ok := st.state.(interface {
+				AuditOVMGas(common.Address, *big.Int, *big.Int, uint64, *big.Int, bool)
+			}); ok {
+				observer.AuditOVMGas(st.msg.From(), mgval, available, st.msg.Gas(), st.gasPrice, false)
+			}
+			mgval = available
 		} else {
 			return errInsufficientBalanceForGas
 		}

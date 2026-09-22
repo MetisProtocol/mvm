@@ -133,6 +133,7 @@ type CacheConfig struct {
 // included in the canonical one where as GetBlockByNumber always represents the
 // canonical chain.
 type BlockChain struct {
+	ovmAudit    *ovmAudit
 	chainConfig *params.ChainConfig // Chain & network configuration
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
@@ -473,6 +474,9 @@ func (bc *BlockChain) SetHead(head uint64) error {
 // FastSyncCommitHead sets the current head block to the one defined by the hash
 // irrelevant what the chain contents were prior.
 func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
+	if bc.ovmAudit != nil {
+		return bc.ovmAudit.stop(fmt.Errorf("fast sync cannot bypass OVM audit execution"))
+	}
 	// Make sure that both the block as well at its state trie exists
 	block := bc.GetBlockByHash(hash)
 	if block == nil {
@@ -566,7 +570,9 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write genesis block", "err", err)
 	}
-	bc.writeHeadBlock(genesis)
+	if err := bc.writeHeadBlock(genesis); err != nil {
+		return err
+	}
 
 	// Last update all in-memory chain markers
 	bc.genesisBlock = genesis
@@ -639,7 +645,7 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 // or if they are on a different side chain.
 //
 // Note, this function assumes that the `mu` mutex is held!
-func (bc *BlockChain) writeHeadBlock(block *types.Block) {
+func (bc *BlockChain) writeHeadBlock(block *types.Block) error {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
 	updateHeads := rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
 
@@ -656,6 +662,9 @@ func (bc *BlockChain) writeHeadBlock(block *types.Block) {
 	}
 	// Flush the whole batch into the disk, exit the node if failed
 	if err := batch.Write(); err != nil {
+		if bc.ovmAudit != nil {
+			return bc.ovmAudit.stop(err)
+		}
 		log.Crit("Failed to update chain indexes and markers", "err", err)
 	}
 	// Update all in-memory chain markers in the last step
@@ -666,6 +675,7 @@ func (bc *BlockChain) writeHeadBlock(block *types.Block) {
 	}
 	bc.currentBlock.Store(block)
 	headBlockGauge.Update(int64(block.NumberU64()))
+	return nil
 }
 
 // Genesis retrieves the chain's genesis block.
@@ -994,6 +1004,9 @@ type numberHash struct {
 // InsertReceiptChain attempts to complete an already existing header chain with
 // transaction and receipt data.
 func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain []types.Receipts, ancientLimit uint64) (int, error) {
+	if bc.ovmAudit != nil {
+		return 0, bc.ovmAudit.stop(fmt.Errorf("receipt-only import cannot bypass OVM audit execution"))
+	}
 	for i, block := range blockChain {
 		if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
 			return i, err
@@ -1326,8 +1339,7 @@ func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
 			return err
 		}
 	}
-	bc.writeHeadBlock(block)
-	return nil
+	return bc.writeHeadBlock(block)
 }
 
 // WriteBlockWithState writes the block and all associated state to the database.
@@ -1384,13 +1396,22 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	}
 	rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
 	rawdb.WritePreimages(blockBatch, state.Preimages())
+	if err := bc.writeOVMAudit(blockBatch, block, state, receipts); err != nil {
+		return NonStatTy, err
+	}
 	if err := blockBatch.Write(); err != nil {
+		if bc.ovmAudit != nil {
+			return NonStatTy, bc.ovmAudit.stop(err)
+		}
 		log.Crit("Failed to write block into disk", "err", err)
 	}
 	// Commit all cached state changes into underlying memory database.
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
 		bc.restoreBlockMeta(block.NumberU64(), txsCount, existMeta)
+		if bc.ovmAudit != nil {
+			return NonStatTy, bc.ovmAudit.stop(err)
+		}
 		return NonStatTy, err
 	}
 	triedb := bc.stateCache.TrieDB()
@@ -1399,9 +1420,20 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	if bc.cacheConfig.TrieDirtyDisabled {
 		if err := triedb.Commit(root, false); err != nil {
 			bc.restoreBlockMeta(block.NumberU64(), txsCount, existMeta)
+			if bc.ovmAudit != nil {
+				return NonStatTy, bc.ovmAudit.stop(err)
+			}
 			return NonStatTy, err
 		}
 	} else {
+		// Retain the requested target even if it is currently on a sidechain.
+		// A later reorg can promote it after normal full GC has dropped its
+		// cached trie, and a restart must still be able to scan that exact root.
+		if a := bc.ovmAudit; a != nil && block.NumberU64() == a.cfg.To && block.Hash() == a.cfg.ToHash {
+			if err := triedb.Commit(root, false); err != nil {
+				return NonStatTy, a.stop(err)
+			}
+		}
 		// Full but not archive node, do proper garbage collection
 		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(root, -int64(block.NumberU64()))
@@ -1413,7 +1445,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 				limit       = common.StorageSize(bc.cacheConfig.TrieDirtyLimit) * 1024 * 1024
 			)
 			if nodes > limit || imgs > 4*1024*1024 {
-				triedb.Cap(limit - ethdb.IdealBatchSize)
+				if err := triedb.Cap(limit - ethdb.IdealBatchSize); err != nil && bc.ovmAudit != nil {
+					return NonStatTy, bc.ovmAudit.stop(err)
+				}
 			}
 			// Find the next state trie we need to commit
 			chosen := current - TriesInMemory
@@ -1432,7 +1466,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 						log.Info("State in memory for too long, committing", "time", bc.gcproc, "allowance", bc.cacheConfig.TrieTimeLimit, "optimum", float64(chosen-lastWrite)/TriesInMemory)
 					}
 					// Flush an entire trie and restart the counters
-					triedb.Commit(header.Root, true)
+					if err := triedb.Commit(header.Root, true); err != nil && bc.ovmAudit != nil {
+						return NonStatTy, bc.ovmAudit.stop(err)
+					}
 					lastWrite = chosen
 					bc.gcproc = 0
 				}
@@ -1479,7 +1515,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	}
 	// Set new head.
 	if status == CanonStatTy {
-		bc.writeHeadBlock(block)
+		if err := bc.writeHeadBlock(block); err != nil {
+			return NonStatTy, err
+		}
 	}
 	bc.futureBlocks.Remove(block.Hash())
 
@@ -1498,6 +1536,11 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		}
 	} else {
 		bc.chainSideFeed.Send(ChainSideEvent{Block: block})
+	}
+	if status == CanonStatTy {
+		if err := bc.committedOVMAudit(state); err != nil {
+			return status, err
+		}
 	}
 	return status, nil
 }
@@ -1525,6 +1568,11 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 //
 // After insertion is done, all accumulated events will be fired.
 func (bc *BlockChain) InsertChainWithFunc(chain types.Blocks, f interface{}) (int, error) {
+	if bc.ovmAudit != nil {
+		if err := bc.ovmAudit.control(); err != nil {
+			return 0, err
+		}
+	}
 	for i, block := range chain {
 		if err := verifyBlockCheckpoint(bc.chainConfig, block.NumberU64(), block.Hash()); err != nil {
 			return i, err
@@ -1694,6 +1742,11 @@ func (bc *BlockChain) insertChainWithFunc(chain types.Blocks, verifySeals bool, 
 		// `insertChain` while a part of them have higher total difficulty than current
 		// head full block(new pivot point).
 		for block != nil && err == ErrKnownBlock {
+			if bc.ovmAudit != nil {
+				if auditErr := bc.importKnownOVMAudit(block); auditErr != nil {
+					return it.index, auditErr
+				}
+			}
 			log.Debug("Writing previously known block", "number", block.Number(), "hash", block.Hash())
 			// NOTE 20240109 writeKnownBlock
 			// if err := bc.writeKnownBlock(block); err != nil {
@@ -1771,6 +1824,11 @@ func (bc *BlockChain) insertChainWithFunc(chain types.Blocks, verifySeals bool, 
 				"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
 				"root", block.Root())
 
+			if bc.ovmAudit != nil {
+				if auditErr := bc.importKnownOVMAudit(block); auditErr != nil {
+					return it.index, auditErr
+				}
+			}
 			// NOTE 20240109 writeKnownBlock
 			// if err := bc.writeKnownBlock(block); err != nil {
 			// 	return it.index, err
@@ -1792,6 +1850,9 @@ func (bc *BlockChain) insertChainWithFunc(chain types.Blocks, verifySeals bool, 
 		statedb, err := state.New(parent.Root, bc.stateCache)
 		if err != nil {
 			return it.index, err
+		}
+		if auditErr := bc.beginOVMAudit(statedb); auditErr != nil {
+			return it.index, auditErr
 		}
 		// If we have a followup block, run that against the current state to pre-cache
 		// transactions and probabilistically some of the account/storage trie nodes.
@@ -1831,6 +1892,10 @@ func (bc *BlockChain) insertChainWithFunc(chain types.Blocks, verifySeals bool, 
 
 		blockExecutionTimer.Update(time.Since(substart) - trieproc - triehash)
 
+		if auditErr := bc.checkOVMAudit(statedb); auditErr != nil {
+			atomic.StoreUint32(&followupInterrupt, 1)
+			return it.index, auditErr
+		}
 		// Validate the state using the default validator
 		substart = time.Now()
 
@@ -2005,6 +2070,13 @@ func (bc *BlockChain) insertChainWithFuncAndCh(chain types.Blocks, verifySeals b
 		// `insertChain` while a part of them have higher total difficulty than current
 		// head full block(new pivot point).
 		for block != nil && err == ErrKnownBlock {
+			if bc.ovmAudit != nil {
+				if auditErr := bc.importKnownOVMAudit(block); auditErr != nil {
+					chn <- it.index
+					cherr <- auditErr
+					return it.index, auditErr
+				}
+			}
 			log.Debug("Writing previously known block", "number", block.Number(), "hash", block.Hash())
 			// NOTE 20240109 writeKnownBlock
 			// if err := bc.writeKnownBlock(block); err != nil {
@@ -2095,6 +2167,13 @@ func (bc *BlockChain) insertChainWithFuncAndCh(chain types.Blocks, verifySeals b
 				"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
 				"root", block.Root())
 
+			if bc.ovmAudit != nil {
+				if auditErr := bc.importKnownOVMAudit(block); auditErr != nil {
+					chn <- it.index
+					cherr <- auditErr
+					return it.index, auditErr
+				}
+			}
 			// NOTE 20240109 writeKnownBlock
 			// if err := bc.writeKnownBlock(block); err != nil {
 			// 	return it.index, err
@@ -2118,6 +2197,11 @@ func (bc *BlockChain) insertChainWithFuncAndCh(chain types.Blocks, verifySeals b
 			chn <- it.index
 			cherr <- err
 			return it.index, err
+		}
+		if auditErr := bc.beginOVMAudit(statedb); auditErr != nil {
+			chn <- it.index
+			cherr <- auditErr
+			return it.index, auditErr
 		}
 		// If we have a followup block, run that against the current state to pre-cache
 		// transactions and probabilistically some of the account/storage trie nodes.
@@ -2167,6 +2251,12 @@ func (bc *BlockChain) insertChainWithFuncAndCh(chain types.Blocks, verifySeals b
 
 		blockExecutionTimer.Update(time.Since(substart) - trieproc - triehash)
 
+		if auditErr := bc.checkOVMAudit(statedb); auditErr != nil {
+			atomic.StoreUint32(&followupInterrupt, 1)
+			chn <- it.index
+			cherr <- auditErr
+			return it.index, auditErr
+		}
 		// Validate the state using the default validator
 		substart = time.Now()
 
@@ -2496,6 +2586,13 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 			return err
 		}
 	}
+	if bc.ovmAudit != nil {
+		for _, block := range newChain {
+			if _, err := bc.ovmAudit.read(block.Hash()); err != nil {
+				return bc.ovmAudit.stop(err)
+			}
+		}
+	}
 	// Ensure the user sees large reorgs
 	if len(oldChain) > 0 && len(newChain) > 0 {
 		logFn := log.Info
@@ -2515,7 +2612,9 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	// taking care of the proper incremental order.
 	for i := len(newChain) - 1; i >= 1; i-- {
 		// Insert the block in the canonical way, re-writing history
-		bc.writeHeadBlock(newChain[i])
+		if err := bc.writeHeadBlock(newChain[i]); err != nil {
+			return err
+		}
 
 		// Collect reborn logs due to chain reorg
 		collectLogs(newChain[i].Hash(), false)
@@ -2539,6 +2638,9 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		rawdb.DeleteCanonicalHash(indexesBatch, i)
 	}
 	if err := indexesBatch.Write(); err != nil {
+		if bc.ovmAudit != nil {
+			return bc.ovmAudit.stop(err)
+		}
 		log.Crit("Failed to delete useless indexes", "err", err)
 	}
 	// If any logs need to be fired, do it now. In theory we could avoid creating

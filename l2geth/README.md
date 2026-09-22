@@ -11,6 +11,13 @@ flags.
 
 A prebuilt Docker image is available at `metisdao/l2geth`.
 
+### OVM balance audit
+
+Use a dedicated node with `--ovm.audit --syncmode full --gcmode full` to
+trace historical OVM balance/supply discrepancies during synchronization.
+See [the audit guide](docs/ovm-audit.md) for initialization, the required target
+height/hash, automatic recovery and report interpretation.
+
 ### P2P block source whitelist
 
 Use `--p2p.whitelist /path/to/block-peers.json` to restrict which peers can supply

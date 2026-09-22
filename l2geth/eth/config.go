@@ -107,6 +107,7 @@ func init() {
 //go:generate gencodec -type Config -formats toml -out gen_config.go
 
 type Config struct {
+	OVMAudit core.OVMAuditConfig
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`

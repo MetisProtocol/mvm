@@ -64,21 +64,28 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
 	// Mutate the block and state according to any hard-fork specs
+	statedb.EndOVMAuditScope(false)
+	statedb.BeginOVMAuditScope("before-transactions", common.Hash{}, -1)
 	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 		misc.ApplyDAOHardFork(statedb)
 	}
+	statedb.EndOVMAuditScope(false)
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
+		statedb.BeginOVMAuditScope("transaction", tx.Hash(), i)
 		receipt, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
+		statedb.EndOVMAuditScope(receipt.Status == types.ReceiptStatusFailed)
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
+	statedb.BeginOVMAuditScope("finalize", common.Hash{}, -1)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles())
+	statedb.EndOVMAuditScope(false)
 
 	return receipts, allLogs, *usedGas, nil
 }
