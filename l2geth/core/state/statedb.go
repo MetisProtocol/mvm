@@ -295,7 +295,13 @@ func (s *StateDB) GetCodeSize(addr common.Address) int {
 	if stateObject.code != nil {
 		return len(stateObject.code)
 	}
-	size, err := s.db.ContractCodeSize(stateObject.addrHash, common.BytesToHash(stateObject.CodeHash()))
+	codeHash := common.BytesToHash(stateObject.CodeHash())
+	// Empty code has no database blob. As in stateObject.Code, resolve it
+	// locally instead of recording a spurious database error for an EOA.
+	if codeHash == emptyCode {
+		return 0
+	}
+	size, err := s.db.ContractCodeSize(stateObject.addrHash, codeHash)
 	if err != nil {
 		s.setError(err)
 	}
