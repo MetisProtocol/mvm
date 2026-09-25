@@ -1,5 +1,5 @@
 #syntax=docker/dockerfile:1
-FROM node:22-bullseye-slim AS builder
+FROM node:22-bookworm-slim AS builder
 RUN apt update -y \
     && apt install -y git python3 python3-dev pkg-config libusb-1.0-0-dev make g++ gcc build-essential libudev-dev
 WORKDIR /optimism
