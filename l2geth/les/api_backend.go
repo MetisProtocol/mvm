@@ -78,9 +78,9 @@ func (b *LesApiBackend) CurrentBlock() *types.Block {
 	return types.NewBlockWithHeader(b.eth.BlockChain().CurrentHeader())
 }
 
-func (b *LesApiBackend) SetHead(number uint64) error {
+func (b *LesApiBackend) SetHead(number uint64) {
 	b.eth.handler.downloader.Cancel()
-	return b.eth.blockchain.SetHead(number)
+	b.eth.blockchain.SetHead(number)
 }
 
 func (b *LesApiBackend) IngestTransactions([]*types.Transaction) error {
