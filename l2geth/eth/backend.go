@@ -207,7 +207,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
-		eth.blockchain.SetHead(compat.RewindTo)
+		if err := eth.blockchain.SetHead(compat.RewindTo); err != nil {
+			eth.blockchain.Stop()
+			eth.bloomIndexer.Close()
+			eth.engine.Close()
+			chainDb.Close()
+			return nil, fmt.Errorf("rewind chain for configuration upgrade: %w", err)
+		}
 		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
 	eth.bloomIndexer.Start(eth.blockchain)

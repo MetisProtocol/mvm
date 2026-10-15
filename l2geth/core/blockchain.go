@@ -44,6 +44,7 @@ import (
 	"github.com/MetisProtocol/mvm/l2geth/metrics"
 	"github.com/MetisProtocol/mvm/l2geth/params"
 	"github.com/MetisProtocol/mvm/l2geth/rlp"
+	"github.com/MetisProtocol/mvm/l2geth/rollup/rcfg"
 	"github.com/MetisProtocol/mvm/l2geth/trie"
 )
 
@@ -135,6 +136,8 @@ type CacheConfig struct {
 type BlockChain struct {
 	chainConfig *params.ChainConfig // Chain & network configuration
 	cacheConfig *CacheConfig        // Cache configuration for pruning
+
+	ovmIndex *ovmMigrationIndex // Auxiliary OVM migration indexes, guarded by chainmu
 
 	db     ethdb.Database // Low level persistent database to store final content in
 	triegc *prque.Prque   // Priority queue mapping block numbers to tries to gc
@@ -231,6 +234,12 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		return nil, ErrNoGenesis
 	}
 
+	if rcfg.UsingOVM {
+		if err := bc.prepareOVMIndex(); err != nil {
+			return nil, err
+		}
+	}
+
 	var nilBlock *types.Block
 	bc.currentBlock.Store(nilBlock)
 	bc.currentFastBlock.Store(nilBlock)
@@ -289,7 +298,9 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			// make sure the headerByNumber (if present) is in our current canonical chain
 			if headerByNumber != nil && headerByNumber.Hash() == header.Hash() {
 				log.Error("Found bad hash, rewinding chain", "number", header.Number, "hash", header.ParentHash)
-				bc.SetHead(header.Number.Uint64() - 1)
+				if err := bc.SetHead(header.Number.Uint64() - 1); err != nil {
+					return nil, err
+				}
 				log.Error("Chain rewind was successful, resuming normal operation")
 			}
 		}
@@ -382,7 +393,7 @@ func (bc *BlockChain) loadLastState() error {
 	log.Info("Loaded most recent local full block", "number", currentBlock.Number(), "hash", currentBlock.Hash(), "td", blockTd, "age", common.PrettyAge(time.Unix(int64(currentBlock.Time()), 0)))
 	log.Info("Loaded most recent local fast block", "number", currentFastBlock.Number(), "hash", currentFastBlock.Hash(), "td", fastTd, "age", common.PrettyAge(time.Unix(int64(currentFastBlock.Time()), 0)))
 
-	return nil
+	return bc.syncOVMIndex(currentBlock.Header(), nil)
 }
 
 // SetHead rewinds the local chain to a new head. In the case of headers, everything
@@ -394,6 +405,23 @@ func (bc *BlockChain) SetHead(head uint64) error {
 
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
+
+	// Rewind before deleting history. Only remove index entries here: the
+	// canonical header branch may not have executed bodies or receipts yet.
+	if bc.ovmIndex != nil && !bc.ovmIndex.disabled {
+		limit := head
+		if current := bc.CurrentBlock(); current == nil {
+			limit = 0
+		} else if current.NumberU64() < limit {
+			limit = current.NumberU64()
+		}
+		if headerHeight := bc.CurrentHeader().Number.Uint64(); headerHeight < limit {
+			limit = headerHeight
+		}
+		if _, err := bc.ovmIndex.rewindToCanonical(limit); err != nil {
+			return err
+		}
+	}
 
 	updateFn := func(db ethdb.KeyValueWriter, header *types.Header) {
 		// Rewind the block chain, ensuring we don't end up with a stateless head block
@@ -486,9 +514,26 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	}
 	// If all checks out, manually set the head block
 	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+	if bc.ovmIndex != nil && !bc.ovmIndex.disabled {
+		// A previously indexed block can be restored after rollback. A new fast
+		// pivot skips execution and must not trigger automatic history backfill.
+		undoKey := append(append([]byte(nil), rawdb.OVMTransferUndoPrefix...), block.Hash().Bytes()...)
+		indexed, err := bc.db.Has(undoKey)
+		if err != nil {
+			return err
+		}
+		if !indexed {
+			if err := bc.disableOVMIndex("fast sync skipped execution from genesis"); err != nil {
+				return err
+			}
+		}
+	}
+	if err := bc.syncOVMIndex(block.Header(), nil); err != nil {
+		return err
+	}
 	bc.currentBlock.Store(block)
 	headBlockGauge.Update(int64(block.NumberU64()))
-	bc.chainmu.Unlock()
 
 	log.Info("Committed new head block", "number", block.Number(), "hash", hash)
 	return nil
@@ -549,6 +594,9 @@ func (bc *BlockChain) Reset() error {
 // ResetWithGenesisBlock purges the entire blockchain, restoring it to the
 // specified genesis state.
 func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
+	if bc.ovmIndex != nil && genesis.Hash() != bc.ovmIndex.genesis.Hash() {
+		return errors.New("cannot replace genesis of an OVM migration index")
+	}
 	if err := verifyBlockCheckpoint(bc.chainConfig, genesis.NumberU64(), genesis.Hash()); err != nil {
 		return err
 	}
@@ -566,7 +614,9 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write genesis block", "err", err)
 	}
-	bc.writeHeadBlock(genesis)
+	if err := bc.writeHeadBlock(genesis, nil); err != nil {
+		return err
+	}
 
 	// Last update all in-memory chain markers
 	bc.genesisBlock = genesis
@@ -639,7 +689,7 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 // or if they are on a different side chain.
 //
 // Note, this function assumes that the `mu` mutex is held!
-func (bc *BlockChain) writeHeadBlock(block *types.Block) {
+func (bc *BlockChain) writeHeadBlock(block *types.Block, receipts types.Receipts) error {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
 	updateHeads := rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
 
@@ -666,6 +716,19 @@ func (bc *BlockChain) writeHeadBlock(block *types.Block) {
 	}
 	bc.currentBlock.Store(block)
 	headBlockGauge.Update(int64(block.NumberU64()))
+	if err := bc.syncOVMIndex(block.Header(), receipts); err != nil {
+		// The canonical head is already published. Returning a retryable error
+		// would skip this block as known on the next import, losing both index
+		// reconciliation and chain/log notifications. As with a failed canonical
+		// batch above, stop the process and let startup reconcile durable state.
+		// Stop interrupts imports deliberately and performs its own cleanup;
+		// preserve that path so it can flush state before the next startup.
+		if !errors.Is(err, errInsertionInterrupted) || !bc.getProcInterrupt() {
+			log.Crit("Failed to reconcile OVM index after canonical publication", "number", block.NumberU64(), "hash", block.Hash(), "err", err)
+		}
+		return err
+	}
+	return nil
 }
 
 // Genesis retrieves the chain's genesis block.
@@ -942,6 +1005,10 @@ func (bc *BlockChain) Rollback(chain []common.Hash) {
 	}
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to rollback chain markers", "err", err)
+	}
+	// Reconcile before truncation removes headers needed by undo.
+	if err := bc.syncOVMIndex(bc.CurrentBlock().Header(), nil); err != nil {
+		log.Crit("Failed to rollback OVM migration index", "err", err)
 	}
 	// Truncate ancient data which exceeds the current header.
 	//
@@ -1326,8 +1393,7 @@ func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
 			return err
 		}
 	}
-	bc.writeHeadBlock(block)
-	return nil
+	return bc.writeHeadBlock(block, nil)
 }
 
 // WriteBlockWithState writes the block and all associated state to the database.
@@ -1479,7 +1545,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	}
 	// Set new head.
 	if status == CanonStatTy {
-		bc.writeHeadBlock(block)
+		if err := bc.writeHeadBlock(block, receipts); err != nil {
+			return NonStatTy, err
+		}
 	}
 	bc.futureBlocks.Remove(block.Hash())
 
@@ -2515,7 +2583,9 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	// taking care of the proper incremental order.
 	for i := len(newChain) - 1; i >= 1; i-- {
 		// Insert the block in the canonical way, re-writing history
-		bc.writeHeadBlock(newChain[i])
+		if err := bc.writeHeadBlock(newChain[i], nil); err != nil {
+			return err
+		}
 
 		// Collect reborn logs due to chain reorg
 		collectLogs(newChain[i].Hash(), false)
@@ -2637,7 +2707,19 @@ func (bc *BlockChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (i
 		_, err := bc.hc.WriteHeader(header)
 		return err
 	}
-	return bc.hc.InsertHeaderChain(chain, whFunc, start)
+	// Header-only reorgs can invalidate LastBlock's canonical membership.
+	// Revoke readiness before publishing headers, including on interrupted
+	// imports, then reconcile without replaying any unexecuted branch.
+	if bc.ovmIndex != nil && !bc.ovmIndex.disabled {
+		if err := bc.db.Delete(rawdb.OVMIndexReadyKey); err != nil {
+			return 0, err
+		}
+	}
+	n, err := bc.hc.InsertHeaderChain(chain, whFunc, start)
+	if err != nil {
+		return n, err
+	}
+	return n, bc.syncOVMIndex(bc.CurrentBlock().Header(), nil)
 }
 
 // CurrentHeader retrieves the current head header of the canonical chain. The

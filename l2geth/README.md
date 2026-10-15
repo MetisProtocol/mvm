@@ -131,7 +131,113 @@ do not establish ERC20 retention eligibility or guarantee that a state witness
 is unnecessary. Upgrading only records addresses touched by subsequent execution;
 it does not backfill old balances, untouched holders or missing initial-state
 addresses. Historical replay or separate evidence is still needed for those
-gaps. This feature adds no history backfill command or allowance-pair index.
+gaps. Address preimages remain separate from the migration indexes below.
+
+### OVM allowance and Transfer-from indexes
+
+OVM block chains automatically maintain two additional indexes in the node's
+LevelDB. No new flag is required. Non-OVM chains do not create them. They do not
+change execution, state roots, receipt roots, gas or contract storage.
+
+| Key (ASCII prefix followed by raw bytes) | Value |
+| --- | --- |
+| `ovm-allowance-v1-` + secure storage key (32 bytes) | owner (20 bytes) + spender (20 bytes) |
+| `ovm-transfer-v1/member/` + address (20 bytes) | first block number (8-byte big endian) + hash (32 bytes) |
+| `ovm-transfer-v1/undo/` + block hash (32 bytes) | count (8-byte big endian) + sorted unique addresses (20 bytes each) |
+| `ovm-transfer-v1/head` | indexed block number (8-byte big endian) + hash (32 bytes) |
+| `ovm-transfer-v1/ready` | completed block number (8-byte big endian) + hash (32 bytes) |
+| `ovm-transfer-v1/disabled` | persistent reason for skipping incomplete indexes |
+| `ovm-transfer-v1/meta` | RLP of version, genesis hash, OVM_ETH address, allowance base slot, Transfer topic, Approval topic, first block |
+
+Metadata version is 1, the allowance base slot is 1, and coverage starts at block
+0. Metadata is immutable. A new index is initialized only when both namespaces
+are empty and the database contains only genesis: full/header/fast heads must
+all be genesis, with no later canonical block or frozen history. Existing nodes
+without index metadata continue running with indexing disabled for that process;
+they are not rejected merely because migration indexes are absent.
+
+Allowance relationships come from well-formed OVM_ETH Approval events, including
+zero approvals. For `pad32` left padding, the secure storage key is:
+
+```text
+inner   = keccak256(pad32(owner) || pad32(1))
+slot    = keccak256(pad32(spender) || inner)
+trieKey = keccak256(slot)
+```
+
+Relationships are verified against this formula and cannot overwrite conflicting
+records. They identify storage ownership, not the current allowance amount or
+ERC20 retention policy. Relationships remain valid across reorgs and are retained.
+They must not be stored in `secure-key-`, which requires the value's direct hash.
+
+Transfer membership means that the canonical prefix through the index head
+contains a well-formed OVM_ETH Transfer with that address as `from` and a nonzero
+amount. It includes transferFrom and burns, does not use the transaction sender,
+and does not filter by whether the address currently has code. Zero transfers
+never grant or revoke membership. EOA/contract classification, manual retain
+lists and actual balances remain the migration tool's responsibility.
+
+Each block atomically commits new members, discovered allowance relationships,
+its undo list and index head. Undo lists contain only *first* occurrences and
+exist even for blocks with no additions. Reorgs undo the old suffix in reverse
+order, then rebuild the new suffix from receipts. Reapplying a previously seen
+branch recomputes its undo; old undo is never a substitute for complete receipts.
+Undo records are retained without pruning, including records from old branches.
+Their per-block overhead grows with history even when few addresses are added.
+
+There is no automatic historical backfill. To build complete indexes, start with
+a fresh database and synchronize from genesis using full block execution (for
+P2P synchronization, use `--syncmode full`). Upgrading an existing unindexed
+node logs a warning and continues normal operation without creating either index.
+This decision is made before startup head repair, so repairing an old database
+back to genesis cannot silently turn it into an eligible fresh database.
+
+Normal block import uses final in-memory receipts. Existing indexes continue to
+handle reorgs and interrupted updates: recovery and branch promotion authenticate
+stored hot/ancient receipts against the header's receipt root, gas and bloom.
+This recovery of an index built from genesis is distinct from backfilling an
+unindexed legacy database. Missing or corrupt required recovery data, malformed
+target events and index errors retain their existing failure behavior; absent
+indexes on an upgraded node do not prevent startup.
+
+Canonical advancement, reorg, SetHead, Rollback and startup state repair reconcile
+an active index head. Header synchronization can select a different branch before
+its blocks execute. During this interval, readiness is revoked and the index only
+rewinds to its canonical common prefix; restart continues normally without reading
+receipts from the unexecuted branch. Execution or a return to the previously
+executed header branch restores readiness. Destructive rewinds only undo the
+affected index prefix before removing required history; they never replay a
+header-only branch. Fast-sync promotion of a previously indexed block can
+restore it after rollback. A new fast-sync pivot skips full execution: the node
+continues, but persists `disabled`, removes `ready`, and stops maintaining these
+indexes. Restart preserves this disabled state and never backfills the skipped
+prefix. Use a fresh database and full synchronization to obtain complete indexes.
+
+A missing `ready` record means construction/reconciliation is incomplete. For a
+migration snapshot, require **ready == index head == persisted LastBlock**, exact
+hashes as well as heights, a canonical mapping matching that block, matching
+metadata, and no `disabled` marker. An interrupted update resumes from its last
+atomic block batch. Atomic batches do not add a new filesystem sync
+or power-loss guarantee; use a stopped node database or consistent snapshot and
+allow startup recovery to finish before taking it. Do not edit index markers to
+bypass failures. Missing required history must be restored from a consistent
+source or the node resynchronized; no index repair CLI is provided.
+
+An index error after canonical head publication is fatal, just like a failed
+canonical database batch. Restart performs reconciliation before serving the
+chain; retrying the already published block in the same process is not a recovery
+mechanism. Normal shutdown interruptions still allow state flushing and resume
+index reconciliation on the next startup. Failed index rewinds abort chain
+configuration upgrades before the new configuration is saved, and `debug_setHead`
+returns the rewind error before updating rollup synchronization markers.
+
+These records are auxiliary evidence, not consensus commitments. A head marker
+or local index digest cannot independently prove that all historical events
+were included. Approval replay cannot discover genesis/direct-storage allowance
+relationships with no events, and these indexes do not backfill missing address
+preimages. Existing witness and current-state validation requirements still apply.
+This change does not modify l2state: it continues to require its existing full
+history validation until a separate migration-tool change adopts these indexes.
 
 ## Contribution
 

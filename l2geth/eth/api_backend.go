@@ -118,29 +118,31 @@ func (b *EthAPIBackend) CurrentBlock() *types.Block {
 	return b.eth.blockchain.CurrentBlock()
 }
 
-func (b *EthAPIBackend) SetHead(number uint64) {
+func (b *EthAPIBackend) SetHead(number uint64) error {
 	if number == 0 {
 		log.Info("Cannot reset to genesis")
-		return
+		return nil
 	}
 	if !b.UsingOVM {
 		b.eth.protocolManager.downloader.Cancel()
 	}
-	b.eth.blockchain.SetHead(number)
+	if err := b.eth.blockchain.SetHead(number); err != nil {
+		return err
+	}
 
 	// Make sure to reset the LatestL1{Timestamp,BlockNumber}
 	block := b.eth.blockchain.CurrentBlock()
 	txs := block.Transactions()
 	if len(txs) == 0 {
 		log.Error("No transactions found in block", "number", number)
-		return
+		return nil
 	}
 
 	tx := txs[0]
 	blockNumber := tx.L1BlockNumber()
 	if blockNumber == nil {
 		log.Error("No L1BlockNumber found in transaction", "number", number)
-		return
+		return nil
 	}
 
 	b.eth.syncService.SetLatestL1Timestamp(tx.L1Timestamp())
@@ -159,7 +161,7 @@ func (b *EthAPIBackend) SetHead(number uint64) {
 			// Other unexpected error
 			if err != nil {
 				log.Error("Not reset queue index", "err", err)
-				return
+				return nil
 			}
 			// No error, the queue element was found
 			queueIndex = enqueue.GetMeta().QueueIndex
@@ -210,6 +212,7 @@ func (b *EthAPIBackend) SetHead(number uint64) {
 			log.Error("Reset start sequencer height", "err", err)
 		}
 	}
+	return nil
 }
 
 func (b *EthAPIBackend) IngestTransactions(txs []*types.Transaction) error {
